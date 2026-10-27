@@ -3,11 +3,28 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="stylesheet" href="/src/app.css" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Wedyan</title>
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <link rel="canonical" href="https://wedyan.airlib.dev/" />
+    <meta
+      name="description"
+      content="A desktop where you and your AI agent work side by side: one prompt for every app, following whatever you're focused on."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Wedyan" />
+    <meta property="og:url" content="https://wedyan.airlib.dev/" />
+    <meta property="og:title" content="Wedyan" />
+    <meta
+      property="og:description"
+      content="A desktop where you and your AI agent work side by side: one prompt for every app, following whatever you're focused on."
+    />
+    <meta name="twitter:card" content="summary" />
+    <link rel="stylesheet" href="/styles/index.css" />
     <!--ssr-head-->
   </head>
   <body>
-    <div id="root"><!--ssr-outlet--></div>
+    <main id="root"><!--ssr-outlet--></main>
     <script type="module" src="/src/client.tsx"></script>
   </body>
 </html>

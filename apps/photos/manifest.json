@@ -1,0 +1,7 @@
+{
+  "name": "photos",
+  "label": "Photos",
+  "version": "0.0.1",
+  "icon": "/icons/photos.svg",
+  "main": "./views/index.ts"
+}

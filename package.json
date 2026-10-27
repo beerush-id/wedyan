@@ -1,7 +1,17 @@
 {
-  "name": "wedyan-app",
+  "name": "wedyan",
   "private": true,
   "version": "0.0.1",
+  "description": "A browser desktop you share with your AI agent: same apps, same tools, real structured state.",
+  "author": "Nanang Mahdaen El Agung <mahdaen@gmail.com>",
+  "homepage": "https://wedyan.airlib.dev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/beerush-id/wedyan.git"
+  },
+  "bugs": {
+    "url": "https://github.com/beerush-id/wedyan/issues"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite --port 6173",
@@ -11,13 +21,15 @@
     "start": "NODE_ENV=production bun run server/bun.js",
     "start:node": "NODE_ENV=production node server/node.js",
     "start:deno": "NODE_ENV=production deno run --allow-net --allow-read --allow-env server/deno.js",
-    "lint": "biome check"
+    "lint": "biome check",
+    "test": "vitest --run"
   },
   "dependencies": {
     "@airlib/aria": "workspace:*",
     "@airlib/aui": "workspace:*",
     "@airlib/react": "workspace:*",
     "@airlib/react-aui": "workspace:*",
+    "@irpclib/ai-kit": "workspace:*",
     "@irpclib/http": "workspace:*",
     "@irpclib/irpc": "workspace:*",
     "@irpclib/ws": "workspace:*",

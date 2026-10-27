@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Photos">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#5a4f9e"/>
+      <stop offset="1" stop-color="#2b2457"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="28%" cy="14%" r="75%">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.3"/>
+      <stop offset="0.6" stop-color="#ffffff" stop-opacity="0.04"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#efe7dd"/>
+    </linearGradient>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f6b38a"/>
+      <stop offset="0.6" stop-color="#f08a63"/>
+      <stop offset="1" stop-color="#c8553d"/>
+    </linearGradient>
+    <linearGradient id="skyBack" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9fe1cb"/>
+      <stop offset="1" stop-color="#2f9c8c"/>
+    </linearGradient>
+    <linearGradient id="hill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7a2e1f"/>
+      <stop offset="1" stop-color="#4a1b0c"/>
+    </linearGradient>
+    <linearGradient id="hillNear" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3c3489"/>
+      <stop offset="1" stop-color="#26215c"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#fff7ef"/>
+      <stop offset="0.7" stop-color="#ffe2c4"/>
+      <stop offset="1" stop-color="#ffd2ac" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="frontWindow">
+      <rect x="29" y="31" width="44" height="34" rx="2"/>
+    </clipPath>
+    <clipPath id="backWindow">
+      <rect x="24" y="27" width="40" height="30" rx="2"/>
+    </clipPath>
+    <filter id="drop" x="-25%" y="-25%" width="150%" height="160%">
+      <feDropShadow dx="0" dy="3.5" stdDeviation="3.2" flood-color="#120e2e" flood-opacity="0.55"/>
+    </filter>
+    <filter id="lift" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="1.2" stdDeviation="1.4" flood-color="#120e2e" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <rect width="100" height="100" fill="url(#bg)"/>
+  <rect width="100" height="100" fill="url(#glow)"/>
+
+  <g filter="url(#drop)">
+    <g transform="rotate(-9 44 46)" filter="url(#lift)">
+      <rect x="20" y="23" width="48" height="44" rx="3.5" fill="url(#card)"/>
+      <g clip-path="url(#backWindow)">
+        <rect x="24" y="27" width="40" height="30" fill="url(#skyBack)"/>
+        <path d="M24 50l9-9 7 6 8-10 16 15v5H24Z" fill="#0f5048"/>
+      </g>
+    </g>
+
+    <g transform="rotate(6 51 50)">
+      <rect x="25" y="27" width="52" height="50" rx="3.5" fill="url(#card)"/>
+      <g clip-path="url(#frontWindow)">
+        <rect x="29" y="31" width="44" height="34" fill="url(#sky)"/>
+        <circle cx="58" cy="42" r="7.5" fill="url(#sun)"/>
+        <path d="M29 56l10-10 8 6 9-9 17 14v8H29Z" fill="url(#hill)"/>
+        <path d="M29 60q11-7 22-3t22-1v9H29Z" fill="url(#hillNear)"/>
+      </g>
+      <rect x="29" y="31" width="44" height="34" rx="2" fill="none" stroke="#ffffff" stroke-opacity="0.35" stroke-width="0.8"/>
+      <path d="M33 71h16" stroke="#d9cbbb" stroke-width="1.8" stroke-linecap="round"/>
+    </g>
+
+    <g transform="translate(71 23)">
+      <path d="M0-9.5 2.6-2.6 9.5 0 2.6 2.6 0 9.5-2.6 2.6-9.5 0-2.6-2.6Z" fill="#fff7ef"/>
+      <path d="M0-9.5 2.6-2.6 9.5 0 2.6 2.6 0 9.5-2.6 2.6-9.5 0-2.6-2.6Z" fill="none" stroke="#f6b38a" stroke-width="0.8" stroke-linejoin="round"/>
+    </g>
+    <path d="M80.5 33.5l1.2 3.1 3.1 1.2-3.1 1.2-1.2 3.1-1.2-3.1-3.1-1.2 3.1-1.2Z" fill="#ffd2ac"/>
+  </g>
+</svg>

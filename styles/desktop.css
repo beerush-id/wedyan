@@ -1,0 +1,31 @@
+/* The desktop is the whole app: it fills the viewport, with no page chrome around it. */
+.wedyan-desktop {
+  position: fixed;
+  inset: 0;
+  block-size: 100dvh;
+  /* Wide enough for the prompt's hint to stay on one line. */
+  --aui-dock-prompt-width: calc(var(--spacing) * 116);
+}
+
+/* The prompt is lifted a little off the dock's glass, so it reads as the place to start. */
+.wedyan-desktop .aui-dock-prompt {
+  box-shadow: var(--elevation-1);
+}
+
+/* Once booted, the dock rises into place from below the screen's edge. */
+.wedyan-desktop > .aui-dock {
+  animation: wedyan-dock-in 600ms var(--ease-emphasized-decelerate, var(--ease-emphasized)) backwards;
+}
+
+@keyframes wedyan-dock-in {
+  from {
+    translate: 0 calc(100% + var(--aui-dock-offset) * 2);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wedyan-desktop > .aui-dock {
+    animation: none;
+  }
+}

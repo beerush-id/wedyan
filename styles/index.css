@@ -1,0 +1,12 @@
+@layer reset, aui, app;
+
+@import '@airlib/aui/base/reset.css' layer(reset);
+@import '@airlib/aui/index.css';
+@import '@airlib/aui/desktop.css';
+
+@import './theme.css' layer(app);
+@import './desktop.css' layer(app);
+@import './splash.css' layer(app);
+@import './files.css' layer(app);
+@import './photos.css' layer(app);
+@import './selection.css' layer(app);

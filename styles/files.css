@@ -1,0 +1,36 @@
+/* Either view fills the window's visible area, so pressing below the last file lets go of the pick. */
+.wedyan-files-pick {
+  box-sizing: border-box;
+  min-block-size: 100cqb;
+  align-content: start;
+}
+
+/* The Files list: one row per file, a small thumbnail, the name, then its size and date in columns at the end. */
+.wedyan-files-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.wedyan-files-list-thumb {
+  flex: none;
+  inline-size: calc(var(--spacing) * 9);
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--radius-xs);
+}
+
+.wedyan-files-list-name {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.wedyan-files-list-detail {
+  flex: none;
+  inline-size: calc(var(--spacing) * 16);
+  color: color-mix(in oklch, currentColor 70%, transparent);
+  font-size: var(--font-label-sm-size);
+  text-align: end;
+}

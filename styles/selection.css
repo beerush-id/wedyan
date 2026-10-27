@@ -1,0 +1,20 @@
+/* What can be done with what's picked, beside a window's title: the count, then the actions in groups. */
+.wedyan-selection {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-inline-start: var(--spacing-lg);
+
+  /* A short line between groups, centered on the buttons rather than stretched to the bar. */
+  & > .aui-divider {
+    align-self: center;
+    block-size: calc(var(--spacing) * 4);
+  }
+}
+
+.wedyan-selection-count {
+  margin-inline-end: var(--spacing-xs);
+  color: color-mix(in oklch, currentColor 70%, transparent);
+  font-size: var(--font-label-md-size);
+  white-space: nowrap;
+}

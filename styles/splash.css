@@ -1,0 +1,83 @@
+/* While Wedyan boots: the W alone on black, the way a machine starts, drawing over the step it's on. */
+.wedyan-splash {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-lg);
+  background-color: #000;
+  color: #fff;
+}
+
+.wedyan-splash-mark {
+  inline-size: calc(var(--spacing) * 24);
+  aspect-ratio: 3 / 2;
+
+  & > svg {
+    display: block;
+    inline-size: 100%;
+    block-size: 100%;
+    fill: none;
+    stroke-width: 10;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+}
+
+/*
+ * One cycle for both halves, so they never drift apart: yours draws, the agent's follows from your
+ * last point, the W holds whole, then both clear forward in the same order and the cycle restarts.
+ */
+.wedyan-splash-stroke {
+  stroke: #fff;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: wedyan-draw-you 2s var(--ease-standard) infinite;
+}
+
+.wedyan-splash-agent {
+  animation-name: wedyan-draw-agent;
+}
+
+.wedyan-splash-status {
+  margin: 0;
+  font-size: var(--font-label-lg-size);
+}
+
+@keyframes wedyan-draw-you {
+  0% {
+    stroke-dashoffset: 1;
+  }
+  25%,
+  65% {
+    stroke-dashoffset: 0;
+  }
+  80%,
+  100% {
+    stroke-dashoffset: -1;
+  }
+}
+
+@keyframes wedyan-draw-agent {
+  0%,
+  25% {
+    stroke-dashoffset: 1;
+  }
+  50%,
+  80% {
+    stroke-dashoffset: 0;
+  }
+  95%,
+  100% {
+    stroke-dashoffset: -1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wedyan-splash-stroke {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}

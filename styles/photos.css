@@ -1,0 +1,108 @@
+/* A photo used as a reference, at the start of Photos' dock options: its picture, cropped square, a little bigger than an icon. */
+.wedyan-photos-reference > img {
+  inline-size: calc(var(--aui-icon-size, 1.25rem) * 1.25);
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--radius-xs);
+}
+
+/* A reference's tooltip: the photo larger, its corners concentric with the tooltip's, and its name under it. */
+/* The tooltip holding a reference's photo insets it the same on its top and sides. */
+.aui-tooltip:has(> .wedyan-photos-reference-tip) {
+  --aui-tooltip-padding-inline: var(--spacing-sm);
+  padding-block-start: var(--spacing-sm);
+}
+
+.wedyan-photos-reference-tip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs);
+
+  & > img {
+    inline-size: calc(var(--spacing) * 64);
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+    border-radius: max(calc(var(--aui-tooltip-radius) - var(--spacing-sm)), 0px);
+  }
+}
+
+/* The line after the references, centered on the options rather than stretched to the bar. */
+.wedyan-photos-references-end {
+  align-self: center;
+  block-size: calc(var(--spacing) * 5);
+}
+
+/* Photos: the tiles and, beside them, the preview of the picked one, which stays in view as the tiles scroll. */
+.wedyan-photos-browse {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+}
+
+.wedyan-photos-gallery {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+
+  /* The tiles fill the window's visible area, so pressing below the last one lets go of the pick. */
+  & > .aui-gallery {
+    min-block-size: 100cqb;
+    align-content: start;
+  }
+}
+
+.wedyan-photos-preview {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  inline-size: calc(var(--spacing) * 88);
+  /* As tall as the window shows, so it stays put beside the scrolling tiles. */
+  box-sizing: border-box;
+  block-size: 100cqb;
+  overflow-y: auto;
+  /* A frosted glass panel, as the sidebar is, padded the same on every side, corners concentric with the content panel's. */
+  --wedyan-photos-preview-radius: max(calc(var(--aui-window-panel-radius) - var(--spacing-md)), var(--radius-sm));
+  padding: var(--spacing-md);
+  border-radius: var(--wedyan-photos-preview-radius);
+
+  /* With nothing picked, the empty state sits in the middle of the pane. */
+  & > .aui-empty-state {
+    margin-block: auto;
+  }
+}
+
+/* The preview's picture opens it in the viewer; its corners are concentric with the pane's. */
+.wedyan-photos-preview-open {
+  display: block;
+  flex: none;
+  inline-size: 100%;
+  aspect-ratio: 4 / 3;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: max(calc(var(--wedyan-photos-preview-radius) - var(--spacing-md)), var(--radius-xs));
+  background: none;
+  cursor: zoom-in;
+
+  & img {
+    display: block;
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+  }
+
+  &:focus-visible {
+    outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+  }
+}
+
+.wedyan-photos-preview-name {
+  font-size: var(--font-title-sm-size);
+  font-weight: 500;
+  line-height: var(--font-title-sm-line-height);
+  overflow-wrap: anywhere;
+}

@@ -1,0 +1,9 @@
+{
+  "favorites": [
+    { "name": "documents", "label": "Documents" },
+    { "name": "photos", "label": "Photos" },
+    { "name": "videos", "label": "Videos" },
+    { "name": "musics", "label": "Musics" }
+  ],
+  "locations": [{ "name": "storage", "label": "Storage" }]
+}

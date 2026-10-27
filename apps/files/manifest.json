@@ -1,0 +1,7 @@
+{
+  "name": "files",
+  "label": "Files",
+  "version": "0.0.1",
+  "icon": "/icons/files.svg",
+  "main": "./views/index.ts"
+}

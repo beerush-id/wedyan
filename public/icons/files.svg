@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Files">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2f9c8c"/>
+      <stop offset="1" stop-color="#0f5048"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="28%" cy="14%" r="75%">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.32"/>
+      <stop offset="0.6" stop-color="#ffffff" stop-opacity="0.04"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="back" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e79a68"/>
+      <stop offset="1" stop-color="#b8472f"/>
+    </linearGradient>
+    <linearGradient id="paper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#ece2d6"/>
+    </linearGradient>
+    <linearGradient id="front" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd8b2"/>
+      <stop offset="0.5" stop-color="#f6b38a"/>
+      <stop offset="1" stop-color="#e2855a"/>
+    </linearGradient>
+    <linearGradient id="frontShade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.55" stop-color="#7a2e1f" stop-opacity="0"/>
+      <stop offset="1" stop-color="#7a2e1f" stop-opacity="0.22"/>
+    </linearGradient>
+    <filter id="drop" x="-25%" y="-25%" width="150%" height="160%">
+      <feDropShadow dx="0" dy="3.5" stdDeviation="3.2" flood-color="#052e28" flood-opacity="0.5"/>
+    </filter>
+    <filter id="lift" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.1" flood-color="#6b2a1c" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+
+  <rect width="100" height="100" fill="url(#bg)"/>
+  <rect width="100" height="100" fill="url(#glow)"/>
+
+  <g filter="url(#drop)">
+    <path d="M18 31q0-5 5-5h16.5q2.6 0 4.1 2.1L47.5 33H77q5 0 5 5v34q0 5-5 5H23q-5 0-5-5Z" fill="url(#back)"/>
+    <path d="M23 27.2h16.5q2 0 3.2 1.6" fill="none" stroke="#ffd2ac" stroke-opacity="0.7" stroke-width="1.1" stroke-linecap="round"/>
+
+    <g filter="url(#lift)">
+      <g transform="rotate(-5 48 50)">
+        <rect x="27" y="34" width="44" height="32" rx="2.6" fill="url(#paper)"/>
+        <path d="M33 41h22M33 46h30M33 51h26" stroke="#d9cbbb" stroke-width="1.6" stroke-linecap="round"/>
+      </g>
+      <g transform="rotate(3 52 51)">
+        <rect x="30" y="37" width="43" height="31" rx="2.6" fill="#fffdf9"/>
+        <path d="M36 44h24M36 49h30M36 54h20" stroke="#e4d8ca" stroke-width="1.6" stroke-linecap="round"/>
+        <rect x="56" y="52" width="11" height="8" rx="1.6" fill="#9fe1cb"/>
+      </g>
+    </g>
+
+    <path d="M15.5 47.5q0-4.8 4.8-4.8h59.4q4.8 0 4.8 4.8l-2.7 25.4q-.5 5.1-5.6 5.1H23.8q-5.1 0-5.6-5.1Z" fill="url(#front)"/>
+    <path d="M15.5 47.5q0-4.8 4.8-4.8h59.4q4.8 0 4.8 4.8l-2.7 25.4q-.5 5.1-5.6 5.1H23.8q-5.1 0-5.6-5.1Z" fill="url(#frontShade)"/>
+    <path d="M20.6 44.3h58.8" stroke="#fff4e6" stroke-opacity="0.85" stroke-width="1.2" stroke-linecap="round"/>
+    <path d="M42 57.5h16" stroke="#c96a43" stroke-opacity="0.55" stroke-width="2.2" stroke-linecap="round"/>
+  </g>
+</svg>
