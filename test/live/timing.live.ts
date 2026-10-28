@@ -31,9 +31,9 @@ const ALL_CONFIGS: Config[] = [
   { provider: 'meta', model: 'muse-wonder-1.0' },
   { provider: 'meta', model: 'muse-wonder-1.0', effort: 'low' },
   { provider: 'meta', model: 'muse-wonder-1.0', effort: 'minimal' },
-  { provider: 'baseten', model: 'meta-models/muse-spark-open' },
-  { provider: 'baseten', model: 'meta-models/muse-spark-open', effort: 'low' },
-  { provider: 'baseten', model: 'meta-models/muse-spark-open', effort: 'minimal' },
+  { provider: 'baseten', model: 'meta-models/muse-spark-open-1026' },
+  { provider: 'baseten', model: 'meta-models/muse-spark-open-1026', effort: 'low' },
+  { provider: 'baseten', model: 'meta-models/muse-spark-open-1026', effort: 'minimal' },
 ];
 
 /**

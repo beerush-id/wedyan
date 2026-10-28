@@ -12,7 +12,8 @@ import { ask, type BeatResult, PROFILE, PROVIDERS, runBeat } from './beat.js';
  * - ends `done`, with no malformed markers reported back to the model;
  * - speaks: at least one spoken part, all spoken text together at most 280 characters;
  * - never claims an action is done: no "opened", "deleted", "tiled" or "shown" for an action it wrote;
- * - widgets are widget nodes: a string `role`, and a card has a string `props.title`.
+ * - widgets are drawn by the composer: ready, with widget nodes of a string `role`, a card's with a
+ *   string `props.title`.
  *
  * Expected per beat:
  * - router-answer: "Good morning!" is answered by the router itself, with no handoff and no calls.
@@ -41,17 +42,36 @@ const CONFIGS: Array<{ name: string; models: AgentModels; needs: Array<keyof typ
     name: 'baseten',
     needs: ['baseten'],
     models: {
-      router: { model: 'meta-models/muse-spark-open', effort: 'low' },
-      agents: { model: 'meta-models/muse-spark-open', effort: 'low' },
+      router: { model: 'meta-models/muse-spark-open-1026', effort: 'low' },
+      agents: { model: 'meta-models/muse-spark-open-1026', effort: 'low' },
     },
   },
   {
     name: 'split',
     needs: ['meta', 'baseten'],
     models: {
-      router: { model: 'meta-models/muse-spark-open', effort: 'low' },
+      router: { model: 'meta-models/muse-spark-open-1026', effort: 'low' },
       agents: { model: 'muse-spark-1.3', effort: 'minimal' },
     },
+  },
+  // Standard effort: each provider's own default, no effort sent.
+  {
+    name: 'meta-standard',
+    needs: ['meta'],
+    models: { router: { model: 'muse-spark-1.3' }, agents: { model: 'muse-spark-1.3' } },
+  },
+  {
+    name: 'baseten-standard',
+    needs: ['baseten'],
+    models: {
+      router: { model: 'meta-models/muse-spark-open-1026' },
+      agents: { model: 'meta-models/muse-spark-open-1026' },
+    },
+  },
+  {
+    name: 'split-standard',
+    needs: ['meta', 'baseten'],
+    models: { router: { model: 'meta-models/muse-spark-open-1026' }, agents: { model: 'muse-spark-1.3' } },
   },
   {
     name: 'wonder-low',
@@ -109,12 +129,21 @@ function common(result: BeatResult): Check[] {
     { name: 'speaks briefly', pass: voice.length <= 280, detail: `${voice.length} chars` },
     { name: 'no done-claims for actions', pass: !claims.length, detail: claims.join(', ') },
     {
-      name: 'widgets are nodes',
+      name: 'widgets are drawn as nodes',
       pass: widgets(result).every(
         (widget) =>
-          typeof widget.role === 'string' &&
-          (widget.role !== 'card' || typeof (widget.props as { title?: unknown })?.title === 'string'),
+          widget.status === 'ready' &&
+          widget.nodes.length > 0 &&
+          (widget.nodes as Array<string | { role?: unknown; props?: { title?: unknown } }>).every(
+            (node) =>
+              typeof node === 'string' ||
+              (typeof node.role === 'string' && (node.role !== 'card' || typeof node.props?.title === 'string')),
+          ),
       ),
+      detail: widgets(result)
+        .filter((widget) => widget.status !== 'ready')
+        .map((widget) => widget.error ?? widget.status)
+        .join(', '),
     },
   ];
 }

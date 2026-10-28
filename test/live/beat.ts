@@ -2,7 +2,7 @@ import { mutable, withContext } from '@airlib/react';
 import type { ChatMessage, ToolCall } from '@irpclib/ai-kit';
 import { AIAdapter, OpenAIDriver } from '@irpclib/ai-kit/worker';
 import type { IRPCData } from '@irpclib/irpc';
-import { type AgentModels, createAgents, ENTRY } from '../../lib/agents/index.js';
+import { type AgentModels, COMPOSER, createAgents, ENTRY } from '../../lib/agents/index.js';
 import { personaPrompt } from '../../lib/agents/persona.js';
 import { SKILLS } from '../../lib/agents/skills.js';
 import type { AskAction, AskPart, AskState } from '../../lib/kernel/agent.h.js';
@@ -18,7 +18,7 @@ export const PROVIDERS = {
   baseten: {
     base: 'https://inference.baseten.co/v1',
     key: process.env.BASETEN_API_KEY ?? '',
-    models: ['meta-models/muse-spark-open'],
+    models: ['meta-models/muse-spark-open-1026'],
   },
 };
 
@@ -119,6 +119,7 @@ export async function runBeat(
       adapter: liveAdapter(),
       agents: createAgents(options.models),
       entry: ENTRY,
+      composer: COMPOSER,
       skills: SKILLS,
       persona: personaPrompt(PROFILE),
       input,
