@@ -46,11 +46,16 @@ export const SYS: Record<string, IRPCData> = {
     { id: 'm2', kind: 'mail', from: 'Rudi', title: 'Budget approved for episode 2', at: '07:05' },
     { id: 'c1', kind: 'meeting', title: 'Casting call with Ana', at: '10:00 today' },
   ],
-  'sys.fs.search': [{ path: '~/projects/short-drama', name: 'short-drama', modified: 'yesterday 23:40' }],
-  'sys.fs.list': [
-    { path: '~/projects/short-drama/cut-v3.motion', name: 'cut-v3.motion' },
-    { path: '~/projects/short-drama/script.md', name: 'script.md' },
-  ],
+  // r2-file's own tools, answering in its ListResult shape.
+  'r2-file.search': {
+    entries: [{ path: '~/projects/short-drama', name: 'short-drama', isDirectory: true, mtime: 'yesterday 23:40' }],
+  },
+  'r2-file.list': {
+    entries: [
+      { path: '~/projects/short-drama/cut-v3.motion', name: 'cut-v3.motion', isDirectory: false },
+      { path: '~/projects/short-drama/script.md', name: 'script.md', isDirectory: false },
+    ],
+  },
   'sys.photos.search': [
     { path: '~/pictures/sofa.jpg', description: 'A grey sofa with an orange cat on the left cushion' },
   ],
@@ -112,12 +117,13 @@ export async function runBeat(
     state,
     resolve: async (call) => {
       calls.push(call);
-      if (call.name === 'ask_user') return replies.shift();
       return SYS[call.name];
     },
     act: async (action) => {
       actions.push(action);
-      return { ok: true };
+      // The user fills the form's first field with the next scripted reply.
+      if (action.name === 'ask_user') return { [fieldsOf(action.args)[0] ?? 'answer']: replies.shift() ?? null };
+      return action.ask ? undefined : { ok: true };
     },
     onSnapshot: (snapshot) => snapshots.push(snapshot),
   });
@@ -145,4 +151,20 @@ export async function runBeat(
     invalid: feedback.flatMap((entry) => entry?.invalid ?? []),
     failedActions: feedback.flatMap((entry) => entry?.actions ?? []),
   };
+}
+
+/**
+ * The form fields an ask_user widget binds, in the order they appear: each writable `$this.FIELD`.
+ *
+ * @param widget - The widget the ask's form shows.
+ * @returns The field names.
+ */
+function fieldsOf(widget: IRPCData): string[] {
+  if (!widget || typeof widget !== 'object') return [];
+  if (Array.isArray(widget)) return widget.flatMap(fieldsOf);
+  const node = widget as { bindings?: { state?: string; writable?: boolean }[]; children?: IRPCData[] };
+  const own = (node.bindings ?? [])
+    .filter((binding) => binding.writable && binding.state?.startsWith('$this.'))
+    .map((binding) => (binding.state as string).slice('$this.'.length));
+  return [...own, ...(node.children ?? []).flatMap(fieldsOf)];
 }

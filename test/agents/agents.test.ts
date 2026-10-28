@@ -42,6 +42,22 @@ describe('agents', () => {
     }
   });
 
+  it('gives Lita r2-file’s lookups as they are described, not a copy of them', () => {
+    const files = AGENTS.lita.tools.filter((tool) => tool.name.startsWith('r2-file.'));
+
+    expect(files.map((tool) => tool.name).sort()).toEqual([
+      'r2-file.list',
+      'r2-file.read',
+      'r2-file.search',
+      'r2-file.stat',
+    ]);
+    for (const tool of files) {
+      expect(tool.description, tool.name).toBeTruthy();
+      expect(tool.parameters, tool.name).toMatchObject({ type: 'object', properties: { options: {} } });
+    }
+    expect(AGENTS.lita.tools.some((tool) => tool.name.startsWith('sys.fs.'))).toBe(false);
+  });
+
   it('gives each kind of agent its model and effort', () => {
     expect(AGENTS.router).toMatchObject({ model: 'router-m', effort: 'minimal' });
     expect(AGENTS.lita.model).toBe('agents-m');
@@ -52,6 +68,22 @@ describe('agents', () => {
     for (const agent of Object.values(AGENTS)) {
       expect(agent.system, agent.name).toContain('[[say]]');
       expect(agent.system, agent.name).toContain('never that it is done');
+    }
+  });
+
+  it('offers only system things as tools: the user and apps are reached by asks and actions', () => {
+    for (const agent of Object.values(AGENTS)) {
+      for (const tool of agent.tools) {
+        expect(tool.name, agent.name).not.toMatch(/^(ask_user|app\.|desktop\.)/);
+      }
+    }
+  });
+
+  it('teaches every answering agent to ask the user through a widget bound to $this', () => {
+    for (const agent of Object.values(AGENTS).filter((agent) => agent.name !== ENTRY)) {
+      expect(agent.system, agent.name).toContain('[[ask_user]]');
+      expect(agent.system, agent.name).toContain('$this.');
+      expect(agent.system, agent.name).toContain('[[ask_app name=');
     }
   });
 

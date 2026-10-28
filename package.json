@@ -33,6 +33,7 @@
     "@irpclib/ai-kit": "workspace:*",
     "@irpclib/http": "workspace:*",
     "@irpclib/irpc": "workspace:*",
+    "@irpclib/r2-file": "workspace:*",
     "@irpclib/ws": "workspace:*",
     "gsap": "catalog:lib",
     "react": "catalog:app",

@@ -29,13 +29,16 @@ export type WidgetPart = {
 export type AskPart = TextPart | WidgetPart;
 
 /**
- * Something the answer does. The kernel asks the client to run it by its `name`, in order, once the
- * part at index `after` has been shown or spoken (`-1`: before any part).
+ * Something the answer does on the desktop. The kernel asks the client to run it by its `name`, in
+ * order, once the part at index `after` has been shown or spoken (`-1`: before any part). An action is
+ * fire-and-forget; an ask (`ask_user` with a widget form, or an app by name) waits for a reply the
+ * model reads on its next turn.
  */
 export type AskAction = {
   name: string;
   args: IRPCData;
   after: number;
+  ask?: true;
 };
 
 /** The live state of one ask, streamed to the client. */
@@ -53,8 +56,9 @@ export interface AskState {
 
 /**
  * Questions either side may ask while an ask runs. The client asks `followUp`. The kernel asks, by
- * name, every call and action it can't resolve itself (`app.*`, `ask_user`); an action also carries
- * its anchor. A name the client hasn't answered resolves to `undefined`.
+ * name and with its anchor, every action and ask the answer makes (`app.*`, `desktop.*`,
+ * `ask_user`); `ask_user`'s arguments are the widget its form shows, and its reply is the form's
+ * fields. A name the client hasn't answered resolves to `undefined`.
  */
 export type WedyanQueries = {
   // biome-ignore lint/suspicious/noExplicitAny: call names and shapes are registered by the client at runtime

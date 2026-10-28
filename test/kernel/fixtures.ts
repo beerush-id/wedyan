@@ -1,7 +1,7 @@
 import { AIAdapter, OpenAIDriver } from '@irpclib/ai-kit/worker';
 import type { AgentProfile } from '../../lib/kernel/agent.js';
 
-/** Three agents: a router that hands off, an assistant with a server call, and a photos agent. */
+/** Three agents: a router that hands off, an assistant with server tools, and a photos agent. */
 export const AGENTS: Record<string, AgentProfile> = {
   router: { name: 'router', model: 'router-m', system: 'Route.', tools: [], handoffs: ['assistant', 'photos'] },
   assistant: {
@@ -10,9 +10,7 @@ export const AGENTS: Record<string, AgentProfile> = {
     system: 'Assist.',
     tools: [
       { name: 'sys.fs.read', description: 'Reads a file' },
-      { name: 'app.photos.open', description: 'Opens Photos' },
-      { name: 'app.mail.open', description: 'Opens Mail' },
-      { name: 'ask_user', description: 'Asks the user a question' },
+      { name: 'files.read', description: 'Reads a file, as a package tool' },
     ],
     handoffs: ['photos'],
   },

@@ -8,7 +8,7 @@ import {
   type ToolCall,
 } from '@irpclib/ai-kit';
 import type { AIAdapter } from '@irpclib/ai-kit/worker';
-import { getAbortSignal, type IRPCData, stream } from '@irpclib/irpc';
+import { getAbortSignal, type IRPCData, type IRPCHandler, type IRPCRouter, stream } from '@irpclib/irpc';
 import { type AskAction, type AskInput, type AskPart, type AskState, askSeed, askWedyan } from './agent.h.js';
 import { createMarkerParser } from './marker.js';
 import { kernel } from './package.js';
@@ -25,6 +25,8 @@ export interface KernelConfig {
   agents: Record<string, AgentProfile>;
   /** The first agent of every ask: the router. */
   entry: string;
+  /** Serves the packages whose tools agents call by `package.function`; each call runs through its stub. */
+  router?: IRPCRouter;
   /** Server-side calls by name (`sys.*`); every other call or action is asked of the client. */
   sys?: Record<string, SysHandler>;
   limits?: AgentLoopOptions['limits'];
@@ -44,7 +46,11 @@ export function setupKernel(next: KernelConfig): void {
 kernel.construct(askWedyan, (input) =>
   stream((state, resolve) => {
     if (!config) throw new Error('Kernel is not set up');
-    const { adapter, agents, entry, sys = {}, limits } = config;
+    const { adapter, agents, entry, router, sys = {}, limits } = config;
+    const tools: Record<string, IRPCHandler> = Object.assign(
+      {},
+      ...[...(router?.packages ?? [])].map((pkg) => pkg.tools()),
+    );
     const controller = new AbortController();
     getAbortSignal()?.addEventListener('abort', () => controller.abort(), { once: true });
 
@@ -61,7 +67,13 @@ kernel.construct(askWedyan, (input) =>
       limits,
       input: toChatInput(input),
       state: state.data,
-      resolve: async (call) => (sys[call.name] ? sys[call.name](call.args) : state.ask(call.name, call.args)),
+      // Tools are the server's: a package tool or a `sys.*` call. The desktop is reached by actions and asks.
+      resolve: async (call) => {
+        // A model sends one input object; the router turns it into the stub's own arguments.
+        const args = router?.argsOf(call.name, call.args as Record<string, unknown>);
+        if (args) return tools[call.name](...args);
+        return sys[call.name]?.(call.args);
+      },
       act: async (action) =>
         sys[action.name] ? sys[action.name](action.args) : state.ask(action.name, action.args, { after: action.after }),
       followUps: () => followUps.splice(0),
@@ -112,8 +124,9 @@ export interface AgentLoopOptions {
    */
   resolve: (call: ToolCall) => Promise<IRPCData | undefined>;
   /**
-   * Runs one action. Actions run one at a time, in order; a throw is a failure the model is told
-   * about, and skips that turn's remaining actions. `undefined` means nothing ran it: a no-op.
+   * Runs one action or ask. They run one at a time, in order; a throw is a failure the model is told
+   * about, and skips that turn's remaining ones. For an action, `undefined` means nothing ran it: a
+   * no-op. For an ask, what it returns is the reply the model reads; `undefined` means nothing answered.
    */
   act?: (action: AskAction) => Promise<IRPCData | undefined>;
   /** Drained at each safe turn: what the user said while the ask was running. */
@@ -175,6 +188,7 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
       state.turn = turn;
       const current = turn;
       const callable = new Set(toolsOf(agent).map((tool) => tool.name));
+      let asked = false;
       const take = () =>
         modelTurn(adapter, agent, history, state.parts, signal, {
           onAction: (action) => {
@@ -183,6 +197,7 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
               problems.push(`${action.name} is a call, not an action: call it as a tool to get its result`);
               return;
             }
+            if (action.ask) asked = true;
             actions.add(action, current);
           },
           onInvalid: (problem) => problems.push(problem),
@@ -206,6 +221,8 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
       for (const [index, call] of calls.entries()) history.push(toolTurn(call.id, results[index]));
       for (const call of extraHandoffs) history.push(toolTurn(call.id, { error: 'Only one handoff per turn' }));
       if (signal?.aborted) return end('stopped', 'Aborted');
+      // An ask ends the turn: the next one needs its reply, and takes in what was said meanwhile.
+      if (asked && !(await settled(actions.settle(), signal))) return end('stopped', 'Aborted');
 
       let target: AgentProfile | undefined;
       if (handoff) {
@@ -324,13 +341,15 @@ async function modelTurn(
 }
 
 /**
- * Runs actions one at a time, in the order they were written. A failure skips the rest of that
- * turn's actions; both are kept for the model until taken.
+ * Runs actions and asks one at a time, in the order they were written. A failure skips the rest of
+ * that turn's actions and asks; an ask's reply, or that nothing answered it, is kept for the model
+ * like a failure until taken.
  */
 function createActionQueue(act: AgentLoopOptions['act']) {
   let chain: Promise<void> = Promise.resolve();
   const brokenTurns = new Set<number>();
   const failures: IRPCData[] = [];
+  const replies: IRPCData[] = [];
 
   return {
     add(action: AskAction, turn: number) {
@@ -340,25 +359,40 @@ function createActionQueue(act: AgentLoopOptions['act']) {
           return;
         }
         try {
-          await act?.(action);
+          const reply = await act?.(action);
+          if (action.ask) replies.push(replyOf(action, reply));
         } catch (error) {
           brokenTurns.add(turn);
           failures.push({ action: action.name, args: action.args, error: messageOf(error) });
         }
       });
     },
-    /** Resolves once every queued action has run or been skipped. */
+    /** Resolves once every queued action and ask has run or been skipped. */
     settle: () => chain,
-    /** Hands over the failures so far, for the model's next turn. */
-    take: () => failures.splice(0),
+    /** Hands over the failures and replies so far, for the model's next turn. */
+    take: () => ({ failures: failures.splice(0), replies: replies.splice(0) }),
   };
 }
 
-/** What the model must hear about at the next turn, or undefined when nothing went wrong. */
-function collectFeedback(failedActions: IRPCData[], invalid: string[]): IRPCData | undefined {
-  if (!failedActions.length && !invalid.length) return undefined;
+/**
+ * What the model reads back for an ask: its reply, or that nothing answered it. The user's form
+ * isn't echoed back; an app ask keeps its arguments, so two asks of one app stay apart.
+ */
+function replyOf(action: AskAction, reply: IRPCData | undefined): IRPCData {
+  const asked = action.name === 'ask_user' ? { ask: action.name } : { ask: action.name, args: action.args };
+  return reply === undefined ? { ...asked, error: 'not available' } : { ...asked, reply };
+}
+
+/** What the model must hear about at the next turn, or undefined when there is nothing. */
+function collectFeedback(
+  taken: { failures: IRPCData[]; replies: IRPCData[] },
+  invalid: string[],
+): IRPCData | undefined {
+  const { failures, replies } = taken;
+  if (!failures.length && !replies.length && !invalid.length) return undefined;
   return {
-    ...(failedActions.length ? { actions: failedActions } : {}),
+    ...(replies.length ? { asks: replies } : {}),
+    ...(failures.length ? { actions: failures } : {}),
     ...(invalid.length ? { invalid } : {}),
   };
 }

@@ -1,4 +1,5 @@
-import { IRPC_BASE_CONTEXT, withContext } from '@irpclib/irpc';
+import { HTTPTransport } from '@irpclib/http';
+import { createPackage, IRPC_BASE_CONTEXT, IRPCRouter, withContext } from '@irpclib/irpc';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { askWedyan } from '../../lib/kernel/agent.h.js';
 import { setupKernel } from '../../lib/kernel/agent.js';
@@ -7,14 +8,50 @@ import { calls, messagesOf, mockVendor, says } from './vendor.js';
 
 // askWedyan runs over real IRPC (stub and handler in one process). Only the model provider is mocked.
 
+/** A package whose tools agents call by `files.<function>`, like r2-file's. */
+const transport = new HTTPTransport({ endpoint: '/irpc' });
+const files = createPackage({ name: 'files', version: '1.0.0' }).use(transport);
+const read = files.declare<(path: string, options?: { encoding?: string }) => Promise<string>>('read', {
+  mcp: { args: ['path', 'options'] },
+});
+const reads: unknown[][] = [];
+files.construct(read, async (...args) => {
+  reads.push(args);
+  return `content of ${args[0]}`;
+});
+
 describe('askWedyan', () => {
   beforeEach(() => {
+    reads.length = 0;
     setupKernel({
       adapter: createTestAdapter(),
       agents: AGENTS,
       entry: 'assistant',
+      router: new IRPCRouter(transport),
       sys: { 'sys.fs.read': () => ({ content: 'hello' }) },
     });
+  });
+
+  it('runs a package tool through its stub, with the model’s input as the function’s arguments', async () => {
+    const vendor = mockVendor(
+      calls({ id: 'c1', name: 'files__read', args: { options: { encoding: 'text' }, path: '~/a.txt' } }),
+      says('Read.'),
+    );
+    const asked = vi.fn();
+
+    await withContext(async () => {
+      const call = askWedyan({ text: 'Read a' });
+      call.answer('files.read', asked);
+      await call;
+    });
+
+    expect(messagesOf(vendor.bodies, 1).at(-1)).toEqual({
+      role: 'tool',
+      tool_call_id: 'c1',
+      content: '"content of ~/a.txt"',
+    });
+    expect(reads).toEqual([['~/a.txt', { encoding: 'text' }]]);
+    expect(asked).not.toHaveBeenCalled();
   });
 
   afterEach(() => {
@@ -104,26 +141,80 @@ describe('askWedyan', () => {
     });
   });
 
-  it('asks the caller for every other call, by its own name', async () => {
-    const vendor = mockVendor(
-      calls(
-        { id: 'c1', name: 'app__photos__open', args: { album: 'cats' } },
-        { id: 'c2', name: 'ask_user', args: { question: 'Which one?' } },
-      ),
-      says('Opened.'),
-    );
+  it('never asks the caller for a tool call: tools are the server’s', async () => {
+    const vendor = mockVendor(calls({ id: 'c1', name: 'app__photos__open', args: { album: 'cats' } }), says('No.'));
+    const asked = vi.fn(() => ({ opened: true }));
 
     await withContext(async () => {
       const call = askWedyan({ text: 'Show my cats' });
-      call.answer('app.photos.open', (args: { album: string }) => ({ opened: args.album }));
-      call.answer('ask_user', () => 'The orange one');
+      call.answer('app.photos.open', asked);
       await call;
     });
 
-    expect(messagesOf(vendor.bodies, 1).slice(-2)).toEqual([
-      { role: 'tool', tool_call_id: 'c1', content: '{"opened":"cats"}' },
-      { role: 'tool', tool_call_id: 'c2', content: '"The orange one"' },
-    ]);
+    expect(asked).not.toHaveBeenCalled();
+    expect(messagesOf(vendor.bodies, 1).at(-1)).toEqual({
+      role: 'tool',
+      tool_call_id: 'c1',
+      content: '{"error":"not available"}',
+    });
+  });
+
+  it('asks the user through a widget form and gives the model the form’s fields', async () => {
+    const widget = { role: 'radio-group', bindings: [{ prop: 'value', state: '$this.choice', writable: true }] };
+    const vendor = mockVendor(
+      says(`[[say]]Which one?[[/say]][[ask_user]]${JSON.stringify(widget)}[[/ask_user]]`),
+      says('The orange one, then.'),
+    );
+    const forms: unknown[] = [];
+
+    const final = await withContext(async () => {
+      const call = askWedyan({ text: 'Delete the cat photo' });
+      call.answer('ask_user', (form: unknown, meta: unknown) => {
+        forms.push([form, meta]);
+        return { choice: 'orange' };
+      });
+      return await call;
+    });
+
+    expect(forms).toEqual([[widget, { after: 0 }]]);
+    expect(messagesOf(vendor.bodies, 1).at(-1)).toEqual({
+      role: 'user',
+      content: JSON.stringify({ feedback: { asks: [{ ask: 'ask_user', reply: { choice: 'orange' } }] } }),
+    });
+    expect(final.status).toBe('done');
+  });
+
+  it('asks an app by name and gives the model its reply', async () => {
+    const vendor = mockVendor(
+      says('[[ask_app name=app.photos.selection]]{"album":"cats"}[[/ask_app]]'),
+      says('Two are selected.'),
+    );
+
+    await withContext(async () => {
+      const call = askWedyan({ text: 'What did I select?' });
+      call.answer('app.photos.selection', () => ['a.jpg', 'b.jpg']);
+      await call;
+    });
+
+    expect(messagesOf(vendor.bodies, 1).at(-1)).toEqual({
+      role: 'user',
+      content: JSON.stringify({
+        feedback: { asks: [{ ask: 'app.photos.selection', args: { album: 'cats' }, reply: ['a.jpg', 'b.jpg'] }] },
+      }),
+    });
+  });
+
+  it('tells the model when nothing answers an ask', async () => {
+    const vendor = mockVendor(says('[[ask_app name=app.mail.unread]]{}[[/ask_app]]'), says('No mail app.'));
+
+    await withContext(() => askWedyan({ text: 'Any mail?' }));
+
+    expect(messagesOf(vendor.bodies, 1).at(-1)).toEqual({
+      role: 'user',
+      content: JSON.stringify({
+        feedback: { asks: [{ ask: 'app.mail.unread', args: {}, error: 'not available' }] },
+      }),
+    });
   });
 
   it('tells the model a call is not available when the caller has no answer for it', async () => {
@@ -140,22 +231,22 @@ describe('askWedyan', () => {
   });
 
   it('takes in a follow-up sent while the ask runs, at the next safe turn', async () => {
-    const vendor = mockVendor(calls({ id: 'c1', name: 'app__photos__open', args: {} }), says('Both done.'));
+    const vendor = mockVendor(says('[[ask_app name=app.photos.selection]]{}[[/ask_app]]'), says('Both done.'));
 
     await withContext(async () => {
       const call = askWedyan({ text: 'Open photos' });
-      call.answer('app.photos.open', async () => {
+      call.answer('app.photos.selection', async () => {
         await call.ask('followUp', 'Also the mail.');
-        return { opened: true };
+        return [];
       });
       await call;
     });
 
-    expect(messagesOf(vendor.bodies, 1).at(-1)).toEqual({ role: 'user', content: 'Also the mail.' });
+    expect(messagesOf(vendor.bodies, 1)).toContainEqual({ role: 'user', content: 'Also the mail.' });
   });
 
   it('stops the ask when the caller closes the call', async () => {
-    const vendor = mockVendor(calls({ id: 'c1', name: 'app__photos__open', args: {} }), says('Never sent.'));
+    const vendor = mockVendor(says('[[action name=app.photos.open]]{}[[/action]]'), says('Never sent.'));
 
     await withContext(async () => {
       const call = askWedyan({ text: 'Open photos' });
@@ -171,7 +262,7 @@ describe('askWedyan', () => {
   });
 
   it('stops the ask when the call is aborted', async () => {
-    const vendor = mockVendor(calls({ id: 'c1', name: 'app__photos__open', args: {} }), says('Never sent.'));
+    const vendor = mockVendor(says('[[action name=app.photos.open]]{}[[/action]]'), says('Never sent.'));
     const controller = new AbortController();
 
     await withContext([[IRPC_BASE_CONTEXT.ABORT_SIGNAL, controller.signal]], async () => {

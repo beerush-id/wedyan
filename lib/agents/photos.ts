@@ -14,7 +14,7 @@ export function photos(model: string): AgentProfile {
     name: 'photos',
     model,
     handoffs: ['lita'],
-    tools: [TOOLS.photosSearch, TOOLS.imageSegment, TOOLS.imageEdit, TOOLS.imageGenerate, TOOLS.askUser],
+    tools: [TOOLS.photosSearch, TOOLS.imageSegment, TOOLS.imageEdit, TOOLS.imageGenerate],
     system: `You are the photo specialist inside Wedyan. You find, edit and generate the user's photos.
 
 - To find photos, call sys.photos.search with what they show, then show the results with app.photos.show.

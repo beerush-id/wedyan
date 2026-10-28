@@ -332,8 +332,8 @@ describe('agent loop', () => {
 
   it('does not run a call written as an action, and tells the model to call it', async () => {
     const vendor = mockVendor(
-      says('[[say]]Delete it?[[/say]][[action name=ask_user]]{"question":"Delete script.md?"}[[/action]]'),
-      says('[[say]]Asking properly now.[[/say]]'),
+      says('[[say]]Reading it.[[/say]][[action name=sys.fs.read]]{"path":"~/script.md"}[[/action]]'),
+      says('[[say]]Calling it properly now.[[/say]]'),
     );
     const acted: string[] = [];
     const { state, run } = setup({
@@ -350,7 +350,7 @@ describe('agent loop', () => {
     expect(messagesOf(vendor.bodies, 1).at(-1)).toEqual({
       role: 'user',
       content: JSON.stringify({
-        feedback: { invalid: ['ask_user is a call, not an action: call it as a tool to get its result'] },
+        feedback: { invalid: ['sys.fs.read is a call, not an action: call it as a tool to get its result'] },
       }),
     });
     expect(state).toMatchObject({ status: 'done', turn: 2 });

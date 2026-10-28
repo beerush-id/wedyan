@@ -160,6 +160,41 @@ describe('part writer', () => {
     expect(actions).toEqual([]);
   });
 
+  it('reports an ask_user with its widget as the form body, as an ask anchored like an action', () => {
+    const { state, actions, feed, end } = setup();
+    const widget = {
+      role: 'radio-group',
+      bindings: [{ prop: 'value', state: '$this.choice', writable: true }],
+      children: [],
+    };
+    feed('[[say]]Which one?[[/say]]', `[[ask_user]]${JSON.stringify(widget)}[[/ask_user]]`);
+    end();
+
+    expect(state.parts).toHaveLength(1);
+    expect(actions).toEqual([{ name: 'ask_user', args: widget, after: 0, ask: true }]);
+  });
+
+  it('reports an ask_app by its name, with its arguments', () => {
+    const { state, actions, feed, end } = setup();
+    feed('[[ask_app name=app.photos.selection]]{"album":"cats"}[[/ask_app]]');
+    end();
+
+    expect(state.parts).toEqual([]);
+    expect(actions).toEqual([{ name: 'app.photos.selection', args: { album: 'cats' }, after: -1, ask: true }]);
+  });
+
+  it('reports an ask_user that is not a widget, and an ask_app without a name', () => {
+    const { actions, problems, feed, end } = setup();
+    feed('[[ask_user]]{"question":"Which?"}[[/ask_user]]', '[[ask_app]]{}[[/ask_app]]');
+    end();
+
+    expect(actions).toEqual([]);
+    expect(problems).toEqual([
+      'ask_user needs a widget: a JSON object with a "role"; got: {"question":"Which?"}',
+      'An ask_app needs a name attribute',
+    ]);
+  });
+
   it('shows the body of an unknown marker as silent text', () => {
     const { state, feed, end } = setup();
     feed('[[note]]Remember this[[/note]]');

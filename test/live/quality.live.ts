@@ -184,7 +184,7 @@ const BEATS: Array<{
     checks: (result) => {
       const deletion = acted(result, 'app.files.delete')[0];
       return [
-        { name: 'asks first', pass: called(result, 'ask_user').length > 0 },
+        { name: 'asks first', pass: acted(result, 'ask_user').length > 0 },
         {
           name: 'deletes the selection',
           pass: (deletion?.args as { path?: string })?.path === '~/projects/short-drama/script.md',
@@ -229,7 +229,7 @@ const BEATS: Array<{
     checks: (result) => {
       const saved = called(result, 'sys.profile.save')[0];
       return [
-        { name: 'asks with ask_user', pass: called(result, 'ask_user').length > 0 },
+        { name: 'asks with ask_user', pass: acted(result, 'ask_user').length > 0 },
         { name: 'saves the profile', pass: /nanang/i.test(JSON.stringify(saved?.args ?? '')) },
       ];
     },
