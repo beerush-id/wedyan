@@ -76,3 +76,41 @@ export const voice = speech.declare<VoiceFn>({
   seed: () => ({}),
   schema: { input: [z.enum(VOICES).nullish()] },
 });
+
+/** Mic audio `hear` takes: PCM, signed 16-bit little-endian, mono, at this rate. */
+export const HEAR_RATE = 24_000;
+
+/**
+ * What was heard, as the user speaks: they started a turn (`start`), what they have said so far
+ * (`partial`, each one replacing the last), and the turn's whole text once they stopped (`final`).
+ */
+export type Heard =
+  | { type: 'start'; turn: number }
+  | { type: 'partial'; turn: number; text: string }
+  | { type: 'final'; turn: number; text: string };
+
+/**
+ * The questions on a hearing call: the desktop sends mic audio (`audio`, base64 PCM) and ends it
+ * (`end`); the server tells the desktop what it heard (`heard`).
+ */
+export type HearQueries = {
+  audio: (pcm: string) => boolean;
+  end: () => boolean;
+  heard: (heard: Heard) => void;
+};
+
+export type HearFn = () => RemoteState<Record<string, never>, HearQueries>;
+
+/**
+ * Live hearing for the dock's mic. The desktop streams the mic's audio in as it records, paced at
+ * real time; the server transcribes it with Muse Voice Transcribe, finding where each turn starts
+ * and ends, and tells the desktop as it goes. The Meta key stays on the server. Closing it, or
+ * `end`, stops hearing.
+ */
+export const hear = speech.declare<HearFn>({
+  name: 'hear',
+  stream: true,
+  keepAlive: true,
+  coalesce: false,
+  seed: () => ({}),
+});

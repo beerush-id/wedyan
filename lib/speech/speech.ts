@@ -1,6 +1,9 @@
 import { IRPC_STORE, stream } from '@irpclib/irpc';
 import {
   DEFAULT_VOICE,
+  type Heard,
+  type HearQueries,
+  hear,
   type PlayChunk,
   SPEAK_LIMIT,
   speak,
@@ -18,15 +21,25 @@ export interface SpeechModel {
 /** Deepgram's Aura-2 on Workers AI: English, with both of Wedyan's voices. */
 export const SPEECH_MODEL = '@cf/deepgram/aura-2-en';
 
+/** Meta's speech-to-text, heard live. */
+export const TRANSCRIBE_MODEL = 'muse-voice-transcribe-1.0';
+
+/** Where Muse Voice Transcribe hears live audio. */
+export const TRANSCRIBE_URL = 'wss://api.meta.ai/v1/asr/realtime';
+
 let ai: SpeechModel | undefined;
+let metaKey: string | undefined;
 
 /**
- * Sets the model speech runs on. Called once by the server entry with its Workers AI binding.
+ * Sets what speech runs on. Called once by the server entry with its Workers AI binding, and the
+ * Meta key hearing sends Muse Voice Transcribe.
  *
  * @param binding - The Workers AI binding.
+ * @param key - The Meta Model API key; hearing is refused without it.
  */
-export function setupSpeech(binding: SpeechModel): void {
+export function setupSpeech(binding: SpeechModel, key?: string): void {
   ai = binding;
+  metaKey = key;
 }
 
 speech.construct(speak, async (text, speaker) => {
@@ -49,6 +62,102 @@ speech.construct(voice, (speaker) =>
     return () => speaking.stop();
   }, {}),
 );
+
+speech.construct(hear, () => {
+  // Checked before the stream opens, so the call fails like any other.
+  if (!metaKey) throw new Error('Hearing needs the Meta key');
+  const key = metaKey;
+
+  return stream<Record<string, never>, HearQueries>((state, resolve, reject) => {
+    const socket = new WebSocket(TRANSCRIBE_URL);
+    // Audio that came before the session was ready, sent in order once it is.
+    const waiting: Uint8Array[] = [];
+    let ready = false;
+    let ended = false;
+    let turn = 0;
+    const tell = (heard: Heard) => void state.ask('heard', heard);
+
+    // Failing closes the socket; its close must not then end the call as if all went well.
+    let failed = false;
+    const fail = (error: Error) => {
+      failed = true;
+      reject(error);
+    };
+
+    // Ending input lets Meta flush what it still holds; it closes the socket once done.
+    const endInput = () => {
+      if (ended) return;
+      ended = true;
+      if (ready) socket.send(END_STREAM);
+    };
+
+    socket.addEventListener('open', () => {
+      socket.send(
+        JSON.stringify({
+          authorization: { accessToken: `Bearer ${key}` },
+          audioEncoding: 'PCM_24KHZ',
+          model: TRANSCRIBE_MODEL,
+          mode: 'ENDPOINTING',
+          partialMode: 'CUMULATIVE',
+          emitAudioProgress: false,
+        }),
+      );
+    });
+    socket.addEventListener('message', ({ data }) => {
+      if (typeof data !== 'string') return;
+      const event = JSON.parse(data) as TranscribeEvent;
+      // The handshake's answer is the one frame without a type.
+      if (!event.type) {
+        ready = true;
+        for (const frame of waiting.splice(0)) socket.send(frame);
+        if (ended) socket.send(END_STREAM);
+        return;
+      }
+      if (event.type === 'error') return fail(new Error(event.message ?? 'Hearing failed'));
+      if (event.type === 'speechStart') {
+        turn = event.turnId ?? turn;
+        tell({ type: 'start', turn });
+      } else if (event.type === 'transcript' && !event.final && event.transcript) {
+        tell({ type: 'partial', turn, text: event.transcript });
+      } else if (event.type === 'speechComplete' && event.transcript) {
+        tell({ type: 'final', turn: event.turnId ?? turn, text: event.transcript });
+      }
+    });
+    socket.addEventListener('close', () => {
+      if (!failed) resolve();
+    });
+    socket.addEventListener('error', () => fail(new Error('Hearing lost its connection')));
+
+    state.answer('audio', (pcm) => {
+      if (ended) return false;
+      const frame = Uint8Array.from(atob(pcm), (char) => char.charCodeAt(0));
+      if (ready) socket.send(frame);
+      else waiting.push(frame);
+      return true;
+    });
+    state.answer('end', () => {
+      endInput();
+      return true;
+    });
+
+    return () => {
+      endInput();
+      socket.close();
+    };
+  }, {});
+});
+
+/** What Muse Voice Transcribe sends back, as far as hearing reads it. */
+type TranscribeEvent = {
+  type?: string;
+  turnId?: number;
+  transcript?: string;
+  final?: boolean;
+  message?: string;
+};
+
+/** The control frame that ends a hearing session's input. */
+const END_STREAM = JSON.stringify({ type: 'endStream' });
 
 /** Audio gathered before it goes to the desktop: enough to play smoothly, in few enough asks. */
 const BATCH_BYTES = 8192;

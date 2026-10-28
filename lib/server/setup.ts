@@ -53,7 +53,7 @@ export function setupServer(env: ServerEnv): void {
     persona: loadPersona,
   });
   setupMemory({ vectors: env.VECTORIZE, embed: embedWith(env.AI) });
-  setupSpeech(env.AI);
+  setupSpeech(env.AI, keys.meta);
 }
 
 /**
