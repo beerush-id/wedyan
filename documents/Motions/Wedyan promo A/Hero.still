@@ -1,0 +1,22 @@
+{
+  "type": "still",
+  "version": 1,
+  "id": "g01-hero",
+  "name": "Hero",
+  "created": "2026-10-27T09:30:00Z",
+  "updated": "2026-10-27T09:48:00Z",
+  "author": { "kind": "agent", "ask": "Make a hero shot of a calm shared desktop for the opening." },
+  "tags": ["promo"],
+  "prompt": "A calm, airy browser desktop shared by a person and an AI agent, soft morning light, minimal",
+  "references": ["https://picsum.photos/seed/wedyan-promo-desk/640/360"],
+  "attempts": [
+    { "id": "t1", "src": "https://picsum.photos/seed/wedyan-hero-1/1920/1080", "created": "2026-10-27T09:31:00Z" },
+    { "id": "t2", "src": "https://picsum.photos/seed/wedyan-hero-2/1920/1080", "created": "2026-10-27T09:33:00Z" },
+    { "id": "t3", "src": "https://picsum.photos/seed/wedyan-hero-3/1920/1080", "prompt": "Same, warmer light, fewer windows", "created": "2026-10-27T09:40:00Z" }
+  ],
+  "edits": [
+    { "id": "e1", "kind": "mask", "mask": "https://picsum.photos/seed/wedyan-hero-mask/1920/1080", "result": "https://picsum.photos/seed/wedyan-hero-3/1920/1080", "created": "2026-10-27T09:45:00Z" },
+    { "id": "e2", "kind": "inpaint", "prompt": "Replace the clutter on the left with a plant", "result": "https://picsum.photos/seed/wedyan-hero-4/1920/1080", "created": "2026-10-27T09:48:00Z" }
+  ],
+  "chosen": "t3"
+}

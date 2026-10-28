@@ -1,0 +1,73 @@
+{
+  "type": "stage",
+  "version": 1,
+  "id": "m06-stage",
+  "name": "Mixed layers",
+  "created": "2026-10-27T11:00:00Z",
+  "updated": "2026-10-27T11:30:00Z",
+  "author": { "kind": "user" },
+  "scene": "s1",
+  "composition": {
+    "id": "m06",
+    "options": { "frameRate": 30 },
+    "props": { "width": 1920, "height": 1080, "background": "#0b0b0b" },
+    "tracks": [
+      {
+        "id": "m06-video",
+        "options": { "type": "video", "name": "Video" },
+        "segments": [
+          {
+            "id": "m06-v1",
+            "options": { "type": "svg", "name": "Harbor.mp4", "meta": { "thumbnail": "https://picsum.photos/seed/wedyan-motion-mixed/640/360" }, "speed": 1, "duration": 4, "startFrame": 0 },
+            "props": { "element": "image", "href": "https://picsum.photos/seed/wedyan-motion-mixed/1920/1080", "x": 0, "y": 0, "width": 1920, "height": 1080, "preserveAspectRatio": "xMidYMid slice" },
+            "scenes": [
+              { "id": "m06-v1-k1", "options": { "atFrame": 0 }, "data": { "scale": 1 } },
+              { "id": "m06-v1-k2", "options": { "atFrame": 120 }, "data": { "scale": 1.08 } }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "m06-shapes",
+        "options": { "type": "effect", "name": "Shapes" },
+        "segments": [
+          {
+            "id": "m06-s1",
+            "options": { "type": "svg", "name": "Sun", "speed": 1, "duration": 4, "startFrame": 0 },
+            "props": { "element": "circle", "cx": 120, "cy": 120, "r": 120, "x": 1380, "y": 180, "width": 240, "height": 240, "fill": "#f08a63" },
+            "scenes": [
+              { "id": "m06-s1-k1", "options": { "atFrame": 0, "meta": { "ease": "out" } }, "data": { "scale": 0.4, "opacity": 0 } },
+              { "id": "m06-s1-k2", "options": { "atFrame": 30 }, "data": { "scale": 1, "opacity": 0.9 } }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "m06-text",
+        "options": { "type": "text", "name": "Titles" },
+        "segments": [
+          {
+            "id": "m06-t1",
+            "options": { "type": "html", "name": "Harbor at dawn", "speed": 1, "duration": 4, "startFrame": 0 },
+            "props": { "text": "Harbor at dawn", "x": 160, "y": 780, "width": 900, "height": 180, "style": { "display": "grid", "alignItems": "center", "padding": "0 56px", "borderRadius": "36px", "background": "rgba(255, 247, 239, 0.18)", "border": "2px solid rgba(255, 247, 239, 0.35)", "backdropFilter": "blur(24px)", "color": "#fff7ef", "font": "600 72px/1.1 system-ui, sans-serif", "boxSizing": "border-box" } },
+            "scenes": [
+              { "id": "m06-t1-k1", "options": { "atFrame": 0, "meta": { "ease": "out" } }, "data": { "opacity": 0, "x": 100 } },
+              { "id": "m06-t1-k2", "options": { "atFrame": 20 }, "data": { "opacity": 1, "x": 160 } }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "m06-effects",
+        "options": { "type": "effect", "name": "Lights" },
+        "segments": [
+          {
+            "id": "m06-e1",
+            "options": { "type": "canvas", "name": "Lanterns", "speed": 1, "duration": 4, "startFrame": 0 },
+            "props": { "painter": "lanterns", "x": 0, "y": 0, "width": 1920, "height": 1080, "count": 20, "color": "255, 210, 150", "size": 14, "speed": 80 }
+          }
+        ]
+      }
+    ]
+  }
+}

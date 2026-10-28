@@ -1,0 +1,14 @@
+{
+  "type": "memo",
+  "version": 1,
+  "id": "n01",
+  "name": "Hack brief",
+  "created": "2026-10-26T20:00:00Z",
+  "updated": "2026-10-27T08:30:00Z",
+  "author": { "kind": "user" },
+  "tags": ["hackathon", "promo"],
+  "kind": "project",
+  "pinned": true,
+  "remind": "2026-10-30T09:00:00Z",
+  "body": "# Hack submission\n\n- A **30 second** video, 16:9, under 50 MB.\n- Show Wedyan as *one prompt* that drives every app.\n- End on the name and the line: the browser desktop for human + AI.\n\nDue Friday morning."
+}

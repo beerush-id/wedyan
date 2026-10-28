@@ -9,4 +9,5 @@
 @import './splash.css' layer(app);
 @import './files.css' layer(app);
 @import './photos.css' layer(app);
+@import './motions.css' layer(app);
 @import './selection.css' layer(app);

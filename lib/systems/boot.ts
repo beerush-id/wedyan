@@ -2,6 +2,8 @@ import { mutable } from '@airlib/react';
 import { type AUISystemState, bootstrap } from '@airlib/react-aui/desktop';
 import filesManifest from '@/apps/files/manifest.json';
 import filesMain from '@/apps/files/views/index.js';
+import motionsManifest from '@/apps/motions/manifest.json';
+import motionsMain from '@/apps/motions/views/index.js';
 import photosManifest from '@/apps/photos/manifest.json';
 import photosMain from '@/apps/photos/views/index.js';
 
@@ -32,7 +34,8 @@ export async function boot(): Promise<void> {
   step('Installing apps', () => {
     system.system.apps?.push(
       { manifest: filesManifest, main: filesMain },
-      { manifest: photosManifest, main: photosMain }
+      { manifest: photosManifest, main: photosMain },
+      { manifest: motionsManifest, main: motionsMain }
     );
   });
   step('Preparing your desktop');

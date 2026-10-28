@@ -1,0 +1,27 @@
+{
+  "type": "motion",
+  "version": 1,
+  "id": "m01",
+  "name": "Weekend in the hills",
+  "created": "2026-10-24T16:00:00Z",
+  "updated": "2026-10-26T18:20:00Z",
+  "author": { "kind": "user" },
+  "tags": ["travel"],
+  "brief": "A short recap of our weekend hike: the trail, the ridge, the campfire.",
+  "aspect": "16:9",
+  "cover": "https://picsum.photos/seed/wedyan-motion-hills/480/270",
+  "length": 13,
+  "status": "draft",
+  "script": [
+    { "id": "s1", "title": "Trailhead", "onScreen": "Saturday", "seconds": 4, "stage": "Weekend in the hills.stage" },
+    { "id": "s2", "title": "Ridge", "onScreen": "The long way up", "seconds": 5, "stage": "Weekend in the hills.stage" },
+    { "id": "s3", "title": "Campfire", "onScreen": "Worth it", "seconds": 4, "stage": "Weekend in the hills.stage" }
+  ],
+  "stages": ["Weekend in the hills.stage"],
+  "assets": [
+    { "id": "a1", "name": "Trailhead", "kind": "image", "src": "https://picsum.photos/seed/wedyan-motion-trail/1920/1080" },
+    { "id": "a2", "name": "Ridge", "kind": "image", "src": "https://picsum.photos/seed/wedyan-motion-ridge/2080/1080" },
+    { "id": "a3", "name": "Campfire", "kind": "image", "src": "https://picsum.photos/seed/wedyan-motion-fire/1920/1080" },
+    { "id": "a4", "name": "Acoustic", "kind": "audio", "src": "Acoustic.mp3" }
+  ]
+}

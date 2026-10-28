@@ -1,0 +1,42 @@
+{
+  "type": "chat",
+  "version": 1,
+  "id": "c01",
+  "name": "Wedyan promo",
+  "created": "2026-10-27T09:10:00Z",
+  "updated": "2026-10-27T09:52:00Z",
+  "author": { "kind": "user" },
+  "tags": ["promo"],
+  "messages": [
+    {
+      "id": "m1",
+      "role": "user",
+      "parts": [{ "kind": "text", "text": "Hey, let's create a presentation video for Wedyan. 30s video to promote it for the hack." }],
+      "created": "2026-10-27T09:10:00Z"
+    },
+    {
+      "id": "m2",
+      "role": "agent",
+      "parts": [
+        { "kind": "text", "text": "Here's a first cut: a hook, the side-by-side moment, and a sign-off on the name. I kept the tone calm, like your note says." },
+        { "kind": "attachment", "path": "/Motions/Wedyan promo A/Wedyan promo A.motion", "name": "Wedyan promo A" }
+      ],
+      "created": "2026-10-27T09:20:00Z"
+    },
+    {
+      "id": "m3",
+      "role": "user",
+      "parts": [{ "kind": "text", "text": "Try another take: lead with the desktop you share with AI." }],
+      "created": "2026-10-27T09:48:00Z"
+    },
+    {
+      "id": "m4",
+      "role": "agent",
+      "parts": [
+        { "kind": "text", "text": "Done — this one opens on the promise, then shows how." },
+        { "kind": "attachment", "path": "/Motions/Wedyan promo B/Wedyan promo B.motion", "name": "Wedyan promo B" }
+      ],
+      "created": "2026-10-27T09:52:00Z"
+    }
+  ]
+}

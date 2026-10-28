@@ -1,0 +1,54 @@
+{
+  "type": "motion",
+  "version": 1,
+  "id": "g01",
+  "name": "Wedyan promo A",
+  "created": "2026-10-27T09:12:00Z",
+  "updated": "2026-10-27T10:40:00Z",
+  "author": { "kind": "agent", "ask": "Hey, let's create a presentation video for Wedyan. 30s video to promote it for the hack." },
+  "tags": ["promo", "hackathon"],
+  "brief": "Hey, let's create a presentation video for Wedyan. 30s video to promote it for the hack.",
+  "aspect": "16:9",
+  "cover": "https://picsum.photos/seed/wedyan-promo-desk/480/270",
+  "length": 30,
+  "status": "draft",
+  "script": [
+    {
+      "id": "s1",
+      "title": "Hook",
+      "narration": "What if your browser was a desktop you share with an AI?",
+      "onScreen": "Your browser, now a shared desktop",
+      "visual": "A calm shared desktop, slowly pushing in.",
+      "seconds": 2,
+      "stage": "Promo.stage"
+    },
+    {
+      "id": "s2",
+      "title": "Side by side",
+      "narration": "Wedyan puts you and your agent in the same workspace.",
+      "onScreen": "Work side by side with your AI agent.",
+      "visual": "An agent workspace panning across open windows.",
+      "seconds": 1.5,
+      "stage": "Promo.stage"
+    },
+    {
+      "id": "s3",
+      "title": "Sign-off",
+      "narration": "Wedyan. The browser desktop for human and AI.",
+      "onScreen": "Wedyan — the browser desktop for human + AI",
+      "visual": "A wide horizon, the name settling in.",
+      "seconds": 1.5,
+      "stage": "Promo.stage"
+    }
+  ],
+  "stages": ["Promo.stage"],
+  "assets": [
+    { "id": "a1", "name": "Shared Desktop", "kind": "image", "src": "https://picsum.photos/seed/wedyan-promo-desk/1920/1080" },
+    { "id": "a2", "name": "Agent Workspace", "kind": "image", "src": "https://picsum.photos/seed/wedyan-promo-workspace/2080/1080" },
+    { "id": "a3", "name": "Closing Horizon", "kind": "image", "src": "https://picsum.photos/seed/wedyan-promo-closing/1920/1080" },
+    { "id": "a4", "name": "Hero", "kind": "still", "src": "Hero.still" },
+    { "id": "a5", "name": "Premium Ambient", "kind": "audio", "src": "Premium Ambient.mp3" }
+  ],
+  "chats": ["../../Chats/Wedyan promo.chat"],
+  "memos": ["../../Memos/Hack brief.memo", "../../Memos/Tone.memo"]
+}

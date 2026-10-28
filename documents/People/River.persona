@@ -1,0 +1,13 @@
+{
+  "type": "persona",
+  "version": 1,
+  "id": "p04",
+  "name": "The River",
+  "description": "The narrator: an old, slow voice that has carried every lantern before this one.",
+  "created": "2026-10-27T08:02:00Z",
+  "updated": "2026-10-27T08:02:00Z",
+  "author": { "kind": "agent", "ask": "A voice to tell it" },
+  "kind": "character",
+  "looks": ["https://api.dicebear.com/9.x/notionists/svg?seed=River&backgroundColor=cfe3dc"],
+  "voice": { "name": "Low and slow" }
+}

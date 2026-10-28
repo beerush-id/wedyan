@@ -1,0 +1,431 @@
+/* Motions: projects as wide tiles, matching their 16:9 covers, filling the window so pressing below them lets go of the pick. */
+.wedyan-motions-gallery > .aui-gallery {
+  --aui-gallery-tile: 13rem;
+  --aui-gallery-ratio: 16 / 9;
+  min-block-size: 100cqb;
+  align-content: start;
+}
+
+/*
+ * In the dock: the picture a generative clip shows now, as tall as the small controls beside it and
+ * rounded like them, which sits concentric with the surface's ends. Larger in its tooltip, with its name.
+ */
+.wedyan-motions-source {
+  display: inline-flex;
+  flex: none;
+  padding: 0;
+  border-radius: var(--radius-full);
+
+  & > img {
+    display: block;
+    block-size: calc(var(--spacing) * 9);
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: var(--radius-full);
+    corner-shape: var(--corner-shape, round);
+  }
+}
+
+.aui-tooltip:has(> .wedyan-motions-source-tip) {
+  --aui-tooltip-padding-inline: var(--spacing-sm);
+  padding-block-start: var(--spacing-sm);
+}
+
+.wedyan-motions-source-tip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs);
+
+  & > img {
+    inline-size: calc(var(--spacing) * 64);
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: max(calc(var(--aui-tooltip-radius) - var(--spacing-sm)), 0px);
+  }
+}
+
+/* The line between a clip's options and the transport, centred on them rather than stretched to the bar. */
+.wedyan-motions-options-end {
+  align-self: center;
+  block-size: calc(var(--spacing) * 5);
+}
+
+/* A project open: its brief, script, stages, assets and notes, top to bottom. */
+.wedyan-motion,
+.wedyan-document {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.wedyan-motion-section,
+.wedyan-document-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+
+  & > h3 {
+    margin: 0;
+    color: var(--color-on-surface-variant);
+    font-size: var(--font-label-lg-size);
+    font-weight: 600;
+  }
+
+  & .aui-gallery {
+    --aui-gallery-tile: 11rem;
+    --aui-gallery-ratio: 16 / 9;
+  }
+}
+
+/* The ask a project or still started from, in its own words. */
+.wedyan-motion-brief,
+.wedyan-document-section {
+  & blockquote {
+    margin: 0;
+    color: var(--color-on-surface);
+    font-size: var(--font-title-md-size);
+    line-height: 1.4;
+  }
+}
+
+.wedyan-motion-brief {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+/* The script: one row per scene, numbered, its length at the end and its words beneath. */
+.wedyan-motion-script,
+.wedyan-motion-notes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  & button {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: baseline;
+    gap: var(--spacing-xs) var(--spacing-sm);
+    inline-size: 100%;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 0;
+    border-radius: var(--radius-md);
+    background: color-mix(in oklch, var(--color-on-surface) 4%, transparent);
+    color: inherit;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
+    }
+
+    &:disabled {
+      cursor: default;
+    }
+  }
+}
+
+.wedyan-motion-scene-number,
+.wedyan-motion-scene-time,
+.wedyan-motion-note-kind {
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-label-md-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.wedyan-motion-scene-title,
+.wedyan-motion-note-name {
+  font-weight: 600;
+}
+
+.wedyan-motion-scene-words {
+  grid-column: 2 / -1;
+  color: var(--color-on-surface-variant);
+}
+
+.wedyan-motion-notes button {
+  grid-template-columns: 1fr auto;
+}
+
+/* A still: the chosen attempt, large, its ask and attempts beneath. */
+.wedyan-still-picture {
+  inline-size: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: var(--radius-lg);
+}
+
+.wedyan-still-edits {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  margin: 0;
+  padding-inline-start: var(--spacing-lg);
+}
+
+.wedyan-still-edit-kind {
+  margin-inline-end: var(--spacing-sm);
+  font-weight: 600;
+}
+
+/* A chat: each message a bubble, the person's to the end, the agent's to the start. */
+.wedyan-chat {
+  gap: var(--spacing-md);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wedyan-chat-message {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-xs);
+  max-inline-size: 70%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-lg);
+  background: color-mix(in oklch, var(--color-on-surface) 5%, transparent);
+
+  &[data-role='user'] {
+    align-self: flex-end;
+    background: color-mix(in oklch, var(--color-primary) 12%, transparent);
+  }
+
+  & p {
+    margin: 0;
+  }
+}
+
+.wedyan-chat-author {
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-label-sm-size);
+  font-weight: 600;
+}
+
+.wedyan-chat-attachment {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 1px solid color-mix(in oklch, var(--color-on-surface) 16%, transparent);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+/* A memo: what it is, then its words as written, until Markdown renders. */
+.wedyan-memo-body {
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+/*
+ * A project's editor: its toolbar rests on the window's glass, not on a panel of its own, and its
+ * views are panels on the same glass, one bar inset apart, their corners the window's panels'.
+ */
+.wedyan-editor > .wedyan-editor-toolbar {
+  position: static;
+  background: none;
+  backdrop-filter: none;
+
+  /* The taller tab list would centre the controls lower than they sit from the side; at the top, they keep to the corner. */
+  & > .aui-window-controls {
+    align-self: flex-start;
+  }
+}
+
+/* Direct: the project's writing, on a solid surface, scrolling within it. */
+.wedyan-direct {
+  flex: 1 1 auto;
+  min-block-size: 0;
+  overflow: auto;
+  padding: var(--spacing-lg);
+  border-radius: var(--aui-window-panel-radius);
+}
+
+/*
+ * Compose, shaped by its stage, the picture always in the stage's own shape. Wide: the stage's
+ * height is set — as tall as leaves the timeline its room — and its width follows; assets above
+ * casts take the side, widening with what the stage leaves. Tall: the stage's width is set — as
+ * wide as the full height allows — and its height follows; assets and casts sit side by side above
+ * the timeline. The tracks are sized from the space Compose is given, which a grid can't measure of
+ * itself, so Compose holds the size and its layout reads it.
+ */
+.wedyan-compose {
+  flex: 1 1 auto;
+  min-block-size: 0;
+  container-type: size;
+}
+
+.wedyan-compose-layout {
+  --wedyan-preview-block: min(
+    calc(100cqb - max(9rem, 34cqb) - var(--aui-window-bar-inset)),
+    calc((100cqi - 12rem - var(--aui-window-bar-inset)) / var(--wedyan-stage-aspect))
+  );
+  block-size: 100%;
+  display: grid;
+  gap: var(--aui-window-bar-inset);
+  grid-template-columns: minmax(12rem, 1fr) calc(var(--wedyan-preview-block) * var(--wedyan-stage-aspect));
+  grid-template-rows: var(--wedyan-preview-block) minmax(0, 1fr);
+  grid-template-areas:
+    'assets preview'
+    'casts timeline';
+
+  .wedyan-compose[data-shape='portrait'] > & {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) min(55cqi, calc(100cqb * var(--wedyan-stage-aspect)));
+    grid-template-rows: minmax(0, 1fr) minmax(9rem, 40%);
+    grid-template-areas:
+      'assets casts preview'
+      'timeline timeline preview';
+  }
+}
+
+/* The assets, the casts and the timeline: frosted panels, tools rather than the picture. */
+.wedyan-compose-group,
+.wedyan-compose-timeline {
+  min-block-size: 0;
+  overflow: auto;
+  border-radius: var(--aui-window-panel-radius);
+}
+
+.wedyan-compose-assets {
+  grid-area: assets;
+}
+
+.wedyan-compose-casts {
+  grid-area: casts;
+}
+
+.wedyan-compose-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+
+  & > h3 {
+    margin: 0;
+    color: var(--color-on-surface-variant);
+    font-size: var(--font-label-lg-size);
+    font-weight: 600;
+  }
+}
+
+/* An asset or a cast: its picture, square and filled whatever its shape, or a blank for sound, and its name under it. */
+.wedyan-compose-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+  gap: var(--spacing-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wedyan-compose-tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  inline-size: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: var(--font-label-sm-size);
+  text-align: start;
+  cursor: pointer;
+
+  & > img,
+  & > .wedyan-compose-tile-blank {
+    display: block;
+    inline-size: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+    background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
+  }
+
+  & > span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* The timeline fills its panel, a small rim in, its corners concentric with the panel's. */
+.wedyan-compose-timeline {
+  --wedyan-timeline-inset: calc(var(--spacing) * 2);
+  grid-area: timeline;
+  display: grid;
+  overflow: hidden;
+  padding: var(--wedyan-timeline-inset);
+
+  & .aui-timeline {
+    --aui-timeline-bg: transparent;
+    --aui-timeline-radius: max(calc(var(--aui-window-panel-radius) - var(--wedyan-timeline-inset)), 0px);
+    min-block-size: 0;
+  }
+}
+
+/*
+ * The picture, on black: nothing shows through to tint how its colours read. It takes the stage's
+ * shape, so the stage fills it edge to edge; a render's stage fits it, its lanes beneath.
+ */
+.wedyan-compose-preview {
+  grid-area: preview;
+  align-self: start;
+  aspect-ratio: var(--wedyan-stage-ratio);
+  display: grid;
+  place-items: center;
+  min-block-size: 0;
+  overflow: hidden;
+  container-type: size;
+  border-radius: var(--aui-window-panel-radius);
+  background: #000;
+  color-scheme: only dark;
+  color: #fff;
+
+  & > .aui-stage,
+  & .wedyan-motions-render > .aui-stage {
+    --aui-stage-radius: 0;
+    --aui-stage-ratio: var(--wedyan-stage-ratio);
+    inline-size: min(100cqi, calc(100cqb * var(--wedyan-stage-aspect)));
+  }
+}
+
+/* A render in progress: the first stage as the picture, the others small beneath it, then Cancel. */
+.wedyan-motions-render {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.wedyan-motions-render-foot {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+/*
+ * The other stages of a render, small beside the first. They must stay on screen and painted,
+ * since the browser only draws what it paints, but they needn't be big.
+ */
+.wedyan-motions-render-lanes {
+  display: flex;
+  gap: var(--spacing-xs);
+
+  & > .aui-stage {
+    --aui-stage-radius: var(--radius-sm);
+    inline-size: 6rem;
+  }
+}
+
+.wedyan-motions-notice {
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-label-md-size);
+  font-variant-numeric: tabular-nums;
+}

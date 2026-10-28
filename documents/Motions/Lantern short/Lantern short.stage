@@ -1,0 +1,59 @@
+{
+  "type": "stage",
+  "version": 1,
+  "id": "m07-stage",
+  "name": "Lantern short",
+  "created": "2026-10-28T08:00:00Z",
+  "updated": "2026-10-28T08:10:00Z",
+  "author": { "kind": "user" },
+  "scene": "s1",
+  "casts": ["../../People/Mira.persona"],
+  "composition": {
+    "id": "m07",
+    "options": { "frameRate": 30 },
+    "props": { "width": 1080, "height": 1920, "background": "#0b0b0b" },
+    "tracks": [
+      {
+        "id": "m07-video",
+        "options": { "type": "video", "name": "Video" },
+        "segments": [
+          {
+            "id": "m07-v1",
+            "options": { "type": "svg", "name": "Lanterns.mp4", "meta": { "thumbnail": "https://picsum.photos/seed/wedyan-motion-lanterns/360/640" }, "speed": 1, "duration": 6, "startFrame": 0, "contentFrames": 240 },
+            "props": { "element": "image", "href": "https://picsum.photos/seed/wedyan-motion-lanterns/1080/1920", "x": 0, "y": 0, "width": 1080, "height": 1920, "preserveAspectRatio": "xMidYMid slice" },
+            "scenes": [
+              { "id": "m07-v1-k1", "options": { "atFrame": 0 }, "data": { "scale": 1 } },
+              { "id": "m07-v1-k2", "options": { "atFrame": 180 }, "data": { "scale": 1.1 } }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "m07-effects",
+        "options": { "type": "effect", "name": "Lights" },
+        "segments": [
+          {
+            "id": "m07-e1",
+            "options": { "type": "canvas", "name": "Lanterns", "speed": 1, "duration": 6, "startFrame": 0 },
+            "props": { "painter": "lanterns", "x": 0, "y": 0, "width": 1080, "height": 1920, "count": 22, "color": "255, 196, 120", "size": 16, "speed": 90 }
+          }
+        ]
+      },
+      {
+        "id": "m07-text",
+        "options": { "type": "text", "name": "Titles" },
+        "segments": [
+          {
+            "id": "m07-t1",
+            "options": { "type": "html", "name": "Let it drift", "speed": 1, "duration": 4, "startFrame": 30 },
+            "props": { "text": "Let it drift", "x": 90, "y": 1460, "width": 900, "height": 200, "style": { "display": "grid", "placeItems": "center", "color": "#fff7ef", "font": "600 96px/1.1 system-ui, sans-serif", "textShadow": "0 6px 28px rgba(0, 0, 0, 0.5)" } },
+            "scenes": [
+              { "id": "m07-t1-k1", "options": { "atFrame": 0, "meta": { "ease": "out" } }, "data": { "opacity": 0, "y": 1500 } },
+              { "id": "m07-t1-k2", "options": { "atFrame": 20 }, "data": { "opacity": 1, "y": 1460 } }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

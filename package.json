@@ -36,6 +36,7 @@
     "@irpclib/r2-file": "workspace:*",
     "@irpclib/ws": "workspace:*",
     "gsap": "catalog:lib",
+    "mediabunny": "^1.62.1",
     "react": "catalog:app",
     "react-dom": "catalog:app"
   },

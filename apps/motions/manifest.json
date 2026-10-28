@@ -1,0 +1,7 @@
+{
+  "name": "motions",
+  "label": "Motions",
+  "version": "0.0.1",
+  "icon": "/icons/motions.svg",
+  "main": "./views/index.ts"
+}

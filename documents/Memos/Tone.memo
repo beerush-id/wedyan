@@ -1,0 +1,12 @@
+{
+  "type": "memo",
+  "version": 1,
+  "id": "n02",
+  "name": "Tone",
+  "created": "2026-10-27T09:15:00Z",
+  "updated": "2026-10-27T09:15:00Z",
+  "author": { "kind": "agent", "ask": "Keep it calm, no hype words." },
+  "tags": ["style"],
+  "kind": "preference",
+  "body": "Calm and confident. No hype words (*revolutionary*, *game-changing*). Short lines on screen, one idea each."
+}

@@ -1,0 +1,23 @@
+{
+  "type": "motion",
+  "version": 1,
+  "id": "m07",
+  "name": "Lantern short",
+  "description": "A vertical cut of Lantern river, for stories.",
+  "created": "2026-10-28T08:00:00Z",
+  "updated": "2026-10-28T08:10:00Z",
+  "author": { "kind": "user" },
+  "tags": ["short"],
+  "brief": "A vertical cut of Lantern river, for stories.",
+  "aspect": "9:16",
+  "cover": "https://picsum.photos/seed/wedyan-motion-lantern/270/480",
+  "length": 6,
+  "status": "draft",
+  "script": [
+    { "id": "s1", "title": "Lanterns", "onScreen": "Let it drift", "seconds": 6, "stage": "Lantern short.stage" }
+  ],
+  "stages": ["Lantern short.stage"],
+  "assets": [
+    { "id": "a1", "name": "Lanterns", "kind": "image", "src": "https://picsum.photos/seed/wedyan-motion-lanterns/1080/1920" }
+  ]
+}

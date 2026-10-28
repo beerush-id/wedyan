@@ -1,0 +1,95 @@
+{
+  "type": "stage",
+  "version": 1,
+  "id": "m01-stage",
+  "name": "Weekend in the hills",
+  "created": "2026-10-24T16:10:00Z",
+  "updated": "2026-10-26T18:20:00Z",
+  "author": { "kind": "user" },
+  "composition": {
+    "id": "m01",
+    "options": { "frameRate": 30 },
+    "props": { "width": 1920, "height": 1080, "background": "#0b0b0b" },
+    "tracks": [
+      {
+        "id": "m01-video",
+        "options": { "type": "video", "name": "Video" },
+        "segments": [
+          {
+            "id": "m01-v1",
+            "options": { "type": "svg", "name": "Trailhead.mp4", "meta": { "thumbnail": "https://picsum.photos/seed/wedyan-motion-trail/640/360" }, "speed": 1, "duration": 4, "startFrame": 0 },
+            "props": { "element": "image", "href": "https://picsum.photos/seed/wedyan-motion-trail/1920/1080", "x": 0, "y": 0, "width": 1920, "height": 1080, "preserveAspectRatio": "xMidYMid slice" },
+            "scenes": [
+              { "id": "m01-v1-k1", "options": { "atFrame": 0 }, "data": { "scale": 1 } },
+              { "id": "m01-v1-k2", "options": { "atFrame": 120 }, "data": { "scale": 1.08 } }
+            ]
+          },
+          {
+            "id": "m01-v2",
+            "options": { "type": "svg", "name": "Ridge.mp4", "meta": { "thumbnail": "https://picsum.photos/seed/wedyan-motion-ridge/640/360" }, "speed": 1, "duration": 5, "startFrame": 120 },
+            "props": { "element": "image", "href": "https://picsum.photos/seed/wedyan-motion-ridge/2080/1080", "x": 0, "y": 0, "width": 2080, "height": 1080, "preserveAspectRatio": "xMidYMid slice" },
+            "scenes": [
+              { "id": "m01-v2-k1", "options": { "atFrame": 0, "meta": { "ease": "in-out" } }, "data": { "x": 0 } },
+              { "id": "m01-v2-k2", "options": { "atFrame": 150 }, "data": { "x": -160 } }
+            ]
+          },
+          {
+            "id": "m01-v3",
+            "options": { "type": "svg", "name": "Campfire.mp4", "meta": { "thumbnail": "https://picsum.photos/seed/wedyan-motion-fire/640/360" }, "speed": 1, "duration": 4, "startFrame": 270 },
+            "props": { "element": "image", "href": "https://picsum.photos/seed/wedyan-motion-fire/1920/1080", "x": 0, "y": 0, "width": 1920, "height": 1080, "preserveAspectRatio": "xMidYMid slice" },
+            "scenes": [
+              { "id": "m01-v3-k1", "options": { "atFrame": 0 }, "data": { "scale": 1.08 } },
+              { "id": "m01-v3-k2", "options": { "atFrame": 120 }, "data": { "scale": 1 } }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "m01-audio",
+        "options": { "type": "audio", "name": "Audio" },
+        "segments": [
+          { "id": "m01-a1", "options": { "type": "audio", "name": "Acoustic.mp3", "speed": 1, "duration": 13, "startFrame": 0 }, "props": {} }
+        ]
+      },
+      {
+        "id": "m01-text",
+        "options": { "type": "text", "name": "Titles" },
+        "segments": [
+          {
+            "id": "m01-t1",
+            "options": { "type": "html", "name": "Saturday", "speed": 1, "duration": 3, "startFrame": 15 },
+            "props": { "text": "Saturday", "x": 160, "y": 760, "width": 1600, "height": 160, "style": { "display": "grid", "placeItems": "center", "color": "#fff7ef", "font": "600 84px/1.1 system-ui, sans-serif", "textShadow": "0 4px 24px rgba(0, 0, 0, 0.45)" } },
+            "scenes": [
+              { "id": "m01-t1-k1", "options": { "atFrame": 0, "meta": { "ease": "out" } }, "data": { "opacity": 0, "y": 800 } },
+              { "id": "m01-t1-k2", "options": { "atFrame": 15 }, "data": { "opacity": 1, "y": 760 } },
+              { "id": "m01-t1-k3", "options": { "atFrame": 75 }, "data": { "opacity": 1 } },
+              { "id": "m01-t1-k4", "options": { "atFrame": 90 }, "data": { "opacity": 0 } }
+            ]
+          },
+          {
+            "id": "m01-t2",
+            "options": { "type": "html", "name": "The long way up", "speed": 1, "duration": 3, "startFrame": 150 },
+            "props": { "text": "The long way up", "x": 160, "y": 760, "width": 1600, "height": 160, "style": { "display": "grid", "placeItems": "center", "color": "#fff7ef", "font": "600 84px/1.1 system-ui, sans-serif", "textShadow": "0 4px 24px rgba(0, 0, 0, 0.45)" } },
+            "scenes": [
+              { "id": "m01-t2-k1", "options": { "atFrame": 0, "meta": { "ease": "out" } }, "data": { "opacity": 0, "y": 800 } },
+              { "id": "m01-t2-k2", "options": { "atFrame": 15 }, "data": { "opacity": 1, "y": 760 } },
+              { "id": "m01-t2-k3", "options": { "atFrame": 75 }, "data": { "opacity": 1 } },
+              { "id": "m01-t2-k4", "options": { "atFrame": 90 }, "data": { "opacity": 0 } }
+            ]
+          },
+          {
+            "id": "m01-t3",
+            "options": { "type": "html", "name": "Worth it", "speed": 1, "duration": 3, "startFrame": 285 },
+            "props": { "text": "Worth it", "x": 160, "y": 760, "width": 1600, "height": 160, "style": { "display": "grid", "placeItems": "center", "color": "#fff7ef", "font": "600 84px/1.1 system-ui, sans-serif", "textShadow": "0 4px 24px rgba(0, 0, 0, 0.45)" } },
+            "scenes": [
+              { "id": "m01-t3-k1", "options": { "atFrame": 0, "meta": { "ease": "out" } }, "data": { "opacity": 0, "scale": 0.9 } },
+              { "id": "m01-t3-k2", "options": { "atFrame": 20 }, "data": { "opacity": 1, "scale": 1 } },
+              { "id": "m01-t3-k3", "options": { "atFrame": 75 }, "data": { "opacity": 1 } },
+              { "id": "m01-t3-k4", "options": { "atFrame": 90 }, "data": { "opacity": 0 } }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
