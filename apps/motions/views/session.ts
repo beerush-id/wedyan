@@ -1,3 +1,4 @@
+import { splitSegment } from '@airlib/aria';
 import { createContext, mutable } from '@airlib/react';
 import type { Timeline, TimelineSegment } from '@airlib/react/timeline';
 import { documentAt, follow } from '@/lib/documents/store.js';
@@ -55,6 +56,22 @@ export function sessionOf(id: string): MotionsSession {
     SESSIONS.set(id, session);
   }
   return session;
+}
+
+/**
+ * Cuts the clips picked in a session in two at the playhead, as Cmd or Ctrl and B does on the
+ * timeline: each one the playhead is inside of, unless its track is locked.
+ *
+ * @param session - The window's session.
+ */
+export function splitPicked(session: MotionsSession): void {
+  const { timeline, clips } = session;
+  if (!timeline) return;
+  const frame = timeline.state.frame;
+  for (const track of timeline.tracks) {
+    if (track.meta?.locked) continue;
+    for (const segment of [...track.segments]) if (clips.includes(segment.id)) splitSegment(segment, frame);
+  }
 }
 
 /**

@@ -1,12 +1,30 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
 import { $bind, $static, mutable, Show, Snippet, setup, template } from '@airlib/react';
-import { Button, Divider, Select, Stepper, Toolbar, Tooltip } from '@airlib/react-aui';
+import { Button, Divider, Select, Stepper, Toggle, Toolbar, Tooltip } from '@airlib/react-aui';
 import type { WindowRenderProps } from '@airlib/react-aui/desktop';
 import { AspectRatioIcon, AutoAwesomeIcon } from '@airlib/react-aui/icons';
 import type { Timeline } from '@airlib/react/timeline';
 import type { ReactNode } from 'react';
-import { EffortIcon, FrameBackIcon, FrameForwardIcon, PauseIcon, PlayIcon, ToEndIcon, ToStartIcon } from './icons.js';
-import { type GenerativeSource, generativeClip, generativePick, sessionOf, writingPicked } from './session.js';
+import {
+  EffortIcon,
+  FrameBackIcon,
+  FrameForwardIcon,
+  PauseIcon,
+  PlayIcon,
+  SnapIcon,
+  SplitIcon,
+  ToEndIcon,
+  ToStartIcon,
+} from './icons.js';
+import {
+  type GenerativeSource,
+  generativeClip,
+  generativePick,
+  type MotionsSession,
+  sessionOf,
+  splitPicked,
+  writingPicked,
+} from './session.js';
 
 const MODELS = { standard: 'Standard', cinematic: 'Cinematic' };
 const IMAGE_MODELS = { standard: 'Standard', detailed: 'Detailed' };
@@ -33,8 +51,8 @@ export const writing = mutable({ model: 'balanced', effort: 'medium' });
 /**
  * Motions' options in the dock, following its window and what's picked in it, and only when they
  * have something to offer. In the library, how a new motion is made. In Compose, the transport —
- * to the start, a frame back, play or pause, a frame on, to the end — led, when the picked clip was
- * generated, by how it is made again. In Direct, how the picked row is made again, when it's a
+ * to the start, a frame back, play or pause, a frame on, to the end — then snapping and splitting,
+ * led, when the picked clip was generated, by how it is made again. In Direct, how the picked row is made again, when it's a
  * generated image or video, or written, when it's the script or a memo. Anywhere else, none.
  */
 export const MotionsDockOptions = setup<WindowRenderProps>((props) => {
@@ -53,8 +71,10 @@ export const MotionsDockOptions = setup<WindowRenderProps>((props) => {
         {shelf && <NewMotionOptions />}
         {written && <WritingOptions />}
         {generated && <RegenerateOptions generated={generated} open={session.open} />}
-        {generated && timeline && <Divider orientation="vertical" size="sm" className="wedyan-motions-options-end" />}
+        {generated && timeline && <Divider orientation="vertical" size="sm" className="wedyan-motions-options-divider" />}
         {timeline && <Transport timeline={timeline} />}
+        {timeline && <Divider orientation="vertical" size="sm" className="wedyan-motions-options-divider" />}
+        {timeline && <EditTools session={session} />}
       </Toolbar>
     );
   };
@@ -191,6 +211,20 @@ const RegenerateOptions = template<{ generated: GenerativeSource; open?: (path: 
     </>
   );
 }, 'RegenerateOptions');
+
+/** The open stage's editing: whether dragging snaps, and cutting the picked clips at the playhead. */
+const EditTools = template<{ session: MotionsSession }>(({ session }) => (
+  <>
+    <Toggle aria-label="Snap" size="sm" variant="text" className={AUI_CLASS.CONTROL_ICON} pressed={$bind(session, 'snap')}>
+      <SnapIcon />
+      <Tooltip>Snap</Tooltip>
+    </Toggle>
+    <Button aria-label="Split" size="sm" variant="text" className={AUI_CLASS.CONTROL_ICON} onClick={() => splitPicked(session)}>
+      <SplitIcon />
+      <Tooltip>Split at the playhead (⌘B)</Tooltip>
+    </Button>
+  </>
+), 'EditTools');
 
 /** The open stage's transport: to the start, a frame back, play or pause, a frame on, to the end. */
 const Transport = template<{ timeline: Timeline }>((props) => {

@@ -266,10 +266,10 @@
   }
 }
 
-/* The line between a clip's options and the transport, centred on them rather than stretched to the bar. */
-.wedyan-motions-options-end {
+/* A line between groups in the dock — a clip's options, the transport, the editing — half the bar's height, centred. */
+.wedyan-motions-options-divider {
   align-self: center;
-  block-size: calc(var(--spacing) * 5);
+  block-size: calc(var(--spacing) * 4.5);
 }
 
 /* A document shown in full: its parts top to bottom. */

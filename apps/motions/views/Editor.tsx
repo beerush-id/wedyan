@@ -1,18 +1,6 @@
 import { canCaptureVideo, type VideoStageAria } from '@airlib/aria';
-import { AUI_CLASS } from '@airlib/aui/utils';
 import { $bind, $static, $use, For, onCleanup, onMount, Show, Snippet, setup, template } from '@airlib/react';
-import {
-  Button,
-  EmptyState,
-  Stage,
-  TabButton,
-  TabList,
-  TabPanel,
-  Tabs,
-  TimelineEditor,
-  Toggle,
-  Tooltip,
-} from '@airlib/react-aui';
+import { Button, EmptyState, Stage, TabButton, TabList, TabPanel, Tabs, TimelineEditor } from '@airlib/react-aui';
 import { WindowPanel } from '@airlib/react-aui/desktop';
 import { createTimeline, type Timeline, type TimelineSegment } from '@airlib/react/timeline';
 import { documentAt, follow } from '@/lib/documents/store.js';
@@ -20,7 +8,6 @@ import type { MotionAsset, StageDocument, StillDocument } from '@/lib/documents/
 import { Clips } from './Clips.js';
 import { download, type RenderedVideo, renderMp4 } from './export.js';
 import { buffers, mediaLoader } from './media.js';
-import { SnapIcon } from './icons.js';
 import { castsOf, type Project } from './library.js';
 import { Properties } from './Properties.js';
 import { type MotionsSession, sessionCtx } from './session.js';
@@ -154,22 +141,16 @@ export const ComposeView = setup<ComposeViewProps>((props) => {
             playheadLabel="Playhead"
             zoom={56}
           >
-            {/* Whether dragging snaps, beside the ruler it snaps along, then the playhead's timecode. */}
+            {/* The playhead's timecode, beside the ruler it reads. */}
             <TimelineEditor.Snippet for="corner">
               {() => (
-                <>
-                  <Toggle aria-label="Snap" variant="text" size="xs" className={AUI_CLASS.CONTROL_ICON} pressed={$bind(session, 'snap')}>
-                    <SnapIcon />
-                    <Tooltip>Snap</Tooltip>
-                  </Toggle>
-                  <Snippet>
-                    {() => (
-                      <span className="wedyan-compose-timecode" aria-label="Playhead timecode">
-                        {timecode(timeline.state.frame, timeline.frameRate)}
-                      </span>
-                    )}
-                  </Snippet>
-                </>
+                <Snippet>
+                  {() => (
+                    <span className="wedyan-compose-timecode" aria-label="Playhead timecode">
+                      {timecode(timeline.state.frame, timeline.frameRate)}
+                    </span>
+                  )}
+                </Snippet>
               )}
             </TimelineEditor.Snippet>
           </TimelineEditor>

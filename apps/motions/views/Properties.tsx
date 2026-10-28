@@ -18,7 +18,7 @@ import {
   HeightIcon,
   OpacityIcon,
   PropertiesIcon,
-  RenderIcon,
+  LayerIcon,
   RotateIcon,
   ScaleIcon,
   SoundIcon,
@@ -73,7 +73,7 @@ const BOX_GROUPS: BoxGroup[] = [
 ];
 
 /**
- * The picked clip's properties, by kind on tabs: Video holds its box — where it sits on the stage,
+ * The picked clip's properties, by kind on tabs: Layer holds its box — where it sits on the stage,
  * its size, scale, rotation and opacity — each a field showing the value at the playhead. A value
  * the clip keeps is written into the clip; one its keyframes animate is written into the keyframe
  * at the playhead. Shows how to get there while no single drawn clip is picked.
@@ -83,11 +83,11 @@ export const Properties = setup(() => {
 
   return () => (
     <WindowPanel role="region" aria-label="Properties" className="wedyan-compose-group wedyan-compose-properties">
-      <Tabs size="xs" value="video">
+      <Tabs size="xs" value="layer">
         <TabList label="Properties">
-          <TabButton name="video">
-            <RenderIcon />
-            <span>Video</span>
+          <TabButton name="layer">
+            <LayerIcon />
+            <span>Layer</span>
           </TabButton>
           <TabButton name="audio">
             <SoundIcon />
@@ -97,12 +97,12 @@ export const Properties = setup(() => {
             <TextIcon />
             <span>Text</span>
           </TabButton>
-          <TabButton name="agent">
+          <TabButton name="prompt">
             <GenerativeIcon />
-            <span>Agent</span>
+            <span>Prompt</span>
           </TabButton>
         </TabList>
-        <TabPanel name="video">
+        <TabPanel name="layer">
           <Snippet data={() => boxClip(session)}>
             {(segment) =>
               segment ? (
@@ -175,7 +175,7 @@ const Keyframes = template<{ box: BoxEdit; group: BoxGroup }>(
                 data-dir="before"
                 aria-label={`${group.label}: previous keyframe`}
                 disabled={before === undefined}
-                onClick={() => before !== undefined && void timeline.scrub(segment.startFrame + before)}
+                onClick={() => before !== undefined && void timeline.scrub(timelineFrame(segment, before))}
               />
               <button
                 type="button"
@@ -193,7 +193,7 @@ const Keyframes = template<{ box: BoxEdit; group: BoxGroup }>(
                 data-dir="after"
                 aria-label={`${group.label}: next keyframe`}
                 disabled={after === undefined}
-                onClick={() => after !== undefined && void timeline.scrub(segment.startFrame + after)}
+                onClick={() => after !== undefined && void timeline.scrub(timelineFrame(segment, after))}
               />
             </span>
           );
@@ -295,7 +295,7 @@ function writeBox(segment: TimelineSegment<MotionBox>, key: BoxField['key'], val
  *
  * @param segment - The clip's segment.
  * @param group - The group.
- * @param at - The frame, counted from the clip's start.
+ * @param at - The frame, in the clip's content.
  */
 function toggleKeyframe(segment: TimelineSegment<MotionBox>, group: BoxGroup, at: number): void {
   const scene = segment.scenes.find((each) => each.atFrame === at);
@@ -305,7 +305,7 @@ function toggleKeyframe(segment: TimelineSegment<MotionBox>, group: BoxGroup, at
     return;
   }
 
-  const sampled = sampleSegment(segment, segment.startFrame + at);
+  const sampled = sampleSegment(segment, timelineFrame(segment, at));
   const values: Record<string, number> = {};
   for (const { key, fallback } of group.fields) {
     const value = sampled[key] ?? fallback;
@@ -328,7 +328,7 @@ function dropIfIdle(segment: TimelineSegment<MotionBox>, scene: TimelineSegment<
   const data = { ...scene.data };
   segment.removeScene(scene);
 
-  const sampled = sampleSegment(segment, segment.startFrame + atFrame) as Record<string, unknown>;
+  const sampled = sampleSegment(segment, timelineFrame(segment, atFrame)) as Record<string, unknown>;
   const changes = Object.entries(data).some(([key, value]) =>
     typeof value === 'number' ? Math.abs(Number(sampled[key] ?? value) - value) > 1e-6 : sampled[key] !== value
   );
@@ -344,11 +344,11 @@ function dropIfIdle(segment: TimelineSegment<MotionBox>, scene: TimelineSegment<
  * keyframe before it.
  *
  * @param segment - The clip's segment.
- * @param at - Where, counted from the clip's start.
+ * @param at - Where, in the clip's content.
  * @param values - The values it sets.
  */
 function addKeyframe(segment: TimelineSegment<MotionBox>, at: number, values: Record<string, number>): void {
-  const sampled = sampleSegment(segment, segment.startFrame + at);
+  const sampled = sampleSegment(segment, timelineFrame(segment, at));
   const data: Record<string, number> = {};
   for (const each of segment.scenes) {
     for (const name of Object.keys(each.data)) data[name] = sampled[name as BoxField['key']] as number;
@@ -361,26 +361,43 @@ function addKeyframe(segment: TimelineSegment<MotionBox>, at: number, values: Re
 }
 
 /**
- * Where a timeline frame falls in a clip, held within it.
+ * Where a timeline frame falls in a clip's content, held within the clip: the frame its keyframes
+ * are placed by, which starts at its offset — past what a trim or a split cut off — and runs at its
+ * speed.
  *
  * @param segment - The clip's segment.
  * @param frame - The timeline frame.
- * @returns The frame counted from the clip's start.
+ * @returns The frame in the clip's content.
  */
 function clipFrame(segment: TimelineSegment<MotionBox>, frame: number): number {
-  return Math.min(Math.max(frame - segment.startFrame, 0), segment.endFrame - segment.startFrame);
+  const within = Math.min(Math.max(frame - segment.startFrame, 0), segment.endFrame - segment.startFrame);
+  return segment.offsetFrame + Math.round(within * segment.speed);
 }
 
 /**
- * The frames, counted from a clip's start and in order, of its keyframes that set any of some values.
+ * The timeline frame a frame of a clip's content shows at: `clipFrame` the other way.
+ *
+ * @param segment - The clip's segment.
+ * @param at - The frame in the clip's content.
+ * @returns The timeline frame.
+ */
+function timelineFrame(segment: TimelineSegment<MotionBox>, at: number): number {
+  return segment.startFrame + Math.round((at - segment.offsetFrame) / segment.speed);
+}
+
+/**
+ * The frames, in a clip's content and in order, of its keyframes that set any of some values and
+ * fall within the clip: a split clip's halves share their keyframes, each showing its own stretch.
  *
  * @param segment - The clip's segment.
  * @param keys - The values.
  * @returns The frames.
  */
 function keyedFrames(segment: TimelineSegment<MotionBox>, keys: BoxField['key'][]): number[] {
+  const first = clipFrame(segment, segment.startFrame);
+  const last = clipFrame(segment, segment.endFrame);
   return segment.scenes
-    .filter((scene) => keys.some((key) => key in scene.data))
+    .filter((scene) => scene.atFrame >= first && scene.atFrame <= last && keys.some((key) => key in scene.data))
     .map((scene) => scene.atFrame)
     .sort((a, b) => a - b);
 }
