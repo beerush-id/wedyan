@@ -24,3 +24,5 @@ dist-ssr
 *.sw?
 .airlib
 .env
+.wrangler
+.claude
