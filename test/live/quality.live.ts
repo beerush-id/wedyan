@@ -23,7 +23,7 @@ import { ask, type BeatResult, PROFILE, PROVIDERS, runBeat } from './beat.js';
  * - delete: ask_user comes before app.files.delete, which targets the selected file.
  * - photo: sys.photos.search, then sys.image.segment on the found photo, then sys.image.edit with the
  *   mask, then app.photos.show with the edited photo.
- * - onboarding: ask_user at least once, then sys.profile.save with the user's name.
+ * - onboarding: ask_user at least once.
  */
 
 const RUNS = Number(process.env.QUALITY_RUNS ?? 3);
@@ -230,13 +230,7 @@ const BEATS: Array<{
         models,
         replies: ['Call me Nanang.', 'Wedyan is fine.', 'I make short dramas for social media.'],
       }),
-    checks: (result) => {
-      const saved = called(result, 'sys.profile.save')[0];
-      return [
-        { name: 'asks with ask_user', pass: acted(result, 'ask_user').length > 0 },
-        { name: 'saves the profile', pass: /nanang/i.test(JSON.stringify(saved?.args ?? '')) },
-      ];
-    },
+    checks: (result) => [{ name: 'asks with ask_user', pass: acted(result, 'ask_user').length > 0 }],
   },
 ];
 

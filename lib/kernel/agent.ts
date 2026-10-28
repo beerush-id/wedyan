@@ -288,11 +288,7 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
             if (action.ask) asked = true;
             if (action.name !== 'ask_user') return actions.add(action, current);
             // Composed now, while the turn streams; the user is asked once their turn in the queue comes.
-            const form = compose({ form: String(action.args) }).then((nodes) => {
-              if (nodes.length !== 1) throw new Error('A form must be one widget node');
-              return nodes[0];
-            });
-            actions.add(action, current, form);
+            actions.add(action, current, compose({ form: String(action.args) }));
           },
           onInvalid: (problem) => problems.push(problem),
         });

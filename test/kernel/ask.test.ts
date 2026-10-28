@@ -213,7 +213,7 @@ describe('askWedyan', () => {
       role: 'user',
       content: JSON.stringify({ form: 'A choice named "choice" between orange and grey.' }),
     });
-    expect(forms).toEqual([[widget, { after: 0 }]]);
+    expect(forms).toEqual([[[widget], { after: 0 }]]);
     expect(messagesOf(vendor.bodies, 2).at(-1)).toEqual({
       role: 'user',
       content: JSON.stringify({ feedback: { asks: [{ ask: 'ask_user', reply: { choice: 'orange' } }] } }),
@@ -221,10 +221,27 @@ describe('askWedyan', () => {
     expect(final.status).toBe('done');
   });
 
+  it('asks with a form of several nodes, as a list', async () => {
+    const fields = [{ role: 'text-input' }, { role: 'switch' }];
+    mockVendor(says('[[ask_user]]A name and a yes or no.[[/ask_user]]'), says(JSON.stringify(fields)), says('Thanks.'));
+    const forms: unknown[] = [];
+
+    await withContext(async () => {
+      const call = askWedyan({ text: 'Ask me' });
+      call.answer('ask_user', (form) => {
+        forms.push(form);
+        return { name: 'Ana', yes: true };
+      });
+      await call;
+    });
+
+    expect(forms).toEqual([fields]);
+  });
+
   it('never asks the user with a form the composer couldn’t make, and tells the model', async () => {
     const vendor = mockVendor(
       says('[[ask_user]]A choice between orange and grey.[[/ask_user]]'),
-      says('[{"role":"radio-group"},{"role":"switch"}]'),
+      says('Pick one.'),
       says('Sorry, which one?'),
     );
     vi.spyOn(IRPC_STORE, 'error').mockImplementation(() => {});
@@ -242,7 +259,11 @@ describe('askWedyan', () => {
       content: JSON.stringify({
         feedback: {
           actions: [
-            { action: 'ask_user', args: 'A choice between orange and grey.', error: 'A form must be one widget node' },
+            {
+              action: 'ask_user',
+              args: 'A choice between orange and grey.',
+              error: 'The composer\'s answer isn\'t JSON: "Pick one."',
+            },
           ],
         },
       }),

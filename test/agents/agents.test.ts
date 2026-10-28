@@ -111,6 +111,17 @@ describe('agents', () => {
     expect(AGENTS.june.system).toContain('"state": "$this.FIELD"');
   });
 
+  it('onboards through the desktop’s onboarding form, never writing the profile itself', () => {
+    expect(AGENTS.wendy.system).toContain('[[ask_user]]The onboarding form.[[/ask_user]]');
+    expect(AGENTS.june.system).toContain('{"role": "onboarding"}');
+    for (const agent of Object.values(AGENTS)) {
+      expect(
+        agent.tools.map((tool) => tool.name),
+        agent.name,
+      ).not.toContain('sys.profile.save');
+    }
+  });
+
   it('shows Rita every skill by name and what it is for, and lets her answer obvious asks herself', () => {
     for (const skill of Object.values(SKILLS)) {
       expect(AGENTS.rita.system).toContain(`- ${skill.name}: ${skill.description}`);

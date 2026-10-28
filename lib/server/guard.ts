@@ -1,12 +1,13 @@
 import { GuardError, getContext, type IRPCSubRequest } from '@irpclib/irpc';
 import { resolve } from '@irpclib/r2-file/path';
 import { ACTOR_KEY, AGENT_ACTOR } from '@/lib/kernel/agent.js';
+import { PROFILE_PATH } from '@/lib/share/profile.js';
 
 /**
  * Files only the user changes, through the desktop: the profile is every agent's persona, so an
  * agent writing it could steer every ask after it.
  */
-export const USER_ONLY = ['~/profile.json'];
+export const USER_ONLY = [PROFILE_PATH];
 
 /** Files no agent may change or read: the user's secrets. */
 export const SECRET = ['~/private.vault'];

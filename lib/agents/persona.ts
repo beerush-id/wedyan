@@ -1,17 +1,4 @@
-/**
- * What the assistant needs from the user's profile (`~/profile.json`): who it speaks as, who it
- * speaks to, and how it behaves. The profile holds no secrets; those live in `~/private.vault`.
- */
-export interface UserProfile {
-  /** The name the user gave the assistant; "Wedyan" when they gave none. */
-  assistantName?: string;
-  /** How to call the user. */
-  userName?: string;
-  /** How the assistant behaves, in the user's words. */
-  persona?: string;
-  /** Corrections the user asked for along the way, one per item. */
-  refinements?: string[];
-}
+import type { UserProfile } from '../share/profile.js';
 
 /** The assistant's name until the user gives it another. */
 export const DEFAULT_ASSISTANT_NAME = 'Wedyan';

@@ -3,10 +3,11 @@ import { IRPCRouter } from '@irpclib/irpc';
 import { transport as fileTransport, read } from '@irpclib/r2-file';
 import type { FileWorkerEnv } from '@irpclib/r2-file/constructor';
 import { COMPOSER, createAgents, ENTRY } from '@/lib/agents/index.js';
-import { personaPrompt, type UserProfile } from '@/lib/agents/persona.js';
+import { personaPrompt } from '@/lib/agents/persona.js';
 import { SKILLS } from '@/lib/agents/skills.js';
 import { setupKernel } from '@/lib/kernel/agent.js';
 import { embedWith, setupMemory, type VectorStore } from '@/lib/memory/memory.js';
+import { PROFILE_PATH, type UserProfile } from '@/lib/share/profile.js';
 import { wsTransport } from '@/src/api.js';
 
 /** The bindings and secrets the server runs with (see `wrangler.json`). */
@@ -50,7 +51,7 @@ export function setupServer(env: ServerEnv): void {
  * @returns The persona section of the agents' prompts.
  */
 export async function loadPersona(): Promise<string> {
-  const profile = (await read<UserProfile>('~/profile.json', { encoding: 'json' })) ?? undefined;
+  const profile = (await read<UserProfile>(PROFILE_PATH, { encoding: 'json' })) ?? undefined;
   return personaPrompt(profile);
 }
 

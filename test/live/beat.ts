@@ -63,7 +63,6 @@ export const SYS: Record<string, IRPCData> = {
   ],
   'sys.image.segment': { mask: 'mask-7f3', box: [40, 120, 310, 380], label: 'cat' },
   'sys.image.edit': { path: '~/pictures/sofa-edited.jpg' },
-  'sys.profile.save': { saved: true },
   'memory.save': { path: '~/Memos/Saved.memo', name: 'Saved', kind: 'note' },
   'memory.recall': [],
 };

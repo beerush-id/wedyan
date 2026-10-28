@@ -90,18 +90,6 @@ export const TOOLS = {
       ['prompt'],
     ),
   },
-  profileSave: {
-    name: 'sys.profile.save',
-    description: 'Saves the user’s profile: their name, the name they give you, and preferences.',
-    parameters: object(
-      {
-        userName: text('How to call the user.'),
-        assistantName: text('The name the user gives you.'),
-        preferences: { type: 'array', items: { type: 'string' }, description: 'Preferences, one per item.' },
-      },
-      ['userName'],
-    ),
-  },
 } satisfies Record<string, ChatTool>;
 
 export const ACTIONS = {

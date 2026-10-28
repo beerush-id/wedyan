@@ -1,3 +1,4 @@
+import type { WidgetNode } from '@airlib/react-aui/dynamic';
 import type { IRPCData, RemoteState } from '@irpclib/irpc';
 import { kernel } from './package.js';
 
@@ -65,7 +66,7 @@ export interface AskState {
 /**
  * Questions either side may ask while an ask runs. The client asks `followUp`. The kernel asks, by
  * name and with its anchor, every action and ask the answer makes (`app.*`, `desktop.*`,
- * `ask_user`); `ask_user`'s arguments are the widget its form shows, and its reply is the form's
+ * `ask_user`); `ask_user`'s argument is the widget nodes its form shows, and its reply is the form's
  * fields. A name the client hasn't answered resolves to `undefined`.
  */
 export type WedyanQueries = {
@@ -73,6 +74,8 @@ export type WedyanQueries = {
   [name: string]: (...args: any[]) => any;
   /** Something the user said while the ask is running; taken in at the next safe turn. */
   followUp: (text: string) => boolean;
+  /** Asks the user with a form, its body the nodes given; the reply is the form's fields. */
+  ask_user: (form: WidgetNode[]) => Record<string, IRPCData> | undefined;
 };
 
 export type AskWedyanFn = (input: AskInput) => RemoteState<AskState, WedyanQueries>;

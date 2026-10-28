@@ -20,7 +20,8 @@ const VOCABULARY = `- Text and layout: p, span, strong, em, small, code, pre, bl
 - Data: list, list-item, description-list, stat (props label, value, change, trend: up | down | flat, caption), badge, chip, progress, meter, alert, empty-state, gallery, gallery-item
 - Media: image (props src, alt)
 - Structure: tab, tab-list, tab-button, tab-panel, accordion, accordion-button, accordion-panel, divider
-- Form fields: field, field-label, field-description, text-input, switch, radio-group, radio (props value)`;
+- Form fields: field, field-label, field-description, text-input, switch, radio-group, radio (props value)
+- Desktop forms, whole forms the desktop draws itself: onboarding (a new user's first form: it asks how to call them and what to call the assistant, and saves their profile)`;
 
 /** The style props every component takes, with AUI's own values, so June can keep the user's look. */
 const STYLES = `- variant: ${listOf(VARIANTS)}. glass is a frosted pane over what's behind. Form fields take only ${listOf(FIELD_VARIANTS)}.
@@ -31,7 +32,7 @@ const COMPOSER_PROMPT = `You compose widgets for Wedyan, a desktop the user shar
 
 You get {"widget": description} or {"form": description}. Answer with JSON only: no Markdown, no code fence, no words.
 - A widget: one node, or a list of nodes shown one after another.
-- A form: exactly one node, the body of a form the user fills in. Use role "section" to hold several fields.
+- A form: one node, or a list of nodes, the body of a form the user fills in.
 
 A node is text (a JSON string) or {"role": string, "props": {...}, "bindings": [...], "children": [...]}. Leave out what a node doesn't need.
 
@@ -47,6 +48,7 @@ Rules:
 - Keep every value from the description exactly: names, numbers, dates, paths. Never invent data.
 - In a form, bind each input to the field the description names: "bindings": [{"prop": "value", "state": "$this.FIELD", "writable": true}]. Outside a form, never use bindings.
 - In a form, a choice between options is a radio-group with radio children, yes or no is a switch, and free text is a text-input.
+- When the description asks for a desktop form, answer only that node, with no props, bindings or children: the desktop draws all of it, e.g. {"role": "onboarding"}.
 
 Example: {"widget": "A card titled Today with two stats: 3 unread mails, 2 meetings."}
 {"role": "card", "props": {"title": "Today"}, "children": [{"role": "stat", "props": {"label": "Unread mails", "value": 3}}, {"role": "stat", "props": {"label": "Meetings", "value": 2}}]}
