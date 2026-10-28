@@ -2,7 +2,7 @@ import { AIAdapter, OpenAIDriver } from '@irpclib/ai-kit/worker';
 import { IRPCRouter } from '@irpclib/irpc';
 import { transport as fileTransport, read } from '@irpclib/r2-file';
 import type { FileWorkerEnv } from '@irpclib/r2-file/constructor';
-import { COMPOSER, createAgents, ENTRY } from '@/lib/agents/index.js';
+import { COMPOSER, createAgents, DEFAULT_MODELS, ENTRY, OPEN_MODELS, SPARK_OPEN } from '@/lib/agents/index.js';
 import { personaPrompt } from '@/lib/agents/persona.js';
 import { SKILLS } from '@/lib/agents/skills.js';
 import { setupKernel } from '@/lib/kernel/agent.js';
@@ -15,16 +15,22 @@ export type ServerEnv = FileWorkerEnv & {
   VECTORIZE: VectorStore;
   AI: Parameters<typeof embedWith>[0];
   MUSE_API_KEY?: string;
+  /** Baseten's key; with it, Spark Open takes over routing and composing. */
+  BASETEN_API_KEY?: string;
 };
 
 /** Where Meta's models are served, over the Responses API. */
 const META_API = 'https://api.meta.ai/v1';
 
+/** Where Baseten serves Spark Open, over the Responses API. */
+const BASETEN_API = 'https://inference.baseten.co/v1';
+
 let ready = false;
 
 /**
  * Sets up the kernel and memory with the server's bindings, once per process: the agents and
- * their skills, the tools of r2-file and memory, Meta's models, and the vector index.
+ * their skills, the tools of r2-file and memory, the models (Spark Open routing and composing when
+ * Baseten's key is set), and the vector index.
  *
  * @param env - The resolved bindings.
  */
@@ -32,9 +38,13 @@ export function setupServer(env: ServerEnv): void {
   if (ready) return;
   ready = true;
 
+  const keys = {
+    meta: env.MUSE_API_KEY ?? globalThis.process?.env?.MUSE_API_KEY ?? '',
+    baseten: env.BASETEN_API_KEY ?? globalThis.process?.env?.BASETEN_API_KEY,
+  };
   setupKernel({
-    adapter: modelAdapter(env.MUSE_API_KEY ?? globalThis.process?.env?.MUSE_API_KEY ?? ''),
-    agents: createAgents(),
+    adapter: modelAdapter(keys),
+    agents: createAgents(keys.baseten ? OPEN_MODELS : DEFAULT_MODELS),
     entry: ENTRY,
     composer: COMPOSER,
     skills: SKILLS,
@@ -56,18 +66,28 @@ export async function loadPersona(): Promise<string> {
 }
 
 /**
- * Meta's models, as the agents call them.
+ * The models the agents call: Meta's, and Spark Open on Baseten when its key is set.
  *
- * @param apiKey - The Meta Model API key.
- * @returns The adapter serving Muse Spark and Muse Wonder.
+ * @param keys - The Meta Model API key, and Baseten's if there is one.
+ * @returns The adapter serving Muse Spark and Muse Wonder, and Spark Open with Baseten.
  */
-function modelAdapter(apiKey: string): AIAdapter {
-  return new AIAdapter().use(
+function modelAdapter(keys: { meta: string; baseten?: string }): AIAdapter {
+  const adapter = new AIAdapter().use(
     new OpenAIDriver({
       name: 'meta',
       baseUrl: META_API,
-      apiKey,
+      apiKey: keys.meta,
       models: ['muse-spark-1.3', 'muse-wonder-1.0'],
+      api: 'responses',
+    }),
+  );
+  if (!keys.baseten) return adapter;
+  return adapter.use(
+    new OpenAIDriver({
+      name: 'baseten',
+      baseUrl: BASETEN_API,
+      apiKey: keys.baseten,
+      models: [SPARK_OPEN],
       api: 'responses',
     }),
   );

@@ -17,16 +17,33 @@ export interface AgentModel {
   effort?: string;
 }
 
-/** The models agents run on: a fast one for routing, a capable one for the work. */
+/**
+ * The models agents run on: a fast one for routing, a capable one for the work, and one for
+ * composing widgets (the work's when unset).
+ */
 export interface AgentModels {
   router: AgentModel;
   agents: AgentModel;
+  composer?: AgentModel;
 }
 
-/** Meta-hosted Muse Spark at minimal effort for both: about 4 s per ask in live timings. */
+/** Meta-hosted Muse Spark at minimal effort for all: about 4 s per ask in live timings. */
 export const DEFAULT_MODELS: AgentModels = {
   router: { model: 'muse-spark-1.3', effort: 'minimal' },
   agents: { model: 'muse-spark-1.3', effort: 'minimal' },
+};
+
+/** Muse Spark Open, Meta's open-weight Spark, served by Baseten. */
+export const SPARK_OPEN = 'meta-models/muse-spark-open-1026';
+
+/**
+ * With Baseten: Spark Open routes and composes, Spark 1.3 does the work. In live runs it routes in
+ * about 1 s instead of 2.3 s and composes faster, with the same checks passed as Spark 1.3.
+ */
+export const OPEN_MODELS: AgentModels = {
+  router: { model: SPARK_OPEN, effort: 'low' },
+  agents: DEFAULT_MODELS.agents,
+  composer: { model: SPARK_OPEN, effort: 'low' },
 };
 
 /**
@@ -51,6 +68,6 @@ export function createAgents(
     rita: on(rita(models.router.model, Object.values(skills)), models.router),
     wendy: on(wendy(models.agents.model), models.agents),
     lita: on(lita(models.agents.model), models.agents),
-    june: on(june(models.agents.model), models.agents),
+    june: on(june((models.composer ?? models.agents).model), models.composer ?? models.agents),
   };
 }

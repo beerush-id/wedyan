@@ -1,7 +1,7 @@
 import { mutable, withContext } from '@airlib/react';
 import { AIAdapter, OpenAIDriver } from '@irpclib/ai-kit/worker';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { COMPOSER, createAgents, ENTRY } from '../../lib/agents/index.js';
+import { COMPOSER, createAgents, ENTRY, OPEN_MODELS, SPARK_OPEN } from '../../lib/agents/index.js';
 import { personaPrompt } from '../../lib/agents/persona.js';
 import { parseSkill, SKILLS } from '../../lib/agents/skills.js';
 import type { AskState } from '../../lib/kernel/agent.h.js';
@@ -31,6 +31,16 @@ describe('agents', () => {
     expect(AGENTS.rita.handoffs).toEqual(['wendy', 'lita']);
     expect(AGENTS.wendy.handoffs).toEqual(['lita']);
     expect(AGENTS.lita).toMatchObject({ skilled: true, handoffs: ['rita'] });
+  });
+
+  it('runs June on the work’s model unless she has her own, and on Spark Open with Rita in OPEN_MODELS', () => {
+    expect(AGENTS.june).toMatchObject({ model: 'agents-m' });
+
+    const open = createAgents(OPEN_MODELS);
+    expect(open.rita).toMatchObject({ model: SPARK_OPEN, effort: 'low' });
+    expect(open.june).toMatchObject({ model: SPARK_OPEN, effort: 'low' });
+    expect(open.wendy).toMatchObject({ model: 'muse-spark-1.3', effort: 'minimal' });
+    expect(open.lita).toMatchObject({ model: 'muse-spark-1.3', effort: 'minimal' });
   });
 
   it('hands off only to agents that exist, never to itself', () => {
