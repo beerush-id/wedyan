@@ -76,7 +76,6 @@ export function createMarkerParser(events: MarkerEvents): MarkerParser {
   };
 
   const scanBody = (current: { tag: MarkerTag; body: string }): boolean => {
-    const closer = `[[/${current.tag.type}]]`;
     const start = pending.indexOf('[');
     if (start < 0) {
       emitBody(pending);
@@ -87,13 +86,14 @@ export function createMarkerParser(events: MarkerEvents): MarkerParser {
     emitBody(pending.slice(0, start));
     pending = pending.slice(start);
 
-    if (pending.startsWith(closer)) {
+    const closer = scanCloser(pending, current.tag.type);
+    if (closer.kind === 'match') {
       pending = pending.slice(closer.length);
       open = undefined;
       events.close(current.tag, current.body);
       return true;
     }
-    if (closer.startsWith(pending)) return false;
+    if (closer.kind === 'partial') return false;
 
     emitBody('[');
     pending = pending.slice(1);
@@ -120,6 +120,47 @@ export function createMarkerParser(events: MarkerEvents): MarkerParser {
       pending = '';
     },
   };
+}
+
+type CloserScan = { kind: 'match'; length: number } | { kind: 'partial' } | { kind: 'fail' };
+
+/** Most `[` and `/` a closer may carry before its type, as in `[/[/say]]`. */
+const MAX_CLOSER_LEAD = 3;
+
+/**
+ * Scans the start of `source` for the closer of the open marker. Besides `[[/type]]` it accepts the
+ * malformed closers models write (`[/type]]`, `[/[type]]`, `[/[/type]]`, `[[/type]`): a `[`, up to
+ * three `[` or `/` with at least one `/`, the type, then one or two `]`.
+ *
+ * @param source - Text starting with `[`.
+ * @param type - The open marker's type.
+ * @returns `match` with the closer's length, `partial` when more input could still complete it, or
+ * `fail` when it can never close this marker.
+ */
+function scanCloser(source: string, type: string): CloserScan {
+  const partial: CloserScan = { kind: 'partial' };
+  const fail: CloserScan = { kind: 'fail' };
+  let i = 1;
+  let slashed = false;
+
+  while (i < source.length && (source[i] === '[' || source[i] === '/') && i <= MAX_CLOSER_LEAD) {
+    if (source[i] === '/') slashed = true;
+    i += 1;
+  }
+  if (i >= source.length) return partial;
+  if (!slashed) return fail;
+
+  for (const char of type) {
+    if (i >= source.length) return partial;
+    if (source[i] !== char) return fail;
+    i += 1;
+  }
+
+  if (i >= source.length) return partial;
+  if (source[i] !== ']') return fail;
+  i += 1;
+  if (i >= source.length) return partial;
+  return { kind: 'match', length: source[i] === ']' ? i + 1 : i };
 }
 
 type OpenerMatch = { kind: 'match'; length: number; type: string; attrs: Record<string, string> };

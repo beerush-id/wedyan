@@ -126,6 +126,38 @@ describe('marker parser', () => {
     expect(events.at(-1)).toEqual(['close', 'show', 'Use [[widget]] and [[/widget]] here']);
   });
 
+  it('accepts the malformed closers models write for the open marker', () => {
+    for (const closer of ['[/say]]', '[/[say]]', '[/[/say]]', '[[/say]']) {
+      const { events, parser } = setup();
+      parser.push(`[[say]]Done.${closer} After.`);
+      parser.end();
+
+      expect(events, closer).toEqual([
+        ['open', { type: 'say', attrs: {} }],
+        ['body', 'say', 'Done.'],
+        ['close', 'say', 'Done.'],
+        ['text', ' After.'],
+      ]);
+    }
+  });
+
+  it('accepts a malformed closer split across chunks', () => {
+    const { events, parser } = setup();
+    for (const char of '[[say]]Hi.[/[/say]]Next') parser.push(char);
+    parser.end();
+
+    expect(events.at(-2)).toEqual(['close', 'say', 'Hi.']);
+    expect(events.at(-1)).toEqual(['text', 'Next']);
+  });
+
+  it('does not take a bracket without a slash, or another type, for a closer', () => {
+    const { events, parser } = setup();
+    parser.push('[[say]]a [[say]] b [/show]] c[[/say]]');
+    parser.end();
+
+    expect(events.at(-1)).toEqual(['close', 'say', 'a [[say]] b [/show]] c']);
+  });
+
   it('holds back a possible closer inside a body', () => {
     const { events, parser } = setup();
     parser.push('[[show]]Line one [[/sh');

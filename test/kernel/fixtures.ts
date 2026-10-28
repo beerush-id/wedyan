@@ -19,14 +19,19 @@ export const AGENTS: Record<string, AgentProfile> = {
   photos: { name: 'photos', model: 'photos-m', system: 'Photos.', tools: [] },
 };
 
-/** A real adapter with a real OpenAI-compatible driver serving the fixture agents' models. */
-export function createTestAdapter(): AIAdapter {
+/**
+ * A real adapter with a real OpenAI-compatible driver serving the fixture agents' models.
+ *
+ * @param api - Which API the driver speaks; `chat` unless a test needs the Responses API.
+ */
+export function createTestAdapter(api: 'chat' | 'responses' = 'chat'): AIAdapter {
   return new AIAdapter().use(
     new OpenAIDriver({
       name: 'meta',
       baseUrl: 'https://api.meta.test/v1',
       apiKey: 'k',
       models: ['router-m', 'assistant-m', 'photos-m'],
+      api,
     }),
   );
 }

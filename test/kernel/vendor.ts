@@ -35,6 +35,43 @@ export function toolCall(id: string, name: string, args: unknown, index = 0) {
   return { index, id, type: 'function', function: { name, arguments: JSON.stringify(args) } };
 }
 
+/** One item of a Responses API turn: a message (commentary or answer), or a completed function call. */
+type ResponsesItem = { text: string; phase?: 'commentary' } | { call: { id: string; name: string; args: unknown } };
+
+/**
+ * A Responses API turn in the provider's wire format: each message streams its text, each call
+ * arrives whole, then the response completes. No items gives an empty turn.
+ */
+export function responses(...items: ResponsesItem[]): Response {
+  const events: Record<string, unknown>[] = [];
+  for (const [index, item] of items.entries()) {
+    if ('call' in item) {
+      events.push({
+        type: 'response.output_item.done',
+        item: {
+          type: 'function_call',
+          call_id: item.call.id,
+          name: item.call.name,
+          arguments: JSON.stringify(item.call.args),
+        },
+      });
+      continue;
+    }
+    const id = `msg_${index}`;
+    events.push(
+      {
+        type: 'response.output_item.added',
+        item: { id, type: 'message', ...(item.phase ? { phase: item.phase } : {}) },
+      },
+      { type: 'response.output_text.delta', item_id: id, delta: item.text },
+    );
+  }
+  events.push({ type: 'response.completed' });
+  return new Response(events.map((event) => `event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`).join(''), {
+    headers: { 'Content-Type': 'text/event-stream' },
+  });
+}
+
 /**
  * Answers provider requests from the queue in order; anything past the queue fails with 500.
  *

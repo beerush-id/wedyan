@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AskAction } from '../../lib/kernel/agent.h.js';
 import { type AgentLoopOptions, type AskState, type LoopSnapshot, runAgentLoop } from '../../lib/kernel/agent.js';
 import { AGENTS, createTestAdapter } from './fixtures.js';
-import { calls, messagesOf, mockVendor, says, sse, toolCall } from './vendor.js';
+import { calls, messagesOf, mockVendor, responses, says, sse, toolCall } from './vendor.js';
 
 // Only the model provider is mocked. The adapter, driver, parser, writer and loop all run for real.
 
@@ -56,6 +56,15 @@ describe('agent loop', () => {
       { role: 'system', content: 'Route.' },
       { role: 'user', content: 'Read my note' },
     ]);
+  });
+
+  it("sends the agent's reasoning effort with its turn", async () => {
+    const vendor = mockVendor(says('Hi.'));
+    const { run } = setup({ agents: { ...AGENTS, router: { ...AGENTS.router, effort: 'minimal' } } });
+
+    await run();
+
+    expect(vendor.bodies[0].reasoning_effort).toBe('minimal');
   });
 
   it('offers handoff only to the agents the profile names', async () => {
@@ -321,6 +330,32 @@ describe('agent loop', () => {
     expect(state).toMatchObject({ status: 'done', turn: 2 });
   });
 
+  it('does not run a call written as an action, and tells the model to call it', async () => {
+    const vendor = mockVendor(
+      says('[[say]]Delete it?[[/say]][[action name=ask_user]]{"question":"Delete script.md?"}[[/action]]'),
+      says('[[say]]Asking properly now.[[/say]]'),
+    );
+    const acted: string[] = [];
+    const { state, run } = setup({
+      entry: 'assistant',
+      act: async (action: AskAction) => {
+        acted.push(action.name);
+        return { ok: true };
+      },
+    });
+
+    await run();
+
+    expect(acted).toEqual([]);
+    expect(messagesOf(vendor.bodies, 1).at(-1)).toEqual({
+      role: 'user',
+      content: JSON.stringify({
+        feedback: { invalid: ['ask_user is a call, not an action: call it as a tool to get its result'] },
+      }),
+    });
+    expect(state).toMatchObject({ status: 'done', turn: 2 });
+  });
+
   it('tells the model about a malformed widget on the next turn', async () => {
     const vendor = mockVendor(says('[[widget]]{"title":"x"}[[/widget]]'), says('Fixed.'));
     const { state, run } = setup();
@@ -391,7 +426,55 @@ describe('agent loop', () => {
     await run();
 
     expect(vendor.spy).not.toHaveBeenCalled();
-    expect(state).toMatchObject({ status: 'error', reason: 'No driver served unknown-m' });
+    expect(state).toMatchObject({ status: 'error', reason: 'No answer from unknown-m' });
+  });
+
+  it('treats commentary written without calls as the answer', async () => {
+    mockVendor(responses({ text: '[[say]]Morning, Nanang.[[/say]]', phase: 'commentary' }));
+    const { state, run } = setup({ adapter: createTestAdapter('responses') });
+
+    await run();
+
+    expect(state.status).toBe('done');
+    expect(state.parts).toEqual([
+      { type: 'text', chunks: ['Morning, Nanang.'], text: 'Morning, Nanang.', spoken: true },
+    ]);
+  });
+
+  it('keeps commentary out of the answer when the turn makes calls', async () => {
+    mockVendor(
+      responses(
+        { text: 'Routing this.', phase: 'commentary' },
+        { call: { id: 'h1', name: 'handoff', args: { agent: 'photos', brief: 'Find the cat.' } } },
+      ),
+      responses({ text: '[[say]]Found it.[[/say]]' }),
+    );
+    const { state, run } = setup({ adapter: createTestAdapter('responses') });
+
+    await run();
+
+    expect(state).toMatchObject({ status: 'done', agent: 'photos' });
+    expect(partsOf(state)).toEqual(['Found it.']);
+  });
+
+  it('retries an empty turn once', async () => {
+    const vendor = mockVendor(responses(), responses({ text: '[[say]]Here.[[/say]]' }));
+    const { state, run } = setup({ adapter: createTestAdapter('responses') });
+
+    await run();
+
+    expect(vendor.spy).toHaveBeenCalledTimes(2);
+    expect(state).toMatchObject({ status: 'done', turn: 1 });
+    expect(partsOf(state)).toEqual(['Here.']);
+  });
+
+  it('ends with a reason when the retry is empty too', async () => {
+    mockVendor(responses(), responses());
+    const { state, run } = setup({ adapter: createTestAdapter('responses') });
+
+    await run();
+
+    expect(state).toMatchObject({ status: 'error', reason: 'No answer from router-m' });
   });
 
   it('reports a provider failure as an error', async () => {

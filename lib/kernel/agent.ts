@@ -82,6 +82,8 @@ export interface AgentProfile {
   tools: ChatTool[];
   /** Agents this one may hand the ask to; the loop offers `handoff` only when there are any. */
   handoffs?: string[];
+  /** How hard its model reasons, in the provider's terms (`minimal`, `low`, …); the provider's default if unset. */
+  effort?: string;
 }
 
 /** Everything needed to resume an ask after the turn it was taken on. */
@@ -172,11 +174,24 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
       turn += 1;
       state.turn = turn;
       const current = turn;
-      const reply = await modelTurn(adapter, agent, history, state.parts, signal, {
-        onAction: (action) => actions.add(action, current),
-        onInvalid: (problem) => problems.push(problem),
-      });
-      if (!reply.text && !reply.toolCalls.length) return end('error', `No driver served ${agent.model}`);
+      const callable = new Set(toolsOf(agent).map((tool) => tool.name));
+      const take = () =>
+        modelTurn(adapter, agent, history, state.parts, signal, {
+          onAction: (action) => {
+            // A call written as an action would run with its result lost: the model must call it.
+            if (callable.has(action.name)) {
+              problems.push(`${action.name} is a call, not an action: call it as a tool to get its result`);
+              return;
+            }
+            actions.add(action, current);
+          },
+          onInvalid: (problem) => problems.push(problem),
+        });
+      const isEmpty = (result: { text: string; toolCalls: ToolCall[] }) => !result.text && !result.toolCalls.length;
+      // An empty turn is usually a provider hiccup: one retry before giving up.
+      let reply = await take();
+      if (isEmpty(reply)) reply = await take();
+      if (isEmpty(reply)) return end('error', `No answer from ${agent.model}`);
 
       history.push({
         role: 'assistant',
@@ -244,7 +259,9 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
 
 /**
  * Runs one model turn for the agent: feeds each streamed chunk through the marker parser into the
- * answer's parts, and returns the raw text and the calls the model made.
+ * answer's parts, and returns the raw text and the calls the model made. Commentary the provider
+ * kept apart stays out of the answer, unless the turn made no calls and wrote no answer: commentary
+ * only accompanies calls, so on its own it is the answer.
  */
 async function modelTurn(
   adapter: AIAdapter,
@@ -268,11 +285,17 @@ async function modelTurn(
     writer.flush();
   });
 
+  let text = '';
   try {
     await new Promise<void>((resolve, reject) => {
       void adapter.ask(
         history,
-        { model: agent.model, system: agent.system, tools: toolsOf(agent) },
+        {
+          model: agent.model,
+          system: agent.system,
+          tools: toolsOf(agent),
+          ...(agent.effort ? { reasoningEffort: agent.effort } : {}),
+        },
         {
           state: live,
           signal,
@@ -281,6 +304,14 @@ async function modelTurn(
         },
       );
     });
+
+    text = live.data?.text ?? (live.data?.chunks ?? []).join('');
+    const commentary = (live.data?.commentary ?? []).join('');
+    if (!text && !live.data?.toolCalls?.length && commentary) {
+      parser.push(commentary);
+      writer.flush();
+      text = commentary;
+    }
   } finally {
     unsubscribe();
     parser.end();
@@ -289,7 +320,7 @@ async function modelTurn(
 
   // Plain copies: the calls go into history and to resolvers, not the reactive state.
   const toolCalls = JSON.parse(JSON.stringify(live.data?.toolCalls ?? [])) as ToolCall[];
-  return { text: live.data?.text ?? (live.data?.chunks ?? []).join(''), toolCalls };
+  return { text, toolCalls };
 }
 
 /**
