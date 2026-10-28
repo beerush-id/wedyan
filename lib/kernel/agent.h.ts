@@ -18,11 +18,16 @@ export type TextPart = {
   spoken: boolean;
 };
 
-/** UI described as data (a widget node: `role`, `props`, `children`), added whole once complete. */
+/**
+ * UI described as data. It's added `pending`, with no nodes, where the agent asked for it, and the
+ * composer fills its widget nodes (`role`, `props`, `bindings`, `children`) in place: `ready`, or
+ * `error` with why, when the composer couldn't.
+ */
 export type WidgetPart = {
   type: 'widget';
-  role: string;
-  [key: string]: IRPCData;
+  status: 'pending' | 'ready' | 'error';
+  nodes: IRPCData[];
+  error?: string;
 };
 
 /** One part of an answer, in the order the agent produced it. */
@@ -32,7 +37,8 @@ export type AskPart = TextPart | WidgetPart;
  * Something the answer does on the desktop. The kernel asks the client to run it by its `name`, in
  * order, once the part at index `after` has been shown or spoken (`-1`: before any part). An action is
  * fire-and-forget; an ask (`ask_user` with a widget form, or an app by name) waits for a reply the
- * model reads on its next turn.
+ * model reads on its next turn. The agent writes an `ask_user` form in plain words: its `args` are
+ * that description until the composer makes the form, which is what the client is asked with.
  */
 export type AskAction = {
   name: string;

@@ -29,6 +29,8 @@ export interface KernelConfig {
   agents: Record<string, AgentProfile>;
   /** The first agent of every ask: the router. */
   entry: string;
+  /** The agent that turns what other agents describe into widgets; it never speaks. */
+  composer?: string;
   /**
    * Serve the packages whose tools agents call by `package.function`, one router per transport;
    * each call runs through its stub.
@@ -57,7 +59,7 @@ export function setupKernel(next: KernelConfig): void {
 kernel.construct(askWedyan, (input) =>
   stream((state, resolve) => {
     if (!config) throw new Error('Kernel is not set up');
-    const { adapter, agents, entry, routers = [], sys = {}, skills, limits } = config;
+    const { adapter, agents, entry, composer, routers = [], sys = {}, skills, limits } = config;
     const loadPersona = config.persona;
     const controller = new AbortController();
     getAbortSignal()?.addEventListener('abort', () => controller.abort(), { once: true });
@@ -77,6 +79,7 @@ kernel.construct(askWedyan, (input) =>
           adapter,
           agents,
           entry,
+          composer,
           skills,
           persona,
           limits,
@@ -151,9 +154,14 @@ export interface AgentLoopOptions {
   agents: Record<string, AgentProfile>;
   /** The first agent: the router. */
   entry: string;
+  /** The agent that composes the widgets and `ask_user` forms other agents describe. */
+  composer?: string;
   /** The skills a skilled agent can be handed, by name. */
   skills?: Record<string, AgentSkill>;
-  /** The user's persona, added to every agent's system prompt so the voice never changes. */
+  /**
+   * The user's persona, added to every agent's system prompt so the voice never changes, and to the
+   * composer's so the look they asked for never does either.
+   */
   persona?: string;
   input: ChatInput;
   /** Mutated in place as the ask runs. */
@@ -188,9 +196,11 @@ const DEFAULT_HANDOFF_LIMIT = 3;
  * Runs one ask to the end. Each turn calls the active agent's model, translates its markers into
  * the answer's parts, queues its actions, and resolves its calls. At the safe turn it takes in
  * follow-ups, applies a handoff, and tells the model what went wrong since the last turn (failed
- * actions, malformed markers). The ask ends when a turn makes no calls, no follow-up is waiting, and
- * every action has run without a failure to report. Routing is not a separate step: the entry agent
- * routes by calling `handoff`.
+ * actions, malformed markers). A widget the agent describes is composed by the composer while the
+ * agent keeps going, and an `ask_user` form before the user is asked. The ask ends when a turn makes
+ * no calls, no follow-up is waiting, every action has run without a failure to report, and every
+ * widget is drawn or failed. Routing is not a separate step: the entry agent routes by calling
+ * `handoff`.
  *
  * Never throws: failures, aborts and limits end the ask with the status and reason in `state`.
  *
@@ -210,6 +220,17 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
   let handoffs = resume?.handoffs ?? 0;
   const actions = createActionQueue(options.act);
   const problems: string[] = [];
+  const composer = options.composer ? agents[options.composer] : undefined;
+  const compositions: Promise<void>[] = [];
+  const compose = (request: IRPCData) =>
+    composer
+      ? composeWidget(
+          adapter,
+          persona ? { ...composer, system: `${composer.system}\n\n${persona}` } : composer,
+          request,
+          signal,
+        )
+      : Promise.reject(new Error('No composer to draw widgets'));
 
   const end = (status: AskState['status'], reason?: string) => {
     state.status = status;
@@ -235,6 +256,22 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
       let asked = false;
       const take = () =>
         modelTurn(adapter, { ...agent, system, tools }, history, state.parts, signal, {
+          onWidget: (part, intent) => {
+            // The agent keeps speaking while its widget is composed; the part fills in place.
+            compositions.push(
+              compose({ widget: intent }).then(
+                (nodes) => {
+                  part.nodes = nodes;
+                  part.status = 'ready';
+                },
+                (error) => {
+                  IRPC_STORE.error(error as Error, [{ composer: options.composer, widget: intent }]);
+                  part.error = messageOf(error);
+                  part.status = 'error';
+                },
+              ),
+            );
+          },
           onAction: (action) => {
             // A call written as an action would run with its result lost: the model must call it.
             if (callable.has(action.name)) {
@@ -242,7 +279,13 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
               return;
             }
             if (action.ask) asked = true;
-            actions.add(action, current);
+            if (action.name !== 'ask_user') return actions.add(action, current);
+            // Composed now, while the turn streams; the user is asked once their turn in the queue comes.
+            const form = compose({ form: String(action.args) }).then((nodes) => {
+              if (nodes.length !== 1) throw new Error('A form must be one widget node');
+              return nodes[0];
+            });
+            actions.add(action, current, form);
           },
           onInvalid: (problem) => problems.push(problem),
         });
@@ -310,9 +353,10 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
         history.push(...followUps);
       }
 
-      // The ask is only over once what it said it would do has happened.
+      // The ask is only over once what it said it would do has happened, and what it showed is drawn.
       const ending = !reply.toolCalls.length && !followUps.length;
-      if (ending && !(await settled(actions.settle(), signal))) return end('stopped', 'Aborted');
+      const finished = Promise.all([actions.settle(), ...compositions]).then(() => undefined);
+      if (ending && !(await settled(finished, signal))) return end('stopped', 'Aborted');
 
       const feedback = collectFeedback(actions.take(), problems.splice(0));
       if (feedback) history.push({ role: 'user', type: 'object', data: { feedback } });
@@ -401,6 +445,65 @@ async function modelTurn(
 }
 
 /**
+ * Asks the composer for the widget nodes a description calls for. The composer never speaks: its
+ * answer is JSON, one node or a list of them, checked before it reaches the answer.
+ *
+ * @param adapter - Model access.
+ * @param composer - The composer's profile.
+ * @param request - `{ widget: description }`, or `{ form: description }` for an `ask_user` form.
+ * @param signal - Aborts the composition with the ask.
+ * @returns The nodes; throws when the answer isn't widget nodes.
+ */
+async function composeWidget(
+  adapter: AIAdapter,
+  composer: AgentProfile,
+  request: IRPCData,
+  signal: AbortSignal | undefined,
+): Promise<IRPCData[]> {
+  const live = mutable<{ data?: ChatOutput }>({});
+  await new Promise<void>((resolve, reject) => {
+    void adapter.ask(
+      [{ role: 'user', type: 'object', data: request }],
+      {
+        model: composer.model,
+        system: composer.system,
+        tools: composer.tools,
+        ...(composer.effort ? { reasoningEffort: composer.effort } : {}),
+      },
+      { state: live, signal, resolve, reject },
+    );
+  });
+
+  // Like an agent's turn, an answer the provider kept as commentary is still the answer.
+  const text = live.data?.text || (live.data?.chunks ?? []).join('') || (live.data?.commentary ?? []).join('');
+  const nodes = nodesOf(text);
+  log.debug('widget composed', { request, nodes: summaryOf(nodes) });
+  return nodes;
+}
+
+/**
+ * The widget nodes in the composer's answer: JSON, fenced or not, one node or a list of them.
+ *
+ * @param text - The composer's answer.
+ * @returns The nodes; throws when the answer isn't widget nodes.
+ */
+function nodesOf(text: string): IRPCData[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(text.trim().replace(/^```(?:json)?\s*|\s*```$/g, ''));
+  } catch {
+    throw new Error(`The composer's answer isn't JSON: ${summaryOf(text)}`);
+  }
+  const nodes = Array.isArray(parsed) ? parsed : [parsed];
+  const isNode = (node: unknown) =>
+    typeof node === 'string' ||
+    (typeof node === 'object' && node !== null && typeof (node as { role?: unknown }).role === 'string');
+  if (!nodes.length || !nodes.every(isNode))
+    throw new Error(`The composer's answer isn't widget nodes: ${summaryOf(text)}`);
+  return nodes as IRPCData[];
+}
+
+/**
  * Runs actions and asks one at a time, in the order they were written. A failure skips the rest of
  * that turn's actions and asks; an ask's reply, or that nothing answered it, is kept for the model
  * like a failure until taken.
@@ -412,14 +515,20 @@ function createActionQueue(act: AgentLoopOptions['act']) {
   const replies: IRPCData[] = [];
 
   return {
-    add(action: AskAction, turn: number) {
+    /**
+     * Queues an action or ask. `prepared` is arguments still being made, such as an `ask_user` form:
+     * it runs with them once they're ready, and fails like the action itself when they can't be made.
+     */
+    add(action: AskAction, turn: number, prepared?: Promise<IRPCData>) {
+      // Awaited when its turn comes; until then a failure mustn't count as unhandled.
+      prepared?.catch(() => undefined);
       chain = chain.then(async () => {
         if (brokenTurns.has(turn)) {
           failures.push({ action: action.name, args: action.args, skipped: true });
           return;
         }
         try {
-          const reply = await act?.(action);
+          const reply = await act?.(prepared ? { ...action, args: await prepared } : action);
           if (action.ask) replies.push(replyOf(action, reply));
         } catch (error) {
           IRPC_STORE.error(error as Error, [{ action: action.name, args: action.args }]);

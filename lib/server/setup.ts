@@ -2,7 +2,7 @@ import { AIAdapter, OpenAIDriver } from '@irpclib/ai-kit/worker';
 import { IRPCRouter } from '@irpclib/irpc';
 import { transport as fileTransport, read } from '@irpclib/r2-file';
 import type { FileWorkerEnv } from '@irpclib/r2-file/constructor';
-import { createAgents, ENTRY } from '@/lib/agents/index.js';
+import { COMPOSER, createAgents, ENTRY } from '@/lib/agents/index.js';
 import { personaPrompt, type UserProfile } from '@/lib/agents/persona.js';
 import { SKILLS } from '@/lib/agents/skills.js';
 import { setupKernel } from '@/lib/kernel/agent.js';
@@ -35,6 +35,7 @@ export function setupServer(env: ServerEnv): void {
     adapter: modelAdapter(env.MUSE_API_KEY ?? globalThis.process?.env?.MUSE_API_KEY ?? ''),
     agents: createAgents(),
     entry: ENTRY,
+    composer: COMPOSER,
     skills: SKILLS,
     routers: [new IRPCRouter(fileTransport), new IRPCRouter(wsTransport)],
     persona: loadPersona,

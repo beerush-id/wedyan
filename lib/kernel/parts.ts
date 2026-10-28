@@ -1,9 +1,14 @@
 import type { IRPCData } from '@irpclib/irpc';
-import type { AskAction, AskPart, TextPart } from './agent.h.js';
+import type { AskAction, AskPart, TextPart, WidgetPart } from './agent.h.js';
 import type { MarkerEvents, MarkerTag } from './marker.js';
 
-/** Where the writer sends what isn't a part: actions to run, and problems the model must hear about. */
+/**
+ * Where the writer sends what isn't text: widgets to compose, actions to run, and problems the model
+ * must hear about.
+ */
 export interface PartWriterHooks {
+  /** A widget was asked for: `part` is its pending part, in the answer, and `intent` what it should show. */
+  onWidget(part: WidgetPart, intent: string): void;
   onAction(action: AskAction): void;
   onInvalid(problem: string): void;
 }
@@ -25,10 +30,12 @@ const STRUCTURED = new Set(['widget', 'action', 'ask_app', USER_ASK]);
 
 /**
  * Translates the model's markers into the answer's parts. Text outside markers and `show` become
- * silent text parts, `say` a spoken one; their text streams as chunks. A `widget` is added whole when
- * it closes; an `action`, an `ask_app` and an `ask_user` (its widget as the form body) go to
- * `onAction`, anchored after the part before it, the asks marked as waiting for a reply. Anything malformed
- * goes to `onInvalid` instead of the answer. Unknown marker types are shown as silent text.
+ * silent text parts, `say` a spoken one; their text streams as chunks. A `widget` describes what to
+ * show in plain words: when it closes, a pending widget part takes its place and goes to `onWidget`
+ * with the description. An `action`, an `ask_app` and an `ask_user` (the form described in plain
+ * words) go to `onAction`, anchored after the part before it, the asks marked as waiting for a reply.
+ * Anything malformed goes to `onInvalid` instead of the answer. Unknown marker types are shown as
+ * silent text.
  *
  * @param parts - The answer's parts; mutated in place, so a reactive list streams each push.
  * @param hooks - Receives actions and problems.
@@ -61,12 +68,14 @@ export function createPartWriter(parts: AskPart[], hooks: PartWriterHooks): Part
   };
 
   const addWidget = (body: string) => {
-    const node = parseJson(body);
-    if (!isRecord(node) || typeof node.role !== 'string') {
-      hooks.onInvalid(`A widget needs a JSON object with a "role"; got: ${quote(body)}`);
+    const intent = body.trim();
+    if (!intent) {
+      hooks.onInvalid('A widget needs a description of what to show');
       return;
     }
-    parts.push({ ...node, type: 'widget', role: node.role });
+    parts.push({ type: 'widget', status: 'pending', nodes: [] });
+    // Handed over through the stored element, so filling it later reaches a reactive list.
+    hooks.onWidget(parts[parts.length - 1] as WidgetPart, intent);
   };
 
   const addAction = (tag: MarkerTag, body: string, ask?: true) => {
@@ -83,14 +92,14 @@ export function createPartWriter(parts: AskPart[], hooks: PartWriterHooks): Part
     hooks.onAction({ name, args, after: parts.length - 1, ...(ask ? { ask } : {}) });
   };
 
-  // The user is asked through a form the desktop draws with the widget as its body.
+  // The user is asked through a form the desktop draws; the agent describes it, the composer makes it.
   const addUserAsk = (body: string) => {
-    const node = parseJson(body);
-    if (!isRecord(node) || typeof node.role !== 'string') {
-      hooks.onInvalid(`ask_user needs a widget: a JSON object with a "role"; got: ${quote(body)}`);
+    const intent = body.trim();
+    if (!intent) {
+      hooks.onInvalid('ask_user needs a description of the form');
       return;
     }
-    hooks.onAction({ name: USER_ASK, args: node, after: parts.length - 1, ask: true });
+    hooks.onAction({ name: USER_ASK, args: intent, after: parts.length - 1, ask: true });
   };
 
   return {
@@ -138,10 +147,6 @@ function parseJson(text: string): IRPCData | undefined {
   } catch {
     return undefined;
   }
-}
-
-function isRecord(value: unknown): value is Record<string, IRPCData> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 /** A body as quoted back to the model, clipped. */

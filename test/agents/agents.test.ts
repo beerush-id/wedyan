@@ -1,7 +1,7 @@
 import { mutable, withContext } from '@airlib/react';
 import { AIAdapter, OpenAIDriver } from '@irpclib/ai-kit/worker';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createAgents, ENTRY } from '../../lib/agents/index.js';
+import { COMPOSER, createAgents, ENTRY } from '../../lib/agents/index.js';
 import { personaPrompt } from '../../lib/agents/persona.js';
 import { parseSkill, SKILLS } from '../../lib/agents/skills.js';
 import type { AskState } from '../../lib/kernel/agent.h.js';
@@ -9,6 +9,9 @@ import { runAgentLoop } from '../../lib/kernel/agent.js';
 import { calls, mockVendor, says } from '../kernel/vendor.js';
 
 const AGENTS = createAgents({ router: { model: 'router-m', effort: 'minimal' }, agents: { model: 'agents-m' } });
+
+/** The agents that write answers: every one but the composer, who only draws widgets. */
+const ANSWERING = Object.values(AGENTS).filter((agent) => agent.name !== COMPOSER);
 
 /** The provider's tool-name rule once the driver has encoded dots: letters, digits, _, - and one dot. */
 const PROVIDER_NAME = /^[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)?$/;
@@ -18,9 +21,13 @@ describe('agents', () => {
     vi.restoreAllMocks();
   });
 
-  it('is three agents: Rita routes, Wendy assists, Lita works with a skill', () => {
-    expect(Object.keys(AGENTS).sort()).toEqual(['lita', 'rita', 'wendy']);
+  it('is four agents: Rita routes, Wendy assists, Lita works with a skill, June composes', () => {
+    expect(Object.keys(AGENTS).sort()).toEqual(['june', 'lita', 'rita', 'wendy']);
     expect(ENTRY).toBe('rita');
+    expect(COMPOSER).toBe('june');
+    // June is called by the kernel for each widget, never handed an ask.
+    expect(AGENTS.june).toMatchObject({ tools: [] });
+    for (const agent of Object.values(AGENTS)) expect(agent.handoffs ?? []).not.toContain('june');
     expect(AGENTS.rita.handoffs).toEqual(['wendy', 'lita']);
     expect(AGENTS.wendy.handoffs).toEqual(['lita']);
     expect(AGENTS.lita).toMatchObject({ skilled: true, handoffs: ['rita'] });
@@ -79,8 +86,8 @@ describe('agents', () => {
     expect(AGENTS.lita.model).toBe('agents-m');
   });
 
-  it('teaches every agent the response format', () => {
-    for (const agent of Object.values(AGENTS)) {
+  it('teaches every answering agent the response format', () => {
+    for (const agent of ANSWERING) {
       expect(agent.system, agent.name).toContain('[[say]]');
       expect(agent.system, agent.name).toContain('never that it is done');
     }
@@ -94,12 +101,14 @@ describe('agents', () => {
     }
   });
 
-  it('teaches the answering agents to ask the user through a widget bound to $this', () => {
+  it('has the answering agents describe widgets and forms in words, and only June bind a form to $this', () => {
     for (const agent of [AGENTS.wendy, AGENTS.lita]) {
       expect(agent.system, agent.name).toContain('[[ask_user]]');
-      expect(agent.system, agent.name).toContain('$this.');
       expect(agent.system, agent.name).toContain('[[ask_app name=');
+      expect(agent.system, agent.name).toContain('never as JSON');
+      expect(agent.system, agent.name).not.toContain('$this.');
     }
+    expect(AGENTS.june.system).toContain('"state": "$this.FIELD"');
   });
 
   it('shows Rita every skill by name and what it is for, and lets her answer obvious asks herself', () => {
@@ -109,14 +118,14 @@ describe('agents', () => {
     expect(AGENTS.rita.system).toMatch(/answer.*yourself/i);
   });
 
-  it('teaches every agent that a tool which returned an error did not happen', () => {
-    for (const agent of Object.values(AGENTS)) {
+  it('teaches every answering agent that a tool which returned an error did not happen', () => {
+    for (const agent of ANSWERING) {
       expect(agent.system, agent.name).toContain('returns an error, it did not happen');
     }
   });
 
   it('never names the agents to the user', () => {
-    for (const agent of Object.values(AGENTS)) {
+    for (const agent of ANSWERING) {
       expect(agent.system, agent.name).toContain('never mention');
     }
   });

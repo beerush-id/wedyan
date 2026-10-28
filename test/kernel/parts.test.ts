@@ -1,14 +1,16 @@
 import { mutable } from '@airlib/react';
 import { describe, expect, it } from 'vitest';
-import type { AskAction, AskPart } from '../../lib/kernel/agent.h.js';
+import type { AskAction, AskPart, WidgetPart } from '../../lib/kernel/agent.h.js';
 import { createMarkerParser } from '../../lib/kernel/marker.js';
 import { createPartWriter } from '../../lib/kernel/parts.js';
 
 function setup() {
   const state = mutable<{ parts: AskPart[] }>({ parts: [] });
   const actions: AskAction[] = [];
+  const widgets: { part: WidgetPart; intent: string }[] = [];
   const problems: string[] = [];
   const writer = createPartWriter(state.parts, {
+    onWidget: (part, intent) => widgets.push({ part, intent }),
     onAction: (action) => actions.push(action),
     onInvalid: (problem) => problems.push(problem),
   });
@@ -24,7 +26,7 @@ function setup() {
     parser.end();
     writer.end();
   };
-  return { state, actions, problems, feed, end };
+  return { state, actions, widgets, problems, feed, end };
 }
 
 describe('part writer', () => {
@@ -69,26 +71,29 @@ describe('part writer', () => {
     expect((state.parts[0] as { chunks: string[] }).chunks).toEqual(['a ', '[x] b']);
   });
 
-  it('adds a widget whole when it closes, never partially', () => {
-    const { state, feed, end } = setup();
-    feed('[[widget]]{"role":"card","props":{"title":"Ma');
+  it('adds a pending widget when it closes, and hands its part over with what it should show', () => {
+    const { state, widgets, feed, end } = setup();
+    feed('[[widget]]A card titled Ma');
     expect(state.parts).toEqual([]);
 
-    feed('il"}}[[/widget]]');
+    feed('il, with 3 unread.[[/widget]]');
     end();
-    expect(state.parts).toEqual([{ type: 'widget', role: 'card', props: { title: 'Mail' } }]);
+    expect(state.parts).toEqual([{ type: 'widget', status: 'pending', nodes: [] }]);
+    expect(widgets).toEqual([{ part: state.parts[0], intent: 'A card titled Mail, with 3 unread.' }]);
+    // The stored element itself, so filling it later reaches the reactive list.
+    expect(widgets[0].part).toBe(state.parts[0]);
   });
 
   it('splits text around markers into separate parts, in order', () => {
     const { state, feed, end } = setup();
-    feed('Intro [[say]]Hi.[[/say]] middle [[widget]]{"role":"card"}[[/widget]] outro');
+    feed('Intro [[say]]Hi.[[/say]] middle [[widget]]A card[[/widget]] outro');
     end();
 
-    expect(state.parts.map((part) => [part.type, part.type === 'text' ? part.text : part.role])).toEqual([
+    expect(state.parts.map((part) => [part.type, part.type === 'text' ? part.text : part.status])).toEqual([
       ['text', 'Intro '],
       ['text', 'Hi.'],
       ['text', 'middle '],
-      ['widget', 'card'],
+      ['widget', 'pending'],
       ['text', 'outro'],
     ]);
   });
@@ -125,16 +130,14 @@ describe('part writer', () => {
     ]);
   });
 
-  it('reports a widget that is not a widget node, and drops it', () => {
-    const { state, problems, feed, end } = setup();
-    feed('[[widget]]{"title":"no role"}[[/widget]][[widget]]not json[[/widget]]');
+  it('reports a widget that describes nothing, and drops it', () => {
+    const { state, widgets, problems, feed, end } = setup();
+    feed('[[widget]]  [[/widget]]');
     end();
 
     expect(state.parts).toEqual([]);
-    expect(problems).toEqual([
-      'A widget needs a JSON object with a "role"; got: {"title":"no role"}',
-      'A widget needs a JSON object with a "role"; got: not json',
-    ]);
+    expect(widgets).toEqual([]);
+    expect(problems).toEqual(['A widget needs a description of what to show']);
   });
 
   it('reports an action without a name or with arguments that are not JSON', () => {
@@ -154,24 +157,22 @@ describe('part writer', () => {
     expect(state.parts).toEqual([{ type: 'text', chunks: ['Half a sen'], text: 'Half a sen', spoken: true }]);
 
     const second = setup();
-    second.feed('[[widget]]{"role":"ca');
+    second.feed('[[widget]]A card titled Ma');
     second.end();
     expect(second.state.parts).toEqual([]);
+    expect(second.widgets).toEqual([]);
     expect(actions).toEqual([]);
   });
 
-  it('reports an ask_user with its widget as the form body, as an ask anchored like an action', () => {
+  it('reports an ask_user with its form described, as an ask anchored like an action', () => {
     const { state, actions, feed, end } = setup();
-    const widget = {
-      role: 'radio-group',
-      bindings: [{ prop: 'value', state: '$this.choice', writable: true }],
-      children: [],
-    };
-    feed('[[say]]Which one?[[/say]]', `[[ask_user]]${JSON.stringify(widget)}[[/ask_user]]`);
+    feed('[[say]]Which one?[[/say]]', '[[ask_user]] A choice named "choice" between keep and delete. [[/ask_user]]');
     end();
 
     expect(state.parts).toHaveLength(1);
-    expect(actions).toEqual([{ name: 'ask_user', args: widget, after: 0, ask: true }]);
+    expect(actions).toEqual([
+      { name: 'ask_user', args: 'A choice named "choice" between keep and delete.', after: 0, ask: true },
+    ]);
   });
 
   it('reports an ask_app by its name, with its arguments', () => {
@@ -183,16 +184,13 @@ describe('part writer', () => {
     expect(actions).toEqual([{ name: 'app.photos.selection', args: { album: 'cats' }, after: -1, ask: true }]);
   });
 
-  it('reports an ask_user that is not a widget, and an ask_app without a name', () => {
+  it('reports an ask_user that describes no form, and an ask_app without a name', () => {
     const { actions, problems, feed, end } = setup();
-    feed('[[ask_user]]{"question":"Which?"}[[/ask_user]]', '[[ask_app]]{}[[/ask_app]]');
+    feed('[[ask_user]][[/ask_user]]', '[[ask_app]]{}[[/ask_app]]');
     end();
 
     expect(actions).toEqual([]);
-    expect(problems).toEqual([
-      'ask_user needs a widget: a JSON object with a "role"; got: {"question":"Which?"}',
-      'An ask_app needs a name attribute',
-    ]);
+    expect(problems).toEqual(['ask_user needs a description of the form', 'An ask_app needs a name attribute']);
   });
 
   it('shows the body of an unknown marker as silent text', () => {

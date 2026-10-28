@@ -1,5 +1,5 @@
 import { HTTPTransport } from '@irpclib/http';
-import { createPackage, IRPC_BASE_CONTEXT, IRPCRouter, withContext } from '@irpclib/irpc';
+import { createPackage, IRPC_BASE_CONTEXT, IRPC_STORE, IRPCRouter, withContext } from '@irpclib/irpc';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { askWedyan } from '../../lib/kernel/agent.h.js';
 import { setupKernel } from '../../lib/kernel/agent.js';
@@ -27,6 +27,7 @@ describe('askWedyan', () => {
       adapter: createTestAdapter(),
       agents: AGENTS,
       entry: 'assistant',
+      composer: 'composer',
       routers: [new IRPCRouter(transport)],
       sys: { 'sys.fs.read': () => ({ content: 'hello' }) },
     });
@@ -178,10 +179,11 @@ describe('askWedyan', () => {
     });
   });
 
-  it('asks the user through a widget form and gives the model the form’s fields', async () => {
+  it('asks the user through the form the composer makes, and gives the model the form’s fields', async () => {
     const widget = { role: 'radio-group', bindings: [{ prop: 'value', state: '$this.choice', writable: true }] };
     const vendor = mockVendor(
-      says(`[[say]]Which one?[[/say]][[ask_user]]${JSON.stringify(widget)}[[/ask_user]]`),
+      says('[[say]]Which one?[[/say]][[ask_user]]A choice named "choice" between orange and grey.[[/ask_user]]'),
+      says(JSON.stringify(widget)),
       says('The orange one, then.'),
     );
     const forms: unknown[] = [];
@@ -195,12 +197,44 @@ describe('askWedyan', () => {
       return await call;
     });
 
-    expect(forms).toEqual([[widget, { after: 0 }]]);
     expect(messagesOf(vendor.bodies, 1).at(-1)).toEqual({
+      role: 'user',
+      content: JSON.stringify({ form: 'A choice named "choice" between orange and grey.' }),
+    });
+    expect(forms).toEqual([[widget, { after: 0 }]]);
+    expect(messagesOf(vendor.bodies, 2).at(-1)).toEqual({
       role: 'user',
       content: JSON.stringify({ feedback: { asks: [{ ask: 'ask_user', reply: { choice: 'orange' } }] } }),
     });
     expect(final.status).toBe('done');
+  });
+
+  it('never asks the user with a form the composer couldn’t make, and tells the model', async () => {
+    const vendor = mockVendor(
+      says('[[ask_user]]A choice between orange and grey.[[/ask_user]]'),
+      says('[{"role":"radio-group"},{"role":"switch"}]'),
+      says('Sorry, which one?'),
+    );
+    vi.spyOn(IRPC_STORE, 'error').mockImplementation(() => {});
+    const asked = vi.fn();
+
+    await withContext(async () => {
+      const call = askWedyan({ text: 'Delete the cat photo' });
+      call.answer('ask_user', asked);
+      await call;
+    });
+
+    expect(asked).not.toHaveBeenCalled();
+    expect(messagesOf(vendor.bodies, 2).at(-1)).toEqual({
+      role: 'user',
+      content: JSON.stringify({
+        feedback: {
+          actions: [
+            { action: 'ask_user', args: 'A choice between orange and grey.', error: 'A form must be one widget node' },
+          ],
+        },
+      }),
+    });
   });
 
   it('asks an app by name and gives the model its reply', async () => {

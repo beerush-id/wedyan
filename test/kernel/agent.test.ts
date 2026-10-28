@@ -11,8 +11,8 @@ import { calls, messagesOf, mockVendor, responses, says, sse, toolCall } from '.
 
 // Only the model provider is mocked. The adapter, driver, parser, writer and loop all run for real.
 
-/** Each part as one line: its text, or the widget's role. */
-const partsOf = (state: AskState) => state.parts.map((part) => (part.type === 'text' ? part.text : part.role));
+/** Each part as one line: its text, or the widget's status. */
+const partsOf = (state: AskState) => state.parts.map((part) => (part.type === 'text' ? part.text : part.status));
 
 function setup(overrides: Partial<AgentLoopOptions> = {}) {
   const adapter = createTestAdapter();
@@ -23,6 +23,7 @@ function setup(overrides: Partial<AgentLoopOptions> = {}) {
     adapter,
     agents: AGENTS,
     entry: 'router',
+    composer: 'composer',
     input: 'Read my note',
     state,
     resolve: async (call: ToolCall) => {
@@ -42,7 +43,8 @@ describe('agent loop', () => {
 
   it('ends after a turn without calls, streaming the answer into parts', async () => {
     const vendor = mockVendor(
-      says('[[say]]Hello.[[/say]] [[widget]]{"role":"status","props":', '{"label":"ok"}}[[/widget]] Done.'),
+      says('[[say]]Hello.[[/say]] [[widget]]A badge', ' saying ok[[/widget]] Done.'),
+      says('{"role":"badge","children":["ok"]}'),
     );
     const { state, run } = setup();
 
@@ -51,7 +53,7 @@ describe('agent loop', () => {
     expect(state).toMatchObject({ status: 'done', agent: 'router', turn: 1 });
     expect(state.parts).toEqual([
       { type: 'text', chunks: ['Hello.'], text: 'Hello.', spoken: true },
-      { type: 'widget', role: 'status', props: { label: 'ok' } },
+      { type: 'widget', status: 'ready', nodes: [{ role: 'badge', children: ['ok'] }] },
       { type: 'text', chunks: ['Done.'], text: 'Done.', spoken: false },
     ]);
     expect(vendor.bodies[0]).toMatchObject({ model: 'router-m' });
@@ -59,6 +61,59 @@ describe('agent loop', () => {
       { role: 'system', content: 'Route.' },
       { role: 'user', content: 'Read my note' },
     ]);
+  });
+
+  it('has the composer draw a widget the agent describes, without the agent waiting for it', async () => {
+    const vendor = mockVendor(
+      says('[[widget]]A card titled Today[[/widget]] Here it is.'),
+      says('```json\n[{"role":"card","props":{"title":"Today"}}, "Nothing else."]\n```'),
+    );
+    const { state, run } = setup();
+
+    await run();
+
+    expect(vendor.bodies[1]).toMatchObject({ model: 'composer-m' });
+    expect(messagesOf(vendor.bodies, 1)).toEqual([
+      { role: 'system', content: 'Compose.' },
+      { role: 'user', content: JSON.stringify({ widget: 'A card titled Today' }) },
+    ]);
+    expect(state.parts).toMatchObject([
+      { type: 'widget', status: 'ready', nodes: [{ role: 'card', props: { title: 'Today' } }, 'Nothing else.'] },
+      { type: 'text', text: 'Here it is.' },
+    ]);
+    expect(state).toMatchObject({ status: 'done', turn: 1 });
+  });
+
+  it('gives the composer the user’s persona, so widgets keep the look they asked for', async () => {
+    const vendor = mockVendor(says('[[widget]]A card[[/widget]]'), says('{"role":"card"}'));
+    const { run } = setup({ persona: 'I like frosted glass UI.' });
+
+    await run();
+
+    expect(messagesOf(vendor.bodies, 1)[0]).toEqual({
+      role: 'system',
+      content: 'Compose.\n\nI like frosted glass UI.',
+    });
+  });
+
+  it('marks a widget the composer couldn’t draw as failed, and logs it, without a turn for the agent', async () => {
+    const vendor = mockVendor(says('[[widget]]A card[[/widget]]'), says('Here is your card!'));
+    const logged = vi.spyOn(IRPC_STORE, 'error').mockImplementation(() => {});
+    const { state, run } = setup();
+
+    await run();
+
+    expect(state.parts).toEqual([
+      {
+        type: 'widget',
+        status: 'error',
+        nodes: [],
+        error: 'The composer\'s answer isn\'t JSON: "Here is your card!"',
+      },
+    ]);
+    expect(logged).toHaveBeenCalledWith(expect.any(Error), [{ composer: 'composer', widget: 'A card' }]);
+    expect(vendor.bodies).toHaveLength(2);
+    expect(state).toMatchObject({ status: 'done', turn: 1 });
   });
 
   it("sends the agent's reasoning effort with its turn", async () => {
@@ -508,17 +563,15 @@ describe('agent loop', () => {
     expect(state).toMatchObject({ status: 'done', turn: 2 });
   });
 
-  it('tells the model about a malformed widget on the next turn', async () => {
-    const vendor = mockVendor(says('[[widget]]{"title":"x"}[[/widget]]'), says('Fixed.'));
+  it('tells the model about a widget that describes nothing on the next turn', async () => {
+    const vendor = mockVendor(says('[[widget]] [[/widget]]'), says('Fixed.'));
     const { state, run } = setup();
 
     await run();
 
     expect(messagesOf(vendor.bodies, 1).at(-1)).toEqual({
       role: 'user',
-      content: JSON.stringify({
-        feedback: { invalid: ['A widget needs a JSON object with a "role"; got: {"title":"x"}'] },
-      }),
+      content: JSON.stringify({ feedback: { invalid: ['A widget needs a description of what to show'] } }),
     });
     expect(state).toMatchObject({ status: 'done', turn: 2 });
   });

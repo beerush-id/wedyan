@@ -1,7 +1,10 @@
 import { AIAdapter, OpenAIDriver } from '@irpclib/ai-kit/worker';
 import type { AgentProfile } from '../../lib/kernel/agent.js';
 
-/** Three agents: a router that hands off, an assistant with server tools, and a photos agent. */
+/**
+ * Four agents: a router that hands off, an assistant with server tools, a photos agent, and a
+ * composer for widgets.
+ */
 export const AGENTS: Record<string, AgentProfile> = {
   router: { name: 'router', model: 'router-m', system: 'Route.', tools: [], handoffs: ['assistant', 'photos'] },
   assistant: {
@@ -15,6 +18,7 @@ export const AGENTS: Record<string, AgentProfile> = {
     handoffs: ['photos'],
   },
   photos: { name: 'photos', model: 'photos-m', system: 'Photos.', tools: [] },
+  composer: { name: 'composer', model: 'composer-m', system: 'Compose.', tools: [] },
 };
 
 /**
@@ -28,7 +32,7 @@ export function createTestAdapter(api: 'chat' | 'responses' = 'chat'): AIAdapter
       name: 'meta',
       baseUrl: 'https://api.meta.test/v1',
       apiKey: 'k',
-      models: ['router-m', 'assistant-m', 'photos-m'],
+      models: ['router-m', 'assistant-m', 'photos-m', 'composer-m'],
       api,
     }),
   );
