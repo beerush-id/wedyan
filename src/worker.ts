@@ -1,10 +1,13 @@
 import { createApp } from '@airlib/react/ssr';
+import { LogLevel } from '@beerush/logger';
+import { consoleAdapter } from '@beerush/logger/adapters/console';
 import { HTTPRouter } from '@irpclib/http/router';
 import { envCtx, IRPC_STORE, IRPC_STORE_EVENT } from '@irpclib/irpc';
 import { resolveBinding, resolveCtx } from '@irpclib/irpc/wrangler';
 import { fsContext } from '@irpclib/r2-file/context';
 import { createWorker as createFileWorker } from '@irpclib/r2-file/worker';
 import { WebSocketRouter } from '@irpclib/ws/router';
+import { logger } from '@/lib/logger.js';
 import { currentSession, homeOf } from '@/lib/server/session.js';
 import { type ServerEnv, setupServer } from '@/lib/server/setup.js';
 import { httpTransport, wsTransport } from './api.js';
@@ -20,10 +23,17 @@ const FILES_PATH = '/users/';
 const httpRouter = new HTTPRouter(httpTransport);
 const wsRouter = new WebSocketRouter(wsTransport);
 
+// Locally everything down to debug (the agents' tool calls included); in production only errors.
+const production = typeof process === 'undefined' || process.env.NODE_ENV === 'production';
+logger.use(consoleAdapter({ level: production ? LogLevel.ERROR : LogLevel.DEBUG }));
+const log = logger.create({ tags: ['server'] });
+
 // Every IRPC error on the server (routers, handlers, the agents' tools and actions) goes to the
 // server's log, with what failed, so production failures can be traced.
 IRPC_STORE.subscribe((event) => {
-  if (event.type === IRPC_STORE_EVENT.ERROR) console.error('[wedyan]', event.error, ...(event.data ?? []));
+  if (event.type !== IRPC_STORE_EVENT.ERROR) return;
+  const error = event.error as Error;
+  log.error(error.message, error, ...(event.data ?? []));
 });
 
 // Every call runs in its session's own home. Without a session r2-file would fall back to a shared

@@ -8,11 +8,15 @@ import {
   type ToolCall,
 } from '@irpclib/ai-kit';
 import type { AIAdapter } from '@irpclib/ai-kit/worker';
-import { getAbortSignal, IRPC_STORE, type IRPCData, type IRPCHandler, type IRPCRouter, stream } from '@irpclib/irpc';
+import { getAbortSignal, IRPC_STORE, type IRPCData, type IRPCRouter, stream } from '@irpclib/irpc';
+import { logger } from '../logger.js';
 import { type AskAction, type AskInput, type AskPart, type AskState, askSeed, askWedyan } from './agent.h.js';
 import { createMarkerParser } from './marker.js';
 import { kernel } from './package.js';
 import { createPartWriter, type PartWriterHooks } from './parts.js';
+
+/** The kernel's log: tool calls at debug level, so a dev server shows what agents actually did. */
+const log = logger.create({ tags: ['kernel'] });
 
 export type { AskState } from './agent.h.js';
 
@@ -55,10 +59,6 @@ kernel.construct(askWedyan, (input) =>
     if (!config) throw new Error('Kernel is not set up');
     const { adapter, agents, entry, routers = [], sys = {}, skills, limits } = config;
     const loadPersona = config.persona;
-    const tools: Record<string, IRPCHandler> = Object.assign(
-      {},
-      ...routers.flatMap((router) => [...router.packages].map((pkg) => pkg.tools())),
-    );
     const controller = new AbortController();
     getAbortSignal()?.addEventListener('abort', () => controller.abort(), { once: true });
 
@@ -86,8 +86,10 @@ kernel.construct(askWedyan, (input) =>
           resolve: async (call) => {
             // A model sends one input object; the tool's router turns it into the stub's own arguments.
             for (const router of routers) {
+              // The mapping and the stub come from the same package, so they always agree.
+              const tool = router.toolOf(call.name);
               const args = router.argsOf(call.name, call.args as Record<string, unknown>);
-              if (args) return tools[call.name](...args);
+              if (tool && args) return tool.pkg.call(tool.spec.name, ...args) as Promise<IRPCData>;
             }
             return sys[call.name]?.(call.args);
           },
@@ -526,7 +528,9 @@ function withSkill(agent: AgentProfile, skill?: AgentSkill): AgentProfile {
 /** Resolves one call into what the model reads back: the answer, or an error it can act on. */
 async function resolveCall(resolve: AgentLoopOptions['resolve'], call: ToolCall, agent: string): Promise<IRPCData> {
   try {
-    return (await resolve(call)) ?? { error: 'not available' };
+    const result = (await resolve(call)) ?? { error: 'not available' };
+    log.debug(`tool ${call.name}`, { agent, args: call.args, result: summaryOf(result) });
+    return result;
   } catch (error) {
     // The model only reads the message; the log keeps what failed, for whoever debugs it.
     IRPC_STORE.error(error as Error, [{ agent, call: call.name, args: call.args }]);
@@ -547,4 +551,13 @@ function toolTurn(toolCallId: string, data: IRPCData): ChatMessage {
 
 function messageOf(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+/** Longest stretch of a tool result kept in a trace. */
+const TRACE_LIMIT = 200;
+
+/** A tool result as a trace shows it: JSON, clipped. */
+function summaryOf(result: IRPCData): string {
+  const json = JSON.stringify(result) ?? '';
+  return json.length > TRACE_LIMIT ? `${json.slice(0, TRACE_LIMIT)}…` : json;
 }

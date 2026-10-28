@@ -17,7 +17,10 @@ memory.use(wsTransport);
 
 export type MemoKind = MemoDocument['kind'];
 
-export type SaveOptions = {
+/** What to remember. One flat object, the shape models fill in reliably. */
+export type SaveInput = {
+  /** The memory, in one or two sentences. */
+  text: string;
   /** What it is; a note when unset. */
   kind?: MemoKind;
   /** The memo's name, which is also its file name; its text's first sentence when unset. */
@@ -28,7 +31,10 @@ export type SaveOptions = {
 /** Where a saved memo lives. */
 export type MemoInfo = { path: string; name: string; kind: MemoKind };
 
-export type RecallOptions = {
+/** What to look for. One flat object, the shape models fill in reliably. */
+export type RecallInput = {
+  /** What to look for, in plain words. */
+  query: string;
   /** Saved memories, the user's files, or both (the default). */
   scope?: 'memory' | 'files' | 'all';
   /** How many to return, closest first; 5 when unset. */
@@ -45,46 +51,37 @@ export type Recalled = {
   score: number;
 };
 
-export type SaveFn = (text: string, options?: SaveOptions) => Promise<MemoInfo>;
-export type RecallFn = (query: string, options?: RecallOptions) => Promise<Recalled[]>;
+export type SaveFn = (input: SaveInput) => Promise<MemoInfo>;
+export type RecallFn = (input: RecallInput) => Promise<Recalled[]>;
 
 /** The kinds of memory a memo can be. */
 const MEMO_KINDS = ['note', 'preference', 'person', 'project', 'fact'] as const satisfies readonly MemoKind[];
 
-/** `save`'s arguments, validated on every call and described to agents. */
-const saveInput = {
+// Strict, so a field the model put in the wrong place is refused instead of silently dropped.
+const saveInput = z.strictObject({
   text: z.string().describe('The memory, in one or two sentences.'),
-  options: z
-    .object({
-      kind: z.enum(MEMO_KINDS).optional().describe('What it is; a note when unset.'),
-      name: z.string().optional().describe('The memo’s name, also its file name.'),
-      tags: z.array(z.string()).optional(),
-    })
-    .optional(),
-};
+  kind: z.enum(MEMO_KINDS).optional().describe('What it is: preference for how they like things; a note when unset.'),
+  name: z.string().optional().describe('The memo’s name, also its file name.'),
+  tags: z.array(z.string()).optional(),
+});
 
-/** `recall`'s arguments, validated on every call and described to agents. */
-const recallInput = {
+const recallInput = z.strictObject({
   query: z.string().describe('What to look for, in plain words.'),
-  options: z
-    .object({
-      scope: z.enum(['memory', 'files', 'all']).optional().describe('Where to look; everywhere when unset.'),
-      limit: z.number().int().min(1).max(20).optional().describe('How many to return; 5 when unset.'),
-    })
-    .optional(),
-};
+  scope: z.enum(['memory', 'files', 'all']).optional().describe('Where to look; everywhere when unset.'),
+  limit: z.number().int().min(1).max(20).optional().describe('How many to return; 5 when unset.'),
+});
 
 /** Remembers one thing as a memo in `~/Memos`, and indexes it so it can be recalled. */
 export const save = memory.declare<SaveFn>('save', () => ({ path: '', name: '', kind: 'note' }), {
   description:
     'Remembers one lasting thing about the user as a memo they can see: a preference, a person, a project, a fact or a note.',
-  schema: { input: [saveInput.text, saveInput.options] },
-  mcp: { args: ['text', 'options'], readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+  schema: { input: [saveInput] },
+  mcp: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
 });
 
 /** Finds what was remembered, or what the user's files say, closest to a query first. */
 export const recall = memory.declare<RecallFn>('recall', () => [], {
   description: 'Searches what you know: saved memories and the content of the user’s files, closest first.',
-  schema: { input: [recallInput.query, recallInput.options] },
-  mcp: { args: ['query', 'options'], readOnlyHint: true, openWorldHint: false },
+  schema: { input: [recallInput] },
+  mcp: { readOnlyHint: true, openWorldHint: false },
 });

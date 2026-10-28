@@ -30,6 +30,7 @@
     "@airlib/aui": "workspace:*",
     "@airlib/react": "workspace:*",
     "@airlib/react-aui": "workspace:*",
+    "@beerush/logger": "^0.0.8",
     "@irpclib/ai-kit": "workspace:*",
     "@irpclib/http": "workspace:*",
     "@irpclib/irpc": "workspace:*",

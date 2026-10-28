@@ -1,4 +1,4 @@
-import { exists, write } from '@irpclib/r2-file';
+import { exists, list, read, write } from '@irpclib/r2-file';
 import { fsContext } from '@irpclib/r2-file/context';
 import type { MemoDocument } from '@/lib/documents/types.js';
 import { memory, type Recalled, recall, save } from './memory.h.js';
@@ -12,6 +12,8 @@ export interface VectorStore {
     values: number[],
     options: { topK?: number; filter?: Record<string, string>; returnMetadata?: 'all' | 'indexed' | 'none' },
   ): Promise<{ matches: { id: string; score: number; metadata?: Record<string, unknown> }[] }>;
+  /** How far the index has processed its writes; a write after that isn't searchable yet. */
+  describe(): Promise<{ processedUpToDatetime?: number | string | Date }>;
 }
 
 /** Turns texts into vectors, one per text, in order. */
@@ -52,7 +54,7 @@ export function embedWith(
   return async (texts) => ((await ai.run(model, { text: texts })) as { data: number[][] }).data;
 }
 
-memory.construct(save, async (text, options = {}) => {
+memory.construct(save, async ({ text, ...options }) => {
   const { vectors, embed } = configured();
   const owner = ownerOf();
   const kind = options.kind ?? 'note';
@@ -83,15 +85,19 @@ memory.construct(save, async (text, options = {}) => {
   return { path, name, kind };
 });
 
-memory.construct(recall, async (query, options = {}) => {
+memory.construct(recall, async ({ query, ...options }) => {
   const { vectors, embed } = configured();
   const scope = options.scope ?? 'all';
+  const limit = options.limit ?? 5;
   const [values] = await embed([query]);
   // The index is shared, so every search stays inside the asking user's own entries.
   const filter: Record<string, string> = { owner: ownerOf(), ...(scope === 'all' ? {} : { scope }) };
-  const { matches } = await vectors.query(values, { topK: options.limit ?? 5, filter, returnMetadata: 'all' });
+  const [{ matches }, unindexed] = await Promise.all([
+    vectors.query(values, { topK: limit, filter, returnMetadata: 'all' }),
+    scope === 'files' ? [] : unindexedMemos(vectors),
+  ]);
 
-  return matches.map(
+  const found = matches.map(
     ({ score, metadata = {} }): Recalled => ({
       path: String(metadata.path),
       name: String(metadata.name),
@@ -101,6 +107,9 @@ memory.construct(recall, async (query, options = {}) => {
       score,
     }),
   );
+  // What was just saved comes first: it's what an ask right after saving is most likely about.
+  const indexed = new Set(found.map((item) => item.path));
+  return [...unindexed.filter((item) => !indexed.has(item.path)), ...found].slice(0, limit);
 });
 
 /** Most of a memory's text kept with its vector, so recall returns it without opening the file. */
@@ -109,9 +118,52 @@ const TEXT_LIMIT = 2000;
 /** Longest name a memo gets from its text. */
 const NAME_LIMIT = 60;
 
+/** Where memos live, in the user's home. */
+const MEMOS = '~/Memos';
+
 function configured(): MemoryConfig {
   if (!config) throw new Error('Memory is not set up');
   return config;
+}
+
+/**
+ * The user's memos written after the index last processed a write: saved, but not searchable yet.
+ * Read straight from `~/Memos`, so a memory can be recalled the moment it is saved.
+ *
+ * @param vectors - The vector index, for how far it has processed.
+ * @returns Those memos as recall results, newest first, with a full score since they weren't ranked.
+ */
+async function unindexedMemos(vectors: VectorStore): Promise<Recalled[]> {
+  try {
+    const { processedUpToDatetime } = await vectors.describe();
+    const processed = new Date(processedUpToDatetime ?? 0).getTime();
+    const { entries } = await list(MEMOS);
+    const fresh = entries
+      .filter((entry) => !entry.isDirectory && entry.name.endsWith('.memo'))
+      .filter((entry) => new Date(entry.mtime).getTime() > processed)
+      .sort((a, b) => new Date(b.mtime).getTime() - new Date(a.mtime).getTime());
+
+    const memos = await Promise.all(
+      fresh.map((entry) => read<MemoDocument>(`${MEMOS}/${entry.name}`, { encoding: 'json' })),
+    );
+    return memos.flatMap((memo, index) =>
+      memo
+        ? [
+            {
+              path: `${MEMOS}/${fresh[index].name}`,
+              name: memo.name,
+              scope: 'memory',
+              kind: memo.kind,
+              text: memo.body.slice(0, TEXT_LIMIT),
+              score: 1,
+            },
+          ]
+        : [],
+    );
+  } catch {
+    // Without `~/Memos`, or without the index's progress, recall still has what the index found.
+    return [];
+  }
 }
 
 /** Whose memories these are: the user the filesystem acts for. */

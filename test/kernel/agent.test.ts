@@ -1,9 +1,11 @@
 import { mutable, withContext } from '@airlib/react';
+import { type Log, LogLevel } from '@beerush/logger';
 import type { ToolCall } from '@irpclib/ai-kit';
 import { IRPC_STORE, type IRPCData } from '@irpclib/irpc';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AskAction } from '../../lib/kernel/agent.h.js';
 import { type AgentLoopOptions, type AskState, type LoopSnapshot, runAgentLoop } from '../../lib/kernel/agent.js';
+import { logger } from '../../lib/logger.js';
 import { AGENTS, createTestAdapter } from './fixtures.js';
 import { calls, messagesOf, mockVendor, responses, says, sse, toolCall } from './vendor.js';
 
@@ -400,6 +402,19 @@ describe('agent loop', () => {
 
     expect(vendor.spy).toHaveBeenCalledTimes(1);
     expect(state.status).toBe('done');
+  });
+
+  it('traces each tool call at debug level, with its agent, arguments and a short result', async () => {
+    mockVendor(calls({ id: 'c1', name: 'sys__fs__read', args: { path: '~/note.txt' } }), says('Read.'));
+    const logs: Log[] = [];
+    logger.use({ name: 'test', emit: (log) => void logs.push(log) });
+    const { run } = setup({ entry: 'assistant' });
+
+    await run();
+
+    const trace = logs.find((log) => log.message === 'tool sys.fs.read');
+    expect(trace).toMatchObject({ level: LogLevel.DEBUG, tags: expect.arrayContaining(['kernel']) });
+    expect(trace?.extra).toEqual([{ agent: 'assistant', args: { path: '~/note.txt' }, result: '{"content":"hello"}' }]);
   });
 
   it('logs a failed call with what failed, besides telling the model', async () => {

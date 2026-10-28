@@ -15,24 +15,36 @@ const WORDS = ['coffee', 'tea', 'cat', 'drama', 'budget'];
 const embed = async (texts: string[]) =>
   texts.map((text) => [1, ...WORDS.map((word) => text.toLowerCase().split(word).length - 1)]);
 
-/** Vectorize's query and upsert over an in-memory list, with cosine similarity and equality filters. */
+/**
+ * Vectorize's query, upsert and describe over an in-memory list, with cosine similarity and equality
+ * filters. Like Vectorize, a write is only searchable once processed: `lag` holds writes back.
+ */
 function fakeVectors(): VectorStore & {
-  stored: Map<string, { values: number[]; metadata?: Record<string, unknown> }>;
+  stored: Map<string, { values: number[]; metadata?: Record<string, unknown>; at: number }>;
+  lag: boolean;
 } {
-  const stored = new Map<string, { values: number[]; metadata?: Record<string, unknown> }>();
+  const stored = new Map<string, { values: number[]; metadata?: Record<string, unknown>; at: number }>();
+  let processedUpTo = 0;
   const cosine = (a: number[], b: number[]) => {
     const dot = a.reduce((sum, value, i) => sum + value * b[i], 0);
     const norm = (v: number[]) => Math.sqrt(v.reduce((sum, value) => sum + value * value, 0));
     return dot / (norm(a) * norm(b));
   };
-  return {
+  const fake = {
     stored,
-    async upsert(vectors) {
-      for (const { id, values, metadata } of vectors) stored.set(id, { values, metadata });
+    lag: false,
+    async upsert(vectors: Parameters<VectorStore['upsert']>[0]) {
+      const at = Date.now();
+      for (const { id, values, metadata } of vectors) stored.set(id, { values, metadata, at });
+      if (!fake.lag) processedUpTo = at;
       return { count: vectors.length };
     },
-    async query(values, options) {
+    async describe() {
+      return { processedUpToDatetime: processedUpTo };
+    },
+    async query(values: number[], options: Parameters<VectorStore['query']>[1]) {
       const matches = [...stored.entries()]
+        .filter(([, entry]) => entry.at <= processedUpTo)
         .filter(([, entry]) =>
           Object.entries(options.filter ?? {}).every(([key, value]) => entry.metadata?.[key] === value),
         )
@@ -42,6 +54,7 @@ function fakeVectors(): VectorStore & {
       return { matches };
     },
   };
+  return fake;
 }
 
 /** Runs as a user unique to this run, so tests never share a home, even with what local R2 kept. */
@@ -68,7 +81,7 @@ describe('memory', () => {
 
   it('saves a memo the user can open, as a memo document under ~/Memos', async () => {
     await asUser(async () => {
-      const saved = await save('Takes coffee black, never tea.', { kind: 'preference', tags: ['drinks'] });
+      const saved = await save({ text: 'Takes coffee black, never tea.', kind: 'preference', tags: ['drinks'] });
 
       expect(saved).toEqual({
         path: '~/Memos/Takes coffee black, never tea.memo',
@@ -89,10 +102,10 @@ describe('memory', () => {
     });
   });
 
-  it('names a memo by its option, and never overwrites another of the same name', async () => {
+  it('names a memo by its name, and never overwrites another of the same name', async () => {
     await asUser(async () => {
-      const first = await save('Ana leads casting.', { kind: 'person', name: 'Ana' });
-      const second = await save('Ana prefers calls over mail.', { kind: 'person', name: 'Ana' });
+      const first = await save({ text: 'Ana leads casting.', kind: 'person', name: 'Ana' });
+      const second = await save({ text: 'Ana prefers calls over mail.', kind: 'person', name: 'Ana' });
 
       expect(first.path).toBe('~/Memos/Ana.memo');
       expect(second.path).toMatch(/^~\/Memos\/Ana \w+\.memo$/);
@@ -102,7 +115,7 @@ describe('memory', () => {
 
   it('indexes each memo by its path, in the memory scope', async () => {
     await asUser(async () => {
-      const saved = await save('Budget for episode 2 is approved.', { kind: 'fact' });
+      const saved = await save({ text: 'Budget for episode 2 is approved.', kind: 'fact' });
 
       const [entry] = [...vectors.stored.values()];
       expect(vectors.stored.size).toBe(1);
@@ -112,10 +125,10 @@ describe('memory', () => {
 
   it('recalls what was saved by meaning, closest first, with its text and where it lives', async () => {
     await asUser(async () => {
-      await save('Takes coffee black, never tea.', { kind: 'preference' });
-      await save('The cat is called Miso.', { kind: 'fact' });
+      await save({ text: 'Takes coffee black, never tea.', kind: 'preference' });
+      await save({ text: 'The cat is called Miso.', kind: 'fact' });
 
-      const found = await recall('what does the user drink, coffee or tea?', { limit: 1 });
+      const found = await recall({ query: 'what does the user drink, coffee or tea?', limit: 1 });
 
       expect(found).toEqual([
         {
@@ -132,65 +145,80 @@ describe('memory', () => {
 
   it('recalls within a scope when asked to', async () => {
     await asUser(async () => {
-      await save('The cat is called Miso.', { kind: 'fact' });
+      await save({ text: 'The cat is called Miso.', kind: 'fact' });
 
-      expect(await recall('cat', { scope: 'files' })).toEqual([]);
-      expect(await recall('cat', { scope: 'memory' })).toHaveLength(1);
+      expect(await recall({ query: 'cat', scope: 'files' })).toEqual([]);
+      expect(await recall({ query: 'cat', scope: 'memory' })).toHaveLength(1);
     });
   });
 
   it('never recalls another user’s memories, though they share the index', async () => {
     await asUser(async () => {
-      await save('The cat is called Miso.', { kind: 'fact' });
+      await save({ text: 'The cat is called Miso.', kind: 'fact' });
     });
 
     await asUser(async () => {
-      await save('The cat is called Miso.', { kind: 'fact' });
+      await save({ text: 'The cat is called Miso.', kind: 'fact' });
       expect(vectors.stored.size).toBe(2);
-      expect(await recall('cat')).toHaveLength(1);
+      expect(await recall({ query: 'cat' })).toHaveLength(1);
     });
   });
 
-  it('offers save and recall as tools, with their arguments named', () => {
-    const tools = new IRPCRouter(memory.transport!).getTools().filter((tool) => tool.name.startsWith('memory.'));
+  it('recalls a memo saved just now, before the index has processed it', async () => {
+    vectors.lag = true;
+    await asUser(async () => {
+      await save({ text: 'Prefers short answers in the morning.', kind: 'preference' });
 
-    expect(tools.map((tool) => tool.name)).toEqual(['memory.save', 'memory.recall']);
-    expect(Object.keys(tools[0].inputSchema.properties as object)).toEqual(['text', 'options']);
-    expect(Object.keys(tools[1].inputSchema.properties as object)).toEqual(['query', 'options']);
-    expect(tools[1].annotations).toMatchObject({ readOnlyHint: true });
+      const found = await recall({ query: 'morning answers' });
+
+      expect(found).toMatchObject([
+        {
+          path: '~/Memos/Prefers short answers in the morning.memo',
+          name: 'Prefers short answers in the morning',
+          scope: 'memory',
+          kind: 'preference',
+          text: 'Prefers short answers in the morning.',
+        },
+      ]);
+    });
   });
 
-  it('tells the model the type of each argument, options being an object of known fields', () => {
+  it('lists a memo once, when the index has it too', async () => {
+    await asUser(async () => {
+      await save({ text: 'The cat is called Miso.', kind: 'fact' });
+
+      expect(await recall({ query: 'cat' })).toHaveLength(1);
+    });
+  });
+
+  it('offers save and recall as tools that take one flat object', () => {
     const [saveTool, recallTool] = new IRPCRouter(memory.transport!)
       .getTools()
       .filter((tool) => tool.name.startsWith('memory.'));
 
+    expect([saveTool.name, recallTool.name]).toEqual(['memory.save', 'memory.recall']);
     expect(saveTool.inputSchema).toMatchObject({
+      type: 'object',
       properties: {
         text: { type: 'string' },
-        options: {
-          type: 'object',
-          properties: {
-            kind: { enum: ['note', 'preference', 'person', 'project', 'fact'] },
-            name: { type: 'string' },
-            tags: { type: 'array', items: { type: 'string' } },
-          },
-        },
+        kind: { enum: ['note', 'preference', 'person', 'project', 'fact'] },
+        name: { type: 'string' },
+        tags: { type: 'array', items: { type: 'string' } },
       },
       required: ['text'],
     });
     expect(recallTool.inputSchema).toMatchObject({
-      properties: {
-        query: { type: 'string' },
-        options: { type: 'object', properties: { scope: { enum: ['memory', 'files', 'all'] } } },
-      },
+      type: 'object',
+      properties: { query: { type: 'string' }, scope: { enum: ['memory', 'files', 'all'] } },
       required: ['query'],
     });
+    expect(recallTool.annotations).toMatchObject({ readOnlyHint: true });
   });
 
-  it('refuses options that are not an object, rather than saving the memo wrongly', async () => {
+  it('refuses fields it doesn’t know, rather than saving the memo wrongly', async () => {
     await asUser(async () => {
-      await expect(save('Likes tea.', '{"kind":"preference"}' as never)).rejects.toThrow();
+      const nested = { text: 'Likes tea.', options: { kind: 'preference' } };
+      await expect(save(nested as never)).rejects.toThrow();
       expect(vectors.stored.size).toBe(0);
     });
   });
