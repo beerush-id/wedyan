@@ -8,7 +8,7 @@ import {
   type ToolCall,
 } from '@irpclib/ai-kit';
 import type { AIAdapter } from '@irpclib/ai-kit/worker';
-import { getAbortSignal, type IRPCData, type IRPCHandler, type IRPCRouter, stream } from '@irpclib/irpc';
+import { getAbortSignal, IRPC_STORE, type IRPCData, type IRPCHandler, type IRPCRouter, stream } from '@irpclib/irpc';
 import { type AskAction, type AskInput, type AskPart, type AskState, askSeed, askWedyan } from './agent.h.js';
 import { createMarkerParser } from './marker.js';
 import { kernel } from './package.js';
@@ -259,7 +259,7 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
 
       const [handoff, ...extraHandoffs] = reply.toolCalls.filter((call) => call.name === HANDOFF);
       const calls = reply.toolCalls.filter((call) => call.name !== HANDOFF);
-      const results = await Promise.all(calls.map((call) => resolveCall(options.resolve, call)));
+      const results = await Promise.all(calls.map((call) => resolveCall(options.resolve, call, agent.name)));
       for (const [index, call] of calls.entries()) history.push(toolTurn(call.id, results[index]));
       for (const call of extraHandoffs) history.push(toolTurn(call.id, { error: 'Only one handoff per turn' }));
       if (signal?.aborted) return end('stopped', 'Aborted');
@@ -327,6 +327,7 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
     }
   } catch (error) {
     if (signal?.aborted) return end('stopped', 'Aborted');
+    IRPC_STORE.error(error as Error, [{ agent: agent.name, turn }]);
     return end('error', error instanceof Error ? error.message : String(error));
   }
 }
@@ -419,6 +420,7 @@ function createActionQueue(act: AgentLoopOptions['act']) {
           const reply = await act?.(action);
           if (action.ask) replies.push(replyOf(action, reply));
         } catch (error) {
+          IRPC_STORE.error(error as Error, [{ action: action.name, args: action.args }]);
           brokenTurns.add(turn);
           failures.push({ action: action.name, args: action.args, error: messageOf(error) });
         }
@@ -522,10 +524,12 @@ function withSkill(agent: AgentProfile, skill?: AgentSkill): AgentProfile {
 }
 
 /** Resolves one call into what the model reads back: the answer, or an error it can act on. */
-async function resolveCall(resolve: AgentLoopOptions['resolve'], call: ToolCall): Promise<IRPCData> {
+async function resolveCall(resolve: AgentLoopOptions['resolve'], call: ToolCall, agent: string): Promise<IRPCData> {
   try {
     return (await resolve(call)) ?? { error: 'not available' };
   } catch (error) {
+    // The model only reads the message; the log keeps what failed, for whoever debugs it.
+    IRPC_STORE.error(error as Error, [{ agent, call: call.name, args: call.args }]);
     return { error: messageOf(error) };
   }
 }

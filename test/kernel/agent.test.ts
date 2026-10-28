@@ -1,6 +1,6 @@
 import { mutable, withContext } from '@airlib/react';
 import type { ToolCall } from '@irpclib/ai-kit';
-import type { IRPCData } from '@irpclib/irpc';
+import { IRPC_STORE, type IRPCData } from '@irpclib/irpc';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AskAction } from '../../lib/kernel/agent.h.js';
 import { type AgentLoopOptions, type AskState, type LoopSnapshot, runAgentLoop } from '../../lib/kernel/agent.js';
@@ -400,6 +400,37 @@ describe('agent loop', () => {
 
     expect(vendor.spy).toHaveBeenCalledTimes(1);
     expect(state.status).toBe('done');
+  });
+
+  it('logs a failed call with what failed, besides telling the model', async () => {
+    mockVendor(calls({ id: 'c1', name: 'sys__fs__read', args: { path: '~/a' } }), says('Sorry.'));
+    const logged = vi.spyOn(IRPC_STORE, 'error').mockImplementation(() => {});
+    const failure = new Error('No such file');
+    const { run } = setup({
+      entry: 'assistant',
+      resolve: async () => {
+        throw failure;
+      },
+    });
+
+    await run();
+
+    expect(logged).toHaveBeenCalledWith(failure, [{ agent: 'assistant', call: 'sys.fs.read', args: { path: '~/a' } }]);
+  });
+
+  it('logs a failed action with what failed, besides telling the model', async () => {
+    mockVendor(says('[[action name=app.open]]{"app":"motion"}[[/action]]'), says('Not installed.'));
+    const logged = vi.spyOn(IRPC_STORE, 'error').mockImplementation(() => {});
+    const failure = new Error('Motion is not installed');
+    const { run } = setup({
+      act: async () => {
+        throw failure;
+      },
+    });
+
+    await run();
+
+    expect(logged).toHaveBeenCalledWith(failure, [{ action: 'app.open', args: { app: 'motion' } }]);
   });
 
   it('skips the rest of the turn after a failed action and tells the model on the next turn', async () => {
