@@ -1,5 +1,6 @@
-import { $bind, mutable, setup, Snippet, template } from '@airlib/react';
+import { $bind, $static, mutable, setup, Snippet, template } from '@airlib/react';
 import { DescriptionList, Gallery } from '@airlib/react-aui';
+import { MarkdownRenderer } from '@airlib/react-aui/markdown';
 import type { ChatDocument, MemoDocument, StillDocument } from '@/lib/documents/types.js';
 import { shortDate } from './library.js';
 
@@ -14,7 +15,7 @@ type DocumentViewProps<D> = {
  * any of which can be picked to show instead, for this session; and the edits made to it.
  */
 export const StillView = setup<DocumentViewProps<StillDocument>>((props) => {
-  const view = mutable({ chosen: props.document.chosen });
+  const view = mutable({ chosen: $static(() => props.document.chosen) });
   const chosen = () => props.document.attempts.find((attempt) => attempt.id === view.chosen) ?? props.document.attempts[0];
 
   return () => (
@@ -114,7 +115,7 @@ export const MemoView = template<DocumentViewProps<MemoDocument>>((props) => {
           { label: 'Updated', value: shortDate(memo.updated) },
         ]}
       />
-      <div className="wedyan-memo-body">{memo.body}</div>
+      <MarkdownRenderer text={memo.body} />
     </article>
   );
 }, 'MemoView');

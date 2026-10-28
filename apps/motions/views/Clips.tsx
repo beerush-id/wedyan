@@ -2,7 +2,7 @@ import { For, template } from '@airlib/react';
 import { StageClip } from '@airlib/react-aui';
 import type { Timeline, TimelineSegment } from '@airlib/react/timeline';
 import type { ReactNode } from 'react';
-import { type CanvasClip, type HtmlClip, MOTION_KEYS, type SvgClip } from './composition.js';
+import { type AudioClip, type CanvasClip, type HtmlClip, MOTION_KEYS, type SvgClip, type VideoClip } from './composition.js';
 import { PAINTERS } from './painters.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -34,7 +34,24 @@ const DRAW: Record<string, (segment: TimelineSegment) => ReactNode> = {
   svg: (segment) => <SvgClipView segment={segment as TimelineSegment<SvgClip>} />,
   html: (segment) => <HtmlClipView segment={segment as TimelineSegment<HtmlClip>} />,
   canvas: (segment) => <CanvasClipView segment={segment as TimelineSegment<CanvasClip>} />,
+  video: (segment) => <VideoClipView segment={segment as TimelineSegment<VideoClip>} />,
+  // Sound draws nothing: the stage decodes it and plays it on its clock, from where the clip is trimmed.
+  audio: (segment) => <StageClip segment={segment} media={(segment as TimelineSegment<AudioClip>).props.src} />,
 };
+
+/** A video clip: its footage, decoded by the stage, drawn frame by frame into its box, and heard unless muted. */
+const VideoClipView = template<{ segment: TimelineSegment<VideoClip> }>(
+  (props) => (
+    <StageClip
+      as="canvas"
+      segment={props.segment}
+      media={props.segment.props.src}
+      fit={props.segment.props.fit}
+      muted={props.segment.props.muted}
+    />
+  ),
+  'VideoClipView'
+);
 
 /**
  * An SVG clip: an `<svg>` filling the clip's box, holding its one element, whose attributes —

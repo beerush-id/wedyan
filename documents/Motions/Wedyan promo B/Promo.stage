@@ -18,8 +18,8 @@
         "segments": [
           {
             "id": "g02-wedyan-v1",
-            "options": { "type": "svg", "name": "Workspace.mp4", "meta": { "thumbnail": "https://picsum.photos/seed/wedyan-promo-desk/640/360" }, "speed": 1, "duration": 2, "startFrame": 0 },
-            "props": { "element": "image", "href": "https://picsum.photos/seed/wedyan-promo-desk/1920/1080", "x": 0, "y": 0, "width": 1920, "height": 1080, "preserveAspectRatio": "xMidYMid slice" },
+            "options": { "type": "video", "name": "Workspace.mp4", "meta": { "thumbnail": "https://picsum.photos/seed/wedyan-promo-desk/640/360" }, "speed": 1, "duration": 2, "startFrame": 0 },
+            "props": { "src": "/assets/landscape.mp4", "muted": true, "x": 0, "y": 0, "width": 1920, "height": 1080 },
             "scenes": [
               { "id": "g02-wedyan-v1-k1", "options": { "atFrame": 0, "meta": { "ease": "in-out" } }, "data": { "scale": 1, "opacity": 1 } },
               { "id": "g02-wedyan-v1-k2", "options": { "atFrame": 60 }, "data": { "scale": 1.07, "opacity": 1 } }
@@ -27,8 +27,8 @@
           },
           {
             "id": "g02-wedyan-v2",
-            "options": { "type": "svg", "name": "Collaboration.mp4", "meta": { "thumbnail": "https://picsum.photos/seed/wedyan-promo-light/640/360" }, "speed": 1, "duration": 1.5, "startFrame": 60 },
-            "props": { "element": "image", "href": "https://picsum.photos/seed/wedyan-promo-light/2080/1080", "x": 0, "y": 0, "width": 2080, "height": 1080, "preserveAspectRatio": "xMidYMid slice" },
+            "options": { "type": "video", "name": "Collaboration.mp4", "meta": { "thumbnail": "https://picsum.photos/seed/wedyan-promo-light/640/360" }, "speed": 1, "duration": 1.5, "startFrame": 60, "offsetFrame": 60, "contentFrames": 300 },
+            "props": { "src": "/assets/landscape.mp4", "muted": true, "x": 0, "y": 0, "width": 2080, "height": 1080 },
             "scenes": [
               { "id": "g02-wedyan-v2-k1", "options": { "atFrame": 0, "meta": { "ease": "in-out" } }, "data": { "x": 0, "scale": 1.02 } },
               { "id": "g02-wedyan-v2-k2", "options": { "atFrame": 45 }, "data": { "x": -160, "scale": 1.02 } }
@@ -36,8 +36,8 @@
           },
           {
             "id": "g02-wedyan-v3",
-            "options": { "type": "svg", "name": "Closing.mp4", "meta": { "thumbnail": "https://picsum.photos/seed/wedyan-promo-close/640/360" }, "speed": 1, "duration": 1.5, "startFrame": 105 },
-            "props": { "element": "image", "href": "https://picsum.photos/seed/wedyan-promo-close/1920/1080", "x": 0, "y": 0, "width": 1920, "height": 1080, "preserveAspectRatio": "xMidYMid slice" },
+            "options": { "type": "video", "name": "Closing.mp4", "meta": { "thumbnail": "https://picsum.photos/seed/wedyan-promo-close/640/360" }, "speed": 1, "duration": 1.5, "startFrame": 105, "offsetFrame": 120, "contentFrames": 300 },
+            "props": { "src": "/assets/landscape.mp4", "muted": true, "x": 0, "y": 0, "width": 1920, "height": 1080 },
             "scenes": [
               { "id": "g02-wedyan-v3-k1", "options": { "atFrame": 0, "meta": { "ease": "in-out" } }, "data": { "scale": 1.08, "opacity": 1 } },
               { "id": "g02-wedyan-v3-k2", "options": { "atFrame": 45 }, "data": { "scale": 1, "opacity": 1 } }
@@ -49,7 +49,7 @@
         "id": "g02-wedyan-audio",
         "options": { "type": "audio", "name": "Music" },
         "segments": [
-          { "id": "g02-wedyan-a1", "options": { "type": "audio", "name": "Premium Ambient.mp3", "speed": 1, "duration": 5, "startFrame": 0 }, "props": {} }
+          { "id": "g02-wedyan-a1", "options": { "type": "audio", "name": "Premium Ambient.mp3", "speed": 1, "duration": 5, "startFrame": 0 }, "props": { "src": "/assets/music.mp3" } }
         ]
       },
       {

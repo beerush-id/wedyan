@@ -7,16 +7,13 @@
   "updated": "2026-10-27T10:44:00Z",
   "author": { "kind": "agent", "ask": "Try another take: lead with the desktop you share with AI." },
   "tags": ["promo", "hackathon"],
-  "brief": "Try another take: lead with the desktop you share with AI.",
+  "description": "Another take on the promo, leading with the desktop you share with AI.",
   "aspect": "16:9",
   "cover": "https://picsum.photos/seed/wedyan-promo-light/480/270",
   "length": 30,
   "status": "draft",
-  "script": [
-    { "id": "s1", "title": "Promise", "onScreen": "The desktop you share with AI", "visual": "A workspace, pushing in.", "seconds": 2, "stage": "Promo.stage" },
-    { "id": "s2", "title": "How", "onScreen": "A browser desktop for you and your AI agent — side by side.", "visual": "Two people's windows meeting.", "seconds": 1.5, "stage": "Promo.stage" },
-    { "id": "s3", "title": "Name", "onScreen": "Wedyan — your shared browser desktop", "seconds": 1.5, "stage": "Promo.stage" }
-  ],
+  "album": "../../Albums/Wedyan promos.album",
+  "script": { "path": "Script.md" },
   "stages": ["Promo.stage"],
   "assets": [
     { "id": "a1", "name": "Workspace", "kind": "image", "src": "https://picsum.photos/seed/wedyan-promo-desk/1920/1080" },

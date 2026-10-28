@@ -1,4 +1,4 @@
-import { documentsOf, follow } from '@/lib/documents/store.js';
+import { documentsOf, follow, resolvePath } from '@/lib/documents/store.js';
 import type { MotionDocument, PersonaDocument, StageDocument } from '@/lib/documents/types.js';
 import { runtime } from './composition.js';
 
@@ -12,6 +12,60 @@ export type Project = { path: string; document: MotionDocument };
  */
 export const projects = (): Project[] =>
   documentsOf('motion').sort((a, b) => b.document.updated.localeCompare(a.document.updated));
+
+/** A set of projects kept together: an `.album`, or one gathered by what its projects share. */
+export type Album = {
+  /** How a route names it: an `.album`'s path, or a gathered album's own key. */
+  key: string;
+  name: string;
+  description: string;
+  /** Its picture: the album's own, or its newest project's cover. */
+  cover?: string;
+  /** Its projects, newest first. */
+  projects: () => Project[];
+};
+
+/**
+ * The albums, as the library shows them: each `.album`, by name, then what Wedyan made, then the
+ * projects in no album. The last two show only while they hold something.
+ *
+ * @returns Each album.
+ */
+export const albums = (): Album[] => {
+  const kept = documentsOf('album')
+    .sort((a, b) => a.document.name.localeCompare(b.document.name))
+    .map(({ path, document }) => {
+      const inside = () => projects().filter((project) => project.document.album && resolvePath(project.path, project.document.album) === path);
+      return { key: path, name: document.name, description: document.description ?? '', cover: document.cover ?? inside()[0]?.document.cover, projects: inside };
+    });
+  const gathered = [
+    gather('made-by-wedyan', 'Made by Wedyan', 'Everything Wedyan made from what you asked.', (project) => project.document.author.kind === 'agent'),
+    gather('unsorted', 'Unsorted', 'Projects not kept in an album yet.', (project) => !project.document.album),
+  ].filter((album) => album.projects().length > 0);
+  return [...kept, ...gathered];
+};
+
+/**
+ * One album, by its key.
+ *
+ * @param key - How a route names it.
+ * @returns The album, if there is one by that key.
+ */
+export const albumOf = (key?: string): Album | undefined => albums().find((album) => album.key === key);
+
+/**
+ * An album gathered by what its projects share, rather than kept as a file.
+ *
+ * @param key - How a route names it.
+ * @param name - Its name.
+ * @param description - What it gathers, in a line.
+ * @param holds - Whether a project belongs in it.
+ * @returns The album.
+ */
+function gather(key: string, name: string, description: string, holds: (project: Project) => boolean): Album {
+  const inside = () => projects().filter(holds);
+  return { key, name, description, cover: inside()[0]?.document.cover, projects: inside };
+}
 
 /**
  * A project's stages, in playing order, with where each is.

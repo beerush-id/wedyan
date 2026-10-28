@@ -17,8 +17,8 @@
         "segments": [
           {
             "id": "m01-v1",
-            "options": { "type": "svg", "name": "Trailhead.mp4", "meta": { "thumbnail": "https://picsum.photos/seed/wedyan-motion-trail/640/360" }, "speed": 1, "duration": 4, "startFrame": 0 },
-            "props": { "element": "image", "href": "https://picsum.photos/seed/wedyan-motion-trail/1920/1080", "x": 0, "y": 0, "width": 1920, "height": 1080, "preserveAspectRatio": "xMidYMid slice" },
+            "options": { "type": "video", "name": "Trailhead.mp4", "meta": { "thumbnail": "https://picsum.photos/seed/wedyan-motion-trail/640/360" }, "speed": 1, "duration": 4, "startFrame": 0 },
+            "props": { "src": "/assets/landscape.mp4", "muted": true, "x": 0, "y": 0, "width": 1920, "height": 1080 },
             "scenes": [
               { "id": "m01-v1-k1", "options": { "atFrame": 0 }, "data": { "scale": 1 } },
               { "id": "m01-v1-k2", "options": { "atFrame": 120 }, "data": { "scale": 1.08 } }
@@ -26,8 +26,8 @@
           },
           {
             "id": "m01-v2",
-            "options": { "type": "svg", "name": "Ridge.mp4", "meta": { "thumbnail": "https://picsum.photos/seed/wedyan-motion-ridge/640/360" }, "speed": 1, "duration": 5, "startFrame": 120 },
-            "props": { "element": "image", "href": "https://picsum.photos/seed/wedyan-motion-ridge/2080/1080", "x": 0, "y": 0, "width": 2080, "height": 1080, "preserveAspectRatio": "xMidYMid slice" },
+            "options": { "type": "video", "name": "Ridge.mp4", "meta": { "thumbnail": "https://picsum.photos/seed/wedyan-motion-ridge/640/360" }, "speed": 1, "duration": 5, "startFrame": 120, "offsetFrame": 120, "contentFrames": 300 },
+            "props": { "src": "/assets/landscape.mp4", "muted": true, "x": 0, "y": 0, "width": 2080, "height": 1080 },
             "scenes": [
               { "id": "m01-v2-k1", "options": { "atFrame": 0, "meta": { "ease": "in-out" } }, "data": { "x": 0 } },
               { "id": "m01-v2-k2", "options": { "atFrame": 150 }, "data": { "x": -160 } }
@@ -35,8 +35,8 @@
           },
           {
             "id": "m01-v3",
-            "options": { "type": "svg", "name": "Campfire.mp4", "meta": { "thumbnail": "https://picsum.photos/seed/wedyan-motion-fire/640/360" }, "speed": 1, "duration": 4, "startFrame": 270 },
-            "props": { "element": "image", "href": "https://picsum.photos/seed/wedyan-motion-fire/1920/1080", "x": 0, "y": 0, "width": 1920, "height": 1080, "preserveAspectRatio": "xMidYMid slice" },
+            "options": { "type": "video", "name": "Campfire.mp4", "meta": { "thumbnail": "https://picsum.photos/seed/wedyan-motion-fire/640/360" }, "speed": 1, "duration": 4, "startFrame": 270, "offsetFrame": 180, "contentFrames": 300 },
+            "props": { "src": "/assets/landscape.mp4", "muted": true, "x": 0, "y": 0, "width": 1920, "height": 1080 },
             "scenes": [
               { "id": "m01-v3-k1", "options": { "atFrame": 0 }, "data": { "scale": 1.08 } },
               { "id": "m01-v3-k2", "options": { "atFrame": 120 }, "data": { "scale": 1 } }
@@ -48,7 +48,7 @@
         "id": "m01-audio",
         "options": { "type": "audio", "name": "Audio" },
         "segments": [
-          { "id": "m01-a1", "options": { "type": "audio", "name": "Acoustic.mp3", "speed": 1, "duration": 13, "startFrame": 0 }, "props": {} }
+          { "id": "m01-a1", "options": { "type": "audio", "name": "Acoustic.mp3", "speed": 1, "duration": 13, "startFrame": 0 }, "props": { "src": "/assets/music.mp3" } }
         ]
       },
       {

@@ -1,13 +1,16 @@
 import { createContext, mutable } from '@airlib/react';
 import type { Timeline, TimelineSegment } from '@airlib/react/timeline';
-import { follow } from '@/lib/documents/store.js';
+import { documentAt, follow } from '@/lib/documents/store.js';
 import type { StillDocument, TakeDocument } from '@/lib/documents/types.js';
+import type { MotionsRoute } from './route.js';
 
 /**
  * What one Motions window is working on, shared between the window and its dock: the stage open
  * for editing — its path, its timeline — and the clips picked on it, by id.
  */
 export type MotionsSession = {
+  /** Where the window is, which its dock follows: the library, Direct and what's picked there, or Compose. */
+  route?: MotionsRoute;
   stage?: string;
   timeline?: Timeline;
   clips: string[];
@@ -15,8 +18,6 @@ export type MotionsSession = {
   open?: (path: string) => void;
   /** Renders the open stage to a video, while one is open and not already rendering. */
   render?: () => void;
-  /** Saves the last render again, once there is one. */
-  download?: () => void;
   /** What the open stage's render says now: that it can't render here, how far it is, or what it made. */
   status: string;
   rendering: boolean;
@@ -24,11 +25,15 @@ export type MotionsSession = {
   snap: boolean;
 };
 
-/** A clip made from a generated image or video, and the document it was generated as. */
-export type GenerativeClip = {
-  segment: TimelineSegment;
+/** A generated image or video, by path: what its generation is made again from. */
+export type GenerativeSource = {
   path: string;
   source: StillDocument | TakeDocument;
+};
+
+/** A clip made from a generated image or video, and the document it was generated as. */
+export type GenerativeClip = GenerativeSource & {
+  segment: TimelineSegment;
 };
 
 /** The session of the window a view is in, set by the window for everything inside it. */
@@ -46,7 +51,7 @@ const SESSIONS = new Map<string, MotionsSession>();
 export function sessionOf(id: string): MotionsSession {
   let session = SESSIONS.get(id);
   if (!session) {
-    session = mutable<MotionsSession>({ clips: [], status: '', rendering: false, snap: true }, { recursive: false });
+    session = mutable<MotionsSession>({ clips: [], status: '', rendering: false, snap: false }, { recursive: false });
     SESSIONS.set(id, session);
   }
   return session;
@@ -82,4 +87,29 @@ export function generativeClip(session: MotionsSession): GenerativeClip | undefi
       return found.document ? { segment, path: found.path, source: found.document as StillDocument | TakeDocument } : undefined;
     }
   }
+}
+
+/**
+ * Whether the row picked in Direct is writing — the script, or a memo — which a prompt then writes.
+ *
+ * @param session - The window's session.
+ * @returns Whether Direct shows writing.
+ */
+export function writingPicked(session: MotionsSession): boolean {
+  const { route } = session;
+  if (route?.view !== 'motion' || !route.item) return false;
+  return route.item.endsWith('.md') || documentAt(route.item)?.type === 'memo';
+}
+
+/**
+ * The row picked in Direct, when it's a generated image or video.
+ *
+ * @param session - The window's session.
+ * @returns The generated document and its path, or nothing unless Direct shows one.
+ */
+export function generativePick(session: MotionsSession): GenerativeSource | undefined {
+  const { route } = session;
+  if (route?.view !== 'motion' || !route.item) return;
+  const document = documentAt(route.item);
+  return document?.type === 'still' || document?.type === 'take' ? { path: route.item, source: document } : undefined;
 }

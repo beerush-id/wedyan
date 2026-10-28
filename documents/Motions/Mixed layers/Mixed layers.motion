@@ -7,14 +7,12 @@
   "updated": "2026-10-27T11:30:00Z",
   "author": { "kind": "user" },
   "tags": ["test"],
-  "brief": "One of every kind of clip on screen together, to check they all play and render.",
+  "description": "One of every kind of clip on screen together, to check they all play and render.",
   "aspect": "16:9",
   "cover": "https://picsum.photos/seed/wedyan-motion-mixed/480/270",
   "length": 4,
   "status": "draft",
-  "script": [
-    { "id": "s1", "title": "Harbor at dawn", "onScreen": "Harbor at dawn", "seconds": 4, "stage": "Mixed layers.stage" }
-  ],
+  "script": { "path": "Script.md" },
   "stages": ["Mixed layers.stage"],
   "assets": [
     { "id": "a1", "name": "Harbor", "kind": "image", "src": "https://picsum.photos/seed/wedyan-motion-mixed/1920/1080" }

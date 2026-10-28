@@ -5,8 +5,8 @@ import type { WindowRenderProps } from '@airlib/react-aui/desktop';
 import { AspectRatioIcon, AutoAwesomeIcon } from '@airlib/react-aui/icons';
 import type { Timeline } from '@airlib/react/timeline';
 import type { ReactNode } from 'react';
-import { FrameBackIcon, FrameForwardIcon, PauseIcon, PlayIcon, ToEndIcon, ToStartIcon } from './icons.js';
-import { type GenerativeClip, generativeClip, sessionOf } from './session.js';
+import { EffortIcon, FrameBackIcon, FrameForwardIcon, PauseIcon, PlayIcon, ToEndIcon, ToStartIcon } from './icons.js';
+import { type GenerativeSource, generativeClip, generativePick, sessionOf, writingPicked } from './session.js';
 
 const MODELS = { standard: 'Standard', cinematic: 'Cinematic' };
 const IMAGE_MODELS = { standard: 'Standard', detailed: 'Detailed' };
@@ -21,32 +21,43 @@ export const animation = mutable({ model: 'standard', aspect: '16:9', seconds: 6
  */
 export const regeneration = mutable({ model: 'standard', attempts: 2, seconds: 4 });
 
+const WRITING_MODELS = { fast: 'Fast', balanced: 'Balanced', best: 'Best' };
+const EFFORTS = { low: 'Low effort', medium: 'Medium effort', high: 'High effort' };
+
 /**
- * Motions' options in the dock, following its window. With a stage open, the transport — to the
- * start, a frame back, play or pause, a frame on, to the end — led, when the picked clip was
- * generated, by how it is made again. Otherwise, how a new motion is made.
+ * How the picked writing — the script, or a memo — is written: set from the dock while it's picked,
+ * read when a prompt is sent. The models are placeholders until the kernel names its own.
+ */
+export const writing = mutable({ model: 'balanced', effort: 'medium' });
+
+/**
+ * Motions' options in the dock, following its window and what's picked in it, and only when they
+ * have something to offer. In the library, how a new motion is made. In Compose, the transport —
+ * to the start, a frame back, play or pause, a frame on, to the end — led, when the picked clip was
+ * generated, by how it is made again. In Direct, how the picked row is made again, when it's a
+ * generated image or video, or written, when it's the script or a memo. Anywhere else, none.
  */
 export const MotionsDockOptions = setup<WindowRenderProps>((props) => {
   const session = sessionOf($static(() => props.instance.id));
 
-  return () => (
-    <Toolbar label="Motion settings" variant="text" className={AUI_CLASS.TOOLBAR_OPTIONS}>
-      <Snippet>
-        {() => {
-          const timeline = session.timeline;
-          if (!timeline) return <NewMotionOptions />;
-          const clip = generativeClip(session);
-          return (
-            <>
-              {clip && <RegenerateOptions clip={clip} open={session.open} />}
-              {clip && <Divider orientation="vertical" size="sm" className="wedyan-motions-options-end" />}
-              <Transport timeline={timeline} />
-            </>
-          );
-        }}
-      </Snippet>
-    </Toolbar>
-  );
+  return () => {
+    const view = session.route?.view ?? 'library';
+    const timeline = session.timeline;
+    const generated = timeline ? generativeClip(session) : generativePick(session);
+    const written = !timeline && writingPicked(session);
+    const shelf = view === 'library' || view === 'album';
+    if (!shelf && !timeline && !generated && !written) return null;
+
+    return (
+      <Toolbar label="Motion settings" variant="text" className={AUI_CLASS.TOOLBAR_OPTIONS}>
+        {shelf && <NewMotionOptions />}
+        {written && <WritingOptions />}
+        {generated && <RegenerateOptions generated={generated} open={session.open} />}
+        {generated && timeline && <Divider orientation="vertical" size="sm" className="wedyan-motions-options-end" />}
+        {timeline && <Transport timeline={timeline} />}
+      </Toolbar>
+    );
+  };
 }, 'MotionsDockOptions');
 
 /** How a new motion is made: its model, its shape, and how long it runs. */
@@ -85,13 +96,41 @@ const NewMotionOptions = template(
   'NewMotionOptions'
 );
 
+/** How the picked writing is written: which model writes it, and how hard it thinks. */
+const WritingOptions = template(
+  () => (
+    <>
+      <Select size="sm" label="Model" options={WRITING_MODELS} value={$bind(writing, 'model')}>
+        <Select.Snippet for="trigger">
+          {(value) => (
+            <>
+              <AutoAwesomeIcon /> <span>{WRITING_MODELS[value as keyof typeof WRITING_MODELS]}</span>
+            </>
+          )}
+        </Select.Snippet>
+      </Select>
+      <Select size="sm" label="Reasoning effort" options={EFFORTS} value={$bind(writing, 'effort')}>
+        <Select.Snippet for="trigger">
+          {(value) => (
+            <>
+              <EffortIcon /> <span>{EFFORTS[value as keyof typeof EFFORTS]}</span>
+            </>
+          )}
+        </Select.Snippet>
+      </Select>
+    </>
+  ),
+  'WritingOptions'
+);
+
 /**
- * How the picked generative clip is made again: the picture it shows now, larger in its tooltip,
+ * How a picked generated image or video — a clip's source, or a row in Direct — is made again: the
+ * picture it shows now, larger in its tooltip,
  * which opens the image or video it was generated as; then the model, and how many attempts for an
  * image or how long for a video.
  */
-const RegenerateOptions = template<{ clip: GenerativeClip; open?: (path: string) => void }>((props) => {
-  const { source } = props.clip;
+const RegenerateOptions = template<{ generated: GenerativeSource; open?: (path: string) => void }>((props) => {
+  const { source } = props.generated;
   const chosen = source.attempts.find((attempt) => attempt.id === source.chosen) ?? source.attempts[0];
   const picture = source.type === 'take' ? ((chosen as { poster?: string })?.poster ?? '') : (chosen?.src ?? '');
   const models = source.type === 'take' ? MODELS : IMAGE_MODELS;
@@ -103,7 +142,7 @@ const RegenerateOptions = template<{ clip: GenerativeClip; open?: (path: string)
         variant="text"
         aria-label={`Open ${source.name}`}
         className="wedyan-motions-source"
-        onClick={() => props.open?.(props.clip.path)}
+        onClick={() => props.open?.(props.generated.path)}
       >
         <img src={picture} alt="" />
         {/* The tooltip shows the picture larger, above it, with its name. */}

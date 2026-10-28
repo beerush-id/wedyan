@@ -6,7 +6,7 @@
   "created": "2026-10-28T08:00:00Z",
   "updated": "2026-10-28T08:10:00Z",
   "author": { "kind": "user" },
-  "scene": "s1",
+  "script": "Script.md",
   "casts": ["../../People/Mira.persona"],
   "composition": {
     "id": "m07",
@@ -19,8 +19,8 @@
         "segments": [
           {
             "id": "m07-v1",
-            "options": { "type": "svg", "name": "Lanterns.mp4", "meta": { "thumbnail": "https://picsum.photos/seed/wedyan-motion-lanterns/360/640" }, "speed": 1, "duration": 6, "startFrame": 0, "contentFrames": 240 },
-            "props": { "element": "image", "href": "https://picsum.photos/seed/wedyan-motion-lanterns/1080/1920", "x": 0, "y": 0, "width": 1080, "height": 1920, "preserveAspectRatio": "xMidYMid slice" },
+            "options": { "type": "video", "name": "Lanterns.mp4", "meta": { "thumbnail": "https://picsum.photos/seed/wedyan-motion-lanterns/360/640" }, "speed": 1, "duration": 6, "startFrame": 0, "contentFrames": 300 },
+            "props": { "src": "/assets/portrait.mp4", "x": 0, "y": 0, "width": 1080, "height": 1920 },
             "scenes": [
               { "id": "m07-v1-k1", "options": { "atFrame": 0 }, "data": { "scale": 1 } },
               { "id": "m07-v1-k2", "options": { "atFrame": 180 }, "data": { "scale": 1.1 } }

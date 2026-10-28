@@ -2,11 +2,13 @@ import { canCaptureVideo, type VideoStageAria } from '@airlib/aria';
 import { AUI_CLASS } from '@airlib/aui/utils';
 import { $bind, $static, $use, For, onCleanup, onMount, Show, setup, template } from '@airlib/react';
 import { Button, EmptyState, Stage, TimelineEditor, Toggle, Tooltip } from '@airlib/react-aui';
-import { createTimeline, type Timeline } from '@airlib/react/timeline';
+import { WindowPanel } from '@airlib/react-aui/desktop';
+import { createTimeline, type Timeline, type TimelineSegment } from '@airlib/react/timeline';
 import { documentAt, follow } from '@/lib/documents/store.js';
 import type { MotionAsset, StageDocument, StillDocument } from '@/lib/documents/types.js';
 import { Clips } from './Clips.js';
 import { download, type RenderedVideo, renderMp4 } from './export.js';
+import { buffers, mediaLoader } from './media.js';
 import { SnapIcon } from './icons.js';
 import { castsOf, type Project } from './library.js';
 import { type MotionsSession, sessionCtx } from './session.js';
@@ -18,6 +20,24 @@ const CAPTURE_FLAG = 'chrome://flags/#canvas-draw-element';
 
 /** How many stages render together unless told otherwise: four frames per screen refresh. */
 const RENDER_STAGES = 4;
+
+/** The preview's media: buffered as it opens, so scrubbing anywhere is quick. */
+const previewMedia = mediaLoader({ autobuffer: true });
+
+/** A render's media: the files themselves, at their own sharpness. */
+const renderMedia = mediaLoader();
+
+/**
+ * How far a clip's media is through buffering, while it is, for the timeline to show on the clip.
+ *
+ * @param segment - The clip's segment.
+ * @returns Its progress from 0 to 1, or nothing when it isn't buffering.
+ */
+const buffering = (segment: TimelineSegment): number | undefined => {
+  const src = (segment.props as { src?: string }).src;
+  const buffer = src ? buffers[src] : undefined;
+  return buffer?.status === 'buffering' ? buffer.progress : undefined;
+};
 
 type ComposeViewProps = {
   project: Project;
@@ -52,7 +72,6 @@ export const ComposeView = setup<ComposeViewProps>((props) => {
     status: '',
     rendering: false,
     render: () => {
-      session.download = undefined;
       if (!canCaptureVideo()) {
         session.status = `Rendering needs HTML-in-Canvas: open ${CAPTURE_FLAG} in Chrome, enable it, and relaunch.`;
         return;
@@ -61,17 +80,15 @@ export const ComposeView = setup<ComposeViewProps>((props) => {
       timeline.pause();
       session.rendering = true;
     },
-    download: undefined,
   });
   onCleanup(() => {
     if (session.timeline !== timeline) return;
-    Object.assign(session, { stage: undefined, timeline: undefined, clips: [], status: '', rendering: false, render: undefined, download: undefined });
+    Object.assign(session, { stage: undefined, timeline: undefined, clips: [], status: '', rendering: false, render: undefined });
   });
 
   const finish = (result?: RenderedVideo) => {
     session.rendering = false;
     session.status = result ? describe(result) : '';
-    session.download = result ? () => download(result.file, `${source.name}.mp4`) : undefined;
     if (result) download(result.file, `${source.name}.mp4`);
   };
 
@@ -83,22 +100,31 @@ export const ComposeView = setup<ComposeViewProps>((props) => {
     >
       <div className="wedyan-compose-layout">
         <Sources project={project} open={props.open} />
-        <section className="wedyan-compose-preview" aria-label="Preview">
+        <WindowPanel surface="solid" role="region" aria-label="Preview" className="wedyan-compose-preview">
           <Show when={() => !session.rendering} fallback={() => <MotionRender source={source} finish={finish} />}>
             {() => (
-              <Stage label={source.name} timeline={timeline} width={stage.width} height={stage.height} labels={STAGE_LABELS}>
+              <Stage
+                label={source.name}
+                timeline={timeline}
+                width={stage.width}
+                height={stage.height}
+                media={previewMedia}
+                labels={STAGE_LABELS}
+              >
                 <Clips timeline={timeline} />
               </Stage>
             )}
           </Show>
-        </section>
-        <section className="wedyan-compose-timeline aui-glass-panel" aria-label="Timeline">
+        </WindowPanel>
+        <WindowPanel role="region" aria-label="Timeline" className="wedyan-compose-timeline">
           <TimelineEditor
             label={`Clips in ${source.name}`}
             timeline={timeline}
             value={$bind(session, 'clips')}
             multiple
             snap={$use(() => session.snap)}
+            autofocus
+            progress={buffering}
             playheadLabel="Playhead"
             zoom={56}
           >
@@ -112,7 +138,7 @@ export const ComposeView = setup<ComposeViewProps>((props) => {
               )}
             </TimelineEditor.Snippet>
           </TimelineEditor>
-        </section>
+        </WindowPanel>
       </div>
     </div>
   );
@@ -127,7 +153,7 @@ const Sources = template<{ project: Project; open: (path: string) => void }>((pr
   const casts = castsOf(project);
   return (
     <>
-      <section className="wedyan-compose-group wedyan-compose-assets aui-glass-panel" aria-labelledby="wedyan-compose-assets">
+      <WindowPanel role="region" aria-labelledby="wedyan-compose-assets" className="wedyan-compose-group wedyan-compose-assets">
         <h3 id="wedyan-compose-assets">Assets</h3>
         <ul className="wedyan-compose-tiles">
           {project.document.assets.map((asset) => (
@@ -144,8 +170,8 @@ const Sources = template<{ project: Project; open: (path: string) => void }>((pr
             </li>
           ))}
         </ul>
-      </section>
-      <section className="wedyan-compose-group wedyan-compose-casts aui-glass-panel" aria-labelledby="wedyan-compose-casts">
+      </WindowPanel>
+      <WindowPanel role="region" aria-labelledby="wedyan-compose-casts" className="wedyan-compose-group wedyan-compose-casts">
         <h3 id="wedyan-compose-casts">Casts</h3>
         {casts.length ? (
           <ul className="wedyan-compose-tiles">
@@ -161,7 +187,7 @@ const Sources = template<{ project: Project; open: (path: string) => void }>((pr
         ) : (
           <EmptyState size="sm" title="No casts yet" description="The people and characters this project's stages name show here." />
         )}
-      </section>
+      </WindowPanel>
     </>
   );
 }, 'Sources');
@@ -224,6 +250,7 @@ const MotionRender = setup<MotionRenderProps>((props) => {
       width={source.composition.props.width}
       height={source.composition.props.height}
       capture
+      media={renderMedia}
       controls={false}
       controller={(controller) => {
         stages[index] = controller;

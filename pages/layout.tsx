@@ -4,6 +4,7 @@ import { Desktop, DesktopClock, DesktopWidgets, Dock, DockWidgets, WindowHost } 
 import type { ReactNode } from 'react';
 import { Splash } from '@/components/Splash.js';
 import { BOOT_STAT } from '@/lib/systems/boot.js';
+import { focusPrompt, PROMPT_LABEL } from '@/lib/systems/focus.js';
 import { PROMPT_FILTERS } from '@/lib/systems/prompt.js';
 import rootRoute from './route.js';
 
@@ -17,18 +18,8 @@ export default page(rootRoute).render(({ children }) => (
   </Show>
 ));
 
-/** Names the prompt; also how the desktop finds it to focus. */
-const PROMPT_LABEL = 'Ask Wedyan';
-
 /** The prompt's shortcut as this keyboard writes it: Cmd on Apple's, Ctrl on the rest. */
 const SHORTCUT = /Mac|iPhone|iPad/.test(globalThis.navigator?.platform ?? '') ? '⌘K' : 'Ctrl K';
-
-/**
- * Puts the caret in the prompt.
- */
-const focusPrompt = () => {
-  document.querySelector<HTMLElement>(`[role="textbox"][aria-label="${PROMPT_LABEL}"]`)?.focus({ preventScroll: true });
-};
 
 /**
  * The desktop once booted; apps join through the system's installed apps. The prompt takes focus

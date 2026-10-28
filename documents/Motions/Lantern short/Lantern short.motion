@@ -8,14 +8,20 @@
   "updated": "2026-10-28T08:10:00Z",
   "author": { "kind": "user" },
   "tags": ["short"],
-  "brief": "A vertical cut of Lantern river, for stories.",
   "aspect": "9:16",
   "cover": "https://picsum.photos/seed/wedyan-motion-lantern/270/480",
   "length": 6,
   "status": "draft",
-  "script": [
-    { "id": "s1", "title": "Lanterns", "onScreen": "Let it drift", "seconds": 6, "stage": "Lantern short.stage" }
-  ],
+  "album": "../../Albums/Lanterns.album",
+  "script": {
+    "path": "Script.md",
+    "revisions": [
+      { "id": "r1", "path": "Revisions/Script 1.md", "note": "One scene, the line on screen", "author": { "kind": "user" }, "created": "2026-10-28T08:00:00Z" }
+    ],
+    "histories": [
+      { "id": "h1", "ask": "Rewrite it as Mira letting her lantern go, narrated by The River: quiet, about letting go, very few words.", "model": "best", "effort": "high", "created": "2026-10-28T14:10:00Z" }
+    ]
+  },
   "stages": ["Lantern short.stage"],
   "assets": [
     { "id": "a1", "name": "Lanterns", "kind": "image", "src": "https://picsum.photos/seed/wedyan-motion-lanterns/1080/1920" }

@@ -2,8 +2,8 @@ import type { MotionBox, TimelineSnapshot } from '@airlib/react/timeline';
 
 /**
  * A project's composition is a timeline snapshot: hydrate it and the one timeline plays every
- * clip. Each segment is a clip; its `type` names what draws it (`svg`, `html`, `canvas`, or
- * `audio`, which the stage doesn't draw), its `props` are the clip's own values, and its scenes
+ * clip. Each segment is a clip; its `type` names what draws it (`svg`, `html`, `canvas`, `video`,
+ * or `audio`, which the stage plays rather than draws), its `props` are the clip's own values, and its scenes
  * are keyframes whose `data` holds the values the clip has at that moment, eased into the next
  * keyframe by the scene's `meta.ease`. The snapshot's own `props` are the stage's.
  */
@@ -27,6 +27,15 @@ export type SvgClip = MotionBox & {
 
 /** A clip drawn as HTML filling its box: its words and its CSS. */
 export type HtmlClip = MotionBox & { text?: string; style?: Record<string, string | number> };
+
+/** A clip heard rather than drawn: its sound, by address, decoded and played on the stage's clock. */
+export type AudioClip = { src?: string };
+
+/**
+ * Footage filling the clip's box, decoded and drawn frame by frame: its address, how it fills the
+ * box — cropped to cover it, the default, or fitted inside — and whether its own sound is heard.
+ */
+export type VideoClip = MotionBox & { src?: string; fit?: 'cover' | 'contain'; muted?: boolean };
 
 /** A clip drawn on a canvas filling its box, by the painter it names, with whatever else that painter reads. */
 export type CanvasClip = MotionBox & { painter: string; [param: string]: unknown };

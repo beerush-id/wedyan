@@ -17,6 +17,70 @@ export function supply(documents: Iterable<[path: string, document: WedyanDocume
   for (const [path, document] of documents) DOCUMENTS.set(path, document);
 }
 
+/** Every piece of writing on the drive — scripts, notes — as Markdown, by its path from the drive's root. */
+const WRITINGS = new Map<string, string>();
+
+/**
+ * Puts writing on the drive, as `supply` does documents: Markdown files, as their text. Writing
+ * already at a path is replaced, which is how an edit is kept, for this session.
+ *
+ * @param writings - Each file's text with its path from the drive's root.
+ */
+export function supplyWriting(writings: Iterable<[path: string, text: string]>): void {
+  for (const [path, text] of writings) WRITINGS.set(path, text);
+}
+
+/**
+ * A piece of writing by its path from the drive's root, or one part of it: a path ending in
+ * `#heading` is the section under that heading, by its GitHub-style slug, down to the next heading
+ * of the same or a higher level.
+ *
+ * @param path - Its path, e.g. `/Motions/Lantern river/Script.md` or `…/Script.md#lanterns`.
+ * @returns Its Markdown, unless it isn't there or has no such heading.
+ */
+export function writingAt(path: string): string | undefined {
+  const [file, heading] = path.split('#');
+  const text = WRITINGS.get(file);
+  if (!text || !heading) return text;
+
+  const lines = text.split('\n');
+  const section = sectionOf(lines, heading);
+  return section && lines.slice(...section).join('\n').trim();
+}
+
+/**
+ * Keeps an edit of a piece of writing, or of one part of it, for this session: a path ending in
+ * `#heading` puts the text in place of that section, or, while the writing has no such heading,
+ * after everything in it.
+ *
+ * @param path - Its path, e.g. `/Motions/Lantern river/Script.md` or `…/Script.md#lanterns`.
+ * @param text - Its Markdown as edited.
+ */
+export function keepWriting(path: string, text: string): void {
+  const [file, heading] = path.split('#');
+  if (!heading) return void WRITINGS.set(file, text);
+
+  const whole = WRITINGS.get(file) ?? '';
+  const lines = whole.split('\n');
+  const section = sectionOf(lines, heading);
+  if (!section) return void WRITINGS.set(file, whole.trim() ? `${whole.trimEnd()}\n\n${text}` : text);
+
+  const [start, end] = section;
+  const after = lines.slice(end);
+  WRITINGS.set(file, [...lines.slice(0, start), text, ...(after.length ? ['', ...after] : [])].join('\n'));
+}
+
+/**
+ * The path of one part of a piece of writing: the section under a heading, by the heading's words.
+ *
+ * @param file - The writing's path.
+ * @param heading - The heading's words, e.g. "Harbor at dawn".
+ * @returns E.g. `…/Script.md#harbor-at-dawn`.
+ */
+export function sectionAt(file: string, heading: string): string {
+  return `${file}#${slugOf(heading)}`;
+}
+
 /**
  * A document by its path from the drive's root.
  *
@@ -68,4 +132,34 @@ export function resolvePath(from: string, path: string): string {
 export function follow<T extends DocumentType = DocumentType>(from: string, path: string): { path: string; document?: DocumentOf<T> } {
   const resolved = resolvePath(from, path);
   return { path: resolved, document: documentAt<T>(resolved) };
+}
+
+/**
+ * Where a section lies among a piece of writing's lines: from its heading down to the next heading
+ * of the same or a higher level.
+ *
+ * @param lines - The writing's lines.
+ * @param heading - The section's heading, by its slug.
+ * @returns The first line and the line past the last, unless there's no such heading.
+ */
+function sectionOf(lines: string[], heading: string): [start: number, end: number] | undefined {
+  const start = lines.findIndex((line) => /^#+\s/.test(line) && slugOf(line.replace(/^#+\s+/, '')) === heading);
+  if (start < 0) return;
+  const level = lines[start].match(/^#+/)![0].length;
+  const end = lines.findIndex((line, at) => at > start && (line.match(/^(#+)\s/)?.[1].length ?? Infinity) <= level);
+  return [start, end < 0 ? lines.length : end];
+}
+
+/**
+ * A heading's GitHub-style slug, which a path's `#heading` names it by.
+ *
+ * @param heading - The heading's words.
+ * @returns E.g. `harbor-at-dawn` for "Harbor at dawn".
+ */
+function slugOf(heading: string): string {
+  return heading
+    .trim()
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s-]/gu, '')
+    .replace(/\s/g, '-');
 }

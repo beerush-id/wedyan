@@ -1,0 +1,11 @@
+{
+  "type": "album",
+  "version": 1,
+  "id": "al02",
+  "name": "Lanterns",
+  "description": "Paper lanterns on a river at dusk, told short and told slow.",
+  "created": "2026-10-27T08:00:00Z",
+  "updated": "2026-10-28T08:00:00Z",
+  "author": { "kind": "user" },
+  "cover": "https://picsum.photos/seed/wedyan-album-lanterns/1280/720"
+}

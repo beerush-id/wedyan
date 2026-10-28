@@ -1,9 +1,230 @@
-/* Motions: projects as wide tiles, matching their 16:9 covers, filling the window so pressing below them lets go of the pick. */
-.wedyan-motions-gallery > .aui-gallery {
-  --aui-gallery-tile: 13rem;
-  --aui-gallery-ratio: 16 / 9;
-  min-block-size: 100cqb;
-  align-content: start;
+/* A project card's size and shape, wherever the library shows one: roomy, and 4:3, whatever the cover's own shape. */
+.wedyan-motions-sheet,
+.wedyan-motions-album-page {
+  --wedyan-motions-tile: 15rem;
+  --wedyan-motions-ratio: 4 / 3;
+}
+
+/* The library: one sheet of sections, each under its heading — the newest projects, then the albums. */
+.wedyan-motions-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+
+  & > section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+
+  & h2 {
+    margin: 0;
+    font-size: var(--font-title-sm-size);
+    font-weight: 600;
+  }
+}
+
+/* The newest projects in one row that scrolls along, after the way to start a new one. */
+.wedyan-motions-recents-row {
+  display: flex;
+  align-items: start;
+  gap: var(--spacing-md);
+  min-inline-size: 0;
+}
+
+.wedyan-motions-recents {
+  flex: 1;
+  min-inline-size: 0;
+
+  & > .aui-gallery {
+    --aui-gallery-ratio: var(--wedyan-motions-ratio);
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: var(--wedyan-motions-tile);
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+}
+
+/* A tile of its own, the picture's shape, waiting to be filled: a dashed edge round a plus and its name. */
+.wedyan-motions-new {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  inline-size: var(--wedyan-motions-tile);
+  aspect-ratio: var(--wedyan-motions-ratio);
+  border: 1px dashed color-mix(in oklch, var(--color-primary) 40%, transparent);
+  border-radius: var(--radius-md);
+  background: color-mix(in oklch, var(--color-primary) 4%, transparent);
+  color: var(--color-primary);
+  font: inherit;
+  font-size: var(--font-label-md-size);
+  cursor: pointer;
+
+  & > svg {
+    inline-size: 1.75rem;
+    block-size: 1.75rem;
+  }
+
+  &:hover {
+    background: color-mix(in oklch, var(--color-primary) 8%, transparent);
+  }
+
+  &:focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: 2px;
+  }
+}
+
+/*
+ * An album on the library: its name, which opens it, over its picture and what it is on one side
+ * and a few of its projects on the other. Narrow, the picture and words go above the projects.
+ */
+.wedyan-motions-sheet > section.wedyan-motions-album {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: start;
+  /* Wide enough that the album's own picture reads apart from the projects' cards beside it. */
+  column-gap: calc(var(--spacing) * 16);
+
+  & > h2 {
+    flex-basis: 100%;
+  }
+}
+
+.wedyan-motions-album > h2 > button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  &:focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    outline-offset: 3px;
+    border-radius: var(--radius-sm);
+  }
+}
+
+.wedyan-motions-album-about {
+  display: flex;
+  flex: 1 1 12rem;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  max-inline-size: 16rem;
+
+  /* An album's artwork is square, as albums' are, and small, setting it apart from its projects' cards. */
+  & > img {
+    display: block;
+    inline-size: 8rem;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: var(--radius-md);
+    background: var(--color-surface-container);
+  }
+
+  & > p {
+    margin: 0;
+    color: var(--color-on-surface-variant);
+    font-size: var(--font-label-md-size);
+    line-height: 1.5;
+  }
+}
+
+.wedyan-motions-album-projects {
+  display: flex;
+  flex: 3 1 24rem;
+  flex-direction: column;
+  align-items: start;
+  gap: var(--spacing-sm);
+  min-inline-size: 0;
+
+  & > p {
+    margin: 0;
+    color: var(--color-on-surface-variant);
+  }
+}
+
+.wedyan-motions-preview {
+  align-self: stretch;
+
+  & > .aui-gallery {
+    --aui-gallery-tile: var(--wedyan-motions-tile);
+    --aui-gallery-ratio: var(--wedyan-motions-ratio);
+  }
+}
+
+/* An album's own page: its picture beside what it is and its facts, then its projects under their heading. */
+.wedyan-motions-album-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+
+  & > section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+}
+
+.wedyan-motions-album-page-overview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  gap: var(--spacing-lg);
+
+  & > img {
+    display: block;
+    inline-size: min(100%, 16rem);
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: var(--radius-lg);
+    background: var(--color-surface-container);
+  }
+
+  & > div {
+    display: flex;
+    flex: 1 1 16rem;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  & h2 {
+    margin: 0;
+    font-size: var(--font-title-lg-size);
+  }
+
+  & p {
+    margin: 0;
+    color: var(--color-on-surface-variant);
+  }
+}
+
+/* The projects' heading, with how they're ordered and narrowed at the row's end. */
+.wedyan-motions-album-page-heading {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+
+  & > h3 {
+    margin: 0 auto 0 0;
+    font-size: var(--font-title-sm-size);
+    font-weight: 600;
+  }
+}
+
+.wedyan-motions-shelf > .aui-gallery {
+  --aui-gallery-tile: var(--wedyan-motions-tile);
+  --aui-gallery-ratio: var(--wedyan-motions-ratio);
 }
 
 /*
@@ -51,15 +272,13 @@
   block-size: calc(var(--spacing) * 5);
 }
 
-/* A project open: its brief, script, stages, assets and notes, top to bottom. */
-.wedyan-motion,
+/* A document shown in full: its parts top to bottom. */
 .wedyan-document {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
 }
 
-.wedyan-motion-section,
 .wedyan-document-section {
   display: flex;
   flex-direction: column;
@@ -78,8 +297,7 @@
   }
 }
 
-/* The ask a project or still started from, in its own words. */
-.wedyan-motion-brief,
+/* The ask a still started from, in its own words. */
 .wedyan-document-section {
   & blockquote {
     margin: 0;
@@ -87,69 +305,6 @@
     font-size: var(--font-title-md-size);
     line-height: 1.4;
   }
-}
-
-.wedyan-motion-brief {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-}
-
-/* The script: one row per scene, numbered, its length at the end and its words beneath. */
-.wedyan-motion-script,
-.wedyan-motion-notes {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-
-  & button {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
-    align-items: baseline;
-    gap: var(--spacing-xs) var(--spacing-sm);
-    inline-size: 100%;
-    padding: var(--spacing-sm) var(--spacing-md);
-    border: 0;
-    border-radius: var(--radius-md);
-    background: color-mix(in oklch, var(--color-on-surface) 4%, transparent);
-    color: inherit;
-    font: inherit;
-    text-align: start;
-    cursor: pointer;
-
-    &:hover:not(:disabled) {
-      background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
-    }
-
-    &:disabled {
-      cursor: default;
-    }
-  }
-}
-
-.wedyan-motion-scene-number,
-.wedyan-motion-scene-time,
-.wedyan-motion-note-kind {
-  color: var(--color-on-surface-variant);
-  font-size: var(--font-label-md-size);
-  font-variant-numeric: tabular-nums;
-}
-
-.wedyan-motion-scene-title,
-.wedyan-motion-note-name {
-  font-weight: 600;
-}
-
-.wedyan-motion-scene-words {
-  grid-column: 2 / -1;
-  color: var(--color-on-surface-variant);
-}
-
-.wedyan-motion-notes button {
-  grid-template-columns: 1fr auto;
 }
 
 /* A still: the chosen attempt, large, its ask and attempts beneath. */
@@ -217,12 +372,6 @@
   cursor: pointer;
 }
 
-/* A memo: what it is, then its words as written, until Markdown renders. */
-.wedyan-memo-body {
-  white-space: pre-wrap;
-  line-height: 1.6;
-}
-
 /*
  * A project's editor: its toolbar rests on the window's glass, not on a panel of its own, and its
  * views are panels on the same glass, one bar inset apart, their corners the window's panels'.
@@ -238,13 +387,372 @@
   }
 }
 
-/* Direct: the project's writing, on a solid surface, scrolling within it. */
+/*
+ * Direct: what the project holds, listed down a glass panel, and the picked row in full on a solid
+ * surface beside it, each scrolling within itself.
+ */
 .wedyan-direct {
   flex: 1 1 auto;
   min-block-size: 0;
-  overflow: auto;
-  padding: var(--spacing-lg);
-  border-radius: var(--aui-window-panel-radius);
+  display: grid;
+  grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr);
+  gap: var(--aui-window-bar-inset);
+}
+
+.wedyan-direct-list {
+  padding: var(--spacing-sm);
+
+  & .aui-listbox {
+    background: none;
+  }
+}
+
+.wedyan-direct-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+
+  & + & {
+    margin-block-start: var(--spacing-md);
+  }
+}
+
+.wedyan-direct-group-label {
+  margin-block-end: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-label-sm-size);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/*
+ * A row: a square picture, then its title over a line about it, padded the same on every side.
+ * The picture sets its height, so it's the same with or without the line.
+ */
+.wedyan-direct-row {
+  display: grid;
+  grid-template-columns: calc(var(--spacing) * 10) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--spacing-sm);
+  block-size: auto;
+  min-block-size: 0;
+  padding: var(--spacing-sm);
+
+  /* The highlight marks the picked row; the list's own check isn't needed. */
+  & > .aui-icon {
+    display: none;
+  }
+}
+
+.wedyan-direct-thumb {
+  display: grid;
+  place-items: center;
+  inline-size: calc(var(--spacing) * 10);
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
+  color: var(--color-on-surface-variant);
+
+  /* On the picked row's fill, the icon and its square take the row's own ink. */
+  .wedyan-direct-row[aria-selected='true'] & {
+    background: color-mix(in oklch, currentColor 16%, transparent);
+    color: inherit;
+  }
+}
+
+.wedyan-direct-text {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+
+  & > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.wedyan-direct-title {
+  font-weight: 500;
+}
+
+.wedyan-direct-description {
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-label-md-size);
+
+  /* On the picked row's fill, the line takes the row's own ink, a little softer. */
+  .wedyan-direct-row[aria-selected='true'] & {
+    color: inherit;
+    opacity: 0.8;
+  }
+}
+
+/* The picked row in full: a picture in its shape, a heading, its facts, then anything longer. */
+.wedyan-direct-content {
+  /* The room at its sides, and between the writing and an aside beside it: one measure, so they read as one. */
+  --wedyan-direct-room: calc(var(--spacing) * 16);
+  padding: calc(var(--spacing) * 24) var(--wedyan-direct-room);
+
+  /* Whatever it shows keeps a readable measure, centred in the surface; wider where an aside sits beside it. */
+  & > * {
+    max-inline-size: 48rem;
+    margin-inline: auto;
+  }
+
+  & > :has(> .wedyan-script-aside) {
+    max-inline-size: 70rem;
+  }
+}
+
+/* The script beside its aside — what it belongs to, how it shows, where it came from — the writing at its measure, the aside staying in view as it scrolls. */
+.wedyan-direct-script:has(> .wedyan-script-aside) {
+  display: grid;
+  grid-template-columns: minmax(0, 48rem) minmax(14rem, 18rem);
+  align-items: start;
+  column-gap: var(--wedyan-direct-room);
+}
+
+/* The writing: the script, previewed or as its source to edit. */
+.wedyan-script-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+/* The source grows with what's written, so the pane scrolls rather than the field, in the preview's measure and leading. */
+.wedyan-script-editor {
+  inline-size: 100%;
+
+  &:is(textarea),
+  & textarea {
+    field-sizing: content;
+    min-block-size: 24rem;
+    font-family: var(--font-mono, ui-monospace, monospace);
+    font-size: var(--font-body-md-size, 0.95rem);
+    line-height: 1.65;
+    resize: none;
+  }
+}
+
+.wedyan-script-aside {
+  position: sticky;
+  inset-block-start: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+
+  /* How the script shows, and what can be done with what it belongs to, at either end of one row: the actions keep to the end even alone. */
+  & > .wedyan-script-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+
+    & > .wedyan-script-actions {
+      display: flex;
+      gap: var(--spacing-xs);
+      margin-inline-start: auto;
+    }
+  }
+
+  & h3 {
+    margin: 0 0 var(--spacing-xs);
+    padding-inline: var(--spacing-md);
+    color: var(--color-on-surface-variant);
+    font-size: var(--font-label-sm-size);
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  & :is(ul, ol) {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* A version to show, quiet until picked; an ask, only to read. Both padded alike, in line with their heading. */
+  & :is(li > button, .wedyan-script-entry) {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-md);
+  }
+
+  & li > button {
+    inline-size: 100%;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+
+    &:hover {
+      background: color-mix(in oklch, var(--color-on-surface) 5%, transparent);
+    }
+
+    &[aria-pressed='true'] {
+      background: color-mix(in oklch, var(--color-primary) 10%, transparent);
+    }
+
+    &:focus-visible {
+      outline: var(--focus-ring-width) solid var(--focus-ring-color);
+    }
+  }
+}
+
+/* What the script belongs to, atop its aside: a picture, held short, then its name and its facts, in line with the aside's headings. */
+.wedyan-script-about {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+
+  & > .wedyan-direct-hero {
+    max-block-size: 12rem;
+    border-radius: var(--radius-md);
+  }
+
+  & > :not(.wedyan-direct-hero) {
+    padding-inline: var(--spacing-md);
+  }
+
+  & .wedyan-direct-heading > h2 {
+    font-size: var(--font-title-md-size);
+  }
+}
+
+.wedyan-script-title {
+  font-size: var(--font-label-lg-size);
+  line-height: 1.4;
+}
+
+.wedyan-script-meta {
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-label-sm-size);
+}
+
+.wedyan-direct-pane {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+/*
+ * Writing in Direct — a script, a memo — is a document to read, not an answer: room between blocks
+ * and lines, its title and scene headings read as headings with each scene set apart, and what's
+ * around the words — a scene's length, a line's label — quieter than the words themselves.
+ */
+.wedyan-direct-content {
+  & .aui-markdown {
+    --aui-markdown-gap: var(--spacing-md);
+    --aui-markdown-rule: color-mix(in oklch, var(--color-primary) 28%, transparent);
+    color: color-mix(in oklch, var(--color-on-surface) 88%, transparent);
+    line-height: 1.65;
+
+    & > h3 {
+      color: var(--color-on-surface);
+      font-size: var(--font-title-lg-size);
+      font-weight: 600;
+    }
+
+    & > h4 {
+      margin-block-start: var(--spacing-xl);
+      color: var(--color-on-surface);
+      font-size: var(--font-title-md-size);
+      font-weight: 600;
+    }
+
+    /* A line that's only emphasis, such as a scene's length: a quiet label under its heading. */
+    & > p:has(> em:only-child) {
+      margin-block-start: calc(var(--aui-markdown-gap) * -0.5);
+      color: var(--color-on-surface-variant);
+      font-size: var(--font-label-md-size);
+
+      & > em {
+        font-style: normal;
+      }
+    }
+
+    /* A line led by a bold label, such as "On screen:": the label quiet, the words plain. */
+    & > p > strong:first-child {
+      color: var(--color-on-surface-variant);
+      font-weight: 600;
+    }
+
+    /* Spoken words, set softly apart: a tint and a fine rule, in the text's own color. */
+    & > blockquote {
+      padding: var(--spacing-sm) var(--spacing-md);
+      border-inline-start-width: 2px;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      background-color: color-mix(in oklch, var(--color-primary) 5%, transparent);
+      color: var(--color-on-surface);
+      font-style: italic;
+    }
+  }
+}
+
+.wedyan-direct-hero {
+  display: block;
+  inline-size: 100%;
+  max-block-size: 24rem;
+  object-fit: cover;
+  border-radius: var(--radius-lg);
+  background: #000;
+}
+
+.wedyan-direct-heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+
+  & > h2 {
+    margin: 0;
+    font-size: var(--font-title-lg-size);
+  }
+
+  & > p {
+    margin: 0;
+    color: var(--color-on-surface-variant);
+    line-height: 1.5;
+  }
+}
+
+/* A cast: their portrait beside who they are, their other looks small beneath. */
+.wedyan-direct-person {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+}
+
+.wedyan-direct-portrait {
+  inline-size: 8rem;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--radius-lg);
+}
+
+.wedyan-direct-looks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  & img {
+    inline-size: 5rem;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: var(--radius-sm);
+  }
 }
 
 /*
@@ -282,14 +790,6 @@
       'assets casts preview'
       'timeline timeline preview';
   }
-}
-
-/* The assets, the casts and the timeline: frosted panels, tools rather than the picture. */
-.wedyan-compose-group,
-.wedyan-compose-timeline {
-  min-block-size: 0;
-  overflow: auto;
-  border-radius: var(--aui-window-panel-radius);
 }
 
 .wedyan-compose-assets {
@@ -362,6 +862,8 @@
   display: grid;
   overflow: hidden;
   padding: var(--wedyan-timeline-inset);
+  /* Everything here is pressed and dragged, never read off as text. */
+  user-select: none;
 
   & .aui-timeline {
     --aui-timeline-bg: transparent;
@@ -380,10 +882,8 @@
   aspect-ratio: var(--wedyan-stage-ratio);
   display: grid;
   place-items: center;
-  min-block-size: 0;
   overflow: hidden;
   container-type: size;
-  border-radius: var(--aui-window-panel-radius);
   background: #000;
   color-scheme: only dark;
   color: #fff;
