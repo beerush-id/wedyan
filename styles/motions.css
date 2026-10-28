@@ -757,11 +757,11 @@
 
 /*
  * Compose, shaped by its stage, the picture always in the stage's own shape. Wide: the stage's
- * height is set — as tall as leaves the timeline its room — and its width follows; assets above
- * casts take the side, widening with what the stage leaves. Tall: the stage's width is set — as
- * wide as the full height allows — and its height follows; assets and casts sit side by side above
- * the timeline. The tracks are sized from the space Compose is given, which a grid can't measure of
- * itself, so Compose holds the size and its layout reads it.
+ * height is set — as tall as leaves the timeline its room — and its width follows; the sources take
+ * the side, widening with what the stage leaves, and the properties sit right of the stage. Tall:
+ * the stage's width is set — as wide as the full height allows — and its height follows; sources
+ * and properties sit side by side above the timeline. The tracks are sized from the space Compose is
+ * given, which a grid can't measure of itself, so Compose holds the size and its layout reads it.
  */
 .wedyan-compose {
   flex: 1 1 auto;
@@ -770,47 +770,199 @@
 }
 
 .wedyan-compose-layout {
+  --wedyan-sources-min: 20rem;
+  --wedyan-properties-inline: 20rem;
   --wedyan-preview-block: min(
     calc(100cqb - max(9rem, 34cqb) - var(--aui-window-bar-inset)),
-    calc((100cqi - 12rem - var(--aui-window-bar-inset)) / var(--wedyan-stage-aspect))
+    calc(
+      (100cqi - var(--wedyan-sources-min) - var(--wedyan-properties-inline) - var(--aui-window-bar-inset) * 2) /
+        var(--wedyan-stage-aspect)
+    )
   );
   block-size: 100%;
   display: grid;
   gap: var(--aui-window-bar-inset);
-  grid-template-columns: minmax(12rem, 1fr) calc(var(--wedyan-preview-block) * var(--wedyan-stage-aspect));
+  grid-template-columns:
+    minmax(var(--wedyan-sources-min), 1fr) calc(var(--wedyan-preview-block) * var(--wedyan-stage-aspect))
+    var(--wedyan-properties-inline);
   grid-template-rows: var(--wedyan-preview-block) minmax(0, 1fr);
   grid-template-areas:
-    'assets preview'
-    'casts timeline';
+    'sources preview properties'
+    'sources timeline timeline';
 
   .wedyan-compose[data-shape='portrait'] > & {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) min(55cqi, calc(100cqb * var(--wedyan-stage-aspect)));
+    grid-template-columns:
+      minmax(var(--wedyan-sources-min), 1fr) var(--wedyan-properties-inline)
+      min(55cqi, calc(100cqb * var(--wedyan-stage-aspect)));
     grid-template-rows: minmax(0, 1fr) minmax(9rem, 40%);
     grid-template-areas:
-      'assets casts preview'
+      'sources properties preview'
       'timeline timeline preview';
   }
 }
 
-.wedyan-compose-assets {
-  grid-area: assets;
-}
-
-.wedyan-compose-casts {
-  grid-area: casts;
+/* Assets and casts on one panel, narrowed by kind from a strip above them; it scrolls once they outgrow it. */
+.wedyan-compose-sources {
+  grid-area: sources;
 }
 
 .wedyan-compose-group {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
+  overflow: auto;
   padding: var(--spacing-md);
 
-  & > h3 {
-    margin: 0;
+  /* The kind strip above what it narrows to. */
+  & > .aui-tab {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+}
+
+/* The picked clip's properties, by kind on tabs. */
+.wedyan-compose-properties {
+  grid-area: properties;
+}
+
+/* The box's groups, one under another, each its name over its fields. */
+.wedyan-compose-properties-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.wedyan-compose-property-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+/*
+ * A group's name and its keyframes on one line, in from the edge as far as the fields' own content,
+ * clear of their rounded ends.
+ */
+.wedyan-compose-property-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-inline: var(--spacing-sm);
+}
+
+.wedyan-compose-property-label {
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-label-sm-size);
+  font-weight: 500;
+}
+
+/*
+ * A step back, the keyframe, a step on: marks drawn to sit on the name's line, a control's size
+ * being too tall for it. The diamond fills in the primary while the group is keyed at the playhead.
+ */
+.wedyan-compose-keyframes {
+  display: flex;
+  align-items: center;
+
+  & > button {
+    display: grid;
+    place-items: center;
+    inline-size: 1rem;
+    block-size: 1rem;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-xs);
+    background: none;
     color: var(--color-on-surface-variant);
-    font-size: var(--font-label-lg-size);
-    font-weight: 600;
+    cursor: pointer;
+
+    &::before {
+      content: '';
+      box-sizing: border-box;
+    }
+
+    &:hover:not(:disabled) {
+      background-color: color-mix(in oklch, currentColor 12%, transparent);
+    }
+
+    &:disabled {
+      opacity: 0.35;
+      cursor: default;
+    }
+
+    &:focus-visible {
+      outline: var(--focus-ring-width) solid var(--focus-ring-color);
+      outline-offset: 0;
+    }
+  }
+}
+
+.wedyan-compose-keyframe {
+  &::before {
+    inline-size: 7px;
+    block-size: 7px;
+    border: 1px solid currentColor;
+    rotate: 45deg;
+  }
+
+  &[aria-pressed='true'] {
+    color: var(--color-primary);
+
+    &::before {
+      background-color: currentColor;
+    }
+  }
+}
+
+/* A chevron: two sides of a square, turned to point back or on, nudged so its point is centred. */
+.wedyan-compose-keyframe-step {
+  &::before {
+    inline-size: 5px;
+    block-size: 5px;
+    border-block-start: 1.5px solid currentColor;
+    border-inline-start: 1.5px solid currentColor;
+  }
+
+  &[data-dir='before']::before {
+    rotate: -45deg;
+    translate: 1px 0;
+  }
+
+  &[data-dir='after']::before {
+    rotate: 135deg;
+    translate: -1px 0;
+  }
+}
+
+/*
+ * A group's fields on a grid of eight, the panel being one fixed width: every number a quarter,
+ * so they line up down the panel, and a ranged value's slider the rest of its row. Each field's
+ * glyph leads and its number reads from the start.
+ */
+.wedyan-compose-property-body {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  align-items: center;
+  gap: var(--spacing-sm);
+
+  & > .aui-slider {
+    grid-column: span 6;
+  }
+
+  & > .aui-stepper {
+    grid-column: span 2;
+    gap: var(--spacing-xs);
+    padding-inline: var(--spacing-sm);
+
+    & > .aui-icon {
+      --aui-icon-size: 1.125rem;
+      flex: none;
+      color: var(--color-on-surface-variant);
+    }
+
+    & > .aui-stepper-input {
+      text-align: start;
+    }
   }
 }
 
@@ -856,6 +1008,16 @@
 }
 
 /* The timeline fills its panel, a small rim in, its corners concentric with the panel's. */
+/* The playhead's timecode beside the corner's settings: figures that hold still as they count. */
+.wedyan-compose-timecode {
+  flex: 1 1 auto;
+  color: var(--color-on-surface);
+  font-size: var(--font-label-lg-size);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
 .wedyan-compose-timeline {
   --wedyan-timeline-inset: calc(var(--spacing) * 2);
   grid-area: timeline;
@@ -869,6 +1031,25 @@
     --aui-timeline-bg: transparent;
     --aui-timeline-radius: max(calc(var(--aui-window-panel-radius) - var(--wedyan-timeline-inset)), 0px);
     min-block-size: 0;
+  }
+
+  /*
+   * The ruler row is a frosted glass band, rounded like the lanes: the lanes blur under it as they
+   * scroll up. The corner and the ruler are its two ends.
+   */
+  & :is(.aui-timeline-corner, .aui-timeline-ruler) {
+    background-color: color-mix(in oklch, var(--aui-glass-bg) var(--aui-glass-panel-tint), transparent);
+    backdrop-filter: blur(var(--aui-glass-blur)) saturate(1.4);
+  }
+
+  & .aui-timeline-corner {
+    border-start-start-radius: var(--radius-sm);
+    border-end-start-radius: var(--radius-sm);
+  }
+
+  & .aui-timeline-ruler {
+    border-start-end-radius: var(--radius-sm);
+    border-end-end-radius: var(--radius-sm);
   }
 }
 

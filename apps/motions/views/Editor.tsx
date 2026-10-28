@@ -1,7 +1,18 @@
 import { canCaptureVideo, type VideoStageAria } from '@airlib/aria';
 import { AUI_CLASS } from '@airlib/aui/utils';
-import { $bind, $static, $use, For, onCleanup, onMount, Show, setup, template } from '@airlib/react';
-import { Button, EmptyState, Stage, TimelineEditor, Toggle, Tooltip } from '@airlib/react-aui';
+import { $bind, $static, $use, For, onCleanup, onMount, Show, Snippet, setup, template } from '@airlib/react';
+import {
+  Button,
+  EmptyState,
+  Stage,
+  TabButton,
+  TabList,
+  TabPanel,
+  Tabs,
+  TimelineEditor,
+  Toggle,
+  Tooltip,
+} from '@airlib/react-aui';
 import { WindowPanel } from '@airlib/react-aui/desktop';
 import { createTimeline, type Timeline, type TimelineSegment } from '@airlib/react/timeline';
 import { documentAt, follow } from '@/lib/documents/store.js';
@@ -11,6 +22,7 @@ import { download, type RenderedVideo, renderMp4 } from './export.js';
 import { buffers, mediaLoader } from './media.js';
 import { SnapIcon } from './icons.js';
 import { castsOf, type Project } from './library.js';
+import { Properties } from './Properties.js';
 import { type MotionsSession, sessionCtx } from './session.js';
 
 const STAGE_LABELS = { play: 'Play', pause: 'Pause', seek: 'Seek', fullscreen: 'Full screen' };
@@ -39,6 +51,19 @@ const buffering = (segment: TimelineSegment): number | undefined => {
   return buffer?.status === 'buffering' ? buffer.progress : undefined;
 };
 
+/**
+ * A frame as a timecode: hours, minutes, seconds and the frame within its second, two digits each.
+ *
+ * @param frame - The frame, from the start.
+ * @param frameRate - Frames a second.
+ * @returns The timecode, e.g. `00:00:01:12`.
+ */
+const timecode = (frame: number, frameRate: number): string => {
+  const seconds = Math.floor(frame / frameRate);
+  const parts = [Math.floor(seconds / 3600), Math.floor(seconds / 60) % 60, seconds % 60, Math.round(frame % frameRate)];
+  return parts.map((part) => String(part).padStart(2, '0')).join(':');
+};
+
 type ComposeViewProps = {
   project: Project;
   source: StageDocument;
@@ -49,8 +74,8 @@ type ComposeViewProps = {
 
 /**
  * Compose: one stage of a project put together as video. The project's assets and casts on glass,
- * the stage on black — so its colours are judged against nothing — and its clips laid out in time
- * on glass beneath. The layout follows the stage's own shape: a wide stage above a wide timeline,
+ * the stage on black — so its colours are judged against nothing — the picked clip's properties
+ * beside it, and its clips laid out in time on glass beneath. The layout follows the stage's own shape: a wide stage above a wide timeline,
  * a tall one in a column of its own. Stage and timeline follow one timeline, so playing either
  * moves both. Rendering swaps the stage for capturing ones that show each frame as it's encoded.
  */
@@ -116,6 +141,7 @@ export const ComposeView = setup<ComposeViewProps>((props) => {
             )}
           </Show>
         </WindowPanel>
+        <Properties />
         <WindowPanel role="region" aria-label="Timeline" className="wedyan-compose-timeline">
           <TimelineEditor
             label={`Clips in ${source.name}`}
@@ -128,13 +154,22 @@ export const ComposeView = setup<ComposeViewProps>((props) => {
             playheadLabel="Playhead"
             zoom={56}
           >
-            {/* Whether dragging snaps, beside the ruler it snaps along. */}
+            {/* Whether dragging snaps, beside the ruler it snaps along, then the playhead's timecode. */}
             <TimelineEditor.Snippet for="corner">
               {() => (
-                <Toggle aria-label="Snap" variant="text" size="xs" className={AUI_CLASS.CONTROL_ICON} pressed={$bind(session, 'snap')}>
-                  <SnapIcon />
-                  <Tooltip>Snap</Tooltip>
-                </Toggle>
+                <>
+                  <Toggle aria-label="Snap" variant="text" size="xs" className={AUI_CLASS.CONTROL_ICON} pressed={$bind(session, 'snap')}>
+                    <SnapIcon />
+                    <Tooltip>Snap</Tooltip>
+                  </Toggle>
+                  <Snippet>
+                    {() => (
+                      <span className="wedyan-compose-timecode" aria-label="Playhead timecode">
+                        {timecode(timeline.state.frame, timeline.frameRate)}
+                      </span>
+                    )}
+                  </Snippet>
+                </>
               )}
             </TimelineEditor.Snippet>
           </TimelineEditor>
@@ -144,53 +179,106 @@ export const ComposeView = setup<ComposeViewProps>((props) => {
   );
 }, 'ComposeView');
 
+/** The asset kinds drawn on the stage, as against sound. */
+const PICTURE_KINDS = new Set<MotionAsset['kind']>(['image', 'still', 'video', 'take']);
+
 /**
- * What a stage can be made from, each on its own panel: the project's assets — a generated one
- * opens in its own view — and its casts, the personas its stages name.
+ * What a stage can be made from, on one panel, narrowed by kind: everything — the project's assets
+ * and its casts — or only its pictures and footage, its sound, or its casts, the personas its
+ * stages name. A generated asset opens in its own view.
  */
 const Sources = template<{ project: Project; open: (path: string) => void }>((props) => {
   const { project, open } = props;
+  const assets = project.document.assets;
+  const pictures = assets.filter((asset) => PICTURE_KINDS.has(asset.kind));
+  const sounds = assets.filter((asset) => !PICTURE_KINDS.has(asset.kind));
   const casts = castsOf(project);
   return (
-    <>
-      <WindowPanel role="region" aria-labelledby="wedyan-compose-assets" className="wedyan-compose-group wedyan-compose-assets">
-        <h3 id="wedyan-compose-assets">Assets</h3>
-        <ul className="wedyan-compose-tiles">
-          {project.document.assets.map((asset) => (
-            <li key={asset.id}>
-              <button
-                type="button"
-                className="wedyan-compose-tile"
-                title={asset.name}
-                onDoubleClick={() => (asset.kind === 'still' || asset.kind === 'take') && open(follow(project.path, asset.src).path)}
-              >
-                <AssetPicture from={project.path} asset={asset} />
-                <span>{asset.name}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </WindowPanel>
-      <WindowPanel role="region" aria-labelledby="wedyan-compose-casts" className="wedyan-compose-group wedyan-compose-casts">
-        <h3 id="wedyan-compose-casts">Casts</h3>
-        {casts.length ? (
-          <ul className="wedyan-compose-tiles">
-            {casts.map(({ path, document }) => (
-              <li key={path}>
-                <button type="button" className="wedyan-compose-tile" title={document.description ?? document.name}>
-                  {document.looks[0] ? <img src={document.looks[0]} alt="" /> : <span className="wedyan-compose-tile-blank" />}
-                  <span>{document.name}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <EmptyState size="sm" title="No casts yet" description="The people and characters this project's stages name show here." />
-        )}
-      </WindowPanel>
-    </>
+    <WindowPanel role="region" aria-label="Sources" className="wedyan-compose-group wedyan-compose-sources">
+      <Tabs size="xs" value="all">
+        <TabList label="Show">
+          <TabButton name="all">All</TabButton>
+          <TabButton name="video">Video</TabButton>
+          <TabButton name="audio">Audio</TabButton>
+          <TabButton name="cast">Cast</TabButton>
+        </TabList>
+        <TabPanel name="all">
+          {assets.length || casts.length ? (
+            <ul className="wedyan-compose-tiles">
+              <AssetTiles project={project} open={open} assets={assets} />
+              <CastTiles casts={casts} />
+            </ul>
+          ) : (
+            <EmptyState size="sm" title="Nothing yet" description="This project's assets and casts show here." />
+          )}
+        </TabPanel>
+        <TabPanel name="video">
+          {pictures.length ? (
+            <ul className="wedyan-compose-tiles">
+              <AssetTiles project={project} open={open} assets={pictures} />
+            </ul>
+          ) : (
+            <EmptyState size="sm" title="No video yet" description="The pictures and footage this project has show here." />
+          )}
+        </TabPanel>
+        <TabPanel name="audio">
+          {sounds.length ? (
+            <ul className="wedyan-compose-tiles">
+              <AssetTiles project={project} open={open} assets={sounds} />
+            </ul>
+          ) : (
+            <EmptyState size="sm" title="No audio yet" description="The music and sound this project has show here." />
+          )}
+        </TabPanel>
+        <TabPanel name="cast">
+          {casts.length ? (
+            <ul className="wedyan-compose-tiles">
+              <CastTiles casts={casts} />
+            </ul>
+          ) : (
+            <EmptyState size="sm" title="No casts yet" description="The people and characters this project's stages name show here." />
+          )}
+        </TabPanel>
+      </Tabs>
+    </WindowPanel>
   );
 }, 'Sources');
+
+/** Assets as tiles of a tile list, each its picture and name; a generated one opens in its own view on a double click. */
+const AssetTiles = template<{ project: Project; open: (path: string) => void; assets: MotionAsset[] }>((props) => {
+  const { project, open, assets } = props;
+  return (
+    <>
+      {assets.map((asset) => (
+        <li key={asset.id}>
+          <button
+            type="button"
+            className="wedyan-compose-tile"
+            title={asset.name}
+            onDoubleClick={() => (asset.kind === 'still' || asset.kind === 'take') && open(follow(project.path, asset.src).path)}
+          >
+            <AssetPicture from={project.path} asset={asset} />
+            <span>{asset.name}</span>
+          </button>
+        </li>
+      ))}
+    </>
+  );
+}, 'AssetTiles');
+
+/** Casts as tiles of a tile list, each its first look and name. */
+const CastTiles = template<{ casts: ReturnType<typeof castsOf> }>(({ casts }) => (
+  <>
+    {casts.map(({ path, document }) => (
+      <li key={path}>
+        <button type="button" className="wedyan-compose-tile" title={document.description ?? document.name}>
+          {document.looks[0] ? <img src={document.looks[0]} alt="" /> : <span className="wedyan-compose-tile-blank" />}
+          <span>{document.name}</span>
+        </button>
+      </li>
+    ))}
+  </>
+), 'CastTiles');
 
 /** An asset's picture: an image itself, a still's chosen attempt, or nothing for sound. */
 const AssetPicture = template<{ from: string; asset: MotionAsset }>((props) => {
