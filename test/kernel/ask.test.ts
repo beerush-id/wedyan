@@ -1,8 +1,8 @@
 import { HTTPTransport } from '@irpclib/http';
-import { createPackage, IRPC_BASE_CONTEXT, IRPC_STORE, IRPCRouter, withContext } from '@irpclib/irpc';
+import { createPackage, getContext, IRPC_BASE_CONTEXT, IRPC_STORE, IRPCRouter, withContext } from '@irpclib/irpc';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { askWedyan } from '../../lib/kernel/agent.h.js';
-import { setupKernel } from '../../lib/kernel/agent.js';
+import { ACTOR_KEY, AGENT_ACTOR, setupKernel } from '../../lib/kernel/agent.js';
 import { AGENTS, createTestAdapter } from './fixtures.js';
 import { calls, messagesOf, mockVendor, says } from './vendor.js';
 
@@ -15,14 +15,18 @@ const read = files.declare<(path: string, options?: { encoding?: string }) => Pr
   mcp: { args: ['path', 'options'] },
 });
 const reads: unknown[][] = [];
+/** Who each read ran as, for the server's guards. */
+const actors: unknown[] = [];
 files.construct(read, async (...args) => {
   reads.push(args);
+  actors.push(getContext(ACTOR_KEY));
   return `content of ${args[0]}`;
 });
 
 describe('askWedyan', () => {
   beforeEach(() => {
     reads.length = 0;
+    actors.length = 0;
     setupKernel({
       adapter: createTestAdapter(),
       agents: AGENTS,
@@ -72,6 +76,14 @@ describe('askWedyan', () => {
     });
     expect(reads).toEqual([['~/a.txt', { encoding: 'text' }]]);
     expect(asked).not.toHaveBeenCalled();
+  });
+
+  it('runs every tool call of an ask as the agent actor, for the server’s guards', async () => {
+    mockVendor(calls({ id: 'c1', name: 'files__read', args: { path: '~/a.txt' } }), says('Read.'));
+
+    await withContext(() => askWedyan({ text: 'Read a' }));
+
+    expect(actors).toEqual([AGENT_ACTOR]);
   });
 
   afterEach(() => {

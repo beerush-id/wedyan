@@ -8,7 +8,7 @@ import {
   type ToolCall,
 } from '@irpclib/ai-kit';
 import type { AIAdapter } from '@irpclib/ai-kit/worker';
-import { getAbortSignal, IRPC_STORE, type IRPCData, type IRPCRouter, stream } from '@irpclib/irpc';
+import { getAbortSignal, IRPC_STORE, type IRPCData, type IRPCRouter, setContext, stream } from '@irpclib/irpc';
 import { logger } from '../logger.js';
 import { type AskAction, type AskInput, type AskPart, type AskState, askSeed, askWedyan } from './agent.h.js';
 import { createMarkerParser } from './marker.js';
@@ -56,9 +56,16 @@ export function setupKernel(next: KernelConfig): void {
   config = next;
 }
 
+/** The context key naming who makes a call; the server's guards read it. */
+export const ACTOR_KEY = 'actor';
+
+/** The actor of every call an ask makes: its agents', never the user's own. */
+export const AGENT_ACTOR = 'agent';
+
 kernel.construct(askWedyan, (input) =>
   stream((state, resolve) => {
     if (!config) throw new Error('Kernel is not set up');
+    setContext(ACTOR_KEY, AGENT_ACTOR);
     const { adapter, agents, entry, composer, routers = [], sys = {}, skills, limits } = config;
     const loadPersona = config.persona;
     const controller = new AbortController();

@@ -4,10 +4,12 @@ import { consoleAdapter } from '@beerush/logger/adapters/console';
 import { HTTPRouter } from '@irpclib/http/router';
 import { envCtx, IRPC_STORE, IRPC_STORE_EVENT, SESSION_STORE, setContext } from '@irpclib/irpc';
 import { resolveBinding, resolveCtx } from '@irpclib/irpc/wrangler';
+import { fileModule } from '@irpclib/r2-file';
 import { fsContext } from '@irpclib/r2-file/context';
 import { createWorker as createFileWorker } from '@irpclib/r2-file/worker';
 import { WebSocketRouter } from '@irpclib/ws/router';
 import { logger } from '@/lib/logger.js';
+import { guardAgentFiles } from '@/lib/server/guard.js';
 import { currentSession, homeOf } from '@/lib/server/session.js';
 import { type ServerEnv, setupServer } from '@/lib/server/setup.js';
 import { httpTransport, wsTransport } from './api.js';
@@ -54,6 +56,8 @@ wsRouter.use(scopeToSession);
 // alike, each with the bindings of the call's own environment.
 const files = createFileWorker({ endpoint: FILES_ENDPOINT });
 files.router.use(scopeToSession);
+// Agents never change the user's profile or touch their secrets; only the desktop does.
+fileModule.guard(guardAgentFiles);
 
 const app = createApp(router, App, {
   httpRouter,
