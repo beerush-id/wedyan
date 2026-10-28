@@ -1,4 +1,5 @@
 import { type PipeData, persistent } from '@irpclib/r2-file';
+import type { Voice } from '../speech/speech.h.js';
 
 /** Where the user's profile lives, in their home. Only the desktop writes it, never an agent. */
 export const PROFILE_PATH = '~/profile.json';
@@ -12,6 +13,8 @@ export interface UserProfile {
   assistantName?: string;
   /** How to call the user. */
   userName?: string;
+  /** The voice the assistant speaks with; `DEFAULT_VOICE` until the user picks one. */
+  voice?: Voice;
   /** How the assistant behaves, in the user's words. */
   persona?: string;
   /** Corrections the user asked for along the way, one per item. */

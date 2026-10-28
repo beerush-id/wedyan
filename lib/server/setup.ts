@@ -8,12 +8,13 @@ import { SKILLS } from '@/lib/agents/skills.js';
 import { setupKernel } from '@/lib/kernel/agent.js';
 import { embedWith, setupMemory, type VectorStore } from '@/lib/memory/memory.js';
 import { PROFILE_PATH, type UserProfile } from '@/lib/share/profile.js';
+import { type SpeechModel, setupSpeech } from '@/lib/speech/speech.js';
 import { wsTransport } from '@/src/api.js';
 
 /** The bindings and secrets the server runs with (see `wrangler.json`). */
 export type ServerEnv = FileWorkerEnv & {
   VECTORIZE: VectorStore;
-  AI: Parameters<typeof embedWith>[0];
+  AI: Parameters<typeof embedWith>[0] & SpeechModel;
   MUSE_API_KEY?: string;
   /** Baseten's key; with it, Spark Open takes over routing and composing. */
   BASETEN_API_KEY?: string;
@@ -30,7 +31,7 @@ let ready = false;
 /**
  * Sets up the kernel and memory with the server's bindings, once per process: the agents and
  * their skills, the tools of r2-file and memory, the models (Spark Open routing and composing when
- * Baseten's key is set), and the vector index.
+ * Baseten's key is set), the vector index, and the voice.
  *
  * @param env - The resolved bindings.
  */
@@ -52,6 +53,7 @@ export function setupServer(env: ServerEnv): void {
     persona: loadPersona,
   });
   setupMemory({ vectors: env.VECTORIZE, embed: embedWith(env.AI) });
+  setupSpeech(env.AI);
 }
 
 /**
