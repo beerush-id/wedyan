@@ -2,7 +2,7 @@ import { createApp } from '@airlib/react/ssr';
 import { LogLevel } from '@beerush/logger';
 import { consoleAdapter } from '@beerush/logger/adapters/console';
 import { HTTPRouter } from '@irpclib/http/router';
-import { envCtx, IRPC_STORE, IRPC_STORE_EVENT } from '@irpclib/irpc';
+import { envCtx, IRPC_STORE, IRPC_STORE_EVENT, SESSION_STORE, setContext } from '@irpclib/irpc';
 import { resolveBinding, resolveCtx } from '@irpclib/irpc/wrangler';
 import { fsContext } from '@irpclib/r2-file/context';
 import { createWorker as createFileWorker } from '@irpclib/r2-file/worker';
@@ -36,11 +36,16 @@ IRPC_STORE.subscribe((event) => {
   log.error(error.message, error, ...(event.data ?? []));
 });
 
-// Every call runs in its session's own home. Without a session r2-file would fall back to a shared
-// home, so such a call is refused.
+/** The context key every call's session ID is kept under, for its session's live calls to find each other. */
+const SESSION_KEY = 'sessionId';
+SESSION_STORE.key(SESSION_KEY);
+
+// Every call runs in its session: its own home, and its session's live calls to reach. Without a
+// session r2-file would fall back to a shared home, so such a call is refused.
 const scopeToSession = () => {
   const session = currentSession();
   if (!session) throw new Error('No session: load the page first');
+  setContext(SESSION_KEY, session.id);
   fsContext.set(homeOf(session));
 };
 wsRouter.use(scopeToSession);
