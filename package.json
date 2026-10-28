@@ -38,7 +38,8 @@
     "gsap": "catalog:lib",
     "mediabunny": "^1.62.1",
     "react": "catalog:app",
-    "react-dom": "catalog:app"
+    "react-dom": "catalog:app",
+    "zod": "catalog:lib"
   },
   "devDependencies": {
     "@airlib/vite": "workspace:*",

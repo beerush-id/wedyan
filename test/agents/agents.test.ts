@@ -109,6 +109,12 @@ describe('agents', () => {
     expect(AGENTS.rita.system).toMatch(/answer.*yourself/i);
   });
 
+  it('teaches every agent that a tool which returned an error did not happen', () => {
+    for (const agent of Object.values(AGENTS)) {
+      expect(agent.system, agent.name).toContain('returns an error, it did not happen');
+    }
+  });
+
   it('never names the agents to the user', () => {
     for (const agent of Object.values(AGENTS)) {
       expect(agent.system, agent.name).toContain('never mention');

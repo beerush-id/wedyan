@@ -159,4 +159,39 @@ describe('memory', () => {
     expect(Object.keys(tools[1].inputSchema.properties as object)).toEqual(['query', 'options']);
     expect(tools[1].annotations).toMatchObject({ readOnlyHint: true });
   });
+
+  it('tells the model the type of each argument, options being an object of known fields', () => {
+    const [saveTool, recallTool] = new IRPCRouter(memory.transport!)
+      .getTools()
+      .filter((tool) => tool.name.startsWith('memory.'));
+
+    expect(saveTool.inputSchema).toMatchObject({
+      properties: {
+        text: { type: 'string' },
+        options: {
+          type: 'object',
+          properties: {
+            kind: { enum: ['note', 'preference', 'person', 'project', 'fact'] },
+            name: { type: 'string' },
+            tags: { type: 'array', items: { type: 'string' } },
+          },
+        },
+      },
+      required: ['text'],
+    });
+    expect(recallTool.inputSchema).toMatchObject({
+      properties: {
+        query: { type: 'string' },
+        options: { type: 'object', properties: { scope: { enum: ['memory', 'files', 'all'] } } },
+      },
+      required: ['query'],
+    });
+  });
+
+  it('refuses options that are not an object, rather than saving the memo wrongly', async () => {
+    await asUser(async () => {
+      await expect(save('Likes tea.', '{"kind":"preference"}' as never)).rejects.toThrow();
+      expect(vectors.stored.size).toBe(0);
+    });
+  });
 });
