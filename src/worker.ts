@@ -9,6 +9,7 @@ import { fsContext } from '@irpclib/r2-file/context';
 import { createWorker as createFileWorker } from '@irpclib/r2-file/worker';
 import { WebSocketRouter } from '@irpclib/ws/router';
 import { logger } from '@/lib/logger.js';
+import { contentIndex } from '@/lib/memory/files.js';
 import { guardAgentFiles } from '@/lib/server/guard.js';
 import { currentSession, homeOf } from '@/lib/server/session.js';
 import { type ServerEnv, setupServer } from '@/lib/server/setup.js';
@@ -54,7 +55,8 @@ wsRouter.use(scopeToSession);
 
 // r2-file in this worker: its handlers serve the desktop's file calls and the agents' tool calls
 // alike, each with the bindings of the call's own environment.
-const files = createFileWorker({ endpoint: FILES_ENDPOINT });
+// Its content index keeps memory in step with the user's files.
+const files = createFileWorker({ endpoint: FILES_ENDPOINT }).use(contentIndex());
 files.router.use(scopeToSession);
 // Agents never change the user's profile or touch their secrets; only the desktop does.
 fileModule.guard(guardAgentFiles);

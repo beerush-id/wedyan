@@ -14,6 +14,8 @@ export interface VectorStore {
   ): Promise<{ matches: { id: string; score: number; metadata?: Record<string, unknown> }[] }>;
   /** How far the index has processed its writes; a write after that isn't searchable yet. */
   describe(): Promise<{ processedUpToDatetime?: number | string | Date }>;
+  /** Drops entries by id; ids it doesn't hold are ignored. */
+  deleteByIds(ids: string[]): Promise<unknown>;
 }
 
 /** Turns texts into vectors, one per text, in order. */
@@ -113,7 +115,7 @@ memory.construct(recall, async ({ query, ...options }) => {
 });
 
 /** Most of a memory's text kept with its vector, so recall returns it without opening the file. */
-const TEXT_LIMIT = 2000;
+export const TEXT_LIMIT = 2000;
 
 /** Longest name a memo gets from its text. */
 const NAME_LIMIT = 60;
@@ -121,7 +123,12 @@ const NAME_LIMIT = 60;
 /** Where memos live, in the user's home. */
 const MEMOS = '~/Memos';
 
-function configured(): MemoryConfig {
+/**
+ * The index and embedder memory was set up with; files are indexed into the same index.
+ *
+ * @returns The vector store and the embedder; throws before `setupMemory`.
+ */
+export function configured(): MemoryConfig {
   if (!config) throw new Error('Memory is not set up');
   return config;
 }
@@ -166,8 +173,12 @@ async function unindexedMemos(vectors: VectorStore): Promise<Recalled[]> {
   }
 }
 
-/** Whose memories these are: the user the filesystem acts for. */
-function ownerOf(): string {
+/**
+ * Whose memories these are: the user the filesystem acts for.
+ *
+ * @returns The current call's owner; throws without one.
+ */
+export function ownerOf(): string {
   const owner = fsContext.get()?.ownerId;
   if (!owner) throw new Error('Memory needs a user');
   return owner;
@@ -191,8 +202,14 @@ async function freeName(name: string): Promise<{ path: string; name: string }> {
   return { path: pathOf(unique), name: unique };
 }
 
-/** A vector's id: its owner and path hashed, since paths are per user and ids are at most 64 bytes. */
-async function vectorId(owner: string, path: string): Promise<string> {
+/**
+ * A vector's id: its owner and path hashed, since paths are per user and ids are at most 64 bytes.
+ *
+ * @param owner - Whose entry it is.
+ * @param path - What it indexes: a memo's path, or a file's path and chunk.
+ * @returns The id, as hex.
+ */
+export async function vectorId(owner: string, path: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${owner}:${path}`));
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }

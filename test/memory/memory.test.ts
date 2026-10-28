@@ -6,56 +6,10 @@ import { fsContext } from '@irpclib/r2-file/context';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { MemoDocument } from '../../lib/documents/types.js';
 import { memory, recall, save } from '../../lib/memory/memory.h.js';
-import { setupMemory, type VectorStore } from '../../lib/memory/memory.js';
+import { setupMemory } from '../../lib/memory/memory.js';
+import { embed, fakeVectors } from './fakes.js';
 
 // r2-file runs for real on local R2 and D1. Only Vectorize and Workers AI, external services, are faked.
-
-/** An embedding that counts a few words, so related text lands close together. */
-const WORDS = ['coffee', 'tea', 'cat', 'drama', 'budget'];
-const embed = async (texts: string[]) =>
-  texts.map((text) => [1, ...WORDS.map((word) => text.toLowerCase().split(word).length - 1)]);
-
-/**
- * Vectorize's query, upsert and describe over an in-memory list, with cosine similarity and equality
- * filters. Like Vectorize, a write is only searchable once processed: `lag` holds writes back.
- */
-function fakeVectors(): VectorStore & {
-  stored: Map<string, { values: number[]; metadata?: Record<string, unknown>; at: number }>;
-  lag: boolean;
-} {
-  const stored = new Map<string, { values: number[]; metadata?: Record<string, unknown>; at: number }>();
-  let processedUpTo = 0;
-  const cosine = (a: number[], b: number[]) => {
-    const dot = a.reduce((sum, value, i) => sum + value * b[i], 0);
-    const norm = (v: number[]) => Math.sqrt(v.reduce((sum, value) => sum + value * value, 0));
-    return dot / (norm(a) * norm(b));
-  };
-  const fake = {
-    stored,
-    lag: false,
-    async upsert(vectors: Parameters<VectorStore['upsert']>[0]) {
-      const at = Date.now();
-      for (const { id, values, metadata } of vectors) stored.set(id, { values, metadata, at });
-      if (!fake.lag) processedUpTo = at;
-      return { count: vectors.length };
-    },
-    async describe() {
-      return { processedUpToDatetime: processedUpTo };
-    },
-    async query(values: number[], options: Parameters<VectorStore['query']>[1]) {
-      const matches = [...stored.entries()]
-        .filter(([, entry]) => entry.at <= processedUpTo)
-        .filter(([, entry]) =>
-          Object.entries(options.filter ?? {}).every(([key, value]) => entry.metadata?.[key] === value),
-        )
-        .map(([id, entry]) => ({ id, score: cosine(values, entry.values), metadata: entry.metadata }))
-        .sort((a, b) => b.score - a.score)
-        .slice(0, options.topK ?? 5);
-      return { matches };
-    },
-  };
-  return fake;
-}
 
 /** Runs as a user unique to this run, so tests never share a home, even with what local R2 kept. */
 const asUser = <T>(fn: () => Promise<T>) => {
