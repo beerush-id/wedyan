@@ -46,7 +46,7 @@ describe.skipIf(!PROVIDERS.meta.key)('Wedyan beats on Muse Spark, live', () => {
 
   it('onboarding: a new user', async () => {
     const result = await runBeat(ask('(First visit.)', { event: 'onboarding' }), {
-      replies: ['Call me Nanang.', 'Lita is fine.', 'I make short dramas for social media.'],
+      replies: ['Call me Nanang.', 'Wedyan is fine.', 'I make short dramas for social media.'],
     });
     report('onboarding', result);
     expect(result.status).not.toBe('error');

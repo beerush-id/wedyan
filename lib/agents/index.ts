@@ -1,11 +1,11 @@
-import type { AgentProfile } from '../kernel/agent.js';
+import type { AgentProfile, AgentSkill } from '../kernel/agent.js';
 import { lita } from './lita.js';
-import { onboarding } from './onboarding.js';
-import { photos } from './photos.js';
-import { router } from './router.js';
+import { rita } from './rita.js';
+import { SKILLS } from './skills.js';
+import { wendy } from './wendy.js';
 
-/** The agent every ask starts with. */
-export const ENTRY = 'router';
+/** The agent every ask starts with: Rita, who decides where it goes. */
+export const ENTRY = 'rita';
 
 /** A model an agent runs on, and how hard it reasons (the provider's default when unset). */
 export interface AgentModel {
@@ -26,22 +26,25 @@ export const DEFAULT_MODELS: AgentModels = {
 };
 
 /**
- * Wedyan's agents, one per speciality in the demo: the router, the user's assistant, photos, and
- * onboarding.
+ * Wedyan's agents, by code name: Rita routes, Wendy handles common asks, and Lita does a
+ * specialized job with the skill she is handed. The user hears none of these names.
  *
  * @param models - Which model, and effort, each kind of agent runs on.
+ * @param skills - The skills Lita can be handed, for Rita's catalog.
  * @returns The agents by name, for the kernel's config.
  */
-export function createAgents(models: AgentModels = DEFAULT_MODELS): Record<string, AgentProfile> {
+export function createAgents(
+  models: AgentModels = DEFAULT_MODELS,
+  skills: Record<string, AgentSkill> = SKILLS,
+): Record<string, AgentProfile> {
   const on = (profile: AgentProfile, spec: AgentModel): AgentProfile => ({
     ...profile,
     ...(spec.effort ? { effort: spec.effort } : {}),
   });
 
   return {
-    router: on(router(models.router.model), models.router),
+    rita: on(rita(models.router.model, Object.values(skills)), models.router),
+    wendy: on(wendy(models.agents.model), models.agents),
     lita: on(lita(models.agents.model), models.agents),
-    photos: on(photos(models.agents.model), models.agents),
-    onboarding: on(onboarding(models.agents.model), models.agents),
   };
 }

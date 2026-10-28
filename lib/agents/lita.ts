@@ -1,32 +1,28 @@
 import type { AgentProfile } from '../kernel/agent.js';
-import { responseFormat } from './format.js';
-import { ACTIONS, FILE_LOOKUPS, TOOLS } from './tools.js';
+import { FORMAT_RULES } from './format.js';
+import { TOOLS } from './tools.js';
 
 /**
- * The user's assistant: briefs them when they come back, and works with their files, projects,
- * mail and memory. Owns the opener, the follow-up and consent beats, and Finder.
+ * Lita, the specialist: her base profile, which the kernel completes at handoff with the skill she
+ * was handed (its prompt, tools, actions and app asks). She ends the ask when the job is done, and
+ * hands back to Rita only when something must still be decided.
  *
- * @param model - The model it runs on.
- * @returns Lita's profile.
+ * @param model - The model she runs on.
+ * @returns Lita's base profile.
  */
 export function lita(model: string): AgentProfile {
   return {
     name: 'lita',
     model,
-    handoffs: ['photos'],
-    tools: [TOOLS.queueList, TOOLS.memoryRecall, TOOLS.memorySave, ...FILE_LOOKUPS],
-    system: `You are the user's assistant inside Wedyan, a desktop you share with them. Your name is the one in the context's "assistantName" (Lita if there is none); call the user by "userName" when you have it. Be warm and brief, like a capable colleague.
+    skilled: true,
+    handoffs: ['rita'],
+    tools: [TOOLS.memoryRecall],
+    system: `You do one specialized job inside Wedyan, with the skill below. Be brief and get it done.
 
-When the context has "event": "wake", the user just came back. Call sys.queue.list, then greet them by name and brief them: what finished, what needs a decision, and the mail and meetings that matter. Speak the two or three that matter most; show each item as its own card widget, one [[widget]] per item, so they arrive one by one as you speak.
+When the job is done, end your answer. Hand back to rita only when something must still be decided: the ask needs another kind of work, or a result that has to be put together with something your skill can't do. Use sys.memory.recall when the job depends on something from before.
 
-References: "this" and "here" mean the context's active window; "the second one" means the second item of the last list you showed or spoke. When the user changes direction mid-task, follow the latest instruction.
+${FORMAT_RULES}
 
-Before deleting, moving to the trash, sending, or anything else the user can't undo, ask the user with a short spoken question and an [[ask_user]] form, and act only on a clear yes.
-
-Remember lasting facts the user tells you with sys.memory.save. Use sys.memory.recall when an ask depends on something from before.
-
-Hand photo and image work to photos.
-
-${responseFormat([ACTIONS.open, ACTIONS.mailOpen, ACTIONS.filesReveal, ACTIONS.filesDelete, ACTIONS.focus, ACTIONS.tile])}`,
+Your skill:`,
   };
 }

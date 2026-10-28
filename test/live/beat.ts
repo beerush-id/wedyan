@@ -1,8 +1,10 @@
-import { mutable } from '@airlib/react';
+import { mutable, withContext } from '@airlib/react';
 import type { ChatMessage, ToolCall } from '@irpclib/ai-kit';
 import { AIAdapter, OpenAIDriver } from '@irpclib/ai-kit/worker';
 import type { IRPCData } from '@irpclib/irpc';
 import { type AgentModels, createAgents, ENTRY } from '../../lib/agents/index.js';
+import { personaPrompt } from '../../lib/agents/persona.js';
+import { SKILLS } from '../../lib/agents/skills.js';
 import type { AskAction, AskPart, AskState } from '../../lib/kernel/agent.h.js';
 import { type LoopSnapshot, runAgentLoop } from '../../lib/kernel/agent.js';
 
@@ -65,7 +67,7 @@ export const SYS: Record<string, IRPCData> = {
   'sys.memory.save': { saved: true },
 };
 
-export const PROFILE = { userName: 'Nanang', assistantName: 'Lita' };
+export const PROFILE = { userName: 'Nanang' };
 
 /** One ask: the desktop's context, then the words, as the kernel sends them. */
 export function ask(text: string, context?: Record<string, IRPCData>): ChatMessage[] {
@@ -106,27 +108,34 @@ export async function runBeat(
   let firstPart = 0;
   const watch = setInterval(() => {
     if (!firstPart && state.parts.length) firstPart = Date.now() - started;
-    if (state.agent && agents.at(-1) !== state.agent) agents.push(state.agent);
+    // A skilled agent is recorded with its skill, like `lita:photos`.
+    const current = state.skill ? `${state.agent}:${state.skill}` : state.agent;
+    if (current && agents.at(-1) !== current) agents.push(current);
   }, 10);
 
-  await runAgentLoop({
-    adapter: liveAdapter(),
-    agents: createAgents(options.models),
-    entry: ENTRY,
-    input,
-    state,
-    resolve: async (call) => {
-      calls.push(call);
-      return SYS[call.name];
-    },
-    act: async (action) => {
-      actions.push(action);
-      // The user fills the form's first field with the next scripted reply.
-      if (action.name === 'ask_user') return { [fieldsOf(action.args)[0] ?? 'answer']: replies.shift() ?? null };
-      return action.ask ? undefined : { ok: true };
-    },
-    onSnapshot: (snapshot) => snapshots.push(snapshot),
-  });
+  // Each beat gets its own context, so the loop's subscriptions never leak into the next beat.
+  await withContext(() =>
+    runAgentLoop({
+      adapter: liveAdapter(),
+      agents: createAgents(options.models),
+      entry: ENTRY,
+      skills: SKILLS,
+      persona: personaPrompt(PROFILE),
+      input,
+      state,
+      resolve: async (call) => {
+        calls.push(call);
+        return SYS[call.name];
+      },
+      act: async (action) => {
+        actions.push(action);
+        // The user fills the form's first field with the next scripted reply.
+        if (action.name === 'ask_user') return { [fieldsOf(action.args)[0] ?? 'answer']: replies.shift() ?? null };
+        return action.ask ? undefined : { ok: true };
+      },
+      onSnapshot: (snapshot) => snapshots.push(snapshot),
+    }),
+  );
   clearInterval(watch);
 
   const feedback = snapshots

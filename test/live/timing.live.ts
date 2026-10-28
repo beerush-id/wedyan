@@ -55,7 +55,7 @@ const routerTools: ChatTool[] = [
     parameters: {
       type: 'object',
       properties: {
-        agent: { type: 'string', enum: agents.router.handoffs ?? [] },
+        agent: { type: 'string', enum: agents.rita.handoffs ?? [] },
         brief: { type: 'string' },
       },
       required: ['agent', 'brief'],
@@ -74,32 +74,32 @@ const QUEUE = [
 /** One turn of a beat, as the kernel would send it. */
 const SCENARIOS: Array<{ name: string; system: string; tools: ChatTool[]; input: unknown[] }> = [
   {
-    name: 'router → handoff',
-    system: agents.router.system,
+    name: 'rita →handoff',
+    system: agents.rita.system,
     tools: routerTools,
     input: [{ role: 'user', content: 'Open the second mail I got this morning.' }],
   },
   {
-    name: 'router → own answer',
-    system: agents.router.system,
+    name: 'rita →own answer',
+    system: agents.rita.system,
     tools: routerTools,
     input: [{ role: 'user', content: 'Good morning!' }],
   },
   {
-    name: 'lita → tool call',
-    system: agents.lita.system,
-    tools: agents.lita.tools,
+    name: 'wendy →tool call',
+    system: agents.wendy.system,
+    tools: agents.wendy.tools,
     input: [
-      context({ event: 'wake', userName: 'Nanang', assistantName: 'Lita' }),
+      context({ event: 'wake', userName: 'Nanang' }),
       { role: 'user', content: '(The user unlocked the screen.)' },
     ],
   },
   {
-    name: 'lita → briefing answer',
-    system: agents.lita.system,
-    tools: agents.lita.tools,
+    name: 'wendy →briefing answer',
+    system: agents.wendy.system,
+    tools: agents.wendy.tools,
     input: [
-      context({ event: 'wake', userName: 'Nanang', assistantName: 'Lita' }),
+      context({ event: 'wake', userName: 'Nanang' }),
       { role: 'user', content: '(The user unlocked the screen.)' },
       { type: 'function_call', call_id: 'call_seed', name: 'sys__queue__list', arguments: '{}' },
       { type: 'function_call_output', call_id: 'call_seed', output: JSON.stringify(QUEUE) },

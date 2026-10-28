@@ -10,15 +10,15 @@ import { createAgents, DEFAULT_MODELS } from '../../lib/agents/index.js';
 const KEY = process.env.MUSE_API_KEY ?? '';
 
 describe.skipIf(!KEY)('raw agent turn, live', () => {
-  it('lita on wake, after the queue was read', async () => {
-    const lita = createAgents().lita;
+  it('wendy on wake, after the queue was read', async () => {
+    const wendy = createAgents().wendy;
     const history: ChatMessage[] = [
-      { role: 'user', type: 'object', data: { context: { event: 'wake', userName: 'Nanang', assistantName: 'Lita' } } },
+      { role: 'user', type: 'object', data: { context: { event: 'wake', userName: 'Nanang' } } },
       { role: 'user', type: 'text', text: '(The user unlocked the screen.)' },
       {
         role: 'user',
         type: 'object',
-        data: { handoff: { from: 'router', brief: 'The user woke; brief them.', results: [] } },
+        data: { handoff: { from: 'rita', brief: 'The user woke; brief them.', results: [] } },
       },
     ];
     const live = mutable<{ data?: ChatOutput }>({});
@@ -35,7 +35,7 @@ describe.skipIf(!KEY)('raw agent turn, live', () => {
     await new Promise<void>((resolve, reject) => {
       void adapter.ask(
         history,
-        { model: lita.model, system: lita.system, tools: lita.tools },
+        { model: wendy.model, system: wendy.system, tools: wendy.tools },
         { state: live, resolve, reject },
       );
     });

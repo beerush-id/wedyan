@@ -48,6 +48,8 @@ export interface AskState {
   reason?: string;
   /** The agent currently answering. */
   agent: string;
+  /** The skill the answering agent was handed, when it takes one. */
+  skill?: string;
   /** Model turns taken so far. */
   turn: number;
   /** The answer so far. */

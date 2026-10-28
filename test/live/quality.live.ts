@@ -128,7 +128,7 @@ const BEATS: Array<{
     name: 'router-answer',
     run: (models) => runBeat(ask('Good morning!', PROFILE), { models }),
     checks: (result) => [
-      { name: 'router answers itself', pass: result.agents.join() === 'router', detail: result.agents.join(' → ') },
+      { name: 'rita answers herself', pass: result.agents.join() === 'rita', detail: result.agents.join(' → ') },
       { name: 'no calls', pass: !result.calls.length, detail: result.calls.map((call) => call.name).join(', ') },
     ],
   },
@@ -136,7 +136,7 @@ const BEATS: Array<{
     name: 'wake',
     run: (models) => runBeat(ask('(The user unlocked the screen.)', { event: 'wake', ...PROFILE }), { models }),
     checks: (result) => [
-      { name: 'routed to lita', pass: result.agents.includes('lita'), detail: result.agents.join(' → ') },
+      { name: 'routed to wendy', pass: result.agents.includes('wendy'), detail: result.agents.join(' → ') },
       { name: 'reads the queue', pass: called(result, 'sys.queue.list').length > 0 },
       { name: 'shows ≥ 2 widgets', pass: widgets(result).length >= 2, detail: `${widgets(result).length}` },
       { name: 'greets by name', pass: /nanang/i.test(spoken(result)) },
@@ -201,7 +201,11 @@ const BEATS: Array<{
       const edit = called(result, 'sys.image.edit')[0];
       const show = acted(result, 'app.photos.show')[0];
       return [
-        { name: 'routed to photos', pass: result.agents.includes('photos'), detail: result.agents.join(' → ') },
+        {
+          name: 'routed to lita with photos',
+          pass: result.agents.includes('lita:photos'),
+          detail: result.agents.join(' → '),
+        },
         {
           name: 'search → segment → edit',
           pass:
@@ -224,7 +228,7 @@ const BEATS: Array<{
     run: (models) =>
       runBeat(ask('(First visit.)', { event: 'onboarding' }), {
         models,
-        replies: ['Call me Nanang.', 'Lita is fine.', 'I make short dramas for social media.'],
+        replies: ['Call me Nanang.', 'Wedyan is fine.', 'I make short dramas for social media.'],
       }),
     checks: (result) => {
       const saved = called(result, 'sys.profile.save')[0];

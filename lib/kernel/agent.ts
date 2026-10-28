@@ -27,8 +27,12 @@ export interface KernelConfig {
   entry: string;
   /** Serves the packages whose tools agents call by `package.function`; each call runs through its stub. */
   router?: IRPCRouter;
-  /** Server-side calls by name (`sys.*`); every other call or action is asked of the client. */
+  /** Server-side calls by name (`sys.*`), for what isn't a package tool yet. */
   sys?: Record<string, SysHandler>;
+  /** The skills a skilled agent can be handed, by name; built on the server, never chosen by the client. */
+  skills?: Record<string, AgentSkill>;
+  /** Loads the user's persona at the start of each ask, read on the server. */
+  persona?: () => Promise<string | undefined> | string | undefined;
   limits?: AgentLoopOptions['limits'];
 }
 
@@ -46,7 +50,8 @@ export function setupKernel(next: KernelConfig): void {
 kernel.construct(askWedyan, (input) =>
   stream((state, resolve) => {
     if (!config) throw new Error('Kernel is not set up');
-    const { adapter, agents, entry, router, sys = {}, limits } = config;
+    const { adapter, agents, entry, router, sys = {}, skills, limits } = config;
+    const loadPersona = config.persona;
     const tools: Record<string, IRPCHandler> = Object.assign(
       {},
       ...[...(router?.packages ?? [])].map((pkg) => pkg.tools()),
@@ -60,25 +65,36 @@ kernel.construct(askWedyan, (input) =>
       return true;
     });
 
-    void runAgentLoop({
-      adapter,
-      agents,
-      entry,
-      limits,
-      input: toChatInput(input),
-      state: state.data,
-      // Tools are the server's: a package tool or a `sys.*` call. The desktop is reached by actions and asks.
-      resolve: async (call) => {
-        // A model sends one input object; the router turns it into the stub's own arguments.
-        const args = router?.argsOf(call.name, call.args as Record<string, unknown>);
-        if (args) return tools[call.name](...args);
-        return sys[call.name]?.(call.args);
-      },
-      act: async (action) =>
-        sys[action.name] ? sys[action.name](action.args) : state.ask(action.name, action.args, { after: action.after }),
-      followUps: () => followUps.splice(0),
-      signal: controller.signal,
-    }).then(() => resolve());
+    // A profile that can't be read leaves the ask without a persona rather than stalling it.
+    void Promise.resolve()
+      .then(() => loadPersona?.())
+      .catch(() => undefined)
+      .then((persona) =>
+        runAgentLoop({
+          adapter,
+          agents,
+          entry,
+          skills,
+          persona,
+          limits,
+          input: toChatInput(input),
+          state: state.data,
+          // Tools are the server's: a package tool or a `sys.*` call. The desktop is reached by actions and asks.
+          resolve: async (call) => {
+            // A model sends one input object; the router turns it into the stub's own arguments.
+            const args = router?.argsOf(call.name, call.args as Record<string, unknown>);
+            if (args) return tools[call.name](...args);
+            return sys[call.name]?.(call.args);
+          },
+          act: async (action) =>
+            sys[action.name]
+              ? sys[action.name](action.args)
+              : state.ask(action.name, action.args, { after: action.after }),
+          followUps: () => followUps.splice(0),
+          signal: controller.signal,
+        }),
+      )
+      .then(() => resolve());
 
     // Returned before the ask finishes, so closing the call can stop it.
     return () => controller.abort();
@@ -96,11 +112,24 @@ export interface AgentProfile {
   handoffs?: string[];
   /** How hard its model reasons, in the provider's terms (`minimal`, `low`, …); the provider's default if unset. */
   effort?: string;
+  /** Takes a skill at handoff: its prompt and tools are added to this profile's for the rest of the ask. */
+  skilled?: boolean;
+}
+
+/** A job a skilled agent can be handed: what it's for (for the one routing), its prompt and its tools. */
+export interface AgentSkill {
+  name: string;
+  /** One line on what the skill is for, offered to whoever hands off. */
+  description: string;
+  system: string;
+  tools: ChatTool[];
 }
 
 /** Everything needed to resume an ask after the turn it was taken on. */
 export interface LoopSnapshot {
   agent: string;
+  /** The skill the active agent was handed, if any. */
+  skill?: string;
   /** The active agent's conversation. */
   history: ChatMessage[];
   /** What the user said: the input and every follow-up. Survives handoffs. */
@@ -115,6 +144,10 @@ export interface AgentLoopOptions {
   agents: Record<string, AgentProfile>;
   /** The first agent: the router. */
   entry: string;
+  /** The skills a skilled agent can be handed, by name. */
+  skills?: Record<string, AgentSkill>;
+  /** The user's persona, added to every agent's system prompt so the voice never changes. */
+  persona?: string;
   input: ChatInput;
   /** Mutated in place as the ask runs. */
   state: AskState;
@@ -158,11 +191,12 @@ const DEFAULT_HANDOFF_LIMIT = 3;
  * @returns Once the ask has ended.
  */
 export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
-  const { adapter, agents, state, signal, resume } = options;
+  const { adapter, agents, state, signal, resume, skills = {}, persona } = options;
   const turnLimit = options.limits?.turns ?? DEFAULT_TURN_LIMIT;
   const handoffLimit = options.limits?.handoffs ?? DEFAULT_HANDOFF_LIMIT;
 
-  let agent = agents[resume?.agent ?? options.entry];
+  let skill = resume?.skill ? skills[resume.skill] : undefined;
+  let agent = withSkill(agents[resume?.agent ?? options.entry], skill);
   const asks = resume ? [...resume.asks] : chatTurns(options.input);
   let history = resume ? [...resume.history] : [...asks];
   let turn = resume?.turn ?? 0;
@@ -177,6 +211,7 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
 
   state.status = 'running';
   state.agent = agent.name;
+  if (skill) state.skill = skill.name;
   state.turn = turn;
 
   try {
@@ -187,10 +222,12 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
       turn += 1;
       state.turn = turn;
       const current = turn;
-      const callable = new Set(toolsOf(agent).map((tool) => tool.name));
+      const tools = toolsOf(agent, agents, skills);
+      const system = persona ? `${agent.system}\n\n${persona}` : agent.system;
+      const callable = new Set(tools.map((tool) => tool.name));
       let asked = false;
       const take = () =>
-        modelTurn(adapter, agent, history, state.parts, signal, {
+        modelTurn(adapter, { ...agent, system, tools }, history, state.parts, signal, {
           onAction: (action) => {
             // A call written as an action would run with its result lost: the model must call it.
             if (callable.has(action.name)) {
@@ -225,14 +262,19 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
       if (asked && !(await settled(actions.settle(), signal))) return end('stopped', 'Aborted');
 
       let target: AgentProfile | undefined;
+      let targetSkill: AgentSkill | undefined;
       if (handoff) {
-        const next = String((handoff.args as { agent?: unknown })?.agent ?? '');
+        const args = handoff.args as { agent?: unknown; skill?: unknown };
+        const next = String(args?.agent ?? '');
+        targetSkill = agents[next]?.skilled ? skills[String(args?.skill ?? '')] : undefined;
         const refusal =
           !agent.handoffs?.includes(next) || !agents[next]
             ? `Cannot hand off to ${next}`
-            : handoffs >= handoffLimit
-              ? 'Handoff limit reached'
-              : undefined;
+            : agents[next].skilled && !targetSkill
+              ? `${next} needs a skill: one of ${Object.keys(skills).join(', ')}`
+              : handoffs >= handoffLimit
+                ? 'Handoff limit reached'
+                : undefined;
         if (refusal) history.push(toolTurn(handoff.id, { error: refusal }));
         else target = agents[next];
       }
@@ -252,8 +294,11 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
           ...asks,
           { role: 'user', type: 'object', data: { handoff: { from: agent.name, brief, results: done } } },
         ];
-        agent = target;
+        skill = targetSkill;
+        agent = withSkill(target, skill);
         state.agent = agent.name;
+        if (skill) state.skill = skill.name;
+        else delete state.skill;
       } else {
         history.push(...followUps);
       }
@@ -265,7 +310,14 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
       const feedback = collectFeedback(actions.take(), problems.splice(0));
       if (feedback) history.push({ role: 'user', type: 'object', data: { feedback } });
 
-      options.onSnapshot?.({ agent: agent.name, history: [...history], asks: [...asks], turn, handoffs });
+      options.onSnapshot?.({
+        agent: agent.name,
+        ...(skill ? { skill: skill.name } : {}),
+        history: [...history],
+        asks: [...asks],
+        turn,
+        handoffs,
+      });
       if (ending && !feedback) return end('done');
     }
   } catch (error) {
@@ -310,7 +362,7 @@ async function modelTurn(
         {
           model: agent.model,
           system: agent.system,
-          tools: toolsOf(agent),
+          tools: agent.tools,
           ...(agent.effort ? { reasoningEffort: agent.effort } : {}),
         },
         {
@@ -414,9 +466,18 @@ async function settled(promise: Promise<void>, signal?: AbortSignal): Promise<bo
   });
 }
 
-/** The agent's calls plus `handoff`, limited to the agents it may hand off to. */
-function toolsOf(agent: AgentProfile): ChatTool[] {
+/**
+ * The agent's calls plus `handoff`, limited to the agents it may hand off to. When one of them
+ * takes a skill, `handoff` also offers the skills by name; the kernel resolves the name, so the
+ * model only ever picks from the catalog.
+ */
+function toolsOf(
+  agent: AgentProfile,
+  agents: Record<string, AgentProfile>,
+  skills: Record<string, AgentSkill>,
+): ChatTool[] {
   if (!agent.handoffs?.length) return agent.tools;
+  const skilled = agent.handoffs.some((name) => agents[name]?.skilled) && Object.keys(skills).length > 0;
   return [
     ...agent.tools,
     {
@@ -426,12 +487,33 @@ function toolsOf(agent: AgentProfile): ChatTool[] {
         type: 'object',
         properties: {
           agent: { type: 'string', enum: agent.handoffs },
+          ...(skilled
+            ? {
+                skill: {
+                  type: 'string',
+                  enum: Object.keys(skills),
+                  description: 'The skill a skilled agent works with; required when handing to one.',
+                },
+              }
+            : {}),
           brief: { type: 'string', description: 'What the next agent must do, and what is already known.' },
         },
         required: ['agent', 'brief'],
       },
     },
   ];
+}
+
+/**
+ * An agent with a skill added: the skill's prompt after its own, and the skill's tools after its own.
+ *
+ * @param agent - The agent's base profile.
+ * @param skill - The skill it was handed, if any.
+ * @returns The profile it answers with.
+ */
+function withSkill(agent: AgentProfile, skill?: AgentSkill): AgentProfile {
+  if (!skill) return agent;
+  return { ...agent, system: `${agent.system}\n\n${skill.system}`, tools: [...agent.tools, ...skill.tools] };
 }
 
 /** Resolves one call into what the model reads back: the answer, or an error it can act on. */

@@ -1,4 +1,4 @@
-import { mutable } from '@airlib/react';
+import { mutable, withContext } from '@airlib/react';
 import type { ToolCall } from '@irpclib/ai-kit';
 import type { IRPCData } from '@irpclib/irpc';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -29,7 +29,8 @@ function setup(overrides: Partial<AgentLoopOptions> = {}) {
     },
     ...overrides,
   };
-  return { state, resolved, run: () => runAgentLoop(options) };
+  // Each run gets its own context, so the loop's subscriptions never leak into other tests.
+  return { state, resolved, run: () => withContext(() => runAgentLoop(options)) };
 }
 
 describe('agent loop', () => {
@@ -125,6 +126,111 @@ describe('agent loop', () => {
       { role: 'tool', tool_call_id: 'c2', content: '{"error":"No such file"}' },
     ]);
     expect(state.status).toBe('done');
+  });
+
+  describe('skills', () => {
+    /** A router that may hand to a specialist, who takes a skill at handoff. */
+    const SKILLED: AgentLoopOptions['agents'] = {
+      router: { name: 'router', model: 'router-m', system: 'Route.', tools: [], handoffs: ['specialist'] },
+      specialist: {
+        name: 'specialist',
+        model: 'photos-m',
+        system: 'Specialize.',
+        tools: [{ name: 'sys.memory.recall', description: 'Recalls' }],
+        handoffs: ['router'],
+        skilled: true,
+      },
+    };
+    const SKILLS: AgentLoopOptions['skills'] = {
+      photos: {
+        name: 'photos',
+        description: 'Find and edit photos.',
+        system: 'Use the photo tools.',
+        tools: [{ name: 'sys.photos.search', description: 'Finds photos' }],
+      },
+      motions: { name: 'motions', description: 'Edit Motion projects.', system: 'Use Motion.', tools: [] },
+    };
+    type Tool = { function: { name: string; parameters: Record<string, unknown> } };
+
+    it('offers the skills by name on the handoff', async () => {
+      const vendor = mockVendor(says('Hi.'));
+      const { run } = setup({ agents: SKILLED, skills: SKILLS });
+
+      await run();
+
+      const [handoff] = vendor.bodies[0].tools as Tool[];
+      expect(handoff.function.parameters).toMatchObject({
+        properties: { agent: { enum: ['specialist'] }, skill: { enum: ['photos', 'motions'] } },
+      });
+    });
+
+    it('composes the skilled agent from its base and the skill it was handed', async () => {
+      const vendor = mockVendor(
+        calls({ id: 'h1', name: 'handoff', args: { agent: 'specialist', skill: 'photos', brief: 'Find the cat.' } }),
+        says('Here it is.'),
+      );
+      const { state, run } = setup({ agents: SKILLED, skills: SKILLS });
+
+      await run();
+
+      expect(state).toMatchObject({ status: 'done', agent: 'specialist', skill: 'photos' });
+      expect(messagesOf(vendor.bodies, 1)[0]).toEqual({
+        role: 'system',
+        content: 'Specialize.\n\nUse the photo tools.',
+      });
+      expect((vendor.bodies[1].tools as Tool[]).map((tool) => tool.function.name)).toEqual([
+        'sys__memory__recall',
+        'sys__photos__search',
+        'handoff',
+      ]);
+    });
+
+    it('refuses a handoff to a skilled agent without a skill it knows', async () => {
+      const vendor = mockVendor(
+        calls({ id: 'h1', name: 'handoff', args: { agent: 'specialist', skill: 'mail', brief: 'Read mail.' } }),
+        says('I can answer that myself.'),
+      );
+      const { state, run } = setup({ agents: SKILLED, skills: SKILLS });
+
+      await run();
+
+      expect(state.agent).toBe('router');
+      expect(messagesOf(vendor.bodies, 1).at(-1)).toEqual({
+        role: 'tool',
+        tool_call_id: 'h1',
+        content: JSON.stringify({ error: 'specialist needs a skill: one of photos, motions' }),
+      });
+    });
+
+    it('resumes a skilled agent with its skill', async () => {
+      const vendor = mockVendor(says('Done.'));
+      const resume: LoopSnapshot = {
+        agent: 'specialist',
+        skill: 'motions',
+        history: [{ role: 'user', type: 'text', text: 'Cut it' }],
+        asks: [{ role: 'user', type: 'text', text: 'Cut it' }],
+        turn: 1,
+        handoffs: 1,
+      };
+      const { run } = setup({ agents: SKILLED, skills: SKILLS, resume });
+
+      await run();
+
+      expect(messagesOf(vendor.bodies, 0)[0]).toEqual({ role: 'system', content: 'Specialize.\n\nUse Motion.' });
+    });
+  });
+
+  it('adds the user’s persona to every agent’s system prompt', async () => {
+    const vendor = mockVendor(
+      calls({ id: 'h1', name: 'handoff', args: { agent: 'photos', brief: 'Find the cat.' } }),
+      says('Here it is.'),
+    );
+    const { run } = setup({ persona: 'You are Mira.' });
+
+    await run();
+
+    expect(messagesOf(vendor.bodies, 0)[0]).toEqual({ role: 'system', content: 'Route.\n\nYou are Mira.' });
+    expect(messagesOf(vendor.bodies, 1)[0]).toEqual({ role: 'system', content: 'Photos.\n\nYou are Mira.' });
   });
 
   it('hands off inside the same call, giving the next agent the brief and results, not the reasoning', async () => {

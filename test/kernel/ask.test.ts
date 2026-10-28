@@ -32,6 +32,25 @@ describe('askWedyan', () => {
     });
   });
 
+  it('loads the user’s persona for each ask and gives it to every agent', async () => {
+    let loads = 0;
+    setupKernel({
+      adapter: createTestAdapter(),
+      agents: AGENTS,
+      entry: 'assistant',
+      persona: async () => {
+        loads += 1;
+        return 'You are Mira.';
+      },
+    });
+    const vendor = mockVendor(says('Hi.'));
+
+    await withContext(() => askWedyan({ text: 'Hi' }));
+
+    expect(loads).toBe(1);
+    expect(messagesOf(vendor.bodies, 0)[0]).toEqual({ role: 'system', content: 'Assist.\n\nYou are Mira.' });
+  });
+
   it('runs a package tool through its stub, with the model’s input as the function’s arguments', async () => {
     const vendor = mockVendor(
       calls({ id: 'c1', name: 'files__read', args: { options: { encoding: 'text' }, path: '~/a.txt' } }),

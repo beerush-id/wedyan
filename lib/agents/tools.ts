@@ -130,3 +130,14 @@ export const ACTIONS = {
   tile: { name: 'desktop.tile', args: '{"apps": string[]}', does: 'Places the apps’ windows side by side.' },
   focus: { name: 'desktop.focus', args: '{"app": string}', does: 'Brings an app’s window to the front.' },
 } satisfies Record<string, ActionSpec>;
+
+/** Every tool an agent or skill can name, by its tool name: r2-file's own and the `sys.*` ones. */
+export const TOOLS_BY_NAME: Record<string, ChatTool> = {
+  ...files,
+  ...Object.fromEntries(Object.values(TOOLS).map((tool) => [tool.name, tool])),
+};
+
+/** Every action an agent or skill can name, by its action name. */
+export const ACTIONS_BY_NAME: Record<string, ActionSpec> = Object.fromEntries(
+  Object.values(ACTIONS).map((action) => [action.name, action]),
+);
