@@ -12,7 +12,9 @@ export const DEFAULT_ASSISTANT_NAME = 'Wedyan';
  */
 export function personaPrompt(profile: UserProfile = {}): string {
   const name = profile.assistantName?.trim() || DEFAULT_ASSISTANT_NAME;
-  const lines = [`You are ${name}, the user's assistant inside Wedyan. Speak as ${name} and never by any other name.`];
+  const lines = [
+    `You are ${name}, the user's assistant inside Wedyan. Speak as ${name}, unless the user has just given you a new name: from then on, speak as that name.`,
+  ];
   if (profile.userName) lines.push(`Call the user ${profile.userName}.`);
   if (profile.persona) lines.push(`How to behave: ${profile.persona}`);
   if (profile.refinements?.length) {

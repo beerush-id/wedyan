@@ -2,7 +2,11 @@ import { IRPC_STORE } from '@irpclib/irpc';
 import { read } from '@irpclib/r2-file';
 import type { FileDriver } from '@irpclib/r2-file/adapter';
 import { fsContext } from '@irpclib/r2-file/context';
+import { logger } from '../logger.js';
 import { configured, ownerOf, TEXT_LIMIT, vectorId } from './memory.js';
+
+/** The index's log: what it indexed, at debug level, so a dev server shows it. */
+const log = logger.create({ tags: ['index'] });
 
 /** The files whose text is indexed, by extension; memos index themselves when saved. */
 export const INDEXED_EXTENSIONS = ['.md', '.txt'];
@@ -77,12 +81,15 @@ async function index(storagePath: string, text: string | undefined): Promise<voi
   }
   // A shorter version leaves chunks behind; they go, so recall never quotes text the file lost.
   await vectors.deleteByIds(await idsOf(owner, path, chunks.length, MAX_CHUNKS));
+  log.debug(`indexed ${path}`, { chunks: chunks.length });
 }
 
 /** Drops every chunk of a file. */
 async function unindex(storagePath: string): Promise<void> {
   const { vectors } = configured();
-  await vectors.deleteByIds(await idsOf(ownerOf(), userPath(storagePath), 0, MAX_CHUNKS));
+  const path = userPath(storagePath);
+  await vectors.deleteByIds(await idsOf(ownerOf(), path, 0, MAX_CHUNKS));
+  log.debug(`unindexed ${path}`);
 }
 
 /** A stored file's text, read back after the change that stored it. */
