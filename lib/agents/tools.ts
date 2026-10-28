@@ -1,6 +1,7 @@
 import type { ChatTool } from '@irpclib/ai-kit';
-import { type IRPCData, IRPCRouter } from '@irpclib/irpc';
+import { type IRPCData, IRPCRouter, type IRPCTransport } from '@irpclib/irpc';
 import { transport as fileTransport } from '@irpclib/r2-file';
+import { memory } from '../memory/memory.h.js';
 import type { ActionSpec } from './format.js';
 
 /*
@@ -10,20 +11,33 @@ import type { ActionSpec } from './format.js';
  * or an app is neither: it's an ask the format teaches.
  */
 
-/** r2-file's tools as its declarations describe them, by tool name (`r2-file.read`). */
-const files = Object.fromEntries(
-  new IRPCRouter(fileTransport)
-    .getTools()
-    .map(({ name, description, inputSchema }) => [
-      name,
-      { name, description, parameters: inputSchema as Record<string, IRPCData> } satisfies ChatTool,
-    ]),
-);
+/**
+ * A package's tools as its declarations describe them, by tool name (`r2-file.read`).
+ *
+ * @param transport - The transport the packages are on.
+ * @returns The tools, as the model is given them.
+ */
+function packageTools(transport: IRPCTransport): Record<string, ChatTool> {
+  return Object.fromEntries(
+    new IRPCRouter(transport)
+      .getTools()
+      .map(({ name, description, inputSchema }) => [
+        name,
+        { name, description, parameters: inputSchema as Record<string, IRPCData> } satisfies ChatTool,
+      ]),
+  );
+}
+
+const files = packageTools(fileTransport);
+const memories = packageTools(memory.transport as IRPCTransport);
 
 /** The r2-file tools that only look: what agents use to find and read the user's files. */
 export const FILE_LOOKUPS: ChatTool[] = ['r2-file.list', 'r2-file.read', 'r2-file.search', 'r2-file.stat'].map(
   (name) => files[name],
 );
+
+/** The memory package's tools: recalling what Wedyan knows, and saving something new. */
+export const MEMORY = { recall: memories['memory.recall'], save: memories['memory.save'] };
 
 const object = (properties: Record<string, IRPCData>, required: string[] = []): Record<string, IRPCData> => ({
   type: 'object',
@@ -38,28 +52,6 @@ export const TOOLS = {
     name: 'sys.queue.list',
     description: 'Lists what finished or arrived while the user was away: renders, mail, meetings, decisions waiting.',
     parameters: object({}),
-  },
-  memoryRecall: {
-    name: 'sys.memory.recall',
-    description: 'Searches what you know: saved facts, past asks, and the content of the user’s files.',
-    parameters: object(
-      {
-        scope: { type: 'string', enum: ['memory', 'history', 'files', 'all'] },
-        query: text('What to look for, in plain words.'),
-      },
-      ['query'],
-    ),
-  },
-  memorySave: {
-    name: 'sys.memory.save',
-    description: 'Remembers one fact about the user for later asks: a preference, a person, a project.',
-    parameters: object(
-      {
-        kind: { type: 'string', enum: ['preference', 'person', 'project', 'fact'] },
-        text: text('The fact, in one sentence.'),
-      },
-      ['kind', 'text'],
-    ),
   },
   photosSearch: {
     name: 'sys.photos.search',
@@ -131,9 +123,10 @@ export const ACTIONS = {
   focus: { name: 'desktop.focus', args: '{"app": string}', does: 'Brings an app’s window to the front.' },
 } satisfies Record<string, ActionSpec>;
 
-/** Every tool an agent or skill can name, by its tool name: r2-file's own and the `sys.*` ones. */
+/** Every tool an agent or skill can name, by its tool name: the packages' own and the `sys.*` ones. */
 export const TOOLS_BY_NAME: Record<string, ChatTool> = {
   ...files,
+  ...memories,
   ...Object.fromEntries(Object.values(TOOLS).map((tool) => [tool.name, tool])),
 };
 

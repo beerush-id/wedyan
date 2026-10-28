@@ -25,8 +25,11 @@ export interface KernelConfig {
   agents: Record<string, AgentProfile>;
   /** The first agent of every ask: the router. */
   entry: string;
-  /** Serves the packages whose tools agents call by `package.function`; each call runs through its stub. */
-  router?: IRPCRouter;
+  /**
+   * Serve the packages whose tools agents call by `package.function`, one router per transport;
+   * each call runs through its stub.
+   */
+  routers?: IRPCRouter[];
   /** Server-side calls by name (`sys.*`), for what isn't a package tool yet. */
   sys?: Record<string, SysHandler>;
   /** The skills a skilled agent can be handed, by name; built on the server, never chosen by the client. */
@@ -50,11 +53,11 @@ export function setupKernel(next: KernelConfig): void {
 kernel.construct(askWedyan, (input) =>
   stream((state, resolve) => {
     if (!config) throw new Error('Kernel is not set up');
-    const { adapter, agents, entry, router, sys = {}, skills, limits } = config;
+    const { adapter, agents, entry, routers = [], sys = {}, skills, limits } = config;
     const loadPersona = config.persona;
     const tools: Record<string, IRPCHandler> = Object.assign(
       {},
-      ...[...(router?.packages ?? [])].map((pkg) => pkg.tools()),
+      ...routers.flatMap((router) => [...router.packages].map((pkg) => pkg.tools())),
     );
     const controller = new AbortController();
     getAbortSignal()?.addEventListener('abort', () => controller.abort(), { once: true });
@@ -81,9 +84,11 @@ kernel.construct(askWedyan, (input) =>
           state: state.data,
           // Tools are the server's: a package tool or a `sys.*` call. The desktop is reached by actions and asks.
           resolve: async (call) => {
-            // A model sends one input object; the router turns it into the stub's own arguments.
-            const args = router?.argsOf(call.name, call.args as Record<string, unknown>);
-            if (args) return tools[call.name](...args);
+            // A model sends one input object; the tool's router turns it into the stub's own arguments.
+            for (const router of routers) {
+              const args = router.argsOf(call.name, call.args as Record<string, unknown>);
+              if (args) return tools[call.name](...args);
+            }
             return sys[call.name]?.(call.args);
           },
           act: async (action) =>

@@ -27,7 +27,7 @@ describe('askWedyan', () => {
       adapter: createTestAdapter(),
       agents: AGENTS,
       entry: 'assistant',
-      router: new IRPCRouter(transport),
+      routers: [new IRPCRouter(transport)],
       sys: { 'sys.fs.read': () => ({ content: 'hello' }) },
     });
   });

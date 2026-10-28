@@ -58,6 +58,21 @@ describe('agents', () => {
     }
   });
 
+  it('gives Wendy memory to save and recall, and Lita memory to recall, as the memory package describes them', () => {
+    const memoryOf = (agent: (typeof AGENTS)[string]) =>
+      agent.tools.filter((tool) => tool.name.startsWith('memory.')).map((tool) => tool.name);
+
+    expect(memoryOf(AGENTS.wendy)).toEqual(['memory.recall', 'memory.save']);
+    expect(memoryOf(AGENTS.lita)).toEqual(['memory.recall']);
+    for (const agent of Object.values(AGENTS)) {
+      expect(
+        agent.tools.some((tool) => tool.name.startsWith('sys.memory.')),
+        agent.name,
+      ).toBe(false);
+      expect(agent.system, agent.name).not.toContain('sys.memory.');
+    }
+  });
+
   it('gives each kind of agent its model and effort', () => {
     expect(AGENTS.rita).toMatchObject({ model: 'router-m', effort: 'minimal' });
     expect(AGENTS.wendy.model).toBe('agents-m');
@@ -151,13 +166,13 @@ describe('skills', () => {
     const skill = parseSkill(`---
 name: notes
 description: Keep notes.
-tools: r2-file.read, sys.memory.recall
+tools: r2-file.read, memory.recall
 actions: app.open
 ---
 Write notes plainly.`);
 
     expect(skill).toMatchObject({ name: 'notes', description: 'Keep notes.' });
-    expect(skill.tools.map((tool) => tool.name)).toEqual(['r2-file.read', 'sys.memory.recall']);
+    expect(skill.tools.map((tool) => tool.name)).toEqual(['r2-file.read', 'memory.recall']);
     expect(skill.system).toContain('Write notes plainly.');
     expect(skill.system).toContain('- app.open');
   });
