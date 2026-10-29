@@ -36,6 +36,12 @@ export interface UserProfile {
 /** How long a desktop goes without input before it is idle, when the profile doesn't say. */
 export const IDLE_AFTER = 5 * 60_000;
 
+/**
+ * Where Settings shows `idleAfter` and `briefAfter`, as a link the assistant writes in its answers:
+ * the desktop opens it when the user clicks it.
+ */
+export const IDLE_SETTINGS_LINK = 'wedyan://settings/idle';
+
 let profile: PipeData<UserProfile> | undefined;
 
 /**

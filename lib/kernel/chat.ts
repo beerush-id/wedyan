@@ -16,6 +16,7 @@ import { PROFILE_PATH, type UserProfile } from '@/lib/share/profile.js';
 import { CONVERSATION_PATH, INBOXES } from '@/lib/share/system.js';
 import { type ActionMeta, type AskAction, type AskInput, actorOf, type WidgetPart } from './agent.h.js';
 import { askRouter, askWith, toChatInput } from './agent.js';
+import { ARRIVAL_SEEDS, landed } from './arrivals.js';
 import {
   type ActionRecord,
   type AgentMessage,
@@ -52,6 +53,11 @@ export type ConversationConfig = {
   arrivals: number;
   /** Where what comes from outside lands, and is briefed from. */
   inboxes: readonly string[];
+  /**
+   * The demo's arrivals, by their path in the home without `~/`: delivered once, the first time
+   * the user is back from long enough away to be briefed. None to deliver nothing.
+   */
+  arrivalSeeds: Readonly<Record<string, string>>;
   /** Most unacknowledged answers the router weighs the user's words against, the newest. */
   acksRead: number;
   /** Whether the assistant asks if the user's words cover answers they may not, unless their profile says otherwise. */
@@ -67,6 +73,7 @@ export const CONVERSATION_DEFAULTS: Readonly<ConversationConfig> = {
   briefAfter: 10 * 60_000,
   arrivals: 20,
   inboxes: INBOXES,
+  arrivalSeeds: ARRIVAL_SEEDS,
   acksRead: 8,
   proactive: true,
 };
@@ -126,8 +133,15 @@ kernel.construct(wedyan, (client) => {
 /** A desktop of the session: runs an action or ask there; `undefined` when it didn't. */
 type Desktop = (action: AskAction) => Promise<IRPCData | undefined>;
 
-/** A conversation page as kept in a `.chat` file. */
-type ConversationPage = DocumentHeader<'chat'> & Pick<Conversation, 'page' | 'messages' | 'away'>;
+/**
+ * A conversation page as kept in a `.chat` file; `delivered` is when the demo's arrivals landed,
+ * so they land once.
+ */
+type ConversationPage = DocumentHeader<'chat'> &
+  Pick<Conversation, 'page' | 'messages' | 'away'> & { delivered?: string };
+
+/** What a page keeps of itself between saves: its id, when it was made, and when the arrivals landed. */
+type PageHeader = Pick<ConversationPage, 'id' | 'created' | 'delivered'>;
 
 /** An answer being written: its message, what the user added to it, and how to stop it. */
 type Running = { message: AgentMessage; followUps: string[]; controller: AbortController };
@@ -155,12 +169,14 @@ function createConversation({ hold }: RoomSetup) {
   // Actions waiting for their desktop to come back, by its client ID.
   const waiting = new Map<string, Set<() => void>>();
   const running = new Map<string, Running>();
-  let header: Pick<ConversationPage, 'id' | 'created'> | undefined;
+  // A new conversation's own until its page is read; never replaced by a save, so a save finishing
+  // late can't undo a change to it.
+  let header: PageHeader = newHeader();
   // Saves one after another, so two answers ending together never write over each other's page.
   let saving: Promise<unknown> = Promise.resolve();
   const persist = () => {
     saving = saving.then(async () => {
-      header = await savePage(data, header);
+      await savePage(data, header);
     });
     return saving;
   };
@@ -174,7 +190,9 @@ function createConversation({ hold }: RoomSetup) {
 
   const loaded = hold(
     readPage().then((page) => {
-      header = page ? { id: page.id, created: page.created } : undefined;
+      if (page) {
+        header = { id: page.id, created: page.created, ...(page.delivered ? { delivered: page.delivered } : {}) };
+      }
       // An answer still running when the conversation was last kept was cut off.
       for (const message of page?.messages ?? []) {
         if (message.role === 'agent' && isWriting(message)) {
@@ -187,6 +205,23 @@ function createConversation({ hold }: RoomSetup) {
       data.ready = true;
     }),
   );
+
+  // The demo's arrivals land in the inboxes once: the first time the user is back from long enough
+  // away, just before they are briefed, so the briefing that follows tells of them. Each is dated
+  // to the moment it lands; the page keeps when, so no later room delivers them again. Arrivals
+  // that fail to land are reported, and the user is briefed without them.
+  const deliver = async () => {
+    const seeds = Object.entries(config.arrivalSeeds);
+    if (header.delivered || !seeds.length) return;
+    const now = new Date();
+    try {
+      await Promise.all(seeds.map(([path, text]) => write(`~/${path}`, landed(path, text, now))));
+      header = { ...header, delivered: now.toISOString() };
+      keep();
+    } catch (error) {
+      IRPC_STORE.error(error as Error, [{ arrivals: Object.keys(config.arrivalSeeds) }]);
+    }
+  };
 
   // Whenever a desktop's presence changes or it leaves: the user goes away once none is in use, and
   // is briefed on the desktop that is in use again, when they were gone long enough.
@@ -204,6 +239,7 @@ function createConversation({ hold }: RoomSetup) {
     if (!client) return;
     const profile = await readProfile();
     if (Date.now() - Date.parse(since) >= (profile?.briefAfter ?? config.briefAfter)) {
+      await deliver();
       await brief(client, since, context);
     }
   };
@@ -580,6 +616,11 @@ function lineOf(message: ConversationMessage): string {
     .join(' · ');
 }
 
+/** A new conversation's header. */
+function newHeader(): PageHeader {
+  return { id: crypto.randomUUID(), created: new Date().toISOString() };
+}
+
 /** A conversation page, the current one when unset; `undefined` when there is none yet. */
 async function readPage(page?: number): Promise<ConversationPage | undefined> {
   return (await read<ConversationPage>(pagePath(page), { encoding: 'json' })) ?? undefined;
@@ -591,17 +632,14 @@ async function readPage(page?: number): Promise<ConversationPage | undefined> {
  * one. The numbered page is written before the current one shrinks, so a failure between the two
  * repeats a page rather than losing one.
  *
- * @returns The page's header, made on its first save.
+ * @param data - The conversation.
+ * @param header - The page's header.
  */
-async function savePage(
-  data: Conversation,
-  header?: Pick<ConversationPage, 'id' | 'created'>,
-): Promise<Pick<ConversationPage, 'id' | 'created'>> {
-  const kept = header ?? { id: crypto.randomUUID(), created: new Date().toISOString() };
+async function savePage(data: Conversation, header: PageHeader): Promise<void> {
   const pageOf = (page: number, messages: ConversationMessage[]): ConversationPage => ({
     type: 'chat',
     version: 1,
-    ...kept,
+    ...header,
     name: 'Desktop',
     updated: new Date().toISOString(),
     author: { kind: 'agent' },
@@ -624,5 +662,4 @@ async function savePage(
   }
 
   await write(CONVERSATION_PATH, pageOf(data.page, JSON.parse(JSON.stringify(data.messages))) as never);
-  return kept;
 }

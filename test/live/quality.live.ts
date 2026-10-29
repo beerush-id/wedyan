@@ -286,8 +286,10 @@ describe.skipIf(!CONFIGS.length)('output quality on real asks, live', () => {
       ms: number;
     }> = [];
 
+    // `QUALITY_BEATS=wake,open` limits the run to those beats.
+    const only = process.env.QUALITY_BEATS?.split(',');
     for (const config of CONFIGS) {
-      for (const beat of BEATS) {
+      for (const beat of BEATS.filter(({ name }) => !only || only.includes(name))) {
         for (let run = 1; run <= RUNS; run += 1) {
           const result = await beat.run(config.models);
           for (const check of [...common(result), ...beat.checks(result)]) {

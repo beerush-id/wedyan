@@ -1,6 +1,6 @@
 import { createContextStore, SESSION_STORE, withContext } from '@irpclib/irpc';
 import { resolveBinding } from '@irpclib/irpc/wrangler';
-import { read, write } from '@irpclib/r2-file';
+import { exists, read, write } from '@irpclib/r2-file';
 import { implement } from '@irpclib/r2-file/constructor';
 import { fsContext } from '@irpclib/r2-file/context';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -566,9 +566,74 @@ describe('the conversation', () => {
       return asked && (JSON.parse(asked.content!) as { context: Record<string, unknown> }).context;
     };
     const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+    // How long the user must be away to be briefed: long enough that going idle and straight back,
+    // two calls, never counts as away, even on a busy machine.
+    const AWAY = 200;
 
     beforeEach(() => {
-      setupConversation({ briefAfter: 50 });
+      // No demo arrivals unless a test brings its own.
+      setupConversation({ briefAfter: AWAY, arrivalSeeds: {} });
+    });
+
+    it('delivers the demo’s arrivals once, when the user is first back from long enough away, dated, and briefs them', async () => {
+      const vendor = chatVendor([], says('Welcome back, two things came in.'));
+      setupConversation({
+        briefAfter: AWAY,
+        arrivalSeeds: {
+          'Mail/m1.eml': 'From: Ana <ana@example.com>\nDate: Thu, 29 Oct 2026 06:40:00 +0700\nSubject: Shoot\n\nHi.\n',
+          'Calendar/c1.ics': 'BEGIN:VEVENT\nDTSTART:20261029T030000Z\nDTEND:20261029T040000Z\nEND:VEVENT\n',
+        },
+      });
+      const who = newUser();
+
+      await asDesktop(who, async () => {
+        const desktop = wedyan('tab-a');
+        await until(() => desktop.data.ready);
+        await desktop.ask('presence', 'active');
+
+        // A moment away isn't long enough: nothing lands yet, so nothing is missed.
+        await desktop.ask('presence', 'idle');
+        await desktop.ask('presence', 'active');
+        await pause(100);
+        expect(await exists('~/Mail/m1.eml')).toBe(false);
+        expect(desktop.data.messages).toHaveLength(0);
+
+        await desktop.ask('presence', 'idle');
+        await pause(AWAY + 50);
+        await desktop.ask('presence', 'active', { time: TIME });
+        await until(() => desktop.data.messages.length === 1 && answered(desktop.data));
+        const { arrived } = briefed(vendor.bodies, 0) as { arrived: Array<{ path: string }> };
+        expect(arrived.map(({ path }) => path).sort()).toEqual(['~/Calendar/c1.ics', '~/Mail/m1.eml']);
+
+        const today = new Date();
+        expect(await read('~/Mail/m1.eml', { encoding: 'text' })).toContain(
+          `Date: ${today.toUTCString().slice(0, 16)}`,
+        );
+        const invite = (await read('~/Calendar/c1.ics', { encoding: 'text' })) as string;
+        const day = today.toISOString().slice(0, 10).replaceAll('-', '');
+        expect(invite).toContain(`DTSTART:${day}T030000Z`);
+        expect(invite).toContain(`DTEND:${day}T040000Z`);
+
+        // Coming back again delivers nothing more: the user's own changes stay.
+        await write('~/Mail/m1.eml', 'Read and filed.');
+        await desktop.ask('presence', 'idle');
+        await pause(AWAY + 50);
+        await desktop.ask('presence', 'active');
+        await pause(100);
+        expect(await read('~/Mail/m1.eml', { encoding: 'text' })).toBe('Read and filed.');
+        // Kept on the page, so a later room doesn't deliver them again either.
+        expect(await read(CONVERSATION_PATH, { encoding: 'json' })).toHaveProperty('delivered');
+        desktop.close();
+      });
+    });
+
+    it('bundles the demo’s mail, invite and receipt as its arrivals', () => {
+      expect(Object.keys(CONVERSATION_DEFAULTS.arrivalSeeds).sort()).toEqual([
+        'Calendar/c1.ics',
+        'Mail/m1.eml',
+        'Mail/m2.eml',
+        'Orders/o1.receipt',
+      ]);
     });
 
     it('briefs after the user’s own briefAfter, over the server’s', async () => {
@@ -725,7 +790,7 @@ describe('the conversation', () => {
         expect(first.data.away).toBeUndefined();
         await second.ask('presence', 'idle');
         expect(first.data.away).toBeDefined();
-        await pause(80);
+        await pause(AWAY + 50);
         await second.ask('presence', 'active', { time: TIME });
         await until(() => first.data.messages.length === 3 && answered(first.data));
 
@@ -792,14 +857,14 @@ describe('the conversation', () => {
         expect(desktop.data.messages).toHaveLength(2);
 
         await desktop.ask('presence', 'idle');
-        await pause(80);
+        await pause(AWAY + 50);
         await desktop.ask('presence', 'active');
         await until(() => desktop.data.messages.length === 3 && answered(desktop.data));
         expect((desktop.data.messages[1] as AgentMessage).briefed).toBeDefined();
 
         // Neither the answer told of nor the briefing is told of again.
         await desktop.ask('presence', 'idle');
-        await pause(80);
+        await pause(AWAY + 50);
         await desktop.ask('presence', 'active');
         await pause(150);
         expect(desktop.data.messages).toHaveLength(3);
@@ -821,7 +886,7 @@ describe('the conversation', () => {
       });
 
       await asDesktop(who, async () => {
-        await pause(150);
+        await pause(AWAY + 50);
         const next = wedyan('tab-b');
         await until(() => next.data.ready);
         expect(next.data.away).toBeDefined();

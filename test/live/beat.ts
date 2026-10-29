@@ -7,6 +7,7 @@ import { personaPrompt } from '../../lib/agents/persona.js';
 import { SKILLS } from '../../lib/agents/skills.js';
 import type { AskAction, AskPart, AskState } from '../../lib/kernel/agent.h.js';
 import { type LoopSnapshot, runAgentLoop } from '../../lib/kernel/agent.js';
+import { ARRIVAL_SEEDS } from '../../lib/kernel/arrivals.js';
 
 /** Where models are served, with the keys from `.env`. */
 export const PROVIDERS = {
@@ -40,14 +41,9 @@ export function liveAdapter(): AIAdapter {
   return adapter;
 }
 
-/**
- * What landed in the user's inboxes while they were away, by path, as `r2-file.read` returns it:
- * the demo's own arrivals, `arrivals/Mail/m1.eml` landing at `~/Mail/m1.eml`.
- */
+/** What landed in the user's inboxes while they were away, by path, as `r2-file.read` returns it: the demo's own arrivals. */
 const INBOX: Record<string, string> = Object.fromEntries(
-  Object.entries(
-    import.meta.glob('../../arrivals/**/*', { query: '?raw', import: 'default', eager: true }) as Record<string, string>,
-  ).map(([file, text]) => [`~/${file.slice('../../arrivals/'.length)}`, text]),
+  Object.entries(ARRIVAL_SEEDS).map(([path, text]) => [`~/${path}`, text]),
 );
 
 /** The wake briefing's arrivals, as the conversation gives them. */

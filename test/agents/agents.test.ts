@@ -7,6 +7,7 @@ import { parseSkill, SKILLS } from '../../lib/agents/skills.js';
 import { type UserAgent, withUserAgents } from '../../lib/agents/user-agents.js';
 import { ASSISTANT_ACTOR, type AskAction, type AskState, actorOf } from '../../lib/kernel/agent.h.js';
 import { runAgentLoop } from '../../lib/kernel/agent.js';
+import { IDLE_SETTINGS_LINK } from '../../lib/share/profile.js';
 import { calls, mockVendor, says } from '../kernel/vendor.js';
 
 const AGENTS = createAgents({ router: { model: 'router-m', effort: 'minimal' }, agents: { model: 'agents-m' } });
@@ -124,6 +125,8 @@ describe('agents', () => {
 
   it('onboards through the desktop’s onboarding form, never writing the profile itself', () => {
     expect(AGENTS.wendy.system).toContain('[[ask_user]]The onboarding form.[[/ask_user]]');
+    // And ends inviting the user to try being away, with the link to their idle settings.
+    expect(AGENTS.wendy.system).toContain(`[idle settings](${IDLE_SETTINGS_LINK})`);
     expect(AGENTS.june.system).toContain('{"role": "onboarding"}');
     for (const agent of Object.values(AGENTS)) {
       expect(
