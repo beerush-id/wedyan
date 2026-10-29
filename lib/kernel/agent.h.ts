@@ -1,5 +1,6 @@
 import type { WidgetNode } from '@airlib/react-aui/dynamic';
 import type { IRPCData, RemoteState } from '@irpclib/irpc';
+import { isUserAgent } from '@/lib/share/agents.js';
 import { kernel } from './package.js';
 
 /** What the user asks: the words, plus whatever context the desktop attaches to resolve references. */
@@ -48,6 +49,8 @@ export type AskAction = {
   args: IRPCData;
   after: number;
   ask?: true;
+  /** The agent that wrote it, stamped by the loop; never sent to the desktop. */
+  agent?: string;
 };
 
 /** The actor of what the assistant itself does, whatever the user named it. */
@@ -62,6 +65,17 @@ export const USER_ACTOR = 'user';
  * may not do it, as an agent on a part assigned to another.
  */
 export type ActionMeta = { after: number; actor: string };
+
+/**
+ * Who does an action: the user's own agent that wrote it, by its path, or else the assistant,
+ * whichever of Wedyan's engines wrote it.
+ *
+ * @param action - The action, as the loop stamped it.
+ * @returns Its actor.
+ */
+export function actorOf(action: AskAction): string {
+  return isUserAgent(action.agent) ? action.agent : ASSISTANT_ACTOR;
+}
 
 /**
  * What became of an action or ask: `waiting` once queued, then `done`, `failed` (with `error`),

@@ -11,6 +11,9 @@ export const ENTRY = 'rita';
 /** The agent that composes every widget and form the others describe: June. */
 export const COMPOSER = 'june';
 
+/** The engine that does a specialized job with the skills it has: Lita, and every user's own agent. */
+export const SPECIALIST = 'lita';
+
 /** A model an agent runs on, and how hard it reasons (the provider's default when unset). */
 export interface AgentModel {
   model: string;

@@ -40,13 +40,15 @@ export function liveAdapter(): AIAdapter {
   return adapter;
 }
 
-/** What landed in the user's inboxes while they were away, by path, as `r2-file.read` returns it. */
-const INBOX: Record<string, IRPCData> = {
-  '~/Mail/m1.mail': { id: 'm1', from: 'Ana', subject: 'Notes on the shoot schedule', received: '06:40' },
-  '~/Mail/m2.mail': { id: 'm2', from: 'Rudi', subject: 'Budget approved for episode 2', received: '07:05' },
-  '~/Calendar/c1.event': { id: 'c1', title: 'Casting call with Ana', starts: '10:00 today' },
-  '~/Orders/o1.receipt': { id: 'o1', item: 'Lavalier mic', status: 'Delivered', at: '08:12' },
-};
+/**
+ * What landed in the user's inboxes while they were away, by path, as `r2-file.read` returns it:
+ * the demo's own arrivals, `arrivals/Mail/m1.eml` landing at `~/Mail/m1.eml`.
+ */
+const INBOX: Record<string, string> = Object.fromEntries(
+  Object.entries(
+    import.meta.glob('../../arrivals/**/*', { query: '?raw', import: 'default', eager: true }) as Record<string, string>,
+  ).map(([file, text]) => [`~/${file.slice('../../arrivals/'.length)}`, text]),
+);
 
 /** The wake briefing's arrivals, as the conversation gives them. */
 export const ARRIVED = Object.keys(INBOX).map((path) => ({

@@ -2,13 +2,14 @@ import { GuardError, getContext, type IRPCSubRequest } from '@irpclib/irpc';
 import { resolve } from '@irpclib/r2-file/path';
 import { ACTOR_KEY, AGENT_ACTOR } from '@/lib/kernel/agent.js';
 import { PROFILE_PATH } from '@/lib/share/profile.js';
-import { VAULT_PATH } from '@/lib/share/system.js';
+import { AGENTS_PATH, VAULT_PATH } from '@/lib/share/system.js';
 
 /**
- * Files only the user changes, through the desktop: the profile is every agent's persona, so an
- * agent writing it could steer every ask after it.
+ * Files and folders only the user changes, through the desktop: the profile is every agent's
+ * persona, so an agent writing it could steer every ask after it; and an agent writing in
+ * `~/Agents` could grant itself, or another, any skill.
  */
-export const USER_ONLY = [PROFILE_PATH];
+export const USER_ONLY = [PROFILE_PATH, AGENTS_PATH];
 
 /** Files no agent may change or read: the user's secrets. */
 export const SECRET = [VAULT_PATH];
@@ -33,7 +34,8 @@ export function guardAgentFiles(request: IRPCSubRequest): void {
 
   for (const index of args.changed) {
     const path = pathAt(index);
-    if (path && guarded.some((file) => within(file, path))) refuse(request.name, 'change');
+    // Changing a protected file, anything inside a protected folder, or a folder holding either.
+    if (path && guarded.some((file) => within(file, path) || within(path, file))) refuse(request.name, 'change');
   }
   for (const index of args.read ?? []) {
     const path = pathAt(index);

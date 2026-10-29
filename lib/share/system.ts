@@ -9,6 +9,9 @@ export const MEMOS_PATH = '~/Memos';
 /** The user's secrets: never readable by agents. */
 export const VAULT_PATH = '~/private.vault';
 
+/** The user's own agents, one `.agent` each: only the user changes them, never an agent. */
+export const AGENTS_PATH = '~/Agents';
+
 /**
  * Where what comes from outside lands, one file per thing, written as it arrives: mail, calendar
  * invites, order receipts. What lands in them while the user is away is what they are briefed on.
@@ -40,6 +43,7 @@ export const SYSTEM_FILES: SystemEntry[] = [
   { path: PROFILE_PATH, kind: 'file', holds: 'Who the user is, and the assistant’s voice', writers: ['desktop'] },
   { path: MEMOS_PATH, kind: 'folder', holds: 'What the assistant remembers', writers: ['wedyan', 'desktop'] },
   { path: VAULT_PATH, kind: 'file', holds: 'The user’s secrets', writers: ['desktop'] },
+  { path: AGENTS_PATH, kind: 'folder', holds: 'The user’s own agents, one file each', writers: ['desktop'] },
   { path: INBOXES[0], kind: 'folder', holds: 'Mail, one file each', writers: ['services'] },
   { path: INBOXES[1], kind: 'folder', holds: 'Calendar events and invites, one file each', writers: ['services'] },
   { path: INBOXES[2], kind: 'folder', holds: 'Order receipts, one file each', writers: ['services'] },

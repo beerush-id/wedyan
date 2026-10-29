@@ -1,15 +1,18 @@
-import { AIAdapter, OpenAIDriver } from '@irpclib/ai-kit/worker';
+import { AIAdapter, BasetenDriver, MuseDriver } from '@irpclib/ai-kit/worker';
 import { IRPCRouter } from '@irpclib/irpc';
-import { transport as fileTransport, read } from '@irpclib/r2-file';
+import { transport as fileTransport, list, read } from '@irpclib/r2-file';
 import type { FileWorkerEnv } from '@irpclib/r2-file/constructor';
 import { COMPOSER, createAgents, DEFAULT_MODELS, ENTRY, OPEN_MODELS, SPARK_OPEN } from '@/lib/agents/index.js';
 import { personaPrompt } from '@/lib/agents/persona.js';
 import { SKILLS } from '@/lib/agents/skills.js';
-import { setupKernel } from '@/lib/kernel/agent.js';
+import { withUserAgents } from '@/lib/agents/user-agents.js';
+import { type AgentProfile, setupKernel } from '@/lib/kernel/agent.js';
 // The conversation's handler: the desktop's one live call to Wedyan.
 import '@/lib/kernel/chat.js';
 import { embedWith, setupMemory, type VectorStore } from '@/lib/memory/memory.js';
+import { AGENT_EXTENSION, type AgentFile } from '@/lib/share/agents.js';
 import { PROFILE_PATH, type UserProfile } from '@/lib/share/profile.js';
+import { AGENTS_PATH } from '@/lib/share/system.js';
 import { type SpeechModel, setupSpeech } from '@/lib/speech/speech.js';
 import { wsTransport } from '@/src/api.js';
 
@@ -21,12 +24,6 @@ export type ServerEnv = FileWorkerEnv & {
   /** Baseten's key; with it, Spark Open takes over routing and composing. */
   BASETEN_API_KEY?: string;
 };
-
-/** Where Meta's models are served, over the Responses API. */
-const META_API = 'https://api.meta.ai/v1';
-
-/** Where Baseten serves Spark Open, over the Responses API. */
-const BASETEN_API = 'https://inference.baseten.co/v1';
 
 let ready = false;
 
@@ -53,6 +50,7 @@ export function setupServer(env: ServerEnv): void {
     skills: SKILLS,
     routers: [new IRPCRouter(fileTransport), new IRPCRouter(wsTransport)],
     persona: loadPersona,
+    userAgents: loadUserAgents,
   });
   setupMemory({ vectors: env.VECTORIZE, embed: embedWith(env.AI) });
   setupSpeech(env.AI, keys.meta);
@@ -70,29 +68,38 @@ export async function loadPersona(): Promise<string> {
 }
 
 /**
+ * The agents an ask in this session runs with: Wedyan's, and the user's own from `~/Agents`. A
+ * file that isn't an agent is skipped; without the folder, Wedyan's alone.
+ *
+ * @param agents - Wedyan's agents.
+ * @returns The agents, the user's own added.
+ */
+export async function loadUserAgents(agents: Record<string, AgentProfile>): Promise<Record<string, AgentProfile>> {
+  const listed = await list(AGENTS_PATH).catch(() => undefined);
+  const paths = (listed?.entries ?? [])
+    .filter((entry) => !entry.isDirectory && entry.name.endsWith(AGENT_EXTENSION))
+    .map((entry) => `${AGENTS_PATH}/${entry.name}`);
+  if (!paths.length) return agents;
+
+  const [profile, ...files] = await Promise.all([
+    read<UserProfile>(PROFILE_PATH, { encoding: 'json' }),
+    ...paths.map((path) => read<AgentFile>(path, { encoding: 'json' }).catch(() => null)),
+  ]);
+  const own = paths.flatMap((path, index) => {
+    const file = files[index] as AgentFile | null;
+    return file?.type === 'agent' && Array.isArray(file.skills) ? [{ path, file }] : [];
+  });
+  return withUserAgents(agents, SKILLS, own, (profile as UserProfile | null) ?? undefined);
+}
+
+/**
  * The models the agents call: Meta's, and Spark Open on Baseten when its key is set.
  *
  * @param keys - The Meta Model API key, and Baseten's if there is one.
- * @returns The adapter serving Muse Spark and Muse Wonder, and Spark Open with Baseten.
+ * @returns The adapter serving Muse Spark, Muse Wonder and Muse Image, and Spark Open with Baseten.
  */
-function modelAdapter(keys: { meta: string; baseten?: string }): AIAdapter {
-  const adapter = new AIAdapter().use(
-    new OpenAIDriver({
-      name: 'meta',
-      baseUrl: META_API,
-      apiKey: keys.meta,
-      models: ['muse-spark-1.3', 'muse-wonder-1.0'],
-      api: 'responses',
-    }),
-  );
+export function modelAdapter(keys: { meta: string; baseten?: string }): AIAdapter {
+  const adapter = new AIAdapter().use(new MuseDriver({ apiKey: keys.meta }));
   if (!keys.baseten) return adapter;
-  return adapter.use(
-    new OpenAIDriver({
-      name: 'baseten',
-      baseUrl: BASETEN_API,
-      apiKey: keys.baseten,
-      models: [SPARK_OPEN],
-      api: 'responses',
-    }),
-  );
+  return adapter.use(new BasetenDriver({ apiKey: keys.baseten, models: [SPARK_OPEN] }));
 }

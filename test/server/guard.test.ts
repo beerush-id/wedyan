@@ -85,6 +85,22 @@ describe('agent file guard', () => {
     });
   });
 
+  it('refuses an agent changing anything in ~/Agents, so none can grant itself a skill, but lets it read them', async () => {
+    const user = await setupHome();
+    const kai = { type: 'agent', name: 'Kai', skills: ['motions'] };
+    await as(user, 'desktop', () => write('~/Agents/Animation.agent', kai));
+
+    await as(user, 'agent', async () => {
+      await expect(write('~/Agents/Animation.agent', { ...kai, skills: ['photos'] })).rejects.toThrow(DENIED);
+      await expect(write('~/Agents/Rogue.agent', kai)).rejects.toThrow(DENIED);
+      await expect(copy('~/notes.txt', '~/Agents/Animation.agent')).rejects.toThrow(DENIED);
+      await expect(move('~/Agents/Animation.agent', '~/old.agent')).rejects.toThrow(DENIED);
+      await expect(remove('~/Agents')).rejects.toThrow(DENIED);
+      expect(await read('~/Agents/Animation.agent', { encoding: 'json' })).toEqual(kai);
+    });
+    await as(user, 'desktop', () => write('~/Agents/Animation.agent', { ...kai, name: 'Kai 2' }));
+  });
+
   it('never stands in the desktop’s way', async () => {
     const user = await setupHome();
 

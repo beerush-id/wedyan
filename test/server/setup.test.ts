@@ -4,8 +4,11 @@ import { write } from '@irpclib/r2-file';
 import { implement } from '@irpclib/r2-file/constructor';
 import { fsContext } from '@irpclib/r2-file/context';
 import { beforeAll, describe, expect, it } from 'vitest';
+import { createAgents } from '../../lib/agents/index.js';
 import { homeOf } from '../../lib/server/session.js';
-import { loadPersona } from '../../lib/server/setup.js';
+import { loadPersona, loadUserAgents } from '../../lib/server/setup.js';
+
+const AGENTS = createAgents();
 
 // r2-file runs for real on local R2 and D1.
 
@@ -37,5 +40,31 @@ describe('server setup', () => {
     const persona = await asSession(() => loadPersona());
 
     expect(persona).toContain('You are Wedyan');
+  });
+
+  it('adds the user’s own agents from ~/Agents, skipping files that aren’t agents', async () => {
+    const agents = await asSession(async () => {
+      await write('~/Agents/Animation.agent', {
+        type: 'agent',
+        version: 1,
+        id: 'animation',
+        name: 'Kai',
+        description: 'Animates titles and clips.',
+        created: '…',
+        updated: '…',
+        author: { kind: 'user' },
+        skills: ['motions'],
+      });
+      await write('~/Agents/Notes.agent', { type: 'memo' });
+      await write('~/Agents/readme.txt', 'Not an agent.');
+      return loadUserAgents(AGENTS);
+    });
+
+    expect(Object.keys(agents).filter((name) => !(name in AGENTS))).toEqual(['~/Agents/Animation.agent']);
+    expect(agents.rita.handoffs).toContain('~/Agents/Animation.agent');
+  });
+
+  it('runs with Wedyan’s agents alone when there is no ~/Agents', async () => {
+    expect(await asSession(() => loadUserAgents(AGENTS))).toBe(AGENTS);
   });
 });

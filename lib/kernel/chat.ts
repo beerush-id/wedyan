@@ -14,7 +14,7 @@ import type { DocumentHeader } from '@/lib/documents/types.js';
 import { userPath } from '@/lib/memory/files.js';
 import { PROFILE_PATH, type UserProfile } from '@/lib/share/profile.js';
 import { CONVERSATION_PATH, INBOXES } from '@/lib/share/system.js';
-import { type ActionMeta, ASSISTANT_ACTOR, type AskAction, type AskInput, type WidgetPart } from './agent.h.js';
+import { type ActionMeta, type AskAction, type AskInput, actorOf, type WidgetPart } from './agent.h.js';
 import { askRouter, askWith, toChatInput } from './agent.js';
 import {
   type ActionRecord,
@@ -106,8 +106,8 @@ kernel.construct(wedyan, (client) => {
       // The room's own conversation: every desktop's stream holds the same object.
       state.data = member.data;
 
-      const detach = member.ask('attach', client, (action: AskAction, actor: string) =>
-        state.ask(action.name, action.args, { after: action.after, actor } satisfies ActionMeta),
+      const detach = member.ask('attach', client, (action: AskAction) =>
+        state.ask(action.name, action.args, { after: action.after, actor: actorOf(action) } satisfies ActionMeta),
       );
       state.answer('send', (input) => member.ask('send', input, client));
       state.answer('stop', (answer) => member.ask('stop', answer));
@@ -124,7 +124,7 @@ kernel.construct(wedyan, (client) => {
 });
 
 /** A desktop of the session: runs an action or ask there; `undefined` when it didn't. */
-type Desktop = (action: AskAction, actor: string) => Promise<IRPCData | undefined>;
+type Desktop = (action: AskAction) => Promise<IRPCData | undefined>;
 
 /** A conversation page as kept in a `.chat` file. */
 type ConversationPage = DocumentHeader<'chat'> & Pick<Conversation, 'page' | 'messages' | 'away'>;
@@ -133,7 +133,7 @@ type ConversationPage = DocumentHeader<'chat'> & Pick<Conversation, 'page' | 'me
 type Running = { message: AgentMessage; followUps: string[]; controller: AbortController };
 
 /** What an answer answers: the user's words, or an event Wedyan answers on its own; and where its actions run. */
-type Origin = { client: string; actor: string; to?: string; event?: AgentMessage['event'] };
+type Origin = { client: string; to?: string; event?: AgentMessage['event'] };
 
 /** The words the briefing agent is given; what it briefs is in the context. */
 const WAKE_TEXT = '(The user is back.)';
@@ -239,7 +239,7 @@ function createConversation({ hold }: RoomSetup) {
     for (const message of told) message.briefed = now;
 
     start(
-      { client, actor: ASSISTANT_ACTOR, event: 'wake' },
+      { client, event: 'wake' },
       {
         text: WAKE_TEXT,
         context: {
@@ -255,9 +255,9 @@ function createConversation({ hold }: RoomSetup) {
     );
   };
 
-  const onDesktop = async (client: string, action: AskAction, actor: string) => {
+  const onDesktop = async (client: string, action: AskAction) => {
     const desktop = desktops.get(client) ?? (await comesBack(client));
-    return desktop(action, actor);
+    return desktop(action);
   };
 
   const comesBack = (client: string) =>
@@ -288,7 +288,7 @@ function createConversation({ hold }: RoomSetup) {
       await askWith({
         input: [...viewOf(before), ...toChatInput(input)],
         state: message,
-        desktop: (action) => onDesktop(origin.client, action, origin.actor),
+        desktop: (action) => onDesktop(origin.client, action),
         track: (action, outcome) => {
           const record = records.get(action);
           if (record) {
@@ -296,7 +296,7 @@ function createConversation({ hold }: RoomSetup) {
             return;
           }
           const { name, args, after, ask } = action;
-          message.actions.push({ name, args, after, ...(ask ? { ask } : {}), actor: origin.actor, ...outcome });
+          message.actions.push({ name, args, after, ...(ask ? { ask } : {}), actor: actorOf(action), ...outcome });
           records.set(action, message.actions[message.actions.length - 1]);
         },
         followUps: () => turn.followUps.splice(0),
@@ -431,9 +431,9 @@ async function arrivals(since: string): Promise<Array<{ path: string; name: stri
     .slice(0, config.arrivals);
 }
 
-/** What an answer to the user's words answers, where its actions run, and who does them: the assistant. */
+/** What an answer to the user's words answers, and where its actions run. */
 function originOf(words: UserMessage): Origin {
-  return { client: words.client, actor: ASSISTANT_ACTOR, to: words.id };
+  return { client: words.client, to: words.id };
 }
 
 /**

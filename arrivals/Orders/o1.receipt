@@ -1,0 +1,12 @@
+{
+  "type": "receipt",
+  "version": 1,
+  "id": "o1",
+  "name": "Lavalier mic",
+  "store": "Sound Supply",
+  "status": "delivered",
+  "total": { "amount": 49, "currency": "USD" },
+  "ordered": "2026-10-27T09:00:00.000Z",
+  "delivered": "2026-10-29T01:12:00.000Z",
+  "demo": true
+}

@@ -4,7 +4,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { COMPOSER, createAgents, ENTRY, OPEN_MODELS, SPARK_OPEN } from '../../lib/agents/index.js';
 import { personaPrompt } from '../../lib/agents/persona.js';
 import { parseSkill, SKILLS } from '../../lib/agents/skills.js';
-import type { AskState } from '../../lib/kernel/agent.h.js';
+import { type UserAgent, withUserAgents } from '../../lib/agents/user-agents.js';
+import { ASSISTANT_ACTOR, type AskAction, type AskState, actorOf } from '../../lib/kernel/agent.h.js';
 import { runAgentLoop } from '../../lib/kernel/agent.js';
 import { calls, mockVendor, says } from '../kernel/vendor.js';
 
@@ -221,6 +222,95 @@ Write notes plainly.`);
     expect(() => parseSkill('---\nname: a\ndescription: x\nactions: app.nope\n---\nBody')).toThrow(
       'Skill a names an unknown action: app.nope',
     );
+  });
+});
+
+describe('user agents', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const KAI: UserAgent = {
+    path: '~/Agents/Animation.agent',
+    file: {
+      type: 'agent',
+      version: 1,
+      id: 'animation',
+      name: 'Kai',
+      description: 'Animates titles and clips.',
+      created: '…',
+      updated: '…',
+      author: { kind: 'user' },
+      persona: 'Precise and quick.',
+      skills: ['photos', 'motions', 'no-such-skill'],
+    },
+  };
+  const WITH_KAI = withUserAgents(AGENTS, SKILLS, [KAI], { userName: 'Nanang', assistantName: 'Mira' });
+
+  it('runs each on the specialist engine with the skills its file names, speaking as itself', () => {
+    const kai = WITH_KAI[KAI.path];
+
+    expect(kai).toMatchObject({ name: KAI.path, model: 'agents-m', handoffs: ['rita'], skilled: false });
+    expect(kai.system).toContain(AGENTS.lita.system);
+    expect(kai.system).toContain(SKILLS.photos.system);
+    expect(kai.system).toContain(SKILLS.motions.system);
+    // Both skills offer the file lookups; each tool is offered once.
+    const names = kai.tools.map((tool) => tool.name);
+    expect(new Set(names).size).toBe(names.length);
+    expect(names).toEqual(expect.arrayContaining(SKILLS.photos.tools.map((tool) => tool.name)));
+    expect(kai.persona).toContain('You are Kai');
+    expect(kai.persona).toContain('beside Mira');
+    expect(kai.persona).toContain('Call the user Nanang.');
+    expect(kai.persona).toContain('Precise and quick.');
+  });
+
+  it('lets Rita hand an ask to them, by name or by their kind of work', () => {
+    expect(WITH_KAI.rita.handoffs).toEqual(['wendy', 'lita', KAI.path]);
+    expect(WITH_KAI.rita.system).toContain(`${KAI.path}: Kai, Animates titles and clips.`);
+    expect(WITH_KAI.rita).toMatchObject({ model: 'router-m', effort: 'minimal' });
+    expect(withUserAgents(AGENTS, SKILLS, [])).toBe(AGENTS);
+  });
+
+  it('stamps each action with the agent that wrote it, so the user’s own agent acts as itself', async () => {
+    const vendor = mockVendor(
+      calls({ id: 'h1', name: 'handoff', args: { agent: KAI.path, brief: 'Open Motion.' } }),
+      says('[[say]]On it.[[/say]][[action name=app.open]]{"app":"motions"}[[/action]]'),
+    );
+    const state = mutable<AskState>({ status: 'idle', agent: '', turn: 0, parts: [] });
+    const acted: AskAction[] = [];
+    const adapter = new AIAdapter().use(
+      new OpenAIDriver({
+        name: 'meta',
+        baseUrl: 'https://api.meta.test/v1',
+        apiKey: 'k',
+        models: ['router-m', 'agents-m'],
+      }),
+    );
+
+    await withContext(() =>
+      runAgentLoop({
+        adapter,
+        agents: WITH_KAI,
+        entry: ENTRY,
+        skills: SKILLS,
+        persona: personaPrompt(),
+        input: 'Kai, open Motion',
+        state,
+        resolve: async () => undefined,
+        act: async (action) => {
+          acted.push(action);
+          return undefined;
+        },
+      }),
+    );
+
+    expect(acted).toMatchObject([{ name: 'app.open', agent: KAI.path }]);
+    expect(actorOf(acted[0])).toBe(KAI.path);
+    expect(actorOf({ name: 'app.open', args: {}, after: 0, agent: 'lita' })).toBe(ASSISTANT_ACTOR);
+    // It speaks as itself, not as the assistant.
+    const system = (vendor.bodies[1].instructions ?? JSON.stringify(vendor.bodies[1].messages)) as string;
+    expect(system).toContain('You are Kai');
+    expect(system).not.toContain('You are Wedyan');
   });
 });
 

@@ -12,11 +12,11 @@ import { getAbortSignal, IRPC_STORE, type IRPCData, type IRPCRouter, setContext,
 import { logger } from '../logger.js';
 import {
   type ActionOutcome,
-  ASSISTANT_ACTOR,
   type AskAction,
   type AskInput,
   type AskPart,
   type AskState,
+  actorOf,
   askSeed,
   askWedyan,
 } from './agent.h.js';
@@ -51,6 +51,11 @@ export interface KernelConfig {
   skills?: Record<string, AgentSkill>;
   /** Loads the user's persona at the start of each ask, read on the server. */
   persona?: () => Promise<string | undefined> | string | undefined;
+  /**
+   * Adds the user's own agents to the agents at the start of each ask, read on the server: the
+   * agents the ask runs with.
+   */
+  userAgents?: (agents: Record<string, AgentProfile>) => Promise<Record<string, AgentProfile>>;
   limits?: AgentLoopOptions['limits'];
 }
 
@@ -85,7 +90,7 @@ kernel.construct(askWedyan, (input) =>
     void askWith({
       input: toChatInput(input),
       state: state.data,
-      desktop: (action) => state.ask(action.name, action.args, { after: action.after, actor: ASSISTANT_ACTOR }),
+      desktop: (action) => state.ask(action.name, action.args, { after: action.after, actor: actorOf(action) }),
       followUps: () => followUps.splice(0),
       signal: controller.signal,
     }).then(() => resolve());
@@ -119,11 +124,16 @@ export interface AskOptions {
 export async function askWith(options: AskOptions): Promise<void> {
   if (!config) throw new Error('Kernel is not set up');
   setContext(ACTOR_KEY, AGENT_ACTOR);
-  const { adapter, agents, entry, composer, routers = [], sys = {}, skills, limits } = config;
+  const { adapter, entry, composer, routers = [], sys = {}, skills, limits } = config;
   // A profile that can't be read leaves the ask without a persona rather than stalling it.
   const persona = await Promise.resolve()
     .then(() => config?.persona?.())
     .catch(() => undefined);
+  // Nor can the user's own agents stall it: it runs with Wedyan's alone.
+  const base = config.agents;
+  const agents = await Promise.resolve()
+    .then(() => config?.userAgents?.(base) ?? base)
+    .catch(() => base);
 
   await runAgentLoop({
     adapter,
@@ -180,6 +190,8 @@ export interface AgentProfile {
   effort?: string;
   /** Takes a skill at handoff: its prompt and tools are added to this profile's for the rest of the ask. */
   skilled?: boolean;
+  /** Its own persona, spoken instead of the assistant's: the user's own agents have one. */
+  persona?: string;
 }
 
 /** A job a skilled agent can be handed: what it's for (for the one routing), its prompt and its tools. */
@@ -312,7 +324,9 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
       state.turn = turn;
       const current = turn;
       const tools = toolsOf(agent, agents, skills);
-      const system = persona ? `${agent.system}\n\n${persona}` : agent.system;
+      // The user's own agents speak as themselves; the rest as the assistant.
+      const voice = agent.persona ?? persona;
+      const system = voice ? `${agent.system}\n\n${voice}` : agent.system;
       const callable = new Set(tools.map((tool) => tool.name));
       let asked = false;
       const take = () =>
@@ -333,13 +347,15 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
               ),
             );
           },
-          onAction: (action) => {
+          onAction: (written) => {
             // A call written as an action would run with its result lost: the model must call it.
-            if (callable.has(action.name)) {
-              problems.push(`${action.name} is a call, not an action: call it as a tool to get its result`);
+            if (callable.has(written.name)) {
+              problems.push(`${written.name} is a call, not an action: call it as a tool to get its result`);
               return;
             }
-            if (action.ask) asked = true;
+            if (written.ask) asked = true;
+            // Stamped now: by the time it runs, the ask may have been handed to another agent.
+            const action = { ...written, agent: agent.name };
             if (action.name !== 'ask_user') return actions.add(action, current);
             // Composed now, while the turn streams; the user is asked once their turn in the queue comes.
             actions.add(action, current, compose({ form: String(action.args) }));

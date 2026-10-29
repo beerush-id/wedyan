@@ -1,0 +1,15 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Wedyan//Demo//EN
+BEGIN:VEVENT
+UID:c1.casting@example.com
+DTSTAMP:20261029T001000Z
+DTSTART:20261029T030000Z
+DTEND:20261029T040000Z
+SUMMARY:Casting call with Ana
+DESCRIPTION:Two leads for the lantern short. Ana brings the shortlist.
+ORGANIZER;CN=Ana Putri:mailto:ana@example.com
+ATTENDEE;CN=Me:mailto:me@example.com
+X-WEDYAN-DEMO:TRUE
+END:VEVENT
+END:VCALENDAR
