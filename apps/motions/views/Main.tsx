@@ -22,6 +22,7 @@ import manifest from '../manifest.json';
 import { ChatView, MemoView, StillView } from './Documents.js';
 import { ComposeView } from './Editor.js';
 import { AddIcon, ComposeIcon, DirectIcon, FilterIcon, ProjectsIcon, RenderIcon, SortIcon } from './icons.js';
+import { AssigneeAvatar, assigneeAt } from './assignment.js';
 import { albumOf, albums, duration, length, type Project, projects, shortDate, stagesOf } from './library.js';
 import { MotionsDockOptions, MotionsDockSubject } from './options.js';
 import { ProjectView } from './Project.js';
@@ -438,14 +439,26 @@ export const motions = defineWindow({
 });
 
 /**
- * What can be done with the stage in Compose, in the toolbar: what its render says, and Render,
- * whose video downloads as it finishes — set apart from the window's own controls.
+ * What can be done with the stage in Compose, in the toolbar: what its render says, who it's
+ * assigned to, and Render, whose video downloads as it finishes — set apart from the window's own
+ * controls.
  */
 const ComposeActions = setup(() => {
   const session = sessionCtx.get() as MotionsSession;
+  const assignee = () => session.stage && assigneeAt(session.stage, documentAt(session.stage)?.assignee);
   return () => (
     <>
       <Snippet>{() => (session.status ? <span className="wedyan-motions-notice">{session.status}</span> : null)}</Snippet>
+      <Snippet data={assignee}>
+        {(agent) =>
+          agent ? (
+            <>
+              <AssigneeAvatar assignee={agent} />
+              <Divider orientation="vertical" variant="ghost" size="sm" />
+            </>
+          ) : null
+        }
+      </Snippet>
       <Snippet>
         {() => (
           <Button size="sm" variant="filled" disabled={session.rendering} onClick={() => session.render?.()}>

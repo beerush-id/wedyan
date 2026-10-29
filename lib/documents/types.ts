@@ -22,6 +22,8 @@ export type DocumentHeader<T extends DocumentType = DocumentType> = {
   created: string;
   updated: string;
   author: DocumentAuthor;
+  /** The agent it's assigned to, by path from this file to its `.agent`: who may work on it. */
+  assignee?: string;
   tags?: string[];
 };
 
@@ -115,15 +117,16 @@ export type PersonaDocument = DocumentHeader<'persona'> & {
 };
 
 /**
- * How a generation is asked for, beside its prompt: the model, the picture's aspect ratio, and how
- * long a video or a sound runs, in seconds. Kept on the document, so it's made again the same way.
+ * How a generation is asked for, beside its prompt: the model, the picture's aspect ratio, how
+ * long a video or a sound runs, in seconds, and how many attempts an image is made in at a time.
+ * Kept on the document, so it's made again the same way.
  */
-export type GenerationSettings = { model?: string; aspect?: string; seconds?: number };
+export type GenerationSettings = { model?: string; aspect?: string; seconds?: number; attempts?: number };
 
 /** One generated image as an editable source: how it was asked for, every attempt, its edits, and the one chosen. */
 export type StillDocument = DocumentHeader<'still'> & {
   prompt: string;
-  settings?: Pick<GenerationSettings, 'model' | 'aspect'>;
+  settings?: Pick<GenerationSettings, 'model' | 'aspect' | 'attempts'>;
   /** Images it was made from, by address or path. */
   references: string[];
   /** Who appears in it, by path to each `.persona`. */

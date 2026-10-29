@@ -66,6 +66,17 @@ export function sessionOf(id: string): MotionsSession {
 }
 
 /**
+ * Makes a generated image, video or sound again, from its prompt and settings, as a new attempt:
+ * what the Prompt view's and the dock's Generate do. Nothing in Motions generates yet, so it says so.
+ *
+ * @param session - The window's session.
+ * @param generated - The generated document, and its path.
+ */
+export function generate(session: MotionsSession, generated: GenerativeSource): void {
+  session.status = `Generating ${generated.source.name} isn't connected yet.`;
+}
+
+/**
  * Cuts the clips picked in a session in two at the playhead, as Cmd or Ctrl and B does on the
  * timeline: each one the playhead is inside of, unless its track is locked.
  *

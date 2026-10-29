@@ -815,6 +815,25 @@
   grid-area: properties;
 }
 
+/* Who the picked clip is assigned to: the words at the start, their avatar and name at the end, in from the edge as a group's name is. */
+.wedyan-compose-assignee {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  padding-inline: var(--spacing-sm);
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-label-md-size);
+}
+
+.wedyan-compose-assignee-agent {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  color: var(--color-on-surface);
+  font-weight: 500;
+}
+
 /* The box's groups, one under another, each its name over its fields. */
 .wedyan-compose-properties-fields {
   display: flex;
@@ -965,6 +984,11 @@
   }
 }
 
+/* Making a generated clip again, at the end under its prompt. */
+.wedyan-compose-generate {
+  align-self: flex-end;
+}
+
 /* A line under a group's name when it holds nothing, in from the edge as the name is. */
 .wedyan-compose-property-note {
   margin: 0;
@@ -1033,8 +1057,9 @@
     white-space: nowrap;
   }
 
+  /* Quieter than what it was asked, in the row's own colour, so it reads on a picked row too. */
   & > time {
-    color: var(--color-on-surface-variant);
+    color: color-mix(in oklch, currentColor 72%, transparent);
     font-size: var(--font-label-sm-size);
   }
 }
@@ -1107,22 +1132,21 @@
   }
 
   /*
-   * The ruler row is a frosted glass band, rounded like the lanes: the lanes blur under it as they
-   * scroll up. The corner and the ruler are its two ends.
+   * Every head is a rounded piece of frosted glass: the corner and the ruler across the top, so the
+   * lanes blur under them as they scroll up, and each track's name down the side, so the clips blur
+   * under it as the lanes scroll along.
    */
-  & :is(.aui-timeline-corner, .aui-timeline-ruler) {
-    background-color: color-mix(in oklch, var(--aui-glass-bg) var(--aui-glass-panel-tint), transparent);
-    backdrop-filter: blur(var(--aui-glass-blur)) saturate(1.4);
+  & :is(.aui-timeline-corner, .aui-timeline-ruler, .aui-timeline-headers .aui-reorder-card) {
+    border-radius: var(--radius-sm);
+    /* Denser than the panel's glass, so what passes under a head reads as colour, not as shapes. */
+    background-color: color-mix(in oklch, var(--aui-glass-bg) 90%, transparent);
+    backdrop-filter: blur(calc(var(--aui-glass-blur) * 2)) saturate(1.4);
   }
 
-  & .aui-timeline-corner {
-    border-start-start-radius: var(--radius-sm);
-    border-end-start-radius: var(--radius-sm);
-  }
-
-  & .aui-timeline-ruler {
-    border-start-end-radius: var(--radius-sm);
-    border-end-end-radius: var(--radius-sm);
+  /* The heads at the start edge sit square against it, so nothing scrolled under them peeks round their corners. */
+  & :is(.aui-timeline-corner, .aui-timeline-headers .aui-reorder-card) {
+    border-start-start-radius: 0;
+    border-end-start-radius: 0;
   }
 }
 

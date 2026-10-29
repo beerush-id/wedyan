@@ -1,12 +1,12 @@
 import { $bind, Snippet, setup, template } from '@airlib/react';
-import { EmptyState, Listbox, ListboxOption, Select, Stepper, TextInput } from '@airlib/react-aui';
+import { Button, EmptyState, Listbox, ListboxOption, Select, Stepper, TextInput } from '@airlib/react-aui';
 import type { ReactNode } from 'react';
 import { follow } from '@/lib/documents/store.js';
 import type { GenerativeDocument, PersonaDocument, SoundDocument } from '@/lib/documents/types.js';
 import { ASPECTS, chosenAttempt, isGenerative, MODELS, settingsOf } from './generation.js';
 import { GenerativeIcon, SoundIcon } from './icons.js';
 import { showAttempt } from './placement.js';
-import { type GenerativeClip, generativeClip, type MotionsSession, sessionCtx } from './session.js';
+import { type GenerativeClip, generate, generativeClip, type MotionsSession, sessionCtx } from './session.js';
 
 /** What a generated sound can be. */
 const SOUND_KINDS: Record<SoundDocument['kind'], string> = { music: 'Music', speech: 'Speech', sfx: 'Sound effect', ambience: 'Ambience' };
@@ -26,7 +26,7 @@ export const GenerationFields = setup(() => {
       {(clip) =>
         clip ? (
           <div className="wedyan-compose-properties-fields">
-            {promptGroup(clip)}
+            {promptGroup(clip, session)}
             {settingsGroup(clip)}
             {referencesGroup(clip)}
             {castsGroup(clip)}
@@ -60,19 +60,28 @@ const group = (label: string, children: ReactNode) => (
   </div>
 );
 
-/** What the generation is asked, written onto its document; speech also says its words. */
-const promptGroup = ({ source }: GenerativeClip) =>
-  group(
+/** What the generation is asked, written onto its document — speech also says its words — and Generate, to make it again. */
+const promptGroup = (clip: GenerativeClip, session: MotionsSession) => {
+  const { source } = clip;
+  return group(
     'Prompt',
     <>
       {source.type === 'sound' && source.kind === 'speech' && (
         <TextInput size="xs" multiline rows={3} label="Words" placeholder="The words it says" value={$bind(source, 'text')} />
       )}
       <TextInput size="xs" multiline rows={4} label="Prompt" value={$bind(source, 'prompt')} />
+      <Button size="sm" variant="filled" className="wedyan-compose-generate" onClick={() => generate(session, clip)}>
+        <GenerativeIcon />
+        <span>Generate</span>
+      </Button>
     </>
   );
+};
 
-/** The model, a sound's kind, then a picture's aspect ratio or how long a video or a sound runs. */
+/**
+ * The model, a sound's kind, then a picture's aspect ratio, how many attempts an image is made in,
+ * or how long a video or a sound runs.
+ */
 const settingsGroup = ({ source }: GenerativeClip) => {
   const settings = settingsOf(source);
   const models = MODELS[source.type];
@@ -99,6 +108,20 @@ const settingsGroup = ({ source }: GenerativeClip) => {
           <Select size="xs" label="Aspect ratio" options={ASPECTS} value={$bind(settings, 'aspect')}>
             <Select.Snippet for="trigger">{(value) => <span>{value as string}</span>}</Select.Snippet>
           </Select>
+        </div>
+      )}
+      {source.type === 'still' && (
+        <div className="wedyan-compose-property-row">
+          <span>Attempts</span>
+          <Stepper
+            size="xs"
+            label="Attempts"
+            decrementLabel="Fewer attempts"
+            incrementLabel="More attempts"
+            min={1}
+            max={4}
+            value={$bind(settings, 'attempts')}
+          />
         </div>
       )}
       {source.type !== 'still' && (

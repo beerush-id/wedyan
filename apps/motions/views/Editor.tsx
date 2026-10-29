@@ -23,6 +23,7 @@ import { Clips } from './Clips.js';
 import { download, type RenderedVideo, renderMp4 } from './export.js';
 import { buffers, mediaLoader } from './media.js';
 import { AddIcon } from './icons.js';
+import { AssigneeAvatar, clipAssignee } from './assignment.js';
 import { castsOf, type Project } from './library.js';
 import { addTrack, type Placement, placeAsset, placeText, TRACK_NAMES, type TrackType } from './placement.js';
 import { Properties } from './Properties.js';
@@ -196,6 +197,13 @@ export const ComposeView = setup<ComposeViewProps>((props) => {
             onlanecommand={laneCommand}
             onlanedrop={dropAsset}
           >
+            {/* Who a clip is assigned to, on the clip. */}
+            <TimelineEditor.Snippet for="adornment">
+              {(segment: TimelineSegment) => {
+                const agent = clipAssignee(session.stage, segment);
+                return agent ? <AssigneeAvatar assignee={agent} size="xs" /> : null;
+              }}
+            </TimelineEditor.Snippet>
             {/* Adding a track, then the playhead's timecode, beside the ruler it reads. */}
             <TimelineEditor.Snippet for="corner">
               {() => (

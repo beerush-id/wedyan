@@ -6,6 +6,7 @@
   "created": "2026-10-27T09:20:00Z",
   "updated": "2026-10-27T10:40:00Z",
   "author": { "kind": "agent", "ask": "Hey, let's create a presentation video for Wedyan. 30s video to promote it for the hack." },
+  "assignee": "../../Agents/Director.agent",
   "casts": ["../../People/Wedy.persona", "../../People/Sam.persona"],
   "composition": {
     "id": "g01",
@@ -18,7 +19,7 @@
         "segments": [
           {
             "id": "g01-wedyan-v1",
-            "options": { "type": "svg", "name": "Hero", "meta": { "thumbnail": "https://picsum.photos/seed/wedyan-hero-3/640/360", "source": "Hero.still" }, "speed": 1, "duration": 2, "startFrame": 0 },
+            "options": { "type": "svg", "name": "Hero", "meta": { "thumbnail": "https://picsum.photos/seed/wedyan-hero-3/640/360", "source": "Hero.still", "assignee": "../../Agents/Illustrator.agent" }, "speed": 1, "duration": 2, "startFrame": 0 },
             "props": { "element": "image", "href": "https://picsum.photos/seed/wedyan-hero-3/1920/1080", "x": 0, "y": 0, "width": 1920, "height": 1080, "preserveAspectRatio": "xMidYMid slice" },
             "scenes": [
               { "id": "g01-wedyan-v1-k1", "options": { "atFrame": 0, "meta": { "ease": "in-out" } }, "data": { "scale": 1, "opacity": 1 } },
@@ -49,7 +50,7 @@
         "id": "g01-wedyan-audio",
         "options": { "type": "audio", "name": "Audio" },
         "segments": [
-          { "id": "g01-wedyan-a1", "options": { "type": "audio", "name": "Premium Ambient.mp3", "speed": 1, "duration": 5, "startFrame": 0 }, "props": { "src": "/assets/music.mp3" } }
+          { "id": "g01-wedyan-a1", "options": { "type": "audio", "name": "Premium Ambient.mp3", "meta": { "assignee": "../../Agents/Composer.agent" }, "speed": 1, "duration": 5, "startFrame": 0 }, "props": { "src": "/assets/music.mp3" } }
         ]
       },
       {

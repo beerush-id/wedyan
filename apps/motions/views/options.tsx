@@ -1,11 +1,10 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
-import { $bind, $static, mutable, Show, Snippet, setup, template } from '@airlib/react';
+import { $bind, $static, mutable, Snippet, setup, template } from '@airlib/react';
 import { Button, Divider, Select, Stepper, Toggle, Toolbar, Tooltip } from '@airlib/react-aui';
 import type { WindowRenderProps } from '@airlib/react-aui/desktop';
 import {
   AspectRatioIcon,
   AudioFileIcon,
-  AutoAwesomeIcon,
   DraftIcon,
   ImageIcon,
   MovieIcon,
@@ -15,9 +14,9 @@ import type { Timeline, TimelineSegment } from '@airlib/react/timeline';
 import type { FC, ReactNode } from 'react';
 import {
   EffortIcon,
-  FrameBackIcon,
-  FrameForwardIcon,
+  GenerativeIcon,
   LoopIcon,
+  ModelIcon,
   PauseIcon,
   PlayIcon,
   SnapIcon,
@@ -28,6 +27,7 @@ import {
 import { ASPECTS, chosenAttempt, MODELS, settingsOf } from './generation.js';
 import {
   type GenerativeSource,
+  generate,
   generativeClip,
   generativePick,
   type MotionsSession,
@@ -42,11 +42,6 @@ const MOTION_MODELS = MODELS.take;
 /** How Motions animates a new motion: set from the dock while no stage is open, read when a prompt is sent. */
 export const animation = mutable({ model: 'standard', aspect: '16:9', seconds: 6 });
 
-/**
- * How many attempts the picked generated image is made again in: set from the dock while it's
- * picked, read when a prompt is sent. What it's made with is the document's own settings.
- */
-export const regeneration = mutable({ attempts: 2 });
 
 const WRITING_MODELS = { fast: 'Fast', balanced: 'Balanced', best: 'Best' };
 const EFFORTS = { low: 'Low effort', medium: 'Medium effort', high: 'High effort' };
@@ -80,7 +75,7 @@ export const MotionsDockOptions = setup<WindowRenderProps>((props) => {
       <Toolbar label="Motion settings" variant="text" className={AUI_CLASS.TOOLBAR_OPTIONS}>
         {shelf && <NewMotionOptions />}
         {written && <WritingOptions />}
-        {generated && <RegenerateOptions generated={generated} />}
+        {generated && <RegenerateOptions generated={generated} session={session} />}
         {generated && timeline && <Divider orientation="vertical" size="sm" className="wedyan-motions-options-divider" />}
         {timeline && <Transport timeline={timeline} />}
         {timeline && <Divider orientation="vertical" size="sm" className="wedyan-motions-options-divider" />}
@@ -147,7 +142,7 @@ const NewMotionOptions = template(
         <Select.Snippet for="trigger">
           {(value) => (
             <>
-              <AutoAwesomeIcon /> <span>{MOTION_MODELS[value as string]}</span>
+              <ModelIcon /> <span>{MOTION_MODELS[value as string]}</span>
             </>
           )}
         </Select.Snippet>
@@ -183,7 +178,7 @@ const WritingOptions = template(
         <Select.Snippet for="trigger">
           {(value) => (
             <>
-              <AutoAwesomeIcon /> <span>{WRITING_MODELS[value as keyof typeof WRITING_MODELS]}</span>
+              <ModelIcon /> <span>{WRITING_MODELS[value as keyof typeof WRITING_MODELS]}</span>
             </>
           )}
         </Select.Snippet>
@@ -204,11 +199,12 @@ const WritingOptions = template(
 
 /**
  * How a picked generated image or video — a clip's source, or a row in Direct — is made again: the
- * model, and how many attempts for an image or how long for a video. The picture itself sits
- * beside the options, as the dock's subject.
+ * model, how long a video runs, and Generate. The picture itself sits beside the options, as the
+ * dock's subject.
  */
-const RegenerateOptions = template<{ generated: GenerativeSource }>((props) => {
-  const { source } = props.generated;
+const RegenerateOptions = template<{ generated: GenerativeSource; session: MotionsSession }>((props) => {
+  const { generated, session } = props;
+  const { source } = generated;
   const models = MODELS[source.type];
   const settings = settingsOf(source);
 
@@ -218,37 +214,26 @@ const RegenerateOptions = template<{ generated: GenerativeSource }>((props) => {
         <Select.Snippet for="trigger">
           {(value) => (
             <>
-              <AutoAwesomeIcon /> <span>{models[value as string]}</span>
+              <ModelIcon /> <span>{models[value as string]}</span>
             </>
           )}
         </Select.Snippet>
       </Select>
-      <Show
-        when={() => source.type !== 'still'}
-        fallback={() => (
-          <Stepper
-            size="sm"
-            label="Attempts"
-            decrementLabel="Fewer attempts"
-            incrementLabel="More attempts"
-            min={1}
-            max={4}
-            value={$bind(regeneration, 'attempts')}
-          />
-        )}
-      >
-        {() => (
-          <Stepper
-            size="sm"
-            label="Seconds"
-            decrementLabel="Shorter"
-            incrementLabel="Longer"
-            min={2}
-            max={10}
-            value={$bind(settings, 'seconds')}
-          />
-        )}
-      </Show>
+      {source.type !== 'still' && (
+        <Stepper
+          size="sm"
+          label="Seconds"
+          decrementLabel="Shorter"
+          incrementLabel="Longer"
+          min={2}
+          max={10}
+          value={$bind(settings, 'seconds')}
+        />
+      )}
+      <Button size="sm" variant="filled" onClick={() => generate(session, generated)}>
+        <GenerativeIcon />
+        <span>Generate</span>
+      </Button>
     </>
   );
 }, 'RegenerateOptions');
@@ -268,8 +253,9 @@ const EditTools = template<{ session: MotionsSession }>(({ session }) => (
 ), 'EditTools');
 
 /**
- * The open stage's transport: to the start, a frame back, play or pause, a frame on, to the end,
- * and whether its timeline repeats — the stage's own setting, from its start each time it ends.
+ * The open stage's transport: to where the clip before the playhead starts, play or pause, to where
+ * the next one starts, and whether its timeline repeats — the stage's own setting, from its start
+ * each time it ends.
  */
 const Transport = template<{ timeline: Timeline }>((props) => {
   const { timeline } = props;
@@ -282,8 +268,7 @@ const Transport = template<{ timeline: Timeline }>((props) => {
 
   return (
     <>
-      {action('To the start', <ToStartIcon />, () => timeline.scrub(timeline.startFrame ?? 0))}
-      {action('A frame back', <FrameBackIcon />, () => timeline.step(-1))}
+      {action('Previous clip', <ToStartIcon />, () => jumpToClip(timeline, -1))}
       <Snippet>
         {() =>
           timeline.state.status === 'playing'
@@ -291,8 +276,7 @@ const Transport = template<{ timeline: Timeline }>((props) => {
             : action('Play', <PlayIcon />, () => timeline.play())
         }
       </Snippet>
-      {action('A frame on', <FrameForwardIcon />, () => timeline.step(1))}
-      {action('To the end', <ToEndIcon />, () => timeline.scrub(timeline.totalFrames))}
+      {action('Next clip', <ToEndIcon />, () => jumpToClip(timeline, 1))}
       <Toggle aria-label="Loop" size="sm" variant="text" className={AUI_CLASS.CONTROL_ICON} pressed={$bind(timeline as { repeat?: boolean }, 'repeat')}>
         <LoopIcon />
         <Tooltip>Loop</Tooltip>
@@ -300,3 +284,18 @@ const Transport = template<{ timeline: Timeline }>((props) => {
     </>
   );
 }, 'Transport');
+
+/**
+ * Moves the playhead to where a clip starts, on any track: the nearest start before it, or after it.
+ * It stays put when there's none that way.
+ *
+ * @param timeline - The stage's timeline.
+ * @param direction - -1 for the clip before the playhead, 1 for the one after.
+ */
+function jumpToClip(timeline: Timeline, direction: -1 | 1): void {
+  const frame = timeline.state.frame;
+  const starts = [...timeline.tracks].flatMap((track) => [...track.segments].map((segment) => segment.startFrame));
+  const ahead = direction === 1 ? starts.filter((start) => start > frame) : starts.filter((start) => start < frame);
+  if (!ahead.length) return;
+  void timeline.scrub(direction === 1 ? Math.min(...ahead) : Math.max(...ahead));
+}

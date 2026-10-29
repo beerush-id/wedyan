@@ -31,8 +31,9 @@ import {
   YIcon,
 } from './icons.js';
 import type { ClipSound } from './composition.js';
+import { AssigneeAvatar, type Assignee, clipAssignee } from './assignment.js';
 import { GenerationFields } from './GenerationFields.js';
-import { type MotionsSession, pickedClip, sessionCtx } from './session.js';
+import { generativeClip, type MotionsSession, pickedClip, sessionCtx } from './session.js';
 
 /**
  * A value of a clip its keyframes can animate — of its box, or its sound: its name, its glyph, what
@@ -98,11 +99,45 @@ const SOUND_GROUPS: BoxGroup[] = [
  */
 export const Properties = setup(() => {
   const session = sessionCtx.get() as MotionsSession;
+  // The tab open; Prompt is there only for a generated clip, so while another is picked it reads as Layer.
+  const view = mutable({ tab: 'layer' });
+  const tab = {
+    get value() {
+      return view.tab === 'prompt' && !generativeClip(session) ? 'layer' : view.tab;
+    },
+    set value(name: string) {
+      view.tab = name;
+    },
+  };
 
   return () => (
     <WindowPanel role="region" aria-label="Properties" className="wedyan-compose-group wedyan-compose-properties">
-      <Tabs size="xs" value="layer">
+      {/* Who the picked clip is assigned to, over what can be changed on it. */}
+      <Snippet data={() => pickedAssignee(session)}>
+        {(agent) =>
+          agent ? (
+            <div className="wedyan-compose-assignee">
+              <span>Assigned to</span>
+              <span className="wedyan-compose-assignee-agent">
+                <AssigneeAvatar assignee={agent} size="xs" />
+                <span>{agent.name}</span>
+              </span>
+            </div>
+          ) : null
+        }
+      </Snippet>
+      <Tabs size="xs" value={$bind(tab, 'value')}>
         <TabList label="Properties">
+          <Snippet>
+            {() =>
+              generativeClip(session) && (
+                <TabButton name="prompt">
+                  <GenerativeIcon />
+                  <span>Prompt</span>
+                </TabButton>
+              )
+            }
+          </Snippet>
           <TabButton name="layer">
             <LayerIcon />
             <span>Layer</span>
@@ -115,11 +150,16 @@ export const Properties = setup(() => {
             <TextIcon />
             <span>Text</span>
           </TabButton>
-          <TabButton name="prompt">
-            <GenerativeIcon />
-            <span>Prompt</span>
-          </TabButton>
         </TabList>
+        <Snippet>
+          {() =>
+            generativeClip(session) && (
+              <TabPanel name="prompt">
+                <GenerationFields />
+              </TabPanel>
+            )
+          }
+        </Snippet>
         <TabPanel name="layer">
           <Snippet data={() => boxClip(session)}>
             {(segment) =>
@@ -145,9 +185,6 @@ export const Properties = setup(() => {
               )
             }
           </Snippet>
-        </TabPanel>
-        <TabPanel name="prompt">
-          <GenerationFields />
         </TabPanel>
       </Tabs>
     </WindowPanel>
@@ -472,6 +509,17 @@ function keyedFrames(segment: TimelineSegment,keys: BoxField['key'][]): number[]
  */
 function animated(segment: TimelineSegment,key: BoxField['key']): boolean {
   return segment.scenes.some((scene) => key in scene.data);
+}
+
+/**
+ * The agent the clip picked in a session is assigned to.
+ *
+ * @param session - The window's session.
+ * @returns The agent, or nothing unless one clip, alone, is picked and it's assigned.
+ */
+function pickedAssignee(session: MotionsSession): Assignee | undefined {
+  const segment = pickedClip(session);
+  return segment && clipAssignee(session.stage, segment);
 }
 
 /**
