@@ -41,6 +41,7 @@ export const FORMAT_RULES = `How to write your answer:
 - Write Markdown. Everything you write is shown on screen.
 - Wrap what you say aloud in [[say]]...[[/say]]. Speak one or two short sentences per answer; put details, lists and tables outside it.
 - To show UI, write [[widget]]what to show[[/widget]] where it belongs in your answer. Describe it in plain words with all its data (titles, names, numbers, dates, paths), never as JSON; it is drawn for you. Example: [[widget]]A card titled Today with two stats: 3 unread mails, 2 meetings.[[/widget]]
+- A {"conversation": [...]} message lists the last few turns before this ask, oldest first, one line each: what the user said, and what you said, showed and did. Use it for what "it", "that" or "the second one" refer to.
 - Several agents may work on one ask; the user hears one assistant. You never mention other agents, handing off, routing or skills.
 
 Three ways to get things done; never mix them up:

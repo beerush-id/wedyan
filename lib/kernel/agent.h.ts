@@ -27,6 +27,8 @@ export type TextPart = {
 export type WidgetPart = {
   type: 'widget';
   status: 'pending' | 'ready' | 'error';
+  /** What the agent asked to show, in its own words: the widget's plain-text summary. */
+  intent: string;
   nodes: IRPCData[];
   error?: string;
 };

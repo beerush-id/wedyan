@@ -64,10 +64,6 @@ export const AGENT_ACTOR = 'agent';
 
 kernel.construct(askWedyan, (input) =>
   stream((state, resolve) => {
-    if (!config) throw new Error('Kernel is not set up');
-    setContext(ACTOR_KEY, AGENT_ACTOR);
-    const { adapter, agents, entry, composer, routers = [], sys = {}, skills, limits } = config;
-    const loadPersona = config.persona;
     const controller = new AbortController();
     getAbortSignal()?.addEventListener('abort', () => controller.abort(), { once: true });
 
@@ -77,46 +73,73 @@ kernel.construct(askWedyan, (input) =>
       return true;
     });
 
-    // A profile that can't be read leaves the ask without a persona rather than stalling it.
-    void Promise.resolve()
-      .then(() => loadPersona?.())
-      .catch(() => undefined)
-      .then((persona) =>
-        runAgentLoop({
-          adapter,
-          agents,
-          entry,
-          composer,
-          skills,
-          persona,
-          limits,
-          input: toChatInput(input),
-          state: state.data,
-          // Tools are the server's: a package tool or a `sys.*` call. The desktop is reached by actions and asks.
-          resolve: async (call) => {
-            // A model sends one input object; the tool's router turns it into the stub's own arguments.
-            for (const router of routers) {
-              // The mapping and the stub come from the same package, so they always agree.
-              const tool = router.toolOf(call.name);
-              const args = router.argsOf(call.name, call.args as Record<string, unknown>);
-              if (tool && args) return tool.pkg.call(tool.spec.name, ...args) as Promise<IRPCData>;
-            }
-            return sys[call.name]?.(call.args);
-          },
-          act: async (action) =>
-            sys[action.name]
-              ? sys[action.name](action.args)
-              : state.ask(action.name, action.args, { after: action.after }),
-          followUps: () => followUps.splice(0),
-          signal: controller.signal,
-        }),
-      )
-      .then(() => resolve());
+    void askWith({
+      input: toChatInput(input),
+      state: state.data,
+      desktop: (action) => state.ask(action.name, action.args, { after: action.after }),
+      followUps: () => followUps.splice(0),
+      signal: controller.signal,
+    }).then(() => resolve());
 
     // Returned before the ask finishes, so closing the call can stop it.
     return () => controller.abort();
   }, askSeed()),
 );
+
+/** One ask to run with the kernel's setup: what the agents read, where the answer goes, and its desktop. */
+export interface AskOptions {
+  input: ChatInput;
+  /** The answer's live state, mutated in place as it runs. */
+  state: AskState;
+  /** Runs an action or ask on the desktop; `undefined` means no desktop ran it. */
+  desktop: (action: AskAction) => Promise<IRPCData | undefined>;
+  /** What the user said while the ask was running. */
+  followUps?: () => string[];
+  signal?: AbortSignal;
+}
+
+/**
+ * Runs one ask with the kernel's setup: the agents and their persona, server tools through the
+ * routers and `sys.*`, and actions on the desktop. Every call it makes runs as the agent actor.
+ *
+ * @param options - The ask, where its answer streams, and how the desktop is reached.
+ * @returns Once the ask has ended; never throws, the state says how it ended.
+ */
+export async function askWith(options: AskOptions): Promise<void> {
+  if (!config) throw new Error('Kernel is not set up');
+  setContext(ACTOR_KEY, AGENT_ACTOR);
+  const { adapter, agents, entry, composer, routers = [], sys = {}, skills, limits } = config;
+  // A profile that can't be read leaves the ask without a persona rather than stalling it.
+  const persona = await Promise.resolve()
+    .then(() => config?.persona?.())
+    .catch(() => undefined);
+
+  await runAgentLoop({
+    adapter,
+    agents,
+    entry,
+    composer,
+    skills,
+    persona,
+    limits,
+    input: options.input,
+    state: options.state,
+    // Tools are the server's: a package tool or a `sys.*` call. The desktop is reached by actions and asks.
+    resolve: async (call) => {
+      // A model sends one input object; the tool's router turns it into the stub's own arguments.
+      for (const router of routers) {
+        // The mapping and the stub come from the same package, so they always agree.
+        const tool = router.toolOf(call.name);
+        const args = router.argsOf(call.name, call.args as Record<string, unknown>);
+        if (tool && args) return tool.pkg.call(tool.spec.name, ...args) as Promise<IRPCData>;
+      }
+      return sys[call.name]?.(call.args);
+    },
+    act: async (action) => (sys[action.name] ? sys[action.name](action.args) : options.desktop(action)),
+    followUps: options.followUps,
+    signal: options.signal,
+  });
+}
 
 /** One agent: a model, its system prompt (format and skill), its calls, and who it may hand off to. */
 export interface AgentProfile {
@@ -650,8 +673,13 @@ async function resolveCall(resolve: AgentLoopOptions['resolve'], call: ToolCall,
   }
 }
 
-/** The ask as the model reads it: the desktop's context first, then the words. */
-function toChatInput(input: AskInput): ChatMessage[] {
+/**
+ * The ask as the model reads it: the desktop's context first, then the words.
+ *
+ * @param input - The user's words and the desktop's context.
+ * @returns The ask's messages, in order.
+ */
+export function toChatInput(input: AskInput): ChatMessage[] {
   const words: ChatMessage = { role: 'user', type: 'text', text: input.text };
   return input.context ? [{ role: 'user', type: 'object', data: { context: input.context } }, words] : [words];
 }

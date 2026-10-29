@@ -78,7 +78,9 @@ describe('part writer', () => {
 
     feed('il, with 3 unread.[[/widget]]');
     end();
-    expect(state.parts).toEqual([{ type: 'widget', status: 'pending', nodes: [] }]);
+    expect(state.parts).toEqual([
+      { type: 'widget', status: 'pending', intent: 'A card titled Mail, with 3 unread.', nodes: [] },
+    ]);
     expect(widgets).toEqual([{ part: state.parts[0], intent: 'A card titled Mail, with 3 unread.' }]);
     // The stored element itself, so filling it later reaches the reactive list.
     expect(widgets[0].part).toBe(state.parts[0]);

@@ -6,6 +6,8 @@ import { COMPOSER, createAgents, DEFAULT_MODELS, ENTRY, OPEN_MODELS, SPARK_OPEN 
 import { personaPrompt } from '@/lib/agents/persona.js';
 import { SKILLS } from '@/lib/agents/skills.js';
 import { setupKernel } from '@/lib/kernel/agent.js';
+// The conversation's handler: the desktop's one live call to Wedyan.
+import '@/lib/kernel/chat.js';
 import { embedWith, setupMemory, type VectorStore } from '@/lib/memory/memory.js';
 import { PROFILE_PATH, type UserProfile } from '@/lib/share/profile.js';
 import { type SpeechModel, setupSpeech } from '@/lib/speech/speech.js';

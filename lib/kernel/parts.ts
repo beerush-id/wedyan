@@ -73,7 +73,7 @@ export function createPartWriter(parts: AskPart[], hooks: PartWriterHooks): Part
       hooks.onInvalid('A widget needs a description of what to show');
       return;
     }
-    parts.push({ type: 'widget', status: 'pending', nodes: [] });
+    parts.push({ type: 'widget', status: 'pending', intent, nodes: [] });
     // Handed over through the stored element, so filling it later reaches a reactive list.
     hooks.onWidget(parts[parts.length - 1] as WidgetPart, intent);
   };
