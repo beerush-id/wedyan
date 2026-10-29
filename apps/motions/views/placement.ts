@@ -1,7 +1,8 @@
 import type { Timeline, TimelineSegment, TimelineTrack } from '@airlib/react/timeline';
 import { follow } from '@/lib/documents/store.js';
-import type { MotionAsset, StillDocument, TakeDocument } from '@/lib/documents/types.js';
+import type { GenerativeDocument, MotionAsset } from '@/lib/documents/types.js';
 import type { AudioClip, HtmlClip, StageProps, SvgClip, VideoClip } from './composition.js';
+import { chosenAttempt, isGenerative } from './generation.js';
 
 /** The tracks a stage can be given, by type, and what each is called. */
 export const TRACK_NAMES = { video: 'Video', audio: 'Audio', text: 'Text' };
@@ -14,6 +15,9 @@ const TEXT_SECONDS = 3;
 
 /** Where a clip goes: on a track, if one fits, and at a frame. */
 export type Placement = { track?: TimelineTrack; frame: number };
+
+/** The stage a clip is put on: its timeline, its size, its path, and the path of its project. */
+export type PlacementStage = { timeline: Timeline; size: StageProps; path: string; project: string };
 
 /**
  * Gives a stage's timeline a new, empty track: a picture track drawn over the others, or a sound
@@ -30,45 +34,70 @@ export function addTrack(timeline: Timeline, type: TrackType): TimelineTrack {
 
 /**
  * Puts a project's asset on a stage's timeline as a clip filling the stage: a picture or a still's
- * chosen attempt as an image, footage or a take's chosen attempt as video, sound as audio. It runs
- * as long as its media does, or a few seconds for a picture. It goes on the given track when that
- * track carries its kind and is free for its time, else on the top such track, else on a new one.
+ * chosen attempt as an image, footage or a take's chosen attempt as video, sound or a generated
+ * sound's chosen attempt as audio. It runs as long as its media does, or a few seconds for a
+ * picture. A clip from a generated document names it in `meta.source`, by path from the stage, so
+ * the prompt view finds it. It goes on the given track when that track carries its kind and is free
+ * for its time, else on the top such track, else on a new one.
  *
- * @param timeline - The stage's timeline.
- * @param from - The project's path, which the asset's address is from.
+ * @param stage - The stage it goes on.
  * @param asset - The asset.
- * @param stage - The stage's size.
  * @param at - Where it goes.
  * @returns The new clip, or nothing when the asset has no media to show.
  */
-export async function placeAsset(
-  timeline: Timeline,
-  from: string,
-  asset: MotionAsset,
-  stage: StageProps,
-  at: Placement
-): Promise<TimelineSegment | undefined> {
-  const box = { x: 0, y: 0, width: stage.width, height: stage.height };
+export async function placeAsset(stage: PlacementStage, asset: MotionAsset, at: Placement): Promise<TimelineSegment | undefined> {
+  const { timeline, size } = stage;
+  const box = { x: 0, y: 0, width: size.width, height: size.height };
   const name = asset.name;
 
-  if (asset.kind === 'image' || asset.kind === 'still') {
-    const href = asset.kind === 'image' ? asset.src : chosenStill(from, asset);
-    if (!href) return;
-    const props: SvgClip = { element: 'image', href, ...box, preserveAspectRatio: 'xMidYMid slice' };
-    return place(timeline, 'video', at, { type: 'svg', name, duration: CLIP_SECONDS, meta: { thumbnail: href } }, props);
+  if (asset.kind === 'image' || asset.kind === 'video' || asset.kind === 'audio') {
+    if (asset.kind === 'image') {
+      const props: SvgClip = { element: 'image', href: asset.src, ...box, preserveAspectRatio: 'xMidYMid slice' };
+      return place(timeline, 'video', at, { type: 'svg', name, duration: CLIP_SECONDS, meta: { thumbnail: asset.src } }, props);
+    }
+    const props: VideoClip | AudioClip = asset.kind === 'video' ? { src: asset.src, ...box } : { src: asset.src };
+    const type = asset.kind === 'video' ? 'video' : 'audio';
+    return place(timeline, type, at, { type, name, duration: await mediaSeconds(asset.src, asset.kind) }, props);
   }
 
-  if (asset.kind === 'audio') {
-    const props: AudioClip = { src: asset.src };
-    return place(timeline, 'audio', at, { type: 'audio', name, duration: await mediaSeconds(asset.src, 'audio') }, props);
-  }
+  const found = follow(stage.project, asset.src);
+  if (!isGenerative(found.document)) return;
+  const source = found.document;
+  const attempt = chosenAttempt(source);
+  if (!attempt) return;
+  const meta = { source: pathFrom(stage.path, found.path) };
 
-  const take = asset.kind === 'take' ? chosenTake(from, asset) : undefined;
-  const src = take?.src ?? (asset.kind === 'video' ? asset.src : undefined);
-  if (!src) return;
-  const props: VideoClip = { src, ...box };
-  const duration = take?.seconds ?? (await mediaSeconds(src, 'video'));
-  return place(timeline, 'video', at, { type: 'video', name, duration, meta: take?.poster ? { thumbnail: take.poster } : undefined }, props);
+  if (source.type === 'still') {
+    const props: SvgClip = { element: 'image', href: attempt.src, ...box, preserveAspectRatio: 'xMidYMid slice' };
+    return place(timeline, 'video', at, { type: 'svg', name, duration: CLIP_SECONDS, meta: { ...meta, thumbnail: attempt.src } }, props);
+  }
+  const { seconds, poster } = attempt as { seconds: number; poster?: string };
+  if (source.type === 'sound') {
+    const props: AudioClip = { src: attempt.src };
+    return place(timeline, 'audio', at, { type: 'audio', name, duration: seconds, meta }, props);
+  }
+  const props: VideoClip = { src: attempt.src, ...box };
+  return place(timeline, 'video', at, { type: 'video', name, duration: seconds, meta: poster ? { ...meta, thumbnail: poster } : meta }, props);
+}
+
+/**
+ * Makes a generated document show another of its attempts, and its clip with it: the attempt is
+ * chosen, and the clip's picture or media is the attempt's.
+ *
+ * @param segment - The clip made from the document.
+ * @param source - The generated document.
+ * @param id - The attempt to show, by id.
+ */
+export function showAttempt(segment: TimelineSegment, source: GenerativeDocument, id: string): void {
+  const attempt = source.attempts.find((each) => each.id === id);
+  if (!attempt) return;
+  source.chosen = id;
+  const props = segment.props as { href?: string; src?: string };
+  const thumbnail = source.type === 'still' ? attempt.src : (attempt as { poster?: string }).poster;
+  if (source.type === 'still') props.href = attempt.src;
+  else props.src = attempt.src;
+  if (thumbnail) (segment.meta ??= {}).thumbnail = thumbnail;
+  if (segment.timeline.status !== 'playing') void segment.timeline.scrub(segment.timeline.frame);
 }
 
 /**
@@ -129,27 +158,18 @@ function place(
 }
 
 /**
- * A still's chosen attempt, by address.
+ * A drive path as written in a document at another path: from that document's folder.
  *
- * @param from - The project's path.
- * @param asset - The still's asset.
- * @returns Its address, if the still and its attempt are there.
+ * @param from - The path of the document it's written in.
+ * @param to - The path it leads to, from the drive's root.
+ * @returns The path as written, e.g. `Hero.still` or `../Shared/Hero.still`.
  */
-function chosenStill(from: string, asset: MotionAsset): string | undefined {
-  const still = follow<'still'>(from, asset.src).document as StillDocument | undefined;
-  return still?.attempts.find((attempt) => attempt.id === still.chosen)?.src;
-}
-
-/**
- * A take's chosen attempt.
- *
- * @param from - The project's path.
- * @param asset - The take's asset.
- * @returns The attempt, if the take and its attempt are there.
- */
-function chosenTake(from: string, asset: MotionAsset): TakeDocument['attempts'][number] | undefined {
-  const take = follow<'take'>(from, asset.src).document as TakeDocument | undefined;
-  return take?.attempts.find((attempt) => attempt.id === take.chosen);
+function pathFrom(from: string, to: string): string {
+  const base = from.split('/').slice(0, -1);
+  const target = to.split('/');
+  let shared = 0;
+  while (shared < base.length && base[shared] === target[shared]) shared++;
+  return [...base.slice(shared).map(() => '..'), ...target.slice(shared)].join('/');
 }
 
 /**

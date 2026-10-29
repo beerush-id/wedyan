@@ -25,6 +25,7 @@ import {
   ToEndIcon,
   ToStartIcon,
 } from './icons.js';
+import { ASPECTS, chosenAttempt, MODELS, settingsOf } from './generation.js';
 import {
   type GenerativeSource,
   generativeClip,
@@ -36,18 +37,16 @@ import {
   writingPicked,
 } from './session.js';
 
-const MODELS = { standard: 'Standard', cinematic: 'Cinematic' };
-const IMAGE_MODELS = { standard: 'Standard', detailed: 'Detailed' };
-const ASPECTS = { '16:9': '16:9', '9:16': '9:16', '1:1': '1:1' };
+const MOTION_MODELS = MODELS.take;
 
 /** How Motions animates a new motion: set from the dock while no stage is open, read when a prompt is sent. */
 export const animation = mutable({ model: 'standard', aspect: '16:9', seconds: 6 });
 
 /**
- * How the picked generative clip is made again: set from the dock while it's picked, read when a
- * prompt is sent — attempts for a generated image, seconds for a generated video.
+ * How many attempts the picked generated image is made again in: set from the dock while it's
+ * picked, read when a prompt is sent. What it's made with is the document's own settings.
  */
-export const regeneration = mutable({ model: 'standard', attempts: 2, seconds: 4 });
+export const regeneration = mutable({ attempts: 2 });
 
 const WRITING_MODELS = { fast: 'Fast', balanced: 'Balanced', best: 'Best' };
 const EFFORTS = { low: 'Low effort', medium: 'Medium effort', high: 'High effort' };
@@ -108,11 +107,11 @@ export const MotionsDockSubject = setup<WindowRenderProps>((props) => {
   };
 }, 'MotionsDockSubject');
 
-/** A generated image or video, as the picture it shows now. */
+/** A generated image, video or sound, as the picture it shows now; a sound has none. */
 const SourceSubject = template<{ generated: GenerativeSource }>((props) => {
   const { source } = props.generated;
-  const chosen = source.attempts.find((attempt) => attempt.id === source.chosen) ?? source.attempts[0];
-  const picture = source.type === 'take' ? (chosen as { poster?: string })?.poster : chosen?.src;
+  const chosen = chosenAttempt(source);
+  const picture = source.type === 'take' ? (chosen as { poster?: string })?.poster : source.type === 'still' ? chosen?.src : undefined;
   return <SubjectTile name={source.name} picture={picture} />;
 }, 'SourceSubject');
 
@@ -144,11 +143,11 @@ const SubjectTile = template<{ name: string; picture?: string; glyph?: FC }>(({ 
 const NewMotionOptions = template(
   () => (
     <>
-      <Select size="sm" label="Model" options={MODELS} value={$bind(animation, 'model')}>
+      <Select size="sm" label="Model" options={MOTION_MODELS} value={$bind(animation, 'model')}>
         <Select.Snippet for="trigger">
           {(value) => (
             <>
-              <AutoAwesomeIcon /> <span>{MODELS[value as keyof typeof MODELS]}</span>
+              <AutoAwesomeIcon /> <span>{MOTION_MODELS[value as string]}</span>
             </>
           )}
         </Select.Snippet>
@@ -210,21 +209,22 @@ const WritingOptions = template(
  */
 const RegenerateOptions = template<{ generated: GenerativeSource }>((props) => {
   const { source } = props.generated;
-  const models = source.type === 'take' ? MODELS : IMAGE_MODELS;
+  const models = MODELS[source.type];
+  const settings = settingsOf(source);
 
   return (
     <>
-      <Select size="sm" label="Model" options={models} value={$bind(regeneration, 'model')}>
+      <Select size="sm" label="Model" options={models} value={$bind(settings, 'model')}>
         <Select.Snippet for="trigger">
           {(value) => (
             <>
-              <AutoAwesomeIcon /> <span>{models[value as keyof typeof models]}</span>
+              <AutoAwesomeIcon /> <span>{models[value as string]}</span>
             </>
           )}
         </Select.Snippet>
       </Select>
       <Show
-        when={() => source.type === 'take'}
+        when={() => source.type !== 'still'}
         fallback={() => (
           <Stepper
             size="sm"
@@ -245,7 +245,7 @@ const RegenerateOptions = template<{ generated: GenerativeSource }>((props) => {
             incrementLabel="Longer"
             min={2}
             max={10}
-            value={$bind(regeneration, 'seconds')}
+            value={$bind(settings, 'seconds')}
           />
         )}
       </Show>

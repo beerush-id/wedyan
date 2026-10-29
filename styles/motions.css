@@ -965,6 +965,80 @@
   }
 }
 
+/* A line under a group's name when it holds nothing, in from the edge as the name is. */
+.wedyan-compose-property-note {
+  margin: 0;
+  padding-inline: var(--spacing-sm);
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-label-md-size);
+}
+
+/* A small square picture, filled whatever its shape, or a blank — with a sound's glyph — when there's none. */
+.wedyan-compose-thumb {
+  display: grid;
+  place-items: center;
+  flex: none;
+  inline-size: 2.5rem;
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  background-color: var(--color-surface-high);
+  color: var(--color-on-surface-variant);
+  --aui-icon-size: 1rem;
+}
+
+/* A generation's references: pictures in a row that wraps. */
+.wedyan-compose-thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Who's in it: each their look and name on a line. */
+.wedyan-compose-casts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  & > li {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    font-size: var(--font-label-md-size);
+  }
+}
+
+/* An attempt in the history: its picture, then what it was asked and when, one over the other. */
+.wedyan-compose-attempt {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-inline-size: 0;
+}
+
+.wedyan-compose-attempt-text {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+
+  & > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  & > time {
+    color: var(--color-on-surface-variant);
+    font-size: var(--font-label-sm-size);
+  }
+}
+
 /* An asset or a cast: its picture, square and filled whatever its shape, or a blank for sound, and its name under it. */
 .wedyan-compose-tiles {
   display: grid;

@@ -2,7 +2,8 @@ import { splitSegment } from '@airlib/aria';
 import { createContext, mutable } from '@airlib/react';
 import type { Timeline, TimelineSegment } from '@airlib/react/timeline';
 import { documentAt, follow } from '@/lib/documents/store.js';
-import type { MotionAsset, StillDocument, TakeDocument } from '@/lib/documents/types.js';
+import type { GenerativeDocument, MotionAsset } from '@/lib/documents/types.js';
+import { isGenerative } from './generation.js';
 import type { Placement } from './placement.js';
 import type { MotionsRoute } from './route.js';
 
@@ -32,10 +33,10 @@ export type MotionsSession = {
   snap: boolean;
 };
 
-/** A generated image or video, by path: what its generation is made again from. */
+/** A generated image, video or sound, by path: what its generation is made again from. */
 export type GenerativeSource = {
   path: string;
-  source: StillDocument | TakeDocument;
+  source: GenerativeDocument;
 };
 
 /** A clip made from a generated image or video, and the document it was generated as. */
@@ -105,8 +106,9 @@ export function pickedClip(session: MotionsSession): TimelineSegment | undefined
 }
 
 /**
- * The clip picked in a session, when it is the only one and was made from a generated image or
- * video: its segment names the `.still` or `.take` it shows in `meta.source`, by path from the stage.
+ * The clip picked in a session, when it is the only one and was made from a generated image, video
+ * or sound: its segment names the `.still`, `.take` or `.sound` it shows in `meta.source`, by path
+ * from the stage.
  *
  * @param session - The window's session.
  * @returns The clip and its source, or nothing unless one generative clip, alone, is picked.
@@ -116,8 +118,8 @@ export function generativeClip(session: MotionsSession): GenerativeClip | undefi
   const source = segment?.meta?.source;
   if (!segment || !session.stage || typeof source !== 'string') return;
 
-  const found = follow<'still' | 'take'>(session.stage, source);
-  return found.document ? { segment, path: found.path, source: found.document as StillDocument | TakeDocument } : undefined;
+  const found = follow(session.stage, source);
+  return isGenerative(found.document) ? { segment, path: found.path, source: found.document } : undefined;
 }
 
 /**
@@ -133,7 +135,7 @@ export function writingPicked(session: MotionsSession): boolean {
 }
 
 /**
- * The row picked in Direct, when it's a generated image or video.
+ * The row picked in Direct, when it's a generated image, video or sound.
  *
  * @param session - The window's session.
  * @returns The generated document and its path, or nothing unless Direct shows one.
@@ -142,5 +144,5 @@ export function generativePick(session: MotionsSession): GenerativeSource | unde
   const { route } = session;
   if (route?.view !== 'motion' || !route.item) return;
   const document = documentAt(route.item);
-  return document?.type === 'still' || document?.type === 'take' ? { path: route.item, source: document } : undefined;
+  return isGenerative(document) ? { path: route.item, source: document } : undefined;
 }

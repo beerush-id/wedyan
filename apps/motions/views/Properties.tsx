@@ -31,6 +31,7 @@ import {
   YIcon,
 } from './icons.js';
 import type { ClipSound } from './composition.js';
+import { GenerationFields } from './GenerationFields.js';
 import { type MotionsSession, pickedClip, sessionCtx } from './session.js';
 
 /**
@@ -144,6 +145,9 @@ export const Properties = setup(() => {
               )
             }
           </Snippet>
+        </TabPanel>
+        <TabPanel name="prompt">
+          <GenerationFields />
         </TabPanel>
       </Tabs>
     </WindowPanel>

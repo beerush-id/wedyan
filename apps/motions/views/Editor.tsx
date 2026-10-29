@@ -1,5 +1,5 @@
 import { aria, canCaptureVideo, type VideoStageAria } from '@airlib/aria';
-import { $bind, $static, $use, For, onCleanup, onMount, Show, Snippet, setup, template } from '@airlib/react';
+import { $bind, $static, $use, For, onCleanup, onMount, Show, Snippet, setup, snapshot, template } from '@airlib/react';
 import {
   Button,
   ContextMenu,
@@ -93,10 +93,13 @@ type ComposeViewProps = {
 export const ComposeView = setup<ComposeViewProps>((props) => {
   const source = $static(() => props.source);
   const project = $static(() => props.project);
-  const stage = source.composition.props;
-  const portrait = stage.height > stage.width;
-  const timeline = createTimeline({ frameRate: source.composition.options.frameRate });
-  timeline.hydrate(source.composition);
+  // The stage's size, as the document has it now.
+  const stage = () => source.composition.props;
+  // The timeline is the editing copy of the composition, which is saved back whole: it starts from
+  // a copy of the document, not from reads that would follow it.
+  const { composition } = snapshot(source);
+  const timeline = createTimeline({ frameRate: composition.options.frameRate });
+  timeline.hydrate(composition);
 
   // The window and its dock follow what's open here: this stage's timeline, the clips picked on it,
   // whether dragging snaps — for this stage only, starting off — and its render, started from the
@@ -119,7 +122,7 @@ export const ComposeView = setup<ComposeViewProps>((props) => {
       session.rendering = true;
     },
     place: (asset: MotionAsset, at: Placement = { frame: timeline.state.frame }) => {
-      void placeAsset(timeline, project.path, asset, stage, at).then((segment) => {
+      void placeAsset({ timeline, size: stage(), path: session.stage as string, project: project.path }, asset, at).then((segment) => {
         if (segment) session.clips = [segment.id];
       });
     },
@@ -146,7 +149,7 @@ export const ComposeView = setup<ComposeViewProps>((props) => {
   };
   const laneCommand = (event: CustomEvent<TimelineLaneCommand>) => {
     const { name, track, frame } = event.detail;
-    if (name === 'add-text') session.clips = [placeText(timeline, stage, { track, frame }).id];
+    if (name === 'add-text') session.clips = [placeText(timeline, stage(), { track, frame }).id];
   };
 
   const finish = (result?: RenderedVideo) => {
@@ -158,8 +161,8 @@ export const ComposeView = setup<ComposeViewProps>((props) => {
   return () => (
     <div
       className="wedyan-compose"
-      data-shape={portrait ? 'portrait' : 'landscape'}
-      style={{ '--wedyan-stage-ratio': `${stage.width} / ${stage.height}`, '--wedyan-stage-aspect': stage.width / stage.height } as never}
+      data-shape={stage().height > stage().width ? 'portrait' : 'landscape'}
+      style={{ '--wedyan-stage-ratio': `${stage().width} / ${stage().height}`, '--wedyan-stage-aspect': stage().width / stage().height } as never}
     >
       <div className="wedyan-compose-layout">
         <Sources project={project} open={props.open} />
@@ -169,8 +172,8 @@ export const ComposeView = setup<ComposeViewProps>((props) => {
               <Stage
                 label={source.name}
                 timeline={timeline}
-                width={stage.width}
-                height={stage.height}
+                width={stage().width}
+                height={stage().height}
                 media={previewMedia}
                 labels={STAGE_LABELS}
               >
@@ -382,9 +385,11 @@ const MotionRender = setup<MotionRenderProps>((props) => {
   const source = $static(() => props.source);
   const session = sessionCtx.get() as MotionsSession;
   const stop = new AbortController();
+  // A render is of the composition as it is when the render starts: each stage takes a copy.
+  const { composition } = snapshot(source);
   const timelines = Array.from({ length: Math.max(1, $static(() => props.stages) ?? RENDER_STAGES) }, () => {
-    const timeline = createTimeline({ frameRate: source.composition.options.frameRate });
-    timeline.hydrate(source.composition);
+    const timeline = createTimeline({ frameRate: composition.options.frameRate });
+    timeline.hydrate(composition);
     return timeline;
   });
   const stages: VideoStageAria[] = [];

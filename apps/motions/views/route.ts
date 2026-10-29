@@ -8,7 +8,7 @@ import { stagesOf } from './library.js';
  */
 export type MotionsRoute = {
   /** Which view shows: the library, an album, or the type of the document open. */
-  view: 'library' | 'album' | Exclude<DocumentType, 'take'>;
+  view: 'library' | 'album' | Exclude<DocumentType, 'take' | 'sound'>;
   /** The album open, by key, or the one a project was opened from, which going up comes back to. */
   place?: string;
   /** The open project's path. */

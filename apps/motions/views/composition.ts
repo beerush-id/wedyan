@@ -1,3 +1,4 @@
+import { untrack } from '@airlib/react';
 import type { MotionBox, TimelineSnapshot } from '@airlib/react/timeline';
 
 /**
@@ -50,15 +51,19 @@ export type CanvasClip = MotionBox & { painter: string; [param: string]: unknown
 export const MOTION_KEYS = new Set(['x', 'y', 'width', 'height', 'scale', 'rotate', 'opacity']);
 
 /**
- * How long a composition runs: to the end of its last clip.
+ * How long a composition runs: to the end of its last clip. It reads the composition whole without
+ * following each clip: a composition is saved whole, so whoever reads it follows the composition
+ * itself, and hears it when it's replaced.
  *
  * @param composition - The composition.
  * @returns Its length, in seconds.
  */
 export const runtime = (composition: Composition): number =>
-  Math.max(
-    0,
-    ...composition.tracks.flatMap((track) =>
-      track.segments.map((segment) => segment.options.startFrame / composition.options.frameRate + segment.options.duration)
+  untrack(() =>
+    Math.max(
+      0,
+      ...composition.tracks.flatMap((track) =>
+        track.segments.map((segment) => segment.options.startFrame / composition.options.frameRate + segment.options.duration)
+      )
     )
   );
