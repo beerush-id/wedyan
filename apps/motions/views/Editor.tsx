@@ -75,12 +75,14 @@ export const ComposeView = setup<ComposeViewProps>((props) => {
   timeline.hydrate(source.composition);
 
   // The window and its dock follow what's open here: this stage's timeline, the clips picked on it,
-  // and its render, started from the window's toolbar.
+  // whether dragging snaps — for this stage only, starting off — and its render, started from the
+  // window's toolbar.
   const session = sessionCtx.get() as MotionsSession;
   Object.assign(session, {
     stage: $static(() => props.path),
     timeline,
     clips: [],
+    snap: false,
     status: '',
     rendering: false,
     render: () => {
@@ -95,7 +97,15 @@ export const ComposeView = setup<ComposeViewProps>((props) => {
   });
   onCleanup(() => {
     if (session.timeline !== timeline) return;
-    Object.assign(session, { stage: undefined, timeline: undefined, clips: [], status: '', rendering: false, render: undefined });
+    Object.assign(session, {
+      stage: undefined,
+      timeline: undefined,
+      clips: [],
+      snap: false,
+      status: '',
+      rendering: false,
+      render: undefined,
+    });
   });
 
   const finish = (result?: RenderedVideo) => {

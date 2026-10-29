@@ -4,6 +4,7 @@ import {
   Slider,
   Stepper,
   StepperInput,
+  Switch,
   TabButton,
   TabList,
   TabPanel,
@@ -14,6 +15,7 @@ import { WindowPanel } from '@airlib/react-aui/desktop';
 import { type MotionBox, sampleSegment, type Timeline, type TimelineSegment } from '@airlib/react/timeline';
 import type { FC } from 'react';
 import {
+  BalanceIcon,
   GenerativeIcon,
   HeightIcon,
   OpacityIcon,
@@ -23,18 +25,21 @@ import {
   ScaleIcon,
   SoundIcon,
   TextIcon,
+  VolumeIcon,
   WidthIcon,
   XIcon,
   YIcon,
 } from './icons.js';
-import { type MotionsSession, sessionCtx } from './session.js';
+import type { ClipSound } from './composition.js';
+import { type MotionsSession, pickedClip, sessionCtx } from './session.js';
 
 /**
- * A value of a clip's box: its name, its glyph, what it reads as when the clip doesn't set it, and
- * how it steps. One with a `range` is also dragged along a slider across it.
+ * A value of a clip its keyframes can animate — of its box, or its sound: its name, its glyph, what
+ * it reads as when the clip doesn't set it, and how it steps. One with a `range` is also dragged
+ * along a slider across it.
  */
 type BoxField = {
-  key: 'x' | 'y' | 'width' | 'height' | 'scale' | 'rotate' | 'opacity';
+  key: string;
   label: string;
   icon: FC;
   fallback?: number;
@@ -44,10 +49,10 @@ type BoxField = {
   range?: [number, number];
 };
 
-/** A clip's box being edited: its segment, the timeline it's on, and how many edits it has taken. */
-type BoxEdit = { segment: TimelineSegment<MotionBox>; timeline: Timeline; edits: { count: number } };
+/** A clip being edited: its segment, the timeline it's on, and how many edits it has taken. */
+type BoxEdit = { segment: TimelineSegment; timeline: Timeline; edits: { count: number } };
 
-/** Values of a box laid out, and keyed, together under one name. */
+/** Values of a clip laid out, and keyed, together under one name. */
 type BoxGroup = { label: string; fields: BoxField[] };
 
 /** The box's values in named groups, as the panel lays them out. */
@@ -69,6 +74,18 @@ const BOX_GROUPS: BoxGroup[] = [
   {
     label: 'Opacity',
     fields: [{ key: 'opacity', label: 'Opacity', icon: OpacityIcon, fallback: 1, step: 0.05, min: 0, max: 1, range: [0, 1] }],
+  },
+];
+
+/** A clip's sound levels, each keyed on its own: how loud, and where between the speakers. */
+const SOUND_GROUPS: BoxGroup[] = [
+  {
+    label: 'Volume',
+    fields: [{ key: 'volume', label: 'Volume', icon: VolumeIcon, fallback: 1, step: 0.05, min: 0, max: 1, range: [0, 1] }],
+  },
+  {
+    label: 'Balance',
+    fields: [{ key: 'pan', label: 'Balance', icon: BalanceIcon, fallback: 0, step: 0.05, min: -1, max: 1, range: [-1, 1] }],
   },
 ];
 
@@ -106,10 +123,23 @@ export const Properties = setup(() => {
           <Snippet data={() => boxClip(session)}>
             {(segment) =>
               segment ? (
-                <BoxFields segment={segment} timeline={session.timeline as Timeline} />
+                <BoxFields segment={segment} timeline={session.timeline as Timeline} groups={BOX_GROUPS} />
               ) : (
                 <EmptyState size="sm" title="No clip picked" description="Pick one clip on the timeline to edit its box.">
                   <EmptyState.Snippet for="icon">{() => <PropertiesIcon />}</EmptyState.Snippet>
+                </EmptyState>
+              )
+            }
+          </Snippet>
+        </TabPanel>
+        <TabPanel name="audio">
+          <Snippet data={() => soundClip(session)}>
+            {(segment) =>
+              segment ? (
+                <SoundFields segment={segment} timeline={session.timeline as Timeline} />
+              ) : (
+                <EmptyState size="sm" title="No sound picked" description="Pick one video or audio clip to set its sound.">
+                  <EmptyState.Snippet for="icon">{() => <SoundIcon />}</EmptyState.Snippet>
                 </EmptyState>
               )
             }
@@ -121,17 +151,43 @@ export const Properties = setup(() => {
 }, 'Properties');
 
 /**
- * A box's fields, a group under its name for each of transform, rotation and opacity, each group's
- * fields on a grid of eight: the size and place four to a row, and a ranged value a slider beside
- * its number. Each field is its glyph and its value at the playhead, named by a tooltip.
+ * A clip's sound: whether it's heard, then its volume and its balance between the speakers, keyed
+ * like the box — read at the playhead, written into its keyframe there — and heard as they change.
  */
-const BoxFields = setup<{ segment: TimelineSegment<MotionBox>; timeline: Timeline }>((props) => {
-  // Keyframes aren't observed, so what reads them follows the box's edits by this count.
+const SoundFields = template<{ segment: TimelineSegment<ClipSound>; timeline: Timeline }>(({ segment, timeline }) => {
+  const label = `wedyan-compose-mute-${segment.id}`;
+  return (
+    <div className="wedyan-compose-properties-fields">
+      <div role="group" aria-label="Sound" className="wedyan-compose-property-group">
+        <div className="wedyan-compose-property-head">
+          <span className="wedyan-compose-property-label" aria-hidden="true">
+            Sound
+          </span>
+        </div>
+        <div className="wedyan-compose-property-row">
+          <span id={label}>Mute</span>
+          <Switch size="xs" aria-labelledby={label} checked={$bind(segment.props, 'muted')} />
+        </div>
+      </div>
+      <BoxFields segment={segment} timeline={timeline} groups={SOUND_GROUPS} />
+    </div>
+  );
+}, 'SoundFields');
+
+/**
+ * A clip's keyed values, a group under its name for each — transform, rotation and opacity for its
+ * box; volume and balance for its sound — each group's fields on a grid of eight: the size and
+ * place four to a row, and a ranged value a slider beside its number. Each field is its glyph and
+ * its value at the playhead, named by a tooltip, and each group keys its values together.
+ */
+const BoxFields = setup<{ segment: TimelineSegment; timeline: Timeline; groups: BoxGroup[] }>((props) => {
+  // Keyframes aren't observed, so what reads them follows the clip's edits by this count.
   const box: BoxEdit = { segment: $static(() => props.segment), timeline: $static(() => props.timeline), edits: mutable({ count: 0 }) };
+  const groups = $static(() => props.groups);
 
   return () => (
     <div className="wedyan-compose-properties-fields">
-      {BOX_GROUPS.map((group) => (
+      {groups.map((group) => (
         <div key={group.label} role="group" aria-label={group.label} className="wedyan-compose-property-group">
           <div className="wedyan-compose-property-head">
             <span className="wedyan-compose-property-label" aria-hidden="true">
@@ -268,15 +324,16 @@ function edited(box: BoxEdit): void {
 }
 
 /**
- * Writes a value of a clip's box at a timeline frame. A value no keyframe animates is the clip's
- * own; an animated one goes into the keyframe at that frame, or a new keyframe there.
+ * Writes a keyed value of a clip — of its box or its sound — at a timeline frame. A value no
+ * keyframe animates is the clip's own; an animated one goes into the keyframe at that frame, or a
+ * new keyframe there.
  *
  * @param segment - The clip's segment.
  * @param key - The value to write.
  * @param value - What it becomes.
  * @param frame - The timeline frame it's written at, held within the clip.
  */
-function writeBox(segment: TimelineSegment<MotionBox>, key: BoxField['key'], value: number, frame: number): void {
+function writeBox(segment: TimelineSegment,key: BoxField['key'], value: number, frame: number): void {
   if (!animated(segment, key)) {
     segment.props[key] = value;
     return;
@@ -297,7 +354,7 @@ function writeBox(segment: TimelineSegment<MotionBox>, key: BoxField['key'], val
  * @param group - The group.
  * @param at - The frame, in the clip's content.
  */
-function toggleKeyframe(segment: TimelineSegment<MotionBox>, group: BoxGroup, at: number): void {
+function toggleKeyframe(segment: TimelineSegment,group: BoxGroup, at: number): void {
   const scene = segment.scenes.find((each) => each.atFrame === at);
   if (scene && group.fields.some((field) => field.key in scene.data)) {
     for (const field of group.fields) delete scene.data[field.key];
@@ -323,7 +380,7 @@ function toggleKeyframe(segment: TimelineSegment<MotionBox>, group: BoxGroup, at
  * @param segment - The clip's segment.
  * @param scene - The keyframe.
  */
-function dropIfIdle(segment: TimelineSegment<MotionBox>, scene: TimelineSegment<MotionBox>['scenes'][number]): void {
+function dropIfIdle(segment: TimelineSegment,scene: TimelineSegment['scenes'][number]): void {
   const { atFrame, meta } = scene;
   const data = { ...scene.data };
   segment.removeScene(scene);
@@ -347,7 +404,7 @@ function dropIfIdle(segment: TimelineSegment<MotionBox>, scene: TimelineSegment<
  * @param at - Where, in the clip's content.
  * @param values - The values it sets.
  */
-function addKeyframe(segment: TimelineSegment<MotionBox>, at: number, values: Record<string, number>): void {
+function addKeyframe(segment: TimelineSegment,at: number, values: Record<string, number>): void {
   const sampled = sampleSegment(segment, timelineFrame(segment, at));
   const data: Record<string, number> = {};
   for (const each of segment.scenes) {
@@ -369,7 +426,7 @@ function addKeyframe(segment: TimelineSegment<MotionBox>, at: number, values: Re
  * @param frame - The timeline frame.
  * @returns The frame in the clip's content.
  */
-function clipFrame(segment: TimelineSegment<MotionBox>, frame: number): number {
+function clipFrame(segment: TimelineSegment,frame: number): number {
   const within = Math.min(Math.max(frame - segment.startFrame, 0), segment.endFrame - segment.startFrame);
   return segment.offsetFrame + Math.round(within * segment.speed);
 }
@@ -381,7 +438,7 @@ function clipFrame(segment: TimelineSegment<MotionBox>, frame: number): number {
  * @param at - The frame in the clip's content.
  * @returns The timeline frame.
  */
-function timelineFrame(segment: TimelineSegment<MotionBox>, at: number): number {
+function timelineFrame(segment: TimelineSegment,at: number): number {
   return segment.startFrame + Math.round((at - segment.offsetFrame) / segment.speed);
 }
 
@@ -393,7 +450,7 @@ function timelineFrame(segment: TimelineSegment<MotionBox>, at: number): number 
  * @param keys - The values.
  * @returns The frames.
  */
-function keyedFrames(segment: TimelineSegment<MotionBox>, keys: BoxField['key'][]): number[] {
+function keyedFrames(segment: TimelineSegment,keys: BoxField['key'][]): number[] {
   const first = clipFrame(segment, segment.startFrame);
   const last = clipFrame(segment, segment.endFrame);
   return segment.scenes
@@ -409,7 +466,7 @@ function keyedFrames(segment: TimelineSegment<MotionBox>, keys: BoxField['key'][
  * @param key - The value.
  * @returns Whether any keyframe sets it.
  */
-function animated(segment: TimelineSegment<MotionBox>, key: BoxField['key']): boolean {
+function animated(segment: TimelineSegment,key: BoxField['key']): boolean {
   return segment.scenes.some((scene) => key in scene.data);
 }
 
@@ -420,12 +477,17 @@ function animated(segment: TimelineSegment<MotionBox>, key: BoxField['key']): bo
  * @returns The clip's segment, or nothing unless one drawn clip, alone, is picked.
  */
 function boxClip(session: MotionsSession): TimelineSegment<MotionBox> | undefined {
-  const { timeline, clips } = session;
-  if (!timeline || clips.length !== 1) return;
+  const segment = pickedClip(session);
+  return segment && segment.type !== 'audio' ? (segment as TimelineSegment<MotionBox>) : undefined;
+}
 
-  for (const track of timeline.tracks) {
-    for (const segment of track.segments) {
-      if (segment.id === clips[0]) return segment.type === 'audio' ? undefined : (segment as TimelineSegment<MotionBox>);
-    }
-  }
+/**
+ * The clip picked in a session, when it is the only one and carries sound: footage, or a sound.
+ *
+ * @param session - The window's session.
+ * @returns The clip's segment, or nothing unless one such clip, alone, is picked.
+ */
+function soundClip(session: MotionsSession): TimelineSegment<ClipSound> | undefined {
+  const segment = pickedClip(session);
+  return segment && (segment.type === 'video' || segment.type === 'audio') ? (segment as TimelineSegment<ClipSound>) : undefined;
 }

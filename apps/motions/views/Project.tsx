@@ -1,5 +1,5 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
-import { $bind, $static, mutable, Snippet, setup, template } from '@airlib/react';
+import { $bind, $static, derived, mutable, Snippet, setup, template } from '@airlib/react';
 import { LIVE_SELECTION } from '@airlib/react/browser';
 import {
   Button,
@@ -412,7 +412,10 @@ const StagePane = setup<StagePaneProps>((props) => {
   const stage = $static(() => props.stage);
   const open = $static(() => props.open);
   const { width, height } = stage.composition.props;
-  const casts = (stage.casts ?? []).map((cast) => follow<'persona'>(path, cast).document?.name).filter(Boolean);
+  // The stage's casts by name, following its casts and the documents they name: one deleted drops out.
+  const casts = derived(() =>
+    (stage.casts ?? []).map((cast) => follow<'persona'>(path, cast).document?.name).filter(Boolean)
+  );
   const scriptFile = project.document.script && resolvePath(project.path, project.document.script.path);
   const view = mutable({ script: stage.script && resolvePath(path, stage.script) });
   const write = () => {
@@ -435,7 +438,7 @@ const StagePane = setup<StagePaneProps>((props) => {
             facts={[
               { label: 'Length', value: duration(runtime(stage.composition)) },
               { label: 'Size', value: `${width} × ${height}` },
-              ...(casts.length ? [{ label: 'Casts', value: casts.join(', ') }] : []),
+              ...(casts.value.length ? [{ label: 'Casts', value: casts.value.join(', ') }] : []),
               { label: 'Updated', value: shortDate(stage.updated) },
             ]}
           />

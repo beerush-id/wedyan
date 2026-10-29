@@ -81,14 +81,15 @@
 
 /*
  * An album on the library: its name, which opens it, over its picture and what it is on one side
- * and a few of its projects on the other. Narrow, the picture and words go above the projects.
+ * and a few of its projects on the other. The picture and words take a tile's width and the same
+ * gap as Recents, so the albums' cards line up under the newest projects. Narrow, the picture and
+ * words go above the projects.
  */
 .wedyan-motions-sheet > section.wedyan-motions-album {
   flex-direction: row;
   flex-wrap: wrap;
   align-items: start;
-  /* Wide enough that the album's own picture reads apart from the projects' cards beside it. */
-  column-gap: calc(var(--spacing) * 16);
+  column-gap: var(--spacing-md);
 
   & > h2 {
     flex-basis: 100%;
@@ -117,10 +118,9 @@
 
 .wedyan-motions-album-about {
   display: flex;
-  flex: 1 1 12rem;
+  flex: 0 0 var(--wedyan-motions-tile);
   flex-direction: column;
   gap: var(--spacing-sm);
-  max-inline-size: 16rem;
 
   /* An album's artwork is square, as albums' are, and small, setting it apart from its projects' cards. */
   & > img {
@@ -157,9 +157,11 @@
 .wedyan-motions-preview {
   align-self: stretch;
 
+  /* Tiles exactly a tile wide, not stretched to the row, so each falls under a card in Recents. */
   & > .aui-gallery {
     --aui-gallery-tile: var(--wedyan-motions-tile);
     --aui-gallery-ratio: var(--wedyan-motions-ratio);
+    grid-template-columns: repeat(auto-fill, var(--wedyan-motions-tile));
   }
 }
 
@@ -228,41 +230,28 @@
 }
 
 /*
- * In the dock: the picture a generative clip shows now, as tall as the small controls beside it and
- * rounded like them, which sits concentric with the surface's ends. Larger in its tooltip, with its name.
+ * The dock's subject: the picked clip, or what a generative clip was made from, on the glass beside
+ * the options — a square as tall as the dock gives it, with the corners it gives, concentric with
+ * the options' surface. Its picture fills it; without one, its lane's glyph sits on a tint.
  */
-.wedyan-motions-source {
-  display: inline-flex;
+.wedyan-motions-subject {
+  display: grid;
+  place-items: center;
   flex: none;
-  padding: 0;
-  border-radius: var(--radius-full);
+  block-size: var(--aui-dock-subject-size, calc(var(--spacing) * 9));
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--aui-dock-subject-radius, var(--radius-md));
+  corner-shape: var(--corner-shape, round);
+  background: color-mix(in oklch, var(--color-primary) 12%, transparent);
+  color: var(--color-primary);
+  --aui-icon-size: 1.125rem;
 
   & > img {
     display: block;
-    block-size: calc(var(--spacing) * 9);
-    aspect-ratio: 16 / 9;
+    inline-size: 100%;
+    block-size: 100%;
     object-fit: cover;
-    border-radius: var(--radius-full);
-    corner-shape: var(--corner-shape, round);
-  }
-}
-
-.aui-tooltip:has(> .wedyan-motions-source-tip) {
-  --aui-tooltip-padding-inline: var(--spacing-sm);
-  padding-block-start: var(--spacing-sm);
-}
-
-.wedyan-motions-source-tip {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--spacing-xs);
-
-  & > img {
-    inline-size: calc(var(--spacing) * 64);
-    aspect-ratio: 16 / 9;
-    object-fit: cover;
-    border-radius: max(calc(var(--aui-tooltip-radius) - var(--spacing-sm)), 0px);
   }
 }
 
@@ -856,6 +845,16 @@
   font-weight: 500;
 }
 
+/* A setting on one line: its name, in from the edge as the group's is, and its control at the end. */
+.wedyan-compose-property-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+  padding-inline: var(--spacing-sm);
+  font-size: var(--font-label-md-size);
+}
+
 /*
  * A step back, the keyframe, a step on: marks drawn to sit on the name's line, a control's size
  * being too tall for it. The diamond fills in the primary while the group is keyed at the playhead.
@@ -937,7 +936,7 @@
 /*
  * A group's fields on a grid of eight, the panel being one fixed width: every number a quarter,
  * so they line up down the panel, and a ranged value's slider the rest of its row. Each field's
- * glyph leads and its number reads from the start.
+ * glyph leads and its number sits at the end, so figures line up by their last digit.
  */
 .wedyan-compose-property-body {
   display: grid;
@@ -955,13 +954,13 @@
     padding-inline: var(--spacing-sm);
 
     & > .aui-icon {
-      --aui-icon-size: 1.125rem;
+      --aui-icon-size: 0.875rem;
       flex: none;
       color: var(--color-on-surface-variant);
     }
 
     & > .aui-stepper-input {
-      text-align: start;
+      text-align: end;
     }
   }
 }

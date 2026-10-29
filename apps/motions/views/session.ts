@@ -84,6 +84,21 @@ export function endSession(id: string): void {
 }
 
 /**
+ * The clip picked in a session, when it is the only one.
+ *
+ * @param session - The window's session.
+ * @returns The clip's segment, or nothing unless one clip, alone, is picked.
+ */
+export function pickedClip(session: MotionsSession): TimelineSegment | undefined {
+  const { timeline, clips } = session;
+  if (!timeline || clips.length !== 1) return;
+
+  for (const track of timeline.tracks) {
+    for (const segment of track.segments) if (segment.id === clips[0]) return segment;
+  }
+}
+
+/**
  * The clip picked in a session, when it is the only one and was made from a generated image or
  * video: its segment names the `.still` or `.take` it shows in `meta.source`, by path from the stage.
  *
@@ -91,19 +106,12 @@ export function endSession(id: string): void {
  * @returns The clip and its source, or nothing unless one generative clip, alone, is picked.
  */
 export function generativeClip(session: MotionsSession): GenerativeClip | undefined {
-  const { timeline, stage, clips } = session;
-  const clip = clips.length === 1 ? clips[0] : undefined;
-  if (!timeline || !stage || !clip) return;
+  const segment = pickedClip(session);
+  const source = segment?.meta?.source;
+  if (!segment || !session.stage || typeof source !== 'string') return;
 
-  for (const track of timeline.tracks) {
-    for (const segment of track.segments) {
-      if (segment.id !== clip) continue;
-      const source = segment.meta?.source;
-      if (typeof source !== 'string') return;
-      const found = follow<'still' | 'take'>(stage, source);
-      return found.document ? { segment, path: found.path, source: found.document as StillDocument | TakeDocument } : undefined;
-    }
-  }
+  const found = follow<'still' | 'take'>(session.stage, source);
+  return found.document ? { segment, path: found.path, source: found.document as StillDocument | TakeDocument } : undefined;
 }
 
 /**

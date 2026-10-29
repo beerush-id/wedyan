@@ -23,7 +23,7 @@ import { ChatView, MemoView, StillView } from './Documents.js';
 import { ComposeView } from './Editor.js';
 import { AddIcon, ComposeIcon, DirectIcon, FilterIcon, ProjectsIcon, RenderIcon, SortIcon } from './icons.js';
 import { albumOf, albums, duration, length, type Project, projects, shortDate, stagesOf } from './library.js';
-import { MotionsDockOptions } from './options.js';
+import { MotionsDockOptions, MotionsDockSubject } from './options.js';
 import { ProjectView } from './Project.js';
 import { goUp, isEditing, type MotionsData, type MotionsRoute, openAlbum, openIn } from './route.js';
 import { endSession, type MotionsSession, sessionCtx, sessionOf } from './session.js';
@@ -73,6 +73,7 @@ export const motions = defineWindow({
   rect: { width: 960, height: 620 },
   window: { snap: '.aui-window', minWidth: 560, minHeight: 400 },
   dockExtensions: MotionsDockOptions,
+  dockSubject: MotionsDockSubject,
 }).render((props) => {
   const data = props.instance.data as MotionsData;
   const route = mutable<MotionsRoute>({ view: 'library' });

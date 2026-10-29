@@ -2,13 +2,22 @@ import { AUI_CLASS } from '@airlib/aui/utils';
 import { $bind, $static, mutable, Show, Snippet, setup, template } from '@airlib/react';
 import { Button, Divider, Select, Stepper, Toggle, Toolbar, Tooltip } from '@airlib/react-aui';
 import type { WindowRenderProps } from '@airlib/react-aui/desktop';
-import { AspectRatioIcon, AutoAwesomeIcon } from '@airlib/react-aui/icons';
-import type { Timeline } from '@airlib/react/timeline';
-import type { ReactNode } from 'react';
+import {
+  AspectRatioIcon,
+  AudioFileIcon,
+  AutoAwesomeIcon,
+  DraftIcon,
+  ImageIcon,
+  MovieIcon,
+  TitleIcon,
+} from '@airlib/react-aui/icons';
+import type { Timeline, TimelineSegment } from '@airlib/react/timeline';
+import type { FC, ReactNode } from 'react';
 import {
   EffortIcon,
   FrameBackIcon,
   FrameForwardIcon,
+  LoopIcon,
   PauseIcon,
   PlayIcon,
   SnapIcon,
@@ -21,6 +30,7 @@ import {
   generativeClip,
   generativePick,
   type MotionsSession,
+  pickedClip,
   sessionOf,
   splitPicked,
   writingPicked,
@@ -52,8 +62,9 @@ export const writing = mutable({ model: 'balanced', effort: 'medium' });
  * Motions' options in the dock, following its window and what's picked in it, and only when they
  * have something to offer. In the library, how a new motion is made. In Compose, the transport —
  * to the start, a frame back, play or pause, a frame on, to the end — then snapping and splitting,
- * led, when the picked clip was generated, by how it is made again. In Direct, how the picked row is made again, when it's a
- * generated image or video, or written, when it's the script or a memo. Anywhere else, none.
+ * led, when the picked clip was generated, by how it is made again. In Direct, how the picked row
+ * is made again, when it's a generated image or video, or written, when it's the script or a memo.
+ * Anywhere else, none.
  */
 export const MotionsDockOptions = setup<WindowRenderProps>((props) => {
   const session = sessionOf($static(() => props.instance.id));
@@ -70,7 +81,7 @@ export const MotionsDockOptions = setup<WindowRenderProps>((props) => {
       <Toolbar label="Motion settings" variant="text" className={AUI_CLASS.TOOLBAR_OPTIONS}>
         {shelf && <NewMotionOptions />}
         {written && <WritingOptions />}
-        {generated && <RegenerateOptions generated={generated} open={session.open} />}
+        {generated && <RegenerateOptions generated={generated} />}
         {generated && timeline && <Divider orientation="vertical" size="sm" className="wedyan-motions-options-divider" />}
         {timeline && <Transport timeline={timeline} />}
         {timeline && <Divider orientation="vertical" size="sm" className="wedyan-motions-options-divider" />}
@@ -79,6 +90,55 @@ export const MotionsDockOptions = setup<WindowRenderProps>((props) => {
     );
   };
 }, 'MotionsDockOptions');
+
+/**
+ * What Motions' dock options act on, beside them in the dock, to show what they're for — not to
+ * press: the picked clip in Compose, as what it was generated from when it was, or the generated
+ * image or video picked in Direct. Nothing while nothing is picked.
+ */
+export const MotionsDockSubject = setup<WindowRenderProps>((props) => {
+  const session = sessionOf($static(() => props.instance.id));
+
+  return () => {
+    const timeline = session.timeline;
+    const generated = timeline ? generativeClip(session) : generativePick(session);
+    if (generated) return <SourceSubject generated={generated} />;
+    const picked = timeline ? pickedClip(session) : undefined;
+    return picked ? <ClipSubject segment={picked} /> : null;
+  };
+}, 'MotionsDockSubject');
+
+/** A generated image or video, as the picture it shows now. */
+const SourceSubject = template<{ generated: GenerativeSource }>((props) => {
+  const { source } = props.generated;
+  const chosen = source.attempts.find((attempt) => attempt.id === source.chosen) ?? source.attempts[0];
+  const picture = source.type === 'take' ? (chosen as { poster?: string })?.poster : chosen?.src;
+  return <SubjectTile name={source.name} picture={picture} />;
+}, 'SourceSubject');
+
+/** A lane's glyph, by its track's type, for a clip without a picture of its own. */
+const LANE_GLYPHS: Record<string, FC> = {
+  video: MovieIcon,
+  image: ImageIcon,
+  audio: AudioFileIcon,
+  text: TitleIcon,
+};
+
+/** A picked clip, as its picture, or its lane's glyph without one. */
+const ClipSubject = template<{ segment: TimelineSegment }>(({ segment }) => (
+  <SubjectTile
+    name={segment.name ?? 'Clip'}
+    picture={segment.meta?.thumbnail as string | undefined}
+    glyph={LANE_GLYPHS[segment.track.type ?? ''] ?? DraftIcon}
+  />
+), 'ClipSubject');
+
+/** The subject's square tile: a picture, or a glyph without one, named for screen readers. */
+const SubjectTile = template<{ name: string; picture?: string; glyph?: FC }>(({ name, picture, glyph: Glyph }) => (
+  <span role="img" aria-label={name} className="wedyan-motions-subject">
+    {picture ? <img src={picture} alt="" /> : Glyph && <Glyph />}
+  </span>
+), 'SubjectTile');
 
 /** How a new motion is made: its model, its shape, and how long it runs. */
 const NewMotionOptions = template(
@@ -145,34 +205,15 @@ const WritingOptions = template(
 
 /**
  * How a picked generated image or video — a clip's source, or a row in Direct — is made again: the
- * picture it shows now, larger in its tooltip,
- * which opens the image or video it was generated as; then the model, and how many attempts for an
- * image or how long for a video.
+ * model, and how many attempts for an image or how long for a video. The picture itself sits
+ * beside the options, as the dock's subject.
  */
-const RegenerateOptions = template<{ generated: GenerativeSource; open?: (path: string) => void }>((props) => {
+const RegenerateOptions = template<{ generated: GenerativeSource }>((props) => {
   const { source } = props.generated;
-  const chosen = source.attempts.find((attempt) => attempt.id === source.chosen) ?? source.attempts[0];
-  const picture = source.type === 'take' ? ((chosen as { poster?: string })?.poster ?? '') : (chosen?.src ?? '');
   const models = source.type === 'take' ? MODELS : IMAGE_MODELS;
 
   return (
     <>
-      <Button
-        size="sm"
-        variant="text"
-        aria-label={`Open ${source.name}`}
-        className="wedyan-motions-source"
-        onClick={() => props.open?.(props.generated.path)}
-      >
-        <img src={picture} alt="" />
-        {/* The tooltip shows the picture larger, above it, with its name. */}
-        <Tooltip yDir="above">
-          <span className="wedyan-motions-source-tip">
-            <img src={picture} alt="" />
-            <span>{source.name}</span>
-          </span>
-        </Tooltip>
-      </Button>
       <Select size="sm" label="Model" options={models} value={$bind(regeneration, 'model')}>
         <Select.Snippet for="trigger">
           {(value) => (
@@ -226,7 +267,10 @@ const EditTools = template<{ session: MotionsSession }>(({ session }) => (
   </>
 ), 'EditTools');
 
-/** The open stage's transport: to the start, a frame back, play or pause, a frame on, to the end. */
+/**
+ * The open stage's transport: to the start, a frame back, play or pause, a frame on, to the end,
+ * and whether its timeline repeats — the stage's own setting, from its start each time it ends.
+ */
 const Transport = template<{ timeline: Timeline }>((props) => {
   const { timeline } = props;
   const action = (label: string, icon: ReactNode, run: () => void) => (
@@ -249,6 +293,10 @@ const Transport = template<{ timeline: Timeline }>((props) => {
       </Snippet>
       {action('A frame on', <FrameForwardIcon />, () => timeline.step(1))}
       {action('To the end', <ToEndIcon />, () => timeline.scrub(timeline.totalFrames))}
+      <Toggle aria-label="Loop" size="sm" variant="text" className={AUI_CLASS.CONTROL_ICON} pressed={$bind(timeline as { repeat?: boolean }, 'repeat')}>
+        <LoopIcon />
+        <Tooltip>Loop</Tooltip>
+      </Toggle>
     </>
   );
 }, 'Transport');

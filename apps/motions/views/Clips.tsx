@@ -35,9 +35,22 @@ const DRAW: Record<string, (segment: TimelineSegment) => ReactNode> = {
   html: (segment) => <HtmlClipView segment={segment as TimelineSegment<HtmlClip>} />,
   canvas: (segment) => <CanvasClipView segment={segment as TimelineSegment<CanvasClip>} />,
   video: (segment) => <VideoClipView segment={segment as TimelineSegment<VideoClip>} />,
-  // Sound draws nothing: the stage decodes it and plays it on its clock, from where the clip is trimmed.
-  audio: (segment) => <StageClip segment={segment} media={(segment as TimelineSegment<AudioClip>).props.src} />,
+  audio: (segment) => <AudioClipView segment={segment as TimelineSegment<AudioClip>} />,
 };
+
+/** A sound clip: it draws nothing; the stage decodes it and plays it on its clock, from where it's trimmed, unless muted. */
+const AudioClipView = template<{ segment: TimelineSegment<AudioClip> }>(
+  (props) => (
+    <StageClip
+      segment={props.segment}
+      media={props.segment.props.src}
+      muted={props.segment.props.muted}
+      volume={props.segment.props.volume}
+      pan={props.segment.props.pan}
+    />
+  ),
+  'AudioClipView'
+);
 
 /** A video clip: its footage, decoded by the stage, drawn frame by frame into its box, and heard unless muted. */
 const VideoClipView = template<{ segment: TimelineSegment<VideoClip> }>(
@@ -48,6 +61,8 @@ const VideoClipView = template<{ segment: TimelineSegment<VideoClip> }>(
       media={props.segment.props.src}
       fit={props.segment.props.fit}
       muted={props.segment.props.muted}
+      volume={props.segment.props.volume}
+      pan={props.segment.props.pan}
     />
   ),
   'VideoClipView'

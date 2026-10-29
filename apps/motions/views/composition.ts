@@ -28,14 +28,20 @@ export type SvgClip = MotionBox & {
 /** A clip drawn as HTML filling its box: its words and its CSS. */
 export type HtmlClip = MotionBox & { text?: string; style?: Record<string, string | number> };
 
+/**
+ * How a clip's sound is heard: muted or not, how loud — 1 its own level — and where between the
+ * speakers, -1 left to 1 right.
+ */
+export type ClipSound = { muted?: boolean; volume?: number; pan?: number };
+
 /** A clip heard rather than drawn: its sound, by address, decoded and played on the stage's clock. */
-export type AudioClip = { src?: string };
+export type AudioClip = ClipSound & { src?: string };
 
 /**
  * Footage filling the clip's box, decoded and drawn frame by frame: its address, how it fills the
- * box — cropped to cover it, the default, or fitted inside — and whether its own sound is heard.
+ * box — cropped to cover it, the default, or fitted inside — and how its own sound is heard.
  */
-export type VideoClip = MotionBox & { src?: string; fit?: 'cover' | 'contain'; muted?: boolean };
+export type VideoClip = MotionBox & ClipSound & { src?: string; fit?: 'cover' | 'contain' };
 
 /** A clip drawn on a canvas filling its box, by the painter it names, with whatever else that painter reads. */
 export type CanvasClip = MotionBox & { painter: string; [param: string]: unknown };
