@@ -1,6 +1,6 @@
 import { canCaptureVideo, type VideoStageAria } from '@airlib/aria';
 import { $bind, $static, $use, For, onCleanup, onMount, Show, Snippet, setup, template } from '@airlib/react';
-import { Button, EmptyState, Stage, TabButton, TabList, TabPanel, Tabs, TimelineEditor } from '@airlib/react-aui';
+import { Button, EmptyState, Menu, Stage, TabButton, TabList, TabPanel, Tabs, TimelineEditor } from '@airlib/react-aui';
 import { WindowPanel } from '@airlib/react-aui/desktop';
 import { createTimeline, type Timeline, type TimelineSegment } from '@airlib/react/timeline';
 import { documentAt, follow } from '@/lib/documents/store.js';
@@ -8,6 +8,7 @@ import type { MotionAsset, StageDocument, StillDocument } from '@/lib/documents/
 import { Clips } from './Clips.js';
 import { download, type RenderedVideo, renderMp4 } from './export.js';
 import { buffers, mediaLoader } from './media.js';
+import { AddIcon } from './icons.js';
 import { castsOf, type Project } from './library.js';
 import { Properties } from './Properties.js';
 import { type MotionsSession, sessionCtx } from './session.js';
@@ -49,6 +50,22 @@ const timecode = (frame: number, frameRate: number): string => {
   const seconds = Math.floor(frame / frameRate);
   const parts = [Math.floor(seconds / 3600), Math.floor(seconds / 60) % 60, seconds % 60, Math.round(frame % frameRate)];
   return parts.map((part) => String(part).padStart(2, '0')).join(':');
+};
+
+/** The tracks a stage can be given, by type, and what each is called. */
+const TRACK_NAMES = { video: 'Video', audio: 'Audio', text: 'Text' };
+const TRACK_KINDS = Object.entries(TRACK_NAMES).map(([name, label]) => ({ name, label: `${label} track` }));
+
+/**
+ * Gives a stage's timeline a new, empty track: a picture track drawn over the others, or a sound
+ * track below them, named for its kind and how many of it there are.
+ *
+ * @param timeline - The stage's timeline.
+ * @param type - The kind of track.
+ */
+const addTrack = (timeline: Timeline, type: keyof typeof TRACK_NAMES): void => {
+  const count = [...timeline.tracks].filter((track) => track.type === type).length;
+  timeline.addTrack({ type, name: `${TRACK_NAMES[type]} ${count + 1}` });
 };
 
 type ComposeViewProps = {
@@ -152,15 +169,27 @@ export const ComposeView = setup<ComposeViewProps>((props) => {
             zoom={56}
           >
             {/* The playhead's timecode, beside the ruler it reads. */}
+            {/* Adding a track, then the playhead's timecode, beside the ruler it reads. */}
             <TimelineEditor.Snippet for="corner">
               {() => (
-                <Snippet>
-                  {() => (
-                    <span className="wedyan-compose-timecode" aria-label="Playhead timecode">
-                      {timecode(timeline.state.frame, timeline.frameRate)}
-                    </span>
-                  )}
-                </Snippet>
+                <>
+                  <Menu
+                    label="Add track"
+                    size="xs"
+                    variant="text"
+                    items={TRACK_KINDS}
+                    oncommand={(event) => addTrack(timeline, event.detail as keyof typeof TRACK_NAMES)}
+                  >
+                    <Menu.Snippet for="trigger">{() => <AddIcon />}</Menu.Snippet>
+                  </Menu>
+                  <Snippet>
+                    {() => (
+                      <span className="wedyan-compose-timecode" aria-label="Playhead timecode">
+                        {timecode(timeline.state.frame, timeline.frameRate)}
+                      </span>
+                    )}
+                  </Snippet>
+                </>
               )}
             </TimelineEditor.Snippet>
           </TimelineEditor>
