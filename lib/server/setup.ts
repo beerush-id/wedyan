@@ -15,6 +15,7 @@ import { PROFILE_PATH, type UserProfile } from '@/lib/share/profile.js';
 import { AGENTS_PATH } from '@/lib/share/system.js';
 import { type SpeechModel, setupSpeech } from '@/lib/speech/speech.js';
 import { wsTransport } from '@/src/api.js';
+import { DriveDriver } from './drive-driver.js';
 
 /** The bindings and secrets the server runs with (see `wrangler.json`). */
 export type ServerEnv = FileWorkerEnv & {
@@ -43,7 +44,7 @@ export function setupServer(env: ServerEnv): void {
     baseten: env.BASETEN_API_KEY ?? globalThis.process?.env?.BASETEN_API_KEY,
   };
   setupKernel({
-    adapter: modelAdapter(keys),
+    adapter: withModels(MODELS, keys),
     agents: createAgents(keys.baseten ? OPEN_MODELS : DEFAULT_MODELS),
     entry: ENTRY,
     composer: COMPOSER,
@@ -93,13 +94,21 @@ export async function loadUserAgents(agents: Record<string, AgentProfile>): Prom
 }
 
 /**
- * The models the agents call: Meta's, and Spark Open on Baseten when its key is set.
+ * The models the server runs, shared by the agents and the desktop's own generation (ai-kit's
+ * endpoint), so each is set up once. Its drivers are added by `withModels` once the keys are known.
+ */
+export const MODELS = new AIAdapter();
+
+/**
+ * Adds the models to an adapter: Meta's, Spark Open on Baseten when its key is set, and last, after
+ * every provider, the drive, which keeps generated media in the user's drive when a call says where.
  *
+ * @param adapter - The adapter to add them to.
  * @param keys - The Meta Model API key, and Baseten's if there is one.
  * @returns The adapter serving Muse Spark, Muse Wonder and Muse Image, and Spark Open with Baseten.
  */
-export function modelAdapter(keys: { meta: string; baseten?: string }): AIAdapter {
-  const adapter = new AIAdapter().use(new MuseDriver({ apiKey: keys.meta }));
-  if (!keys.baseten) return adapter;
-  return adapter.use(new BasetenDriver({ apiKey: keys.baseten, models: [SPARK_OPEN] }));
+export function withModels(adapter: AIAdapter, keys: { meta: string; baseten?: string }): AIAdapter {
+  adapter.use(new MuseDriver({ apiKey: keys.meta }));
+  if (keys.baseten) adapter.use(new BasetenDriver({ apiKey: keys.baseten, models: [SPARK_OPEN] }));
+  return adapter.use(new DriveDriver());
 }

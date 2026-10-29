@@ -1,6 +1,7 @@
 import { createApp } from '@airlib/react/ssr';
 import { LogLevel } from '@beerush/logger';
 import { consoleAdapter } from '@beerush/logger/adapters/console';
+import { createWorker as createAIWorker } from '@irpclib/ai-kit/worker';
 import { HTTPRouter } from '@irpclib/http/router';
 import { envCtx, IRPC_STORE, IRPC_STORE_EVENT, SESSION_STORE, setContext } from '@irpclib/irpc';
 import { resolveBinding, resolveCtx } from '@irpclib/irpc/wrangler';
@@ -12,7 +13,8 @@ import { logger } from '@/lib/logger.js';
 import { contentIndex } from '@/lib/memory/files.js';
 import { guardAgentFiles } from '@/lib/server/guard.js';
 import { currentSession, homeOf } from '@/lib/server/session.js';
-import { type ServerEnv, setupServer } from '@/lib/server/setup.js';
+import { MODELS, type ServerEnv, setupServer } from '@/lib/server/setup.js';
+import { AI_ENDPOINT, ai } from '@/lib/share/ai.js';
 import { httpTransport, wsTransport } from './api.js';
 import App from './app.js';
 import router from './router.js';
@@ -58,6 +60,11 @@ wsRouter.use(scopeToSession);
 // Its content index keeps memory in step with the user's files.
 const files = createFileWorker({ endpoint: FILES_ENDPOINT }).use(contentIndex());
 files.router.use(scopeToSession);
+
+// ai-kit in this worker: the desktop's own generation, on the models the agents run, so what it
+// makes is kept in the user's drive the same way.
+const models = createAIWorker(ai, { adapter: MODELS });
+models.router.use(scopeToSession);
 // Agents never change the user's profile or touch their secrets; only the desktop does.
 fileModule.guard(guardAgentFiles);
 
@@ -72,6 +79,7 @@ export default {
   ...app,
   async fetch(request: Request, env?: ServerEnv, signal?: AbortSignal) {
     const url = new URL(request.url);
+    if (url.pathname === AI_ENDPOINT) return models.fetch(request, await bindingsOf(env));
     const isFiles =
       url.pathname === FILES_ENDPOINT || (request.method === 'GET' && url.pathname.startsWith(FILES_PATH));
     if (!isFiles) return app.fetch(request, env, signal);
