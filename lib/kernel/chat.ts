@@ -12,8 +12,9 @@ import { type AsyncStore, getContextStore, mutable } from '@irpclib/irpc/core';
 import { read, write } from '@irpclib/r2-file';
 import type { DocumentHeader } from '@/lib/documents/types.js';
 import type { AskAction, AskInput, WidgetPart } from './agent.h.js';
-import { askWith, toChatInput } from './agent.js';
+import { askRouter, askWith, toChatInput } from './agent.js';
 import {
+  type ActionRecord,
   type AgentMessage,
   type Conversation,
   type ConversationMessage,
@@ -29,8 +30,11 @@ export const CONVERSATION_ROOM = 'desktop.chat';
 /** Where the conversation's current page is kept, in the user's home. */
 export const CONVERSATION_PATH = '~/Desktop.chat';
 
-/** Largest a page grows before its older messages move to a numbered page: small enough to stay inline in D1. */
-export const PAGE_BYTES = 192 * 1024;
+/**
+ * Largest a page grows before its older messages move to a numbered page: about half of what D1
+ * keeps inline, so the answer that tips it over still stays inline.
+ */
+export const PAGE_BYTES = 256 * 1024;
 
 /** How many past turns the agents read, a turn being the user's words and Wedyan's answer. */
 export const RECENT_TURNS = 4;
@@ -45,22 +49,33 @@ export function pagePath(page?: number): string {
   return page ? `~/Desktop.${page}.chat` : CONVERSATION_PATH;
 }
 
-/** How the conversation keeps its pages; for tests to make pages small. */
-export function setupConversation(options: { pageBytes?: number }): void {
+/** How long an answer's actions wait for the desktop that sent its words to come back. */
+export const CLIENT_WAIT = 60_000;
+
+/** How the conversation keeps its pages and waits for desktops; for tests to make both small. */
+export function setupConversation(options: { pageBytes?: number; clientWait?: number }): void {
   pageBytes = options.pageBytes ?? PAGE_BYTES;
+  clientWait = options.clientWait ?? CLIENT_WAIT;
 }
 
-kernel.construct(wedyan, () =>
-  stream<Conversation, ConversationQueries>(
+kernel.construct(wedyan, (client) => {
+  const member = SESSION_STORE.room(CONVERSATION_ROOM, createConversation);
+  // Refused before the stream opens, so the desktop is told and makes a fresh ID.
+  if (member.ask('connected', client)) {
+    member.leave();
+    throw new Error('This client is already connected');
+  }
+
+  return stream<Conversation, ConversationQueries>(
     (state) => {
-      const member = SESSION_STORE.room(CONVERSATION_ROOM, createConversation);
       // The room's own conversation: every desktop's stream holds the same object.
       state.data = member.data;
 
-      const desktop: Desktop = (action) => state.ask(action.name, action.args, { after: action.after });
-      const detach = member.ask('attach', desktop);
-      state.answer('send', (input) => member.ask('send', input, desktop));
-      state.answer('stop', () => member.ask('stop'));
+      const detach = member.ask('attach', client, (action: AskAction) =>
+        state.ask(action.name, action.args, { after: action.after }),
+      );
+      state.answer('send', (input) => member.ask('send', input, client));
+      state.answer('stop', (answer) => member.ask('stop', answer));
       state.answer('page', (page) => member.ask('page', page));
 
       return () => {
@@ -69,8 +84,8 @@ kernel.construct(wedyan, () =>
       };
     },
     { ready: false, page: 0, messages: [] },
-  ),
-);
+  );
+});
 
 /** A desktop of the session: runs an action or ask there; `undefined` when it didn't. */
 type Desktop = (action: AskAction) => Promise<IRPCData | undefined>;
@@ -79,19 +94,35 @@ type Desktop = (action: AskAction) => Promise<IRPCData | undefined>;
 type ConversationPage = DocumentHeader<'chat'> & { page: number; messages: ConversationMessage[] };
 
 let pageBytes = PAGE_BYTES;
+let clientWait = CLIENT_WAIT;
+
+/** An answer being written: its message, what the user added to it, and how to stop it. */
+type Running = { message: AgentMessage; followUps: string[]; controller: AbortController };
 
 /**
  * Builds the session's conversation room: the conversation, read from its current page, and what
- * the desktops ask of it. An answer runs in the room, held until it is saved, so it reaches its end
- * whichever desktop sent it and whether or not that desktop stays. Actions go to the desktop that
- * sent the words while it is connected, else to the latest one to connect.
+ * the desktops ask of it. Answers run in the room side by side, each held until it is saved, so each
+ * reaches its end whichever desktop sent its words and whether or not that desktop stays. Words that
+ * arrive while answers run go to the router, which joins them to the answer they continue or starts
+ * a new one. Each answer's actions run only on the desktop that sent its words, the one whose state
+ * they were worked out against: while that desktop is away they wait for it to come back, and fail
+ * if it doesn't, never running on another.
  */
 function createConversation({ hold }: RoomSetup) {
   const data = mutable<Conversation>({ ready: false, page: 0, messages: [] });
-  const desktops = new Set<Desktop>();
-  let sender: Desktop | undefined;
-  let running: { followUps: string[]; controller: AbortController } | undefined;
+  const desktops = new Map<string, Desktop>();
+  // Actions waiting for their desktop to come back, by its client ID.
+  const waiting = new Map<string, Set<() => void>>();
+  const running = new Map<string, Running>();
   let header: Pick<ConversationPage, 'id' | 'created'> | undefined;
+  // Saves one after another, so two answers ending together never write over each other's page.
+  let saving: Promise<unknown> = Promise.resolve();
+  const persist = () => {
+    saving = saving.then(async () => {
+      header = await savePage(data, header);
+    });
+    return saving;
+  };
 
   const loaded = hold(
     readPage().then((page) => {
@@ -108,68 +139,143 @@ function createConversation({ hold }: RoomSetup) {
     }),
   );
 
-  const onDesktop: Desktop = (action) => {
-    const target = sender && desktops.has(sender) ? sender : [...desktops].at(-1);
-    return target ? target(action) : Promise.resolve(undefined);
+  const onDesktop = async (client: string, action: AskAction) => {
+    const desktop = desktops.get(client) ?? (await comesBack(client));
+    return desktop(action);
   };
 
-  const answer = async (input: AskInput) => {
-    const before = data.messages.slice(0, -1);
-    data.messages.push(agentMessage());
+  const comesBack = (client: string) =>
+    new Promise<Desktop>((resolve, reject) => {
+      const list = waiting.get(client) ?? new Set();
+      waiting.set(client, list);
+      const back = () => {
+        clearTimeout(timer);
+        resolve(desktops.get(client)!);
+      };
+      const timer = setTimeout(() => {
+        list.delete(back);
+        reject(new Error('The desktop that asked is no longer connected'));
+      }, clientWait);
+      list.add(back);
+    });
+
+  const answer = async (words: UserMessage, input: AskInput) => {
+    const sender = words.client;
+    const before = data.messages.filter((message) => message.id !== words.id);
+    data.messages.push(agentMessage(words.id));
     // The stored element, so the loop writes into what the desktops see.
     const message = data.messages[data.messages.length - 1] as AgentMessage;
-    const controller = new AbortController();
-    const turn = { followUps: [] as string[], controller };
-    running = turn;
+    const turn: Running = { message, followUps: [], controller: new AbortController() };
+    running.set(message.id, turn);
+    // Each action's record, kept from the moment it is queued and updated in place as it runs.
+    const records = new Map<AskAction, ActionRecord>();
 
     try {
       await askWith({
         input: [...viewOf(before), ...toChatInput(input)],
         state: message,
-        desktop: async (action) => {
-          const reply = await onDesktop(action);
-          message.actions.push({ name: action.name, args: action.args });
-          return reply;
+        desktop: (action) => onDesktop(sender, action),
+        track: (action, outcome) => {
+          const record = records.get(action);
+          if (record) {
+            Object.assign(record, outcome);
+            return;
+          }
+          const { name, args, after, ask } = action;
+          message.actions.push({ name, args, after, ...(ask ? { ask } : {}), ...outcome });
+          records.set(action, message.actions[message.actions.length - 1]);
         },
         followUps: () => turn.followUps.splice(0),
-        signal: controller.signal,
+        signal: turn.controller.signal,
       });
     } finally {
-      running = undefined;
-      header = await savePage(data, header);
+      running.delete(message.id);
+      await persist();
     }
+
+    // Words it was given too late to take in are answered on their own.
+    const late = turn.followUps.splice(0);
+    if (late.length) start(lastWords(data, message.id) ?? words, { text: late.join('\n') });
+  };
+
+  // Its own copy of the sender's context, so the answer keeps its home, session and bindings to the
+  // end, even once the call that sent it is gone.
+  const start = (words: UserMessage, input: AskInput) => {
+    hold(withContext(detachedContext(), () => answer(words, input))).catch((error: Error) =>
+      IRPC_STORE.error(error, [{ conversation: input.text }]),
+    );
   };
 
   return {
     data,
     commands: {
-      attach: (desktop: Desktop) => {
-        desktops.add(desktop);
-        return () => void desktops.delete(desktop);
+      connected: (client: string) => desktops.has(client),
+      attach: (client: string, desktop: Desktop) => {
+        desktops.set(client, desktop);
+        // What waited for this desktop runs now, in the order it was asked.
+        for (const back of waiting.get(client) ?? []) back();
+        waiting.delete(client);
+        return () => {
+          if (desktops.get(client) === desktop) desktops.delete(client);
+        };
       },
-      send: async (input: AskInput, desktop?: Desktop) => {
+      send: async (input: AskInput, client: string) => {
         await loaded;
-        sender = desktop ?? sender;
-        data.messages.push(userMessage(input));
-        // While an answer runs, the words join it as a follow-up instead of starting another.
-        if (running) {
-          running.followUps.push(input.text);
-          return true;
-        }
-        // Its own copy of the sender's context, so the answer keeps its home, session and bindings
-        // to the end, even once the call that sent it is gone.
-        hold(withContext(detachedContext(), () => answer(input))).catch((error: Error) =>
+        data.messages.push(userMessage(input, client));
+        const words = data.messages[data.messages.length - 1] as UserMessage;
+        // Kept as soon as they are said, not only once an answer ends; in its own context, since the
+        // save may wait behind another past the end of this call.
+        hold(withContext(detachedContext(), persist)).catch((error: Error) =>
           IRPC_STORE.error(error, [{ conversation: input.text }]),
         );
+
+        // While answers run, the router decides whether the words continue one of them.
+        const target = running.size
+          ? running.get((await continued(input.text, [...running.values()])) ?? '')
+          : undefined;
+        if (target && running.has(target.message.id)) {
+          words.answer = target.message.id;
+          target.followUps.push(input.text);
+          return true;
+        }
+        start(words, input);
         return true;
       },
-      stop: () => {
-        running?.controller.abort();
+      stop: (answer?: string) => {
+        for (const [id, turn] of running) if (!answer || id === answer) turn.controller.abort();
         return true;
       },
       page: async (page: number) => (await readPage(page))?.messages,
     },
   };
+}
+
+/**
+ * How the router decides where words that arrive during answers go: it is shown what each running
+ * answer was asked and has said, and the words.
+ */
+const CONTINUES_PROMPT = `Words from the user arrived while the answers below are still being written. Decide whether the words continue one of them, by answering its question, correcting it or adding to it, or are a new request of their own.
+
+Reply with only the id of the answer they continue, or with new.`;
+
+/**
+ * Which running answer the words continue, as the router decides; `undefined` for a new request,
+ * or when the router can't tell.
+ */
+async function continued(text: string, answers: Running[]): Promise<string | undefined> {
+  const reply = await askRouter(CONTINUES_PROMPT, {
+    words: text,
+    running: answers.map(({ message }) => ({ id: message.id, line: lineOf(message) })),
+  }).catch(() => undefined);
+  const id = reply?.trim().replace(/^["'`]|["'`.]$/g, '');
+  return answers.some(({ message }) => message.id === id) ? id : undefined;
+}
+
+/** The latest of the user's words that joined an answer, to answer them on their own. */
+function lastWords(data: Conversation, answer: string): UserMessage | undefined {
+  return data.messages.findLast(
+    (message): message is UserMessage => message.role === 'user' && message.answer === answer,
+  );
 }
 
 /**
@@ -182,22 +288,24 @@ function detachedContext() {
   return createContextStore(chain.flatMap((store) => [...store.entries()]));
 }
 
-/** The user's words as a conversation message. */
-function userMessage(input: AskInput): UserMessage {
+/** The user's words as a conversation message, from the desktop that sent them. */
+function userMessage(input: AskInput, client: string): UserMessage {
   return {
     id: crypto.randomUUID(),
     role: 'user',
     created: new Date().toISOString(),
     text: input.text,
+    client,
     ...(input.context ? { context: input.context } : {}),
   };
 }
 
-/** A new answer, before it starts. */
-function agentMessage(): AgentMessage {
+/** A new answer to the given words, before it starts. */
+function agentMessage(to: string): AgentMessage {
   return {
     id: crypto.randomUUID(),
     role: 'agent',
+    to,
     created: new Date().toISOString(),
     status: 'idle',
     agent: '',
@@ -228,11 +336,16 @@ function lineOf(message: ConversationMessage): string {
     .join(' ')
     .trim();
   const shown = message.parts.filter((part): part is WidgetPart => part.type === 'widget').map((part) => part.intent);
-  const done = message.actions.map((action) => `${action.name} ${JSON.stringify(action.args)}`);
+  const call = (action: ActionRecord) => `${action.name} ${JSON.stringify(action.args)}`;
+  const done = message.actions.filter((action) => action.status === 'done').map(call);
+  const undone = message.actions
+    .filter((action) => action.status !== 'done')
+    .map((action) => `${call(action)} (${action.error ?? action.status})`);
   return [
     `wedyan: ${said ? `said "${said.length > LINE_TEXT ? `${said.slice(0, LINE_TEXT)}…` : said}"` : 'said nothing'}`,
     shown.length ? `showed: ${shown.join('; ')}` : '',
     done.length ? `did: ${done.join(', ')}` : '',
+    undone.length ? `didn't: ${undone.join(', ')}` : '',
     message.status === 'done' ? '' : `(${message.reason ?? message.status})`,
   ]
     .filter(Boolean)
@@ -270,8 +383,14 @@ async function savePage(
   const messages = JSON.parse(JSON.stringify(data.messages)) as ConversationMessage[];
   const keep = RECENT_TURNS * 2;
 
-  if (JSON.stringify(pageOf(data.page, messages)).length > pageBytes && messages.length > keep) {
-    const older = messages.slice(0, -keep);
+  // Never past an answer still being written: it keeps changing, so it stays on the current page.
+  const writing = messages.findIndex(
+    (message) => message.role === 'agent' && (message.status === 'running' || message.status === 'idle'),
+  );
+  const cut = Math.min(messages.length - keep, writing === -1 ? messages.length : writing);
+
+  if (new TextEncoder().encode(JSON.stringify(pageOf(data.page, messages))).length > pageBytes && cut > 0) {
+    const older = messages.slice(0, cut);
     await write(pagePath(data.page + 1), pageOf(data.page + 1, older) as never);
     data.page += 1;
     data.messages.splice(0, older.length);

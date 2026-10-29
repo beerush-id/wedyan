@@ -10,7 +10,15 @@ import {
 import type { AIAdapter } from '@irpclib/ai-kit/worker';
 import { getAbortSignal, IRPC_STORE, type IRPCData, type IRPCRouter, setContext, stream } from '@irpclib/irpc';
 import { logger } from '../logger.js';
-import { type AskAction, type AskInput, type AskPart, type AskState, askSeed, askWedyan } from './agent.h.js';
+import {
+  type ActionOutcome,
+  type AskAction,
+  type AskInput,
+  type AskPart,
+  type AskState,
+  askSeed,
+  askWedyan,
+} from './agent.h.js';
 import { createMarkerParser } from './marker.js';
 import { kernel } from './package.js';
 import { createPartWriter, type PartWriterHooks } from './parts.js';
@@ -95,6 +103,8 @@ export interface AskOptions {
   desktop: (action: AskAction) => Promise<IRPCData | undefined>;
   /** What the user said while the ask was running. */
   followUps?: () => string[];
+  /** Hears what became of each action and ask. */
+  track?: AgentLoopOptions['track'];
   signal?: AbortSignal;
 }
 
@@ -137,8 +147,23 @@ export async function askWith(options: AskOptions): Promise<void> {
     },
     act: async (action) => (sys[action.name] ? sys[action.name](action.args) : options.desktop(action)),
     followUps: options.followUps,
+    track: options.track,
     signal: options.signal,
   });
+}
+
+/**
+ * Asks the router's model one short question with no tools, for a decision the kernel makes outside
+ * an ask, such as which running answer the user's words continue.
+ *
+ * @param system - The question's instructions.
+ * @param request - What it decides on, as one object.
+ * @returns The router's answer, as text.
+ */
+export async function askRouter(system: string, request: IRPCData): Promise<string> {
+  if (!config) throw new Error('Kernel is not set up');
+  const router = config.agents[config.entry];
+  return answerOnce(config.adapter, { ...router, system, tools: [] }, request);
 }
 
 /** One agent: a model, its system prompt (format and skill), its calls, and who it may hand off to. */
@@ -207,6 +232,11 @@ export interface AgentLoopOptions {
    * no-op. For an ask, what it returns is the reply the model reads; `undefined` means nothing answered.
    */
   act?: (action: AskAction) => Promise<IRPCData | undefined>;
+  /**
+   * Hears what became of each action and ask: queued (`waiting`), then `done`, `failed` (with the
+   * error), `skipped` (an earlier one of its turn failed), or `unanswered` (an ask nothing replied to).
+   */
+  track?: (action: AskAction, outcome: ActionOutcome) => void;
   /** Drained at each safe turn: what the user said while the ask was running. */
   followUps?: () => string[];
   signal?: AbortSignal;
@@ -248,7 +278,7 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
   let history = resume ? [...resume.history] : [...asks];
   let turn = resume?.turn ?? 0;
   let handoffs = resume?.handoffs ?? 0;
-  const actions = createActionQueue(options.act);
+  const actions = createActionQueue(options.act, options.track);
   const problems: string[] = [];
   const composer = options.composer ? agents[options.composer] : undefined;
   const compositions: Promise<void>[] = [];
@@ -486,25 +516,40 @@ async function composeWidget(
   request: IRPCData,
   signal: AbortSignal | undefined,
 ): Promise<IRPCData[]> {
+  const nodes = nodesOf(await answerOnce(adapter, composer, request, signal));
+  log.debug('widget composed', { request, nodes: summaryOf(nodes) });
+  return nodes;
+}
+
+/**
+ * One model call with no tools and no history: an agent's answer to one object, as text.
+ *
+ * @param adapter - Model access.
+ * @param agent - Whose model and prompt answer.
+ * @param request - What it is asked, as one object.
+ * @param signal - Aborts the call.
+ * @returns The answer's text; an answer the provider kept as commentary is still the answer.
+ */
+async function answerOnce(
+  adapter: AIAdapter,
+  agent: AgentProfile,
+  request: IRPCData,
+  signal?: AbortSignal,
+): Promise<string> {
   const live = mutable<{ data?: ChatOutput }>({});
   await new Promise<void>((resolve, reject) => {
     void adapter.ask(
       [{ role: 'user', type: 'object', data: request }],
       {
-        model: composer.model,
-        system: composer.system,
-        tools: composer.tools,
-        ...(composer.effort ? { reasoningEffort: composer.effort } : {}),
+        model: agent.model,
+        system: agent.system,
+        tools: agent.tools,
+        ...(agent.effort ? { reasoningEffort: agent.effort } : {}),
       },
       { state: live, signal, resolve, reject },
     );
   });
-
-  // Like an agent's turn, an answer the provider kept as commentary is still the answer.
-  const text = live.data?.text || (live.data?.chunks ?? []).join('') || (live.data?.commentary ?? []).join('');
-  const nodes = nodesOf(text);
-  log.debug('widget composed', { request, nodes: summaryOf(nodes) });
-  return nodes;
+  return live.data?.text || (live.data?.chunks ?? []).join('') || (live.data?.commentary ?? []).join('');
 }
 
 /**
@@ -534,7 +579,7 @@ function nodesOf(text: string): IRPCData[] {
  * that turn's actions and asks; an ask's reply, or that nothing answered it, is kept for the model
  * like a failure until taken.
  */
-function createActionQueue(act: AgentLoopOptions['act']) {
+function createActionQueue(act: AgentLoopOptions['act'], track?: AgentLoopOptions['track']) {
   let chain: Promise<void> = Promise.resolve();
   const brokenTurns = new Set<number>();
   const failures: IRPCData[] = [];
@@ -548,18 +593,22 @@ function createActionQueue(act: AgentLoopOptions['act']) {
     add(action: AskAction, turn: number, prepared?: Promise<IRPCData>) {
       // Awaited when its turn comes; until then a failure mustn't count as unhandled.
       prepared?.catch(() => undefined);
+      track?.(action, { status: 'waiting' });
       chain = chain.then(async () => {
         if (brokenTurns.has(turn)) {
           failures.push({ action: action.name, args: action.args, skipped: true });
+          track?.(action, { status: 'skipped' });
           return;
         }
         try {
           const reply = await act?.(prepared ? { ...action, args: await prepared } : action);
           if (action.ask) replies.push(replyOf(action, reply));
+          track?.(action, { status: action.ask && reply === undefined ? 'unanswered' : 'done' });
         } catch (error) {
           IRPC_STORE.error(error as Error, [{ action: action.name, args: action.args }]);
           brokenTurns.add(turn);
           failures.push({ action: action.name, args: action.args, error: messageOf(error) });
+          track?.(action, { status: 'failed', error: messageOf(error) });
         }
       });
     },

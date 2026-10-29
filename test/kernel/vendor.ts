@@ -73,16 +73,20 @@ export function responses(...items: ResponsesItem[]): Response {
 }
 
 /**
- * Answers provider requests from the queue in order; anything past the queue fails with 500.
+ * Answers provider requests from the queue in order; anything past the queue fails with 500. An entry
+ * may be a function of the request's body, for a reply only known at run time.
  *
  * @returns The parsed request bodies, in order, and the fetch spy.
  */
-export function mockVendor(...responses: Response[]) {
+export function mockVendor(...responses: Array<Response | ((body: Record<string, unknown>) => Response)>) {
   const bodies: Record<string, unknown>[] = [];
   const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     const request = new Request(input instanceof Request ? input : String(input), init);
-    bodies.push(await request.clone().json());
-    return responses.shift() ?? new Response('no more turns', { status: 500 });
+    const body = await request.clone().json();
+    bodies.push(body);
+    // A function answers from what was asked, for replies only known at run time.
+    const next = responses.shift();
+    return (typeof next === 'function' ? next(body) : next) ?? new Response('no more turns', { status: 500 });
   });
   return { bodies, spy };
 }

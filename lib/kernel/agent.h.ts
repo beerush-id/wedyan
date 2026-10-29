@@ -50,6 +50,15 @@ export type AskAction = {
   ask?: true;
 };
 
+/**
+ * What became of an action or ask: `waiting` once queued, then `done`, `failed` (with `error`),
+ * `skipped` (an earlier one of its turn failed), or `unanswered` (an ask nothing replied to).
+ */
+export type ActionOutcome = {
+  status: 'waiting' | 'done' | 'failed' | 'skipped' | 'unanswered';
+  error?: string;
+};
+
 /** The live state of one ask, streamed to the client. */
 export interface AskState {
   status: 'idle' | 'running' | 'done' | 'stopped' | 'error';
