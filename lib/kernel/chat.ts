@@ -12,6 +12,7 @@ import { type AsyncStore, getContextStore, mutable } from '@irpclib/irpc/core';
 import { list, read, write } from '@irpclib/r2-file';
 import type { DocumentHeader } from '@/lib/documents/types.js';
 import { userPath } from '@/lib/memory/files.js';
+import { PROFILE_PATH, type UserProfile } from '@/lib/share/profile.js';
 import { CONVERSATION_PATH, INBOXES } from '@/lib/share/system.js';
 import type { AskAction, AskInput, WidgetPart } from './agent.h.js';
 import { askRouter, askWith, toChatInput } from './agent.js';
@@ -32,14 +33,49 @@ export const CONVERSATION_ROOM = 'desktop.chat';
 
 export { CONVERSATION_PATH };
 
-/**
- * Largest a page grows before its older messages move to a numbered page: about half of what D1
- * keeps inline, so the answer that tips it over still stays inline.
- */
-export const PAGE_BYTES = 256 * 1024;
+/** How the conversation keeps its pages, what the agents read of it, and how it waits and briefs. */
+export type ConversationConfig = {
+  /**
+   * Largest a page grows, in UTF-8 bytes, before its older messages move to a numbered page. The
+   * default is about half of what D1 keeps inline, so the answer that tips it over still stays inline.
+   */
+  pageBytes: number;
+  /** How many past turns the agents read, a turn being the user's words and Wedyan's answer. */
+  recentTurns: number;
+  /** Longest stretch of an answer's text kept in its line of the agents' view. */
+  lineText: number;
+  /** How long, in ms, an answer's actions wait for the desktop that sent its words to come back. */
+  clientWait: number;
+  /** How long, in ms, the user must have been away to be briefed, unless their profile says otherwise. */
+  briefAfter: number;
+  /** Most arrivals a briefing is told of, the newest. */
+  arrivals: number;
+  /** Where what comes from outside lands, and is briefed from. */
+  inboxes: readonly string[];
+};
 
-/** How many past turns the agents read, a turn being the user's words and Wedyan's answer. */
-export const RECENT_TURNS = 4;
+/** The conversation's settings when none are given. */
+export const CONVERSATION_DEFAULTS: Readonly<ConversationConfig> = {
+  pageBytes: 256 * 1024,
+  recentTurns: 4,
+  lineText: 300,
+  clientWait: 60_000,
+  briefAfter: 10 * 60_000,
+  arrivals: 20,
+  inboxes: INBOXES,
+};
+
+const config: ConversationConfig = { ...CONVERSATION_DEFAULTS };
+
+/**
+ * Sets how the conversation works for every session of the server; anything not given takes its
+ * default.
+ *
+ * @param options - The settings to change.
+ */
+export function setupConversation(options: Partial<ConversationConfig>): void {
+  Object.assign(config, CONVERSATION_DEFAULTS, options);
+}
 
 /**
  * A conversation page's path: the current one, or an older one by number, `1` being the oldest.
@@ -49,19 +85,6 @@ export const RECENT_TURNS = 4;
  */
 export function pagePath(page?: number): string {
   return page ? `~/Desktop.${page}.chat` : CONVERSATION_PATH;
-}
-
-/** How long an answer's actions wait for the desktop that sent its words to come back. */
-export const CLIENT_WAIT = 60_000;
-
-/** How long the user must have been away to be briefed when they come back. */
-export const AWAY_FOR = 10 * 60_000;
-
-/** How the conversation keeps its pages, waits for desktops and tells the user is back; for tests to make all small. */
-export function setupConversation(options: { pageBytes?: number; clientWait?: number; awayFor?: number }): void {
-  pageBytes = options.pageBytes ?? PAGE_BYTES;
-  clientWait = options.clientWait ?? CLIENT_WAIT;
-  awayFor = options.awayFor ?? AWAY_FOR;
 }
 
 kernel.construct(wedyan, (client) => {
@@ -100,10 +123,6 @@ type Desktop = (action: AskAction) => Promise<IRPCData | undefined>;
 
 /** A conversation page as kept in a `.chat` file. */
 type ConversationPage = DocumentHeader<'chat'> & Pick<Conversation, 'page' | 'messages' | 'seen' | 'away'>;
-
-let pageBytes = PAGE_BYTES;
-let clientWait = CLIENT_WAIT;
-let awayFor = AWAY_FOR;
 
 /** An answer being written: its message, what the user added to it, and how to stop it. */
 type Running = { message: AgentMessage; followUps: string[]; controller: AbortController };
@@ -178,7 +197,11 @@ function createConversation({ hold }: RoomSetup) {
     const since = data.away;
     if (!since) return;
     data.away = undefined;
-    if (client && Date.now() - Date.parse(since) >= awayFor) await brief(client, since, context);
+    if (!client) return;
+    const profile = await read<UserProfile>(PROFILE_PATH, { encoding: 'json' });
+    if (Date.now() - Date.parse(since) >= (profile?.briefAfter ?? config.briefAfter)) {
+      await brief(client, since, context);
+    }
   };
 
   // Briefs the user who is back, when there is something to tell: what arrived in their inboxes,
@@ -202,7 +225,7 @@ function createConversation({ hold }: RoomSetup) {
           event: 'wake',
           awayMinutes: Math.round((Date.now() - Date.parse(since)) / 60_000),
           arrived,
-          unseen: unseen.slice(-RECENT_TURNS * 2).map(lineOf),
+          unseen: unseen.slice(-config.recentTurns * 2).map(lineOf),
           waiting: asking,
         },
       },
@@ -226,7 +249,7 @@ function createConversation({ hold }: RoomSetup) {
       const timer = setTimeout(() => {
         list.delete(back);
         reject(new Error('The desktop that asked is no longer connected'));
-      }, clientWait);
+      }, config.clientWait);
       list.add(back);
     });
 
@@ -344,9 +367,6 @@ function createConversation({ hold }: RoomSetup) {
   };
 }
 
-/** Most arrivals a briefing is told of, the newest. */
-const ARRIVALS = 20;
-
 /**
  * What landed in the user's inboxes since the given time, newest first: mail, invites, receipts.
  * An inbox that fails to list is reported and briefed without.
@@ -356,11 +376,11 @@ const ARRIVALS = 20;
  */
 async function arrivals(since: string): Promise<Array<{ path: string; name: string; mtime: string }>> {
   const listed = await Promise.all(
-    INBOXES.map((inbox) =>
+    config.inboxes.map((inbox) =>
       list(inbox, {
         recursive: true,
         sort: '-mtime',
-        limit: ARRIVALS,
+        limit: config.arrivals,
         filter: { mtime: { min: Date.parse(since) } },
       }).catch((error: Error & { code?: string }) => {
         if (error.code !== 'ENOENT') IRPC_STORE.error(error, [{ inbox }]);
@@ -373,7 +393,7 @@ async function arrivals(since: string): Promise<Array<{ path: string; name: stri
     .filter((entry) => !entry.isDirectory)
     .map(({ path, name, mtime }) => ({ path: userPath(path), name, mtime: new Date(mtime).toISOString() }))
     .sort((a, b) => b.mtime.localeCompare(a.mtime))
-    .slice(0, ARRIVALS);
+    .slice(0, config.arrivals);
 }
 
 /** What an answer to the user's words answers, and where its actions run. */
@@ -453,12 +473,9 @@ function agentMessage({ to, event }: Origin): AgentMessage {
  * agents' own description of it.
  */
 function viewOf(messages: ConversationMessage[]): ChatMessage[] {
-  const lines = messages.slice(-RECENT_TURNS * 2).map(lineOf);
+  const lines = messages.slice(-config.recentTurns * 2).map(lineOf);
   return lines.length ? [{ role: 'user', type: 'object', data: { conversation: lines } }] : [];
 }
-
-/** Longest stretch of an answer's text kept in its line. */
-const LINE_TEXT = 300;
 
 /** One message as a line of the agents' view. */
 function lineOf(message: ConversationMessage): string {
@@ -474,7 +491,7 @@ function lineOf(message: ConversationMessage): string {
     .filter((action) => action.status !== 'done')
     .map((action) => `${call(action)} (${action.error ?? action.status})`);
   return [
-    `wedyan: ${said ? `said "${said.length > LINE_TEXT ? `${said.slice(0, LINE_TEXT)}…` : said}"` : 'said nothing'}`,
+    `wedyan: ${said ? `said "${said.length > config.lineText ? `${said.slice(0, config.lineText)}…` : said}"` : 'said nothing'}`,
     shown.length ? `showed: ${shown.join('; ')}` : '',
     done.length ? `did: ${done.join(', ')}` : '',
     undone.length ? `didn't: ${undone.join(', ')}` : '',
@@ -490,7 +507,7 @@ async function readPage(page?: number): Promise<ConversationPage | undefined> {
 }
 
 /**
- * Keeps the conversation: writes its current page and, once it outgrows `pageBytes`, first moves
+ * Keeps the conversation: writes its current page and, once it outgrows `config.pageBytes`, first moves
  * its older messages to the next numbered page, keeping the turns the agents read on the current
  * one. The numbered page is written before the current one shrinks, so a failure between the two
  * repeats a page rather than losing one.
@@ -515,7 +532,7 @@ async function savePage(
     ...(data.away ? { away: data.away } : {}),
   });
   const messages = JSON.parse(JSON.stringify(data.messages)) as ConversationMessage[];
-  const keep = RECENT_TURNS * 2;
+  const keep = config.recentTurns * 2;
 
   // Never past an answer still being written: it keeps changing, so it stays on the current page.
   const writing = messages.findIndex(
@@ -523,7 +540,7 @@ async function savePage(
   );
   const cut = Math.min(messages.length - keep, writing === -1 ? messages.length : writing);
 
-  if (new TextEncoder().encode(JSON.stringify(pageOf(data.page, messages))).length > pageBytes && cut > 0) {
+  if (new TextEncoder().encode(JSON.stringify(pageOf(data.page, messages))).length > config.pageBytes && cut > 0) {
     const older = messages.slice(0, cut);
     await write(pagePath(data.page + 1), pageOf(data.page + 1, older) as never);
     data.page += 1;

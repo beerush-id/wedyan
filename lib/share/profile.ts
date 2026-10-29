@@ -19,7 +19,17 @@ export interface UserProfile {
   persona?: string;
   /** Corrections the user asked for along the way, one per item. */
   refinements?: string[];
+  /** How long, in ms, a desktop goes without input before it is idle and sleeps; `IDLE_AFTER` when unset. */
+  idleAfter?: number;
+  /**
+   * How long, in ms, the user must have been away to be briefed when they come back; the server's
+   * default when unset. `0` briefs on every return with something to tell.
+   */
+  briefAfter?: number;
 }
+
+/** How long a desktop goes without input before it is idle, when the profile doesn't say. */
+export const IDLE_AFTER = 5 * 60_000;
 
 let profile: PipeData<UserProfile> | undefined;
 

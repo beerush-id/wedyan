@@ -6,7 +6,8 @@ import { fsContext } from '@irpclib/r2-file/context';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setupKernel } from '../../lib/kernel/agent.js';
 import { type AgentMessage, type Conversation, wedyan } from '../../lib/kernel/chat.h.js';
-import { CONVERSATION_PATH, pagePath, RECENT_TURNS, setupConversation } from '../../lib/kernel/chat.js';
+import { CONVERSATION_DEFAULTS, CONVERSATION_PATH, pagePath, setupConversation } from '../../lib/kernel/chat.js';
+import { PROFILE_PATH } from '../../lib/share/profile.js';
 import { AGENTS, createTestAdapter } from './fixtures.js';
 import { messagesOf, mockVendor, says } from './vendor.js';
 
@@ -498,7 +499,7 @@ describe('the conversation', () => {
       }
 
       expect(desktop.data.page).toBeGreaterThan(0);
-      expect(desktop.data.messages.length).toBeLessThanOrEqual(RECENT_TURNS * 2 + 2);
+      expect(desktop.data.messages.length).toBeLessThanOrEqual(CONVERSATION_DEFAULTS.recentTurns * 2 + 2);
       const oldest = await desktop.ask('page', 1);
       expect(oldest?.[0]).toMatchObject({ role: 'user', text: 'Question 0' });
       // An answer is marked done before its page is saved: wait for the save to land.
@@ -522,7 +523,28 @@ describe('the conversation', () => {
     const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
     beforeEach(() => {
-      setupConversation({ awayFor: 50 });
+      setupConversation({ briefAfter: 50 });
+    });
+
+    it('briefs after the user’s own briefAfter, over the server’s', async () => {
+      setupConversation({});
+      mockVendor(says('Rendering it.'), says('Welcome back.'));
+      const who = newUser();
+
+      await asDesktop(who, async () => {
+        await write(PROFILE_PATH, { userName: 'Nanang', briefAfter: 0 } as never);
+        const desktop = wedyan('tab-a');
+        await until(() => desktop.data.ready);
+        await desktop.ask('presence', 'active');
+        await desktop.ask('send', { text: 'Render it' });
+        await until(() => answered(desktop.data));
+        await desktop.ask('presence', 'idle');
+        await desktop.ask('presence', 'active', { time: TIME });
+        await until(() => desktop.data.messages.length === 3 && answered(desktop.data));
+
+        expect(last(desktop.data)).toMatchObject({ event: 'wake', status: 'done' });
+        desktop.close();
+      });
     });
 
     it('keeps the last message the user saw, only ever forward', async () => {
