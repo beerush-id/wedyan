@@ -40,14 +40,23 @@ export function liveAdapter(): AIAdapter {
   return adapter;
 }
 
+/** What landed in the user's inboxes while they were away, by path, as `r2-file.read` returns it. */
+const INBOX: Record<string, IRPCData> = {
+  '~/Mail/m1.mail': { id: 'm1', from: 'Ana', subject: 'Notes on the shoot schedule', received: '06:40' },
+  '~/Mail/m2.mail': { id: 'm2', from: 'Rudi', subject: 'Budget approved for episode 2', received: '07:05' },
+  '~/Calendar/c1.event': { id: 'c1', title: 'Casting call with Ana', starts: '10:00 today' },
+  '~/Orders/o1.receipt': { id: 'o1', item: 'Lavalier mic', status: 'Delivered', at: '08:12' },
+};
+
+/** The wake briefing's arrivals, as the conversation gives them. */
+export const ARRIVED = Object.keys(INBOX).map((path) => ({
+  path,
+  name: path.split('/').pop()!,
+  mtime: '2026-10-29T06:40:00.000Z',
+}));
+
 /** Seeded answers for server calls, as the beats expect them. */
 export const SYS: Record<string, IRPCData> = {
-  'sys.queue.list': [
-    { id: 'q1', kind: 'render', title: 'Short drama v3 render finished', at: '02:14' },
-    { id: 'm1', kind: 'mail', from: 'Ana', title: 'Notes on the shoot schedule', at: '06:40' },
-    { id: 'm2', kind: 'mail', from: 'Rudi', title: 'Budget approved for episode 2', at: '07:05' },
-    { id: 'c1', kind: 'meeting', title: 'Casting call with Ana', at: '10:00 today' },
-  ],
   // r2-file's own tools, answering in its ListResult shape.
   'r2-file.search': {
     entries: [{ path: '~/projects/short-drama', name: 'short-drama', isDirectory: true, mtime: 'yesterday 23:40' }],
@@ -126,6 +135,7 @@ export async function runBeat(
       state,
       resolve: async (call) => {
         calls.push(call);
+        if (call.name === 'r2-file.read') return INBOX[(call.args as { path: string }).path];
         return SYS[call.name];
       },
       act: async (action) => {

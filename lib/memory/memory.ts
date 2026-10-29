@@ -1,6 +1,7 @@
 import { exists, list, read, write } from '@irpclib/r2-file';
 import { fsContext } from '@irpclib/r2-file/context';
 import type { MemoDocument } from '@/lib/documents/types.js';
+import { MEMOS_PATH as MEMOS } from '@/lib/share/system.js';
 import { memory, type Recalled, recall, save } from './memory.h.js';
 
 /** The part of a Vectorize index memory uses. */
@@ -119,9 +120,6 @@ export const TEXT_LIMIT = 2000;
 
 /** Longest name a memo gets from its text. */
 const NAME_LIMIT = 60;
-
-/** Where memos live, in the user's home. */
-const MEMOS = '~/Memos';
 
 /**
  * The index and embedder memory was set up with; files are indexed into the same index.

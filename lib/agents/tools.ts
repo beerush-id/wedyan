@@ -48,11 +48,6 @@ const object = (properties: Record<string, IRPCData>, required: string[] = []): 
 const text = (description: string) => ({ type: 'string', description });
 
 export const TOOLS = {
-  queueList: {
-    name: 'sys.queue.list',
-    description: 'Lists what finished or arrived while the user was away: renders, mail, meetings, decisions waiting.',
-    parameters: object({}),
-  },
   photosSearch: {
     name: 'sys.photos.search',
     description: 'Finds photos by what they show, e.g. "the cat on the sofa".',

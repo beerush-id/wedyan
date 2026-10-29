@@ -9,8 +9,10 @@ import {
   withContext,
 } from '@irpclib/irpc';
 import { type AsyncStore, getContextStore, mutable } from '@irpclib/irpc/core';
-import { read, write } from '@irpclib/r2-file';
+import { list, read, write } from '@irpclib/r2-file';
 import type { DocumentHeader } from '@/lib/documents/types.js';
+import { userPath } from '@/lib/memory/files.js';
+import { CONVERSATION_PATH, INBOXES } from '@/lib/share/system.js';
 import type { AskAction, AskInput, WidgetPart } from './agent.h.js';
 import { askRouter, askWith, toChatInput } from './agent.js';
 import {
@@ -19,6 +21,7 @@ import {
   type Conversation,
   type ConversationMessage,
   type ConversationQueries,
+  type Presence,
   type UserMessage,
   wedyan,
 } from './chat.h.js';
@@ -27,8 +30,7 @@ import { kernel } from './package.js';
 /** The session's room the conversation lives in: one per user, whichever desktop opens it first. */
 export const CONVERSATION_ROOM = 'desktop.chat';
 
-/** Where the conversation's current page is kept, in the user's home. */
-export const CONVERSATION_PATH = '~/Desktop.chat';
+export { CONVERSATION_PATH };
 
 /**
  * Largest a page grows before its older messages move to a numbered page: about half of what D1
@@ -52,10 +54,14 @@ export function pagePath(page?: number): string {
 /** How long an answer's actions wait for the desktop that sent its words to come back. */
 export const CLIENT_WAIT = 60_000;
 
-/** How the conversation keeps its pages and waits for desktops; for tests to make both small. */
-export function setupConversation(options: { pageBytes?: number; clientWait?: number }): void {
+/** How long the user must have been away to be briefed when they come back. */
+export const AWAY_FOR = 10 * 60_000;
+
+/** How the conversation keeps its pages, waits for desktops and tells the user is back; for tests to make all small. */
+export function setupConversation(options: { pageBytes?: number; clientWait?: number; awayFor?: number }): void {
   pageBytes = options.pageBytes ?? PAGE_BYTES;
   clientWait = options.clientWait ?? CLIENT_WAIT;
+  awayFor = options.awayFor ?? AWAY_FOR;
 }
 
 kernel.construct(wedyan, (client) => {
@@ -77,6 +83,8 @@ kernel.construct(wedyan, (client) => {
       state.answer('send', (input) => member.ask('send', input, client));
       state.answer('stop', (answer) => member.ask('stop', answer));
       state.answer('page', (page) => member.ask('page', page));
+      state.answer('seen', (message) => member.ask('seen', message));
+      state.answer('presence', (presence, context) => member.ask('presence', presence, client, context));
 
       return () => {
         detach();
@@ -91,13 +99,20 @@ kernel.construct(wedyan, (client) => {
 type Desktop = (action: AskAction) => Promise<IRPCData | undefined>;
 
 /** A conversation page as kept in a `.chat` file. */
-type ConversationPage = DocumentHeader<'chat'> & { page: number; messages: ConversationMessage[] };
+type ConversationPage = DocumentHeader<'chat'> & Pick<Conversation, 'page' | 'messages' | 'seen' | 'away'>;
 
 let pageBytes = PAGE_BYTES;
 let clientWait = CLIENT_WAIT;
+let awayFor = AWAY_FOR;
 
 /** An answer being written: its message, what the user added to it, and how to stop it. */
 type Running = { message: AgentMessage; followUps: string[]; controller: AbortController };
+
+/** What an answer answers: the user's words, or an event Wedyan answers on its own; and where its actions run. */
+type Origin = { client: string; to?: string; event?: AgentMessage['event'] };
+
+/** The words the briefing agent is given; what it briefs is in the context. */
+const WAKE_TEXT = '(The user is back.)';
 
 /**
  * Builds the session's conversation room: the conversation, read from its current page, and what
@@ -106,11 +121,13 @@ type Running = { message: AgentMessage; followUps: string[]; controller: AbortCo
  * arrive while answers run go to the router, which joins them to the answer they continue or starts
  * a new one. Each answer's actions run only on the desktop that sent its words, the one whose state
  * they were worked out against: while that desktop is away they wait for it to come back, and fail
- * if it doesn't, never running on another.
+ * if it doesn't, never running on another. The user is away once no desktop is in use; when one is
+ * again after long enough, Wedyan briefs them there on what they haven't seen and what waits on them.
  */
 function createConversation({ hold }: RoomSetup) {
   const data = mutable<Conversation>({ ready: false, page: 0, messages: [] });
   const desktops = new Map<string, Desktop>();
+  const presences = new Map<string, Presence>();
   // Actions waiting for their desktop to come back, by its client ID.
   const waiting = new Map<string, Set<() => void>>();
   const running = new Map<string, Running>();
@@ -122,6 +139,13 @@ function createConversation({ hold }: RoomSetup) {
       header = await savePage(data, header);
     });
     return saving;
+  };
+  // A save asked for by a call, in its own copy of the call's context, since the save may wait
+  // behind another past the end of that call.
+  const keep = (context = detachedContext()) => {
+    hold(withContext(context, persist)).catch((error: Error) =>
+      IRPC_STORE.error(error, [{ conversation: CONVERSATION_PATH }]),
+    );
   };
 
   const loaded = hold(
@@ -135,9 +159,56 @@ function createConversation({ hold }: RoomSetup) {
       }
       data.page = page?.page ?? 0;
       data.messages.push(...(page?.messages ?? []));
+      data.seen = page?.seen;
+      data.away = page?.away;
       data.ready = true;
     }),
   );
+
+  // Whenever a desktop's presence changes or it leaves: the user goes away once none is in use, and
+  // is briefed on the desktop that is in use again, when they were gone long enough.
+  const notice = async (client?: string, context?: AskInput['context']) => {
+    if (![...presences.values()].includes('active')) {
+      if (!data.away) {
+        data.away = new Date().toISOString();
+        keep();
+      }
+      return;
+    }
+    const since = data.away;
+    if (!since) return;
+    data.away = undefined;
+    if (client && Date.now() - Date.parse(since) >= awayFor) await brief(client, since, context);
+  };
+
+  // Briefs the user who is back, when there is something to tell: what arrived in their inboxes,
+  // the answers they haven't seen, and the asks still waiting on them. The agents read what came
+  // before the unseen as usual.
+  const brief = async (client: string, since: string, context?: AskInput['context']) => {
+    const from = data.messages.findIndex((message) => message.id === data.seen) + 1;
+    const unseen = data.messages.slice(from).filter((message) => !running.has(message.id));
+    const asking = [...running.values()]
+      .filter(({ message }) => message.actions.some((action) => action.ask && action.status === 'waiting'))
+      .map(({ message }) => lineOf(message));
+    const arrived = await arrivals(since);
+    if (!unseen.some((message) => message.role === 'agent') && !asking.length && !arrived.length) return;
+
+    start(
+      { client, event: 'wake' },
+      {
+        text: WAKE_TEXT,
+        context: {
+          ...context,
+          event: 'wake',
+          awayMinutes: Math.round((Date.now() - Date.parse(since)) / 60_000),
+          arrived,
+          unseen: unseen.slice(-RECENT_TURNS * 2).map(lineOf),
+          waiting: asking,
+        },
+      },
+      data.messages.slice(0, from),
+    );
+  };
 
   const onDesktop = async (client: string, action: AskAction) => {
     const desktop = desktops.get(client) ?? (await comesBack(client));
@@ -159,10 +230,8 @@ function createConversation({ hold }: RoomSetup) {
       list.add(back);
     });
 
-  const answer = async (words: UserMessage, input: AskInput) => {
-    const sender = words.client;
-    const before = data.messages.filter((message) => message.id !== words.id);
-    data.messages.push(agentMessage(words.id));
+  const answer = async (origin: Origin, input: AskInput, before: ConversationMessage[]) => {
+    data.messages.push(agentMessage(origin));
     // The stored element, so the loop writes into what the desktops see.
     const message = data.messages[data.messages.length - 1] as AgentMessage;
     const turn: Running = { message, followUps: [], controller: new AbortController() };
@@ -174,7 +243,7 @@ function createConversation({ hold }: RoomSetup) {
       await askWith({
         input: [...viewOf(before), ...toChatInput(input)],
         state: message,
-        desktop: (action) => onDesktop(sender, action),
+        desktop: (action) => onDesktop(origin.client, action),
         track: (action, outcome) => {
           const record = records.get(action);
           if (record) {
@@ -195,13 +264,20 @@ function createConversation({ hold }: RoomSetup) {
 
     // Words it was given too late to take in are answered on their own.
     const late = turn.followUps.splice(0);
-    if (late.length) start(lastWords(data, message.id) ?? words, { text: late.join('\n') });
+    if (late.length) {
+      const words = lastWords(data, message.id);
+      start(words ? originOf(words) : origin, { text: late.join('\n') });
+    }
   };
 
   // Its own copy of the sender's context, so the answer keeps its home, session and bindings to the
-  // end, even once the call that sent it is gone.
-  const start = (words: UserMessage, input: AskInput) => {
-    hold(withContext(detachedContext(), () => answer(words, input))).catch((error: Error) =>
+  // end, even once the call that sent it is gone. The agents read the turns before it, its words aside.
+  const start = (
+    origin: Origin,
+    input: AskInput,
+    before = data.messages.filter((message) => message.id !== origin.to),
+  ) => {
+    hold(withContext(detachedContext(), () => answer(origin, input, before))).catch((error: Error) =>
       IRPC_STORE.error(error, [{ conversation: input.text }]),
     );
   };
@@ -215,19 +291,21 @@ function createConversation({ hold }: RoomSetup) {
         // What waited for this desktop runs now, in the order it was asked.
         for (const back of waiting.get(client) ?? []) back();
         waiting.delete(client);
+        // The desktop's own context, to save in once it has left.
+        const context = detachedContext();
         return () => {
-          if (desktops.get(client) === desktop) desktops.delete(client);
+          if (desktops.get(client) !== desktop) return;
+          desktops.delete(client);
+          presences.delete(client);
+          void withContext(context, () => notice());
         };
       },
       send: async (input: AskInput, client: string) => {
         await loaded;
         data.messages.push(userMessage(input, client));
         const words = data.messages[data.messages.length - 1] as UserMessage;
-        // Kept as soon as they are said, not only once an answer ends; in its own context, since the
-        // save may wait behind another past the end of this call.
-        hold(withContext(detachedContext(), persist)).catch((error: Error) =>
-          IRPC_STORE.error(error, [{ conversation: input.text }]),
-        );
+        // Kept as soon as they are said, not only once an answer ends.
+        keep();
 
         // While answers run, the router decides whether the words continue one of them.
         const target = running.size
@@ -238,7 +316,7 @@ function createConversation({ hold }: RoomSetup) {
           target.followUps.push(input.text);
           return true;
         }
-        start(words, input);
+        start(originOf(words), input);
         return true;
       },
       stop: (answer?: string) => {
@@ -246,8 +324,61 @@ function createConversation({ hold }: RoomSetup) {
         return true;
       },
       page: async (page: number) => (await readPage(page))?.messages,
+      seen: async (message: string) => {
+        await loaded;
+        const at = data.messages.findIndex(({ id }) => id === message);
+        // Only ever forward: a message before the one already seen changes nothing.
+        if (at === -1 || at <= data.messages.findIndex(({ id }) => id === data.seen)) return false;
+        data.seen = message;
+        keep();
+        return true;
+      },
+      presence: async (presence: Presence, client: string, context?: AskInput['context']) => {
+        await loaded;
+        if (!desktops.has(client)) return false;
+        presences.set(client, presence);
+        await notice(client, context);
+        return true;
+      },
     },
   };
+}
+
+/** Most arrivals a briefing is told of, the newest. */
+const ARRIVALS = 20;
+
+/**
+ * What landed in the user's inboxes since the given time, newest first: mail, invites, receipts.
+ * An inbox that fails to list is reported and briefed without.
+ *
+ * @param since - When the user went away, as an ISO time.
+ * @returns Each arrival's path, name and time.
+ */
+async function arrivals(since: string): Promise<Array<{ path: string; name: string; mtime: string }>> {
+  const listed = await Promise.all(
+    INBOXES.map((inbox) =>
+      list(inbox, {
+        recursive: true,
+        sort: '-mtime',
+        limit: ARRIVALS,
+        filter: { mtime: { min: Date.parse(since) } },
+      }).catch((error: Error & { code?: string }) => {
+        if (error.code !== 'ENOENT') IRPC_STORE.error(error, [{ inbox }]);
+        return undefined;
+      }),
+    ),
+  );
+  return listed
+    .flatMap((result) => result?.entries ?? [])
+    .filter((entry) => !entry.isDirectory)
+    .map(({ path, name, mtime }) => ({ path: userPath(path), name, mtime: new Date(mtime).toISOString() }))
+    .sort((a, b) => b.mtime.localeCompare(a.mtime))
+    .slice(0, ARRIVALS);
+}
+
+/** What an answer to the user's words answers, and where its actions run. */
+function originOf(words: UserMessage): Origin {
+  return { client: words.client, to: words.id };
 }
 
 /**
@@ -300,12 +431,13 @@ function userMessage(input: AskInput, client: string): UserMessage {
   };
 }
 
-/** A new answer to the given words, before it starts. */
-function agentMessage(to: string): AgentMessage {
+/** A new answer, to the user's words or an event, before it starts. */
+function agentMessage({ to, event }: Origin): AgentMessage {
   return {
     id: crypto.randomUUID(),
     role: 'agent',
-    to,
+    ...(to ? { to } : {}),
+    ...(event ? { event } : {}),
     created: new Date().toISOString(),
     status: 'idle',
     agent: '',
@@ -379,6 +511,8 @@ async function savePage(
     author: { kind: 'agent' },
     page,
     messages,
+    ...(data.seen ? { seen: data.seen } : {}),
+    ...(data.away ? { away: data.away } : {}),
   });
   const messages = JSON.parse(JSON.stringify(data.messages)) as ConversationMessage[];
   const keep = RECENT_TURNS * 2;

@@ -22,13 +22,15 @@ export type ActionRecord = Pick<AskAction, 'name' | 'args' | 'after' | 'ask'> & 
 /**
  * Wedyan's answer: the ask's own live state (parts, status, agent), written in place as it runs,
  * and its actions on the desktop, each with what became of it. Several can be written at once, each
- * answering its words.
+ * answering its words, or, with `event` instead, started by Wedyan itself.
  */
 export type AgentMessage = AskState & {
   id: string;
   role: 'agent';
-  /** The user's words it answers. */
-  to: string;
+  /** The user's words it answers; unset when Wedyan started it. */
+  to?: string;
+  /** Why Wedyan started it on its own: `wake` briefs the user who just came back. */
+  event?: 'wake';
   created: string;
   actions: ActionRecord[];
 };
@@ -44,13 +46,22 @@ export type Conversation = {
   ready: boolean;
   page: number;
   messages: ConversationMessage[];
+  /** The last message the user saw, on any desktop. */
+  seen?: string;
+  /** Since when the user has been away (every desktop idle or closed); unset while one is in use. */
+  away?: string;
 };
+
+/** Whether a desktop is in use: `active` on input while it is shown, `idle` after a while without or when hidden. */
+export type Presence = 'active' | 'idle';
 
 /**
  * The questions on the conversation. The desktop asks to `send` the user's words (joined to a
  * running answer when they continue it, else answered on their own), to `stop` an answer (every
- * running one when unnamed), and for an older `page`. The server asks the desktop to run actions
- * and asks by name, as `askWedyan` does (`app.*`, `desktop.*`, `ask_user`).
+ * running one when unnamed), for an older `page`, to mark a message `seen` once the user has seen
+ * it, and tells its `presence`, with its context when it turns active, so a user back from away is
+ * briefed there. The server asks the desktop to run actions and asks by name, as `askWedyan` does
+ * (`app.*`, `desktop.*`, `ask_user`).
  */
 export type ConversationQueries = {
   // biome-ignore lint/suspicious/noExplicitAny: action and ask names are registered by the client at runtime
@@ -58,6 +69,8 @@ export type ConversationQueries = {
   send: (input: AskInput) => boolean;
   stop: (answer?: string) => boolean;
   page: (page: number) => ConversationMessage[] | undefined;
+  seen: (message: string) => boolean;
+  presence: (presence: Presence, context?: AskInput['context']) => boolean;
 };
 
 /**

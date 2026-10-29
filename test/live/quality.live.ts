@@ -2,7 +2,7 @@ import { writeFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import type { AgentModels } from '../../lib/agents/index.js';
 import type { TextPart, WidgetPart } from '../../lib/kernel/agent.h.js';
-import { ask, type BeatResult, PROFILE, PROVIDERS, runBeat } from './beat.js';
+import { ARRIVED, ask, type BeatResult, PROFILE, PROVIDERS, runBeat } from './beat.js';
 
 /*
  * Output quality on real Wedyan asks, per provider. Each beat's result is checked against the
@@ -17,7 +17,7 @@ import { ask, type BeatResult, PROFILE, PROVIDERS, runBeat } from './beat.js';
  *
  * Expected per beat:
  * - router-answer: "Good morning!" is answered by the router itself, with no handoff and no calls.
- * - wake: the router hands off to lita; lita calls sys.queue.list, shows at least two widgets, and
+ * - wake: the router hands off to wendy; wendy reads what arrived, shows at least two widgets, and
  *   greets the user by name.
  * - open: one action opens the short-drama project (app.open with a file in it, or app.files.reveal),
  *   one opens a mail (app.mail.open, m1 or m2), each anchored after a part.
@@ -163,10 +163,21 @@ const BEATS: Array<{
   },
   {
     name: 'wake',
-    run: (models) => runBeat(ask('(The user unlocked the screen.)', { event: 'wake', ...PROFILE }), { models }),
+    run: (models) =>
+      runBeat(
+        ask('(The user is back.)', {
+          event: 'wake',
+          awayMinutes: 420,
+          arrived: ARRIVED,
+          unseen: [],
+          waiting: [],
+          ...PROFILE,
+        }),
+        { models },
+      ),
     checks: (result) => [
       { name: 'routed to wendy', pass: result.agents.includes('wendy'), detail: result.agents.join(' → ') },
-      { name: 'reads the queue', pass: called(result, 'sys.queue.list').length > 0 },
+      { name: 'reads what arrived', pass: called(result, 'r2-file.read').length > 0 },
       { name: 'shows ≥ 2 widgets', pass: widgets(result).length >= 2, detail: `${widgets(result).length}` },
       { name: 'greets by name', pass: /nanang/i.test(spoken(result)) },
     ],

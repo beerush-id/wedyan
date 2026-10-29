@@ -511,4 +511,173 @@ describe('the conversation', () => {
       desktop.close();
     });
   });
+
+  describe('when the user comes back', () => {
+    const TIME = '2026-10-29T13:00:00+07:00';
+    /** What the briefing agent was given: its ask's context. */
+    const briefed = (bodies: Record<string, unknown>[], index: number) => {
+      const asked = messagesOf(bodies, index).find((message) => message.content?.includes('"event":"wake"'));
+      return asked && (JSON.parse(asked.content!) as { context: Record<string, unknown> }).context;
+    };
+    const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    beforeEach(() => {
+      setupConversation({ awayFor: 50 });
+    });
+
+    it('keeps the last message the user saw, only ever forward', async () => {
+      mockVendor(says('Hello.'));
+      const who = newUser();
+
+      await asDesktop(who, async () => {
+        const desktop = wedyan('tab-a');
+        await until(() => desktop.data.ready);
+        await desktop.ask('send', { text: 'Hi' });
+        await until(() => answered(desktop.data));
+        const [words, reply] = desktop.data.messages;
+
+        expect(await desktop.ask('seen', reply.id)).toBe(true);
+        expect(await desktop.ask('seen', words.id)).toBe(false);
+        expect(desktop.data.seen).toBe(reply.id);
+        let kept: Conversation | undefined;
+        for (let tries = 0; kept?.seen !== reply.id && tries < 50; tries += 1) {
+          await pause(20);
+          kept = (await read(CONVERSATION_PATH, { encoding: 'json' })) as Conversation;
+        }
+        expect(kept?.seen).toBe(reply.id);
+        desktop.close();
+      });
+    });
+
+    it('briefs the user on the desktop in use again, once every desktop was away long enough', async () => {
+      const vendor = mockVendor(
+        says('Rendering it.'),
+        says('[[say]]Welcome back, the render is done.[[/say]][[action name=app.open]]{"app":"motion"}[[/action]]'),
+      );
+      const who = newUser();
+
+      await asDesktop(who, async () => {
+        const first = wedyan('tab-a');
+        const second = wedyan('tab-b');
+        const ranOn: string[] = [];
+        first.answer('app.open', () => void ranOn.push('first'));
+        second.answer('app.open', () => void ranOn.push('second'));
+        await until(() => first.data.ready && second.data.ready);
+        await first.ask('presence', 'active');
+        await second.ask('presence', 'active');
+        await first.ask('send', { text: 'Render the short drama' });
+        await until(() => answered(first.data));
+
+        // One desktop idle is not away, while the other is in use.
+        await first.ask('presence', 'idle');
+        expect(first.data.away).toBeUndefined();
+        await second.ask('presence', 'idle');
+        expect(first.data.away).toBeDefined();
+        await pause(80);
+        await second.ask('presence', 'active', { time: TIME });
+        await until(() => first.data.messages.length === 3 && answered(first.data));
+
+        const briefing = last(first.data) as AgentMessage;
+        expect(briefing).toMatchObject({ role: 'agent', event: 'wake', status: 'done' });
+        expect(briefing.to).toBeUndefined();
+        expect(ranOn).toEqual(['second']);
+        expect(first.data.away).toBeUndefined();
+        expect(briefed(vendor.bodies, 1)).toEqual({
+          time: TIME,
+          event: 'wake',
+          awayMinutes: 0,
+          arrived: [],
+          unseen: ['user: Render the short drama', 'wedyan: said "Rendering it."'],
+          waiting: [],
+        });
+        first.close();
+        second.close();
+      });
+    });
+
+    it('briefs on what landed in the inboxes while the user was away, and not what was there before', async () => {
+      const vendor = mockVendor(says('Welcome back.'));
+      const who = newUser();
+
+      await asDesktop(who, async () => {
+        await write('~/Mail/before.mail', { from: 'Rudi', subject: 'Old news' } as never);
+        const desktop = wedyan('tab-a');
+        await until(() => desktop.data.ready);
+        await desktop.ask('presence', 'active');
+        await desktop.ask('presence', 'idle');
+        // Past the second the user went away in, however finely the index keeps times.
+        await pause(1100);
+        await write('~/Mail/m1.mail', { from: 'Ana', subject: 'Notes on the shoot schedule' } as never);
+        await pause(20);
+        await write('~/Orders/o1.receipt', { item: 'Lavalier mic', status: 'Delivered' } as never);
+        await desktop.ask('presence', 'active', { time: TIME });
+        await until(() => desktop.data.messages.length === 1 && answered(desktop.data));
+
+        expect(last(desktop.data)).toMatchObject({ event: 'wake', status: 'done' });
+        const { arrived } = briefed(vendor.bodies, 0) as { arrived: Array<{ path: string; name: string }> };
+        expect(arrived.map(({ path, name }) => ({ path, name }))).toEqual([
+          { path: '~/Orders/o1.receipt', name: 'o1.receipt' },
+          { path: '~/Mail/m1.mail', name: 'm1.mail' },
+        ]);
+        desktop.close();
+      });
+    });
+
+    it('doesn’t brief when nothing is unseen, or the user wasn’t away long enough', async () => {
+      mockVendor(says('Hello.'), says('Again.'));
+      const who = newUser();
+
+      await asDesktop(who, async () => {
+        const desktop = wedyan('tab-a');
+        await until(() => desktop.data.ready);
+        await desktop.ask('presence', 'active');
+        await desktop.ask('send', { text: 'Hi' });
+        await until(() => answered(desktop.data));
+        await desktop.ask('seen', desktop.data.messages[1].id);
+
+        await desktop.ask('presence', 'idle');
+        await pause(80);
+        await desktop.ask('presence', 'active');
+        await pause(100);
+        expect(desktop.data.messages).toHaveLength(2);
+
+        await desktop.ask('send', { text: 'Hi again' });
+        await until(() => desktop.data.messages.length === 4 && answered(desktop.data));
+        await desktop.ask('presence', 'idle');
+        await desktop.ask('presence', 'active');
+        await pause(100);
+        expect(desktop.data.messages).toHaveLength(4);
+        desktop.close();
+      });
+    });
+
+    it('counts every desktop closed as away, and remembers it for the next desktop', async () => {
+      const vendor = mockVendor(says('Rendering it.'), says('Welcome back.'));
+      const who = newUser();
+
+      await asDesktop(who, async () => {
+        const desktop = wedyan('tab-a');
+        await until(() => desktop.data.ready);
+        await desktop.ask('presence', 'active');
+        await desktop.ask('send', { text: 'Render it' });
+        await until(() => answered(desktop.data));
+        desktop.close();
+      });
+
+      await asDesktop(who, async () => {
+        await pause(150);
+        const next = wedyan('tab-b');
+        await until(() => next.data.ready);
+        expect(next.data.away).toBeDefined();
+        await next.ask('presence', 'active', { time: TIME });
+        await until(() => next.data.messages.length === 3 && answered(next.data));
+
+        expect(last(next.data)).toMatchObject({ event: 'wake', status: 'done' });
+        expect(briefed(vendor.bodies, 1)).toMatchObject({
+          unseen: ['user: Render it', 'wedyan: said "Rendering it."'],
+        });
+        next.close();
+      });
+    });
+  });
 });

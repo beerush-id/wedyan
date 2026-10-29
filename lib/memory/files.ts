@@ -130,8 +130,13 @@ function chunksOf(text: string): string[] {
   return chunks;
 }
 
-/** A resolved path as the user writes it: inside their home, from `~`. */
-function userPath(storagePath: string): string {
+/**
+ * A resolved path as the user writes it: inside their home, from `~`.
+ *
+ * @param storagePath - The path as r2-file resolved it, from the mount's root.
+ * @returns The path from `~` when it is in the user's home, else as given.
+ */
+export function userPath(storagePath: string): string {
   const home = fsContext.get()?.homeDir;
   return home && storagePath.startsWith(`${home}/`) ? `~${storagePath.slice(home.length)}` : storagePath;
 }

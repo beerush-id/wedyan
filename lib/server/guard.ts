@@ -2,6 +2,7 @@ import { GuardError, getContext, type IRPCSubRequest } from '@irpclib/irpc';
 import { resolve } from '@irpclib/r2-file/path';
 import { ACTOR_KEY, AGENT_ACTOR } from '@/lib/kernel/agent.js';
 import { PROFILE_PATH } from '@/lib/share/profile.js';
+import { VAULT_PATH } from '@/lib/share/system.js';
 
 /**
  * Files only the user changes, through the desktop: the profile is every agent's persona, so an
@@ -10,7 +11,7 @@ import { PROFILE_PATH } from '@/lib/share/profile.js';
 export const USER_ONLY = [PROFILE_PATH];
 
 /** Files no agent may change or read: the user's secrets. */
-export const SECRET = ['~/private.vault'];
+export const SECRET = [VAULT_PATH];
 
 /**
  * Keeps agents off the user's own files. For an agent's call, it refuses one that would change a
