@@ -1,8 +1,22 @@
-import { canCaptureVideo, type VideoStageAria } from '@airlib/aria';
+import { aria, canCaptureVideo, type VideoStageAria } from '@airlib/aria';
 import { $bind, $static, $use, For, onCleanup, onMount, Show, Snippet, setup, template } from '@airlib/react';
-import { Button, EmptyState, Menu, Stage, TabButton, TabList, TabPanel, Tabs, TimelineEditor } from '@airlib/react-aui';
+import {
+  Button,
+  ContextMenu,
+  EmptyState,
+  Menu,
+  Stage,
+  TabButton,
+  TabList,
+  TabPanel,
+  Tabs,
+  TimelineEditor,
+  type TimelineLaneCommand,
+  type TimelineLaneDrop,
+} from '@airlib/react-aui';
 import { WindowPanel } from '@airlib/react-aui/desktop';
 import { createTimeline, type Timeline, type TimelineSegment } from '@airlib/react/timeline';
+import type { DragEvent } from 'react';
 import { documentAt, follow } from '@/lib/documents/store.js';
 import type { MotionAsset, StageDocument, StillDocument } from '@/lib/documents/types.js';
 import { Clips } from './Clips.js';
@@ -10,6 +24,7 @@ import { download, type RenderedVideo, renderMp4 } from './export.js';
 import { buffers, mediaLoader } from './media.js';
 import { AddIcon } from './icons.js';
 import { castsOf, type Project } from './library.js';
+import { addTrack, type Placement, placeAsset, placeText, TRACK_NAMES, type TrackType } from './placement.js';
 import { Properties } from './Properties.js';
 import { type MotionsSession, sessionCtx } from './session.js';
 
@@ -52,21 +67,13 @@ const timecode = (frame: number, frameRate: number): string => {
   return parts.map((part) => String(part).padStart(2, '0')).join(':');
 };
 
-/** The tracks a stage can be given, by type, and what each is called. */
-const TRACK_NAMES = { video: 'Video', audio: 'Audio', text: 'Text' };
 const TRACK_KINDS = Object.entries(TRACK_NAMES).map(([name, label]) => ({ name, label: `${label} track` }));
 
-/**
- * Gives a stage's timeline a new, empty track: a picture track drawn over the others, or a sound
- * track below them, named for its kind and how many of it there are.
- *
- * @param timeline - The stage's timeline.
- * @param type - The kind of track.
- */
-const addTrack = (timeline: Timeline, type: keyof typeof TRACK_NAMES): void => {
-  const count = [...timeline.tracks].filter((track) => track.type === type).length;
-  timeline.addTrack({ type, name: `${TRACK_NAMES[type]} ${count + 1}` });
-};
+/** What an empty spot on a text track offers: a title there. */
+const TEXT_LANE_COMMANDS = [{ name: 'add-text', label: 'Add text here' }];
+
+/** How a dragged asset names itself to the timeline: its id, under this type. */
+const ASSET_DRAG = 'application/x-wedyan-asset';
 
 type ComposeViewProps = {
   project: Project;
@@ -111,6 +118,11 @@ export const ComposeView = setup<ComposeViewProps>((props) => {
       timeline.pause();
       session.rendering = true;
     },
+    place: (asset: MotionAsset, at: Placement = { frame: timeline.state.frame }) => {
+      void placeAsset(timeline, project.path, asset, stage, at).then((segment) => {
+        if (segment) session.clips = [segment.id];
+      });
+    },
   });
   onCleanup(() => {
     if (session.timeline !== timeline) return;
@@ -122,8 +134,20 @@ export const ComposeView = setup<ComposeViewProps>((props) => {
       status: '',
       rendering: false,
       render: undefined,
+      place: undefined,
     });
   });
+
+  // An asset dragged from Sources onto a track goes there, at the frame it's let go on.
+  const dropAsset = (event: CustomEvent<TimelineLaneDrop>) => {
+    const { data, track, frame } = event.detail;
+    const asset = project.document.assets.find((each) => each.id === data.getData(ASSET_DRAG));
+    if (asset) session.place?.(asset, { track, frame });
+  };
+  const laneCommand = (event: CustomEvent<TimelineLaneCommand>) => {
+    const { name, track, frame } = event.detail;
+    if (name === 'add-text') session.clips = [placeText(timeline, stage, { track, frame }).id];
+  };
 
   const finish = (result?: RenderedVideo) => {
     session.rendering = false;
@@ -167,8 +191,10 @@ export const ComposeView = setup<ComposeViewProps>((props) => {
             progress={buffering}
             playheadLabel="Playhead"
             zoom={56}
+            laneCommands={(track) => (track.type === 'text' ? TEXT_LANE_COMMANDS : undefined)}
+            onlanecommand={laneCommand}
+            onlanedrop={dropAsset}
           >
-            {/* The playhead's timecode, beside the ruler it reads. */}
             {/* Adding a track, then the playhead's timecode, beside the ruler it reads. */}
             <TimelineEditor.Snippet for="corner">
               {() => (
@@ -178,7 +204,7 @@ export const ComposeView = setup<ComposeViewProps>((props) => {
                     size="xs"
                     variant="text"
                     items={TRACK_KINDS}
-                    oncommand={(event) => addTrack(timeline, event.detail as keyof typeof TRACK_NAMES)}
+                    oncommand={(event) => addTrack(timeline, event.detail as TrackType)}
                   >
                     <Menu.Snippet for="trigger">{() => <AddIcon />}</Menu.Snippet>
                   </Menu>
@@ -264,27 +290,55 @@ const Sources = template<{ project: Project; open: (path: string) => void }>((pr
   );
 }, 'Sources');
 
-/** Assets as tiles of a tile list, each its picture and name; a generated one opens in its own view on a double click. */
+/** Assets as tiles of a tile list. */
 const AssetTiles = template<{ project: Project; open: (path: string) => void; assets: MotionAsset[] }>((props) => {
   const { project, open, assets } = props;
   return (
     <>
       {assets.map((asset) => (
         <li key={asset.id}>
-          <button
-            type="button"
-            className="wedyan-compose-tile"
-            title={asset.name}
-            onDoubleClick={() => (asset.kind === 'still' || asset.kind === 'take') && open(follow(project.path, asset.src).path)}
-          >
-            <AssetPicture from={project.path} asset={asset} />
-            <span>{asset.name}</span>
-          </button>
+          <AssetTile project={project} open={open} asset={asset} />
         </li>
       ))}
     </>
   );
 }, 'AssetTiles');
+
+/** What a tile's menu does with its asset. */
+const TILE_COMMANDS = [{ name: 'place', label: 'Add to timeline' }];
+
+/**
+ * An asset as a tile: its picture and name. It drags onto a track of the timeline, its menu puts it
+ * at the playhead, and a generated one opens in its own view on a double click.
+ */
+const AssetTile = setup<{ project: Project; open: (path: string) => void; asset: MotionAsset }>((props) => {
+  const session = sessionCtx.get() as MotionsSession;
+  const asset = $static(() => props.asset);
+  const from = $static(() => props.project.path);
+  const button = aria('button', {});
+  const drag = (event: DragEvent<HTMLButtonElement>) => {
+    event.dataTransfer.setData(ASSET_DRAG, asset.id);
+    event.dataTransfer.effectAllowed = 'copy';
+  };
+  const openGenerated = () => (asset.kind === 'still' || asset.kind === 'take') && props.open(follow(from, asset.src).path);
+
+  return () => (
+    <button
+      ref={button.ref}
+      {...button.restProps()}
+      type="button"
+      className="wedyan-compose-tile"
+      title={asset.name}
+      draggable
+      onDragStart={drag}
+      onDoubleClick={openGenerated}
+    >
+      <ContextMenu label={`${asset.name} asset`} size="xs" items={TILE_COMMANDS} oncommand={() => session.place?.(asset)} />
+      <AssetPicture from={from} asset={asset} />
+      <span>{asset.name}</span>
+    </button>
+  );
+}, 'AssetTile');
 
 /** Casts as tiles of a tile list, each its first look and name. */
 const CastTiles = template<{ casts: ReturnType<typeof castsOf> }>(({ casts }) => (

@@ -123,7 +123,7 @@ export const Properties = setup(() => {
           <Snippet data={() => boxClip(session)}>
             {(segment) =>
               segment ? (
-                <BoxFields segment={segment} timeline={session.timeline as Timeline} groups={BOX_GROUPS} />
+                <BoxFields key={segment.id} segment={segment} timeline={session.timeline as Timeline} groups={BOX_GROUPS} />
               ) : (
                 <EmptyState size="sm" title="No clip picked" description="Pick one clip on the timeline to edit its box.">
                   <EmptyState.Snippet for="icon">{() => <PropertiesIcon />}</EmptyState.Snippet>
@@ -136,7 +136,7 @@ export const Properties = setup(() => {
           <Snippet data={() => soundClip(session)}>
             {(segment) =>
               segment ? (
-                <SoundFields segment={segment} timeline={session.timeline as Timeline} />
+                <SoundFields key={segment.id} segment={segment} timeline={session.timeline as Timeline} />
               ) : (
                 <EmptyState size="sm" title="No sound picked" description="Pick one video or audio clip to set its sound.">
                   <EmptyState.Snippet for="icon">{() => <SoundIcon />}</EmptyState.Snippet>

@@ -2,7 +2,8 @@ import { splitSegment } from '@airlib/aria';
 import { createContext, mutable } from '@airlib/react';
 import type { Timeline, TimelineSegment } from '@airlib/react/timeline';
 import { documentAt, follow } from '@/lib/documents/store.js';
-import type { StillDocument, TakeDocument } from '@/lib/documents/types.js';
+import type { MotionAsset, StillDocument, TakeDocument } from '@/lib/documents/types.js';
+import type { Placement } from './placement.js';
 import type { MotionsRoute } from './route.js';
 
 /**
@@ -19,6 +20,11 @@ export type MotionsSession = {
   open?: (path: string) => void;
   /** Renders the open stage to a video, while one is open and not already rendering. */
   render?: () => void;
+  /**
+   * Puts a project asset on the open stage as a clip, and picks it: where it's asked, or at the
+   * playhead on the top track of its kind with room for it.
+   */
+  place?: (asset: MotionAsset, at?: Placement) => void;
   /** What the open stage's render says now: that it can't render here, how far it is, or what it made. */
   status: string;
   rendering: boolean;
