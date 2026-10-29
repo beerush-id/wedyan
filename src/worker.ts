@@ -48,7 +48,7 @@ SESSION_STORE.key(SESSION_KEY);
 const scopeToSession = () => {
   const session = currentSession();
   if (!session) throw new Error('No session: load the page first');
-  setContext(SESSION_KEY, session.id);
+  setContext(SESSION_KEY, session);
   fsContext.set(homeOf(session));
 };
 wsRouter.use(scopeToSession);
