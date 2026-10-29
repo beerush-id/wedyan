@@ -14,7 +14,7 @@ import type { DocumentHeader } from '@/lib/documents/types.js';
 import { userPath } from '@/lib/memory/files.js';
 import { PROFILE_PATH, type UserProfile } from '@/lib/share/profile.js';
 import { CONVERSATION_PATH, INBOXES } from '@/lib/share/system.js';
-import type { AskAction, AskInput, WidgetPart } from './agent.h.js';
+import { type ActionMeta, ASSISTANT_ACTOR, type AskAction, type AskInput, type WidgetPart } from './agent.h.js';
 import { askRouter, askWith, toChatInput } from './agent.js';
 import {
   type ActionRecord,
@@ -52,6 +52,10 @@ export type ConversationConfig = {
   arrivals: number;
   /** Where what comes from outside lands, and is briefed from. */
   inboxes: readonly string[];
+  /** Most unacknowledged answers the router weighs the user's words against, the newest. */
+  acksRead: number;
+  /** Whether the assistant asks if the user's words cover answers they may not, unless their profile says otherwise. */
+  proactive: boolean;
 };
 
 /** The conversation's settings when none are given. */
@@ -63,6 +67,8 @@ export const CONVERSATION_DEFAULTS: Readonly<ConversationConfig> = {
   briefAfter: 10 * 60_000,
   arrivals: 20,
   inboxes: INBOXES,
+  acksRead: 8,
+  proactive: true,
 };
 
 const config: ConversationConfig = { ...CONVERSATION_DEFAULTS };
@@ -100,13 +106,12 @@ kernel.construct(wedyan, (client) => {
       // The room's own conversation: every desktop's stream holds the same object.
       state.data = member.data;
 
-      const detach = member.ask('attach', client, (action: AskAction) =>
-        state.ask(action.name, action.args, { after: action.after }),
+      const detach = member.ask('attach', client, (action: AskAction, actor: string) =>
+        state.ask(action.name, action.args, { after: action.after, actor } satisfies ActionMeta),
       );
       state.answer('send', (input) => member.ask('send', input, client));
       state.answer('stop', (answer) => member.ask('stop', answer));
       state.answer('page', (page) => member.ask('page', page));
-      state.answer('seen', (message) => member.ask('seen', message));
       state.answer('presence', (presence, context) => member.ask('presence', presence, client, context));
 
       return () => {
@@ -119,16 +124,16 @@ kernel.construct(wedyan, (client) => {
 });
 
 /** A desktop of the session: runs an action or ask there; `undefined` when it didn't. */
-type Desktop = (action: AskAction) => Promise<IRPCData | undefined>;
+type Desktop = (action: AskAction, actor: string) => Promise<IRPCData | undefined>;
 
 /** A conversation page as kept in a `.chat` file. */
-type ConversationPage = DocumentHeader<'chat'> & Pick<Conversation, 'page' | 'messages' | 'seen' | 'away'>;
+type ConversationPage = DocumentHeader<'chat'> & Pick<Conversation, 'page' | 'messages' | 'away'>;
 
 /** An answer being written: its message, what the user added to it, and how to stop it. */
 type Running = { message: AgentMessage; followUps: string[]; controller: AbortController };
 
 /** What an answer answers: the user's words, or an event Wedyan answers on its own; and where its actions run. */
-type Origin = { client: string; to?: string; event?: AgentMessage['event'] };
+type Origin = { client: string; actor: string; to?: string; event?: AgentMessage['event'] };
 
 /** The words the briefing agent is given; what it briefs is in the context. */
 const WAKE_TEXT = '(The user is back.)';
@@ -141,7 +146,7 @@ const WAKE_TEXT = '(The user is back.)';
  * a new one. Each answer's actions run only on the desktop that sent its words, the one whose state
  * they were worked out against: while that desktop is away they wait for it to come back, and fail
  * if it doesn't, never running on another. The user is away once no desktop is in use; when one is
- * again after long enough, Wedyan briefs them there on what they haven't seen and what waits on them.
+ * again after long enough, Wedyan briefs them there on what they haven't acknowledged and what waits on them.
  */
 function createConversation({ hold }: RoomSetup) {
   const data = mutable<Conversation>({ ready: false, page: 0, messages: [] });
@@ -172,13 +177,12 @@ function createConversation({ hold }: RoomSetup) {
       header = page ? { id: page.id, created: page.created } : undefined;
       // An answer still running when the conversation was last kept was cut off.
       for (const message of page?.messages ?? []) {
-        if (message.role === 'agent' && (message.status === 'running' || message.status === 'idle')) {
+        if (message.role === 'agent' && isWriting(message)) {
           Object.assign(message, { status: 'stopped', reason: 'Interrupted' });
         }
       }
       data.page = page?.page ?? 0;
       data.messages.push(...(page?.messages ?? []));
-      data.seen = page?.seen;
       data.away = page?.away;
       data.ready = true;
     }),
@@ -198,26 +202,44 @@ function createConversation({ hold }: RoomSetup) {
     if (!since) return;
     data.away = undefined;
     if (!client) return;
-    const profile = await read<UserProfile>(PROFILE_PATH, { encoding: 'json' });
+    const profile = await readProfile();
     if (Date.now() - Date.parse(since) >= (profile?.briefAfter ?? config.briefAfter)) {
       await brief(client, since, context);
     }
   };
 
+  // The finished answers the user hasn't acknowledged, oldest first, as many as the router weighs.
+  const unacked = () =>
+    data.messages
+      .filter((message): message is AgentMessage => message.role === 'agent' && !message.acked && !isWriting(message))
+      .slice(-config.acksRead);
+
+  const acknowledge = (ids: string[]) => {
+    const now = new Date().toISOString();
+    const acked = unacked().filter((message) => ids.includes(message.id));
+    for (const message of acked) message.acked = now;
+    if (acked.length) keep();
+  };
+
   // Briefs the user who is back, when there is something to tell: what arrived in their inboxes,
-  // the answers they haven't seen, and the asks still waiting on them. The agents read what came
-  // before the unseen as usual.
+  // the answers they haven't acknowledged and no briefing told them of, and the asks still waiting
+  // on them. Each answer is told once; a briefing is never told of in another. The agents read the
+  // rest of the conversation as usual.
   const brief = async (client: string, since: string, context?: AskInput['context']) => {
-    const from = data.messages.findIndex((message) => message.id === data.seen) + 1;
-    const unseen = data.messages.slice(from).filter((message) => !running.has(message.id));
+    const told = unacked().filter((message) => !message.briefed && message.event !== 'wake');
     const asking = [...running.values()]
       .filter(({ message }) => message.actions.some((action) => action.ask && action.status === 'waiting'))
       .map(({ message }) => lineOf(message));
     const arrived = await arrivals(since);
-    if (!unseen.some((message) => message.role === 'agent') && !asking.length && !arrived.length) return;
+    if (!told.length && !asking.length && !arrived.length) return;
+
+    // Each answer with the words it answered, which the briefing tells of rather than reads before it.
+    const unseen = told.flatMap((message) => [...data.messages.filter(({ id }) => id === message.to), message]);
+    const now = new Date().toISOString();
+    for (const message of told) message.briefed = now;
 
     start(
-      { client, event: 'wake' },
+      { client, actor: ASSISTANT_ACTOR, event: 'wake' },
       {
         text: WAKE_TEXT,
         context: {
@@ -225,17 +247,17 @@ function createConversation({ hold }: RoomSetup) {
           event: 'wake',
           awayMinutes: Math.round((Date.now() - Date.parse(since)) / 60_000),
           arrived,
-          unseen: unseen.slice(-config.recentTurns * 2).map(lineOf),
+          unseen: unseen.map(lineOf),
           waiting: asking,
         },
       },
-      data.messages.slice(0, from),
+      data.messages.filter((message) => !unseen.includes(message)),
     );
   };
 
-  const onDesktop = async (client: string, action: AskAction) => {
+  const onDesktop = async (client: string, action: AskAction, actor: string) => {
     const desktop = desktops.get(client) ?? (await comesBack(client));
-    return desktop(action);
+    return desktop(action, actor);
   };
 
   const comesBack = (client: string) =>
@@ -266,7 +288,7 @@ function createConversation({ hold }: RoomSetup) {
       await askWith({
         input: [...viewOf(before), ...toChatInput(input)],
         state: message,
-        desktop: (action) => onDesktop(origin.client, action),
+        desktop: (action) => onDesktop(origin.client, action, origin.actor),
         track: (action, outcome) => {
           const record = records.get(action);
           if (record) {
@@ -274,7 +296,7 @@ function createConversation({ hold }: RoomSetup) {
             return;
           }
           const { name, args, after, ask } = action;
-          message.actions.push({ name, args, after, ...(ask ? { ask } : {}), ...outcome });
+          message.actions.push({ name, args, after, ...(ask ? { ask } : {}), actor: origin.actor, ...outcome });
           records.set(action, message.actions[message.actions.length - 1]);
         },
         followUps: () => turn.followUps.splice(0),
@@ -330,16 +352,38 @@ function createConversation({ hold }: RoomSetup) {
         // Kept as soon as they are said, not only once an answer ends.
         keep();
 
-        // While answers run, the router decides whether the words continue one of them.
-        const target = running.size
-          ? running.get((await continued(input.text, [...running.values()])) ?? '')
-          : undefined;
-        if (target && running.has(target.message.id)) {
+        const answers = [...running.values()];
+        const earlier = unacked();
+        // The answer just before the words is in front of the user: any words acknowledge it.
+        const latest = data.messages.findLast(
+          (message): message is AgentMessage => message.role === 'agent' && !isWriting(message),
+        );
+        const latestUnacked = latest && earlier.includes(latest) ? latest : undefined;
+        if (!answers.length && earlier.every((message) => message === latestUnacked)) {
+          if (latestUnacked) acknowledge([latestUnacked.id]);
+          start(originOf(words), input);
+          return true;
+        }
+
+        // The router decides whether the words continue a running answer, which older answers they
+        // acknowledge, and whether they show the user missed any, the latest included.
+        const judgment = await judge(input.text, answers, earlier, latestUnacked);
+        const taken = latestUnacked ? [latestUnacked.id, ...judgment.acks] : judgment.acks;
+        acknowledge(taken.filter((id) => !judgment.missed.includes(id)));
+        const target = running.get(judgment.continues ?? '');
+        if (target) {
           words.answer = target.message.id;
           target.followUps.push(input.text);
           return true;
         }
-        start(originOf(words), input);
+
+        // Answers the words may or may not cover: a proactive assistant asks.
+        const unclear = earlier.filter((message) => judgment.unclear.includes(message.id) && !message.acked);
+        const proactive = unclear.length ? ((await readProfile())?.proactive ?? config.proactive) : false;
+        start(
+          originOf(words),
+          proactive ? { ...input, context: { ...input.context, unclear: unclear.map(lineOf) } } : input,
+        );
         return true;
       },
       stop: (answer?: string) => {
@@ -347,15 +391,6 @@ function createConversation({ hold }: RoomSetup) {
         return true;
       },
       page: async (page: number) => (await readPage(page))?.messages,
-      seen: async (message: string) => {
-        await loaded;
-        const at = data.messages.findIndex(({ id }) => id === message);
-        // Only ever forward: a message before the one already seen changes nothing.
-        if (at === -1 || at <= data.messages.findIndex(({ id }) => id === data.seen)) return false;
-        data.seen = message;
-        keep();
-        return true;
-      },
       presence: async (presence: Presence, client: string, context?: AskInput['context']) => {
         await loaded;
         if (!desktops.has(client)) return false;
@@ -396,30 +431,74 @@ async function arrivals(since: string): Promise<Array<{ path: string; name: stri
     .slice(0, config.arrivals);
 }
 
-/** What an answer to the user's words answers, and where its actions run. */
+/** What an answer to the user's words answers, where its actions run, and who does them: the assistant. */
 function originOf(words: UserMessage): Origin {
-  return { client: words.client, to: words.id };
+  return { client: words.client, actor: ASSISTANT_ACTOR, to: words.id };
 }
 
 /**
- * How the router decides where words that arrive during answers go: it is shown what each running
- * answer was asked and has said, and the words.
+ * How the router judges the user's words against the conversation: it is shown the words, the
+ * answers still being written, and the earlier answers the user hasn't acknowledged, each by id.
  */
-const CONTINUES_PROMPT = `Words from the user arrived while the answers below are still being written. Decide whether the words continue one of them, by answering its question, correcting it or adding to it, or are a new request of their own.
+export const JUDGE_PROMPT = `Words from the user arrived. Below are Wedyan's answers still being written ("running") and its earlier answers the user hasn't acknowledged yet ("unacknowledged"), each with its id. The one marked "latest" came just before the words: the user has it in front of them. Decide:
+- continues: the id of the running answer the words continue, by answering its question, correcting it or adding to it; null when they are a request of their own.
+- acks: the ids of the other unacknowledged answers the words show the user has taken in: replying to them, building on them, confirming them or thanking for them, like "copy that".
+- unclear: the ids of the other unacknowledged answers the words may or may not cover.
+- missed: the ids of any unacknowledged answers, the latest included, the words show the user hasn't taken in, like "what did you say?".
 
-Reply with only the id of the answer they continue, or with new.`;
+Reply with only JSON: {"continues": id or null, "acks": [ids], "unclear": [ids], "missed": [ids]}`;
+
+/** What the router made of the user's words; ids it made up are dropped where they are used. */
+type Judgment = { continues?: string; acks: string[]; unclear: string[]; missed: string[] };
 
 /**
- * Which running answer the words continue, as the router decides; `undefined` for a new request,
- * or when the router can't tell.
+ * Judges the user's words: which running answer they continue, which older answers they
+ * acknowledge or may, and which they show the user missed. Nothing continued, acknowledged or missed
+ * when the router fails or can't tell.
+ *
+ * @param text - The user's words.
+ * @param answers - The answers being written.
+ * @param earlier - The answers the user hasn't acknowledged.
+ * @param latest - The one of them just before the words, if any.
+ * @returns The router's judgment.
  */
-async function continued(text: string, answers: Running[]): Promise<string | undefined> {
-  const reply = await askRouter(CONTINUES_PROMPT, {
+async function judge(
+  text: string,
+  answers: Running[],
+  earlier: AgentMessage[],
+  latest?: AgentMessage,
+): Promise<Judgment> {
+  const reply = await askRouter(JUDGE_PROMPT, {
     words: text,
     running: answers.map(({ message }) => ({ id: message.id, line: lineOf(message) })),
+    unacknowledged: earlier.map((message) => ({
+      id: message.id,
+      line: lineOf(message),
+      ...(message === latest ? { latest: true } : {}),
+    })),
   }).catch(() => undefined);
-  const id = reply?.trim().replace(/^["'`]|["'`.]$/g, '');
-  return answers.some(({ message }) => message.id === id) ? id : undefined;
+  try {
+    const parsed = JSON.parse(reply?.slice(reply.indexOf('{'), reply.lastIndexOf('}') + 1) ?? '');
+    const ids = (value: unknown) => (Array.isArray(value) ? value.filter((id) => typeof id === 'string') : []);
+    return {
+      ...(typeof parsed.continues === 'string' ? { continues: parsed.continues } : {}),
+      acks: ids(parsed.acks),
+      unclear: ids(parsed.unclear),
+      missed: ids(parsed.missed),
+    };
+  } catch {
+    return { acks: [], unclear: [], missed: [] };
+  }
+}
+
+/** Whether an answer is still being written: it keeps changing, so it is neither acknowledged nor moved to an older page. */
+function isWriting(message: AgentMessage): boolean {
+  return message.status === 'running' || message.status === 'idle';
+}
+
+/** The user's profile, for their own settings; `undefined` before they have one. */
+async function readProfile(): Promise<UserProfile | undefined> {
+  return (await read<UserProfile>(PROFILE_PATH, { encoding: 'json' })) ?? undefined;
 }
 
 /** The latest of the user's words that joined an answer, to answer them on their own. */
@@ -528,16 +607,13 @@ async function savePage(
     author: { kind: 'agent' },
     page,
     messages,
-    ...(data.seen ? { seen: data.seen } : {}),
     ...(data.away ? { away: data.away } : {}),
   });
   const messages = JSON.parse(JSON.stringify(data.messages)) as ConversationMessage[];
   const keep = config.recentTurns * 2;
 
   // Never past an answer still being written: it keeps changing, so it stays on the current page.
-  const writing = messages.findIndex(
-    (message) => message.role === 'agent' && (message.status === 'running' || message.status === 'idle'),
-  );
+  const writing = messages.findIndex((message) => message.role === 'agent' && isWriting(message));
   const cut = Math.min(messages.length - keep, writing === -1 ? messages.length : writing);
 
   if (new TextEncoder().encode(JSON.stringify(pageOf(data.page, messages))).length > config.pageBytes && cut > 0) {

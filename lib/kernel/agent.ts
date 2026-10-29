@@ -12,6 +12,7 @@ import { getAbortSignal, IRPC_STORE, type IRPCData, type IRPCRouter, setContext,
 import { logger } from '../logger.js';
 import {
   type ActionOutcome,
+  ASSISTANT_ACTOR,
   type AskAction,
   type AskInput,
   type AskPart,
@@ -84,7 +85,7 @@ kernel.construct(askWedyan, (input) =>
     void askWith({
       input: toChatInput(input),
       state: state.data,
-      desktop: (action) => state.ask(action.name, action.args, { after: action.after }),
+      desktop: (action) => state.ask(action.name, action.args, { after: action.after, actor: ASSISTANT_ACTOR }),
       followUps: () => followUps.splice(0),
       signal: controller.signal,
     }).then(() => resolve());

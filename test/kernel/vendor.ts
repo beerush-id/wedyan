@@ -79,16 +79,40 @@ export function responses(...items: ResponsesItem[]): Response {
  * @returns The parsed request bodies, in order, and the fetch spy.
  */
 export function mockVendor(...responses: Array<Response | ((body: Record<string, unknown>) => Response)>) {
+  return mockVendorAside(undefined, ...responses);
+}
+
+/** A request the kernel makes on the side of what a test is about, and how to answer it. */
+export type Aside = {
+  match: (body: Record<string, unknown>) => boolean;
+  answer: (body: Record<string, unknown>) => Response;
+};
+
+/**
+ * Like `mockVendor`, but requests the `aside` matches are answered by it and kept in `asides`, so
+ * the queue and `bodies` count only the turns a test is about.
+ *
+ * @returns The parsed request bodies, in order, those aside, and the fetch spy.
+ */
+export function mockVendorAside(
+  aside: Aside | undefined,
+  ...responses: Array<Response | ((body: Record<string, unknown>) => Response)>
+) {
   const bodies: Record<string, unknown>[] = [];
+  const asides: Record<string, unknown>[] = [];
   const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     const request = new Request(input instanceof Request ? input : String(input), init);
     const body = await request.clone().json();
+    if (aside?.match(body)) {
+      asides.push(body);
+      return aside.answer(body);
+    }
     bodies.push(body);
     // A function answers from what was asked, for replies only known at run time.
     const next = responses.shift();
     return (typeof next === 'function' ? next(body) : next) ?? new Response('no more turns', { status: 500 });
   });
-  return { bodies, spy };
+  return { bodies, asides, spy };
 }
 
 /** The messages the provider received on the given request. */

@@ -112,7 +112,7 @@ describe('askWedyan', () => {
       return await call;
     });
 
-    expect(runs).toEqual([[{ app: 'photos' }, { after: 0 }]]);
+    expect(runs).toEqual([[{ app: 'photos' }, { after: 0, actor: 'wedyan' }]]);
     expect(final.status).toBe('done');
   });
 
@@ -213,7 +213,7 @@ describe('askWedyan', () => {
       role: 'user',
       content: JSON.stringify({ form: 'A choice named "choice" between orange and grey.' }),
     });
-    expect(forms).toEqual([[[widget], { after: 0 }]]);
+    expect(forms).toEqual([[[widget], { after: 0, actor: 'wedyan' }]]);
     expect(messagesOf(vendor.bodies, 2).at(-1)).toEqual({
       role: 'user',
       content: JSON.stringify({ feedback: { asks: [{ ask: 'ask_user', reply: { choice: 'orange' } }] } }),

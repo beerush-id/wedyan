@@ -26,6 +26,11 @@ export interface UserProfile {
    * default when unset. `0` briefs on every return with something to tell.
    */
   briefAfter?: number;
+  /**
+   * Whether the assistant raises what the user may have missed, like asking if their words cover an
+   * earlier answer too; the server's default when unset.
+   */
+  proactive?: boolean;
 }
 
 /** How long a desktop goes without input before it is idle, when the profile doesn't say. */

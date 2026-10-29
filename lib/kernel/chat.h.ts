@@ -1,6 +1,6 @@
 import type { IRPCData, RemoteState } from '@irpclib/irpc';
 import { z } from 'zod';
-import type { ActionOutcome, AskAction, AskInput, AskState } from './agent.h.js';
+import type { ActionMeta, ActionOutcome, AskAction, AskInput, AskState } from './agent.h.js';
 import { kernel } from './package.js';
 
 /** What the user said: their words, and what the desktop attached to resolve references. */
@@ -16,8 +16,10 @@ export type UserMessage = {
   answer?: string;
 };
 
-/** One action or ask of an answer and what became of it, kept whether it ran or not. */
-export type ActionRecord = Pick<AskAction, 'name' | 'args' | 'after' | 'ask'> & ActionOutcome;
+/** One action or ask of an answer, who did it, and what became of it, kept whether it ran or not. */
+export type ActionRecord = Pick<AskAction, 'name' | 'args' | 'after' | 'ask'> &
+  Pick<ActionMeta, 'actor'> &
+  ActionOutcome;
 
 /**
  * Wedyan's answer: the ask's own live state (parts, status, agent), written in place as it runs,
@@ -33,6 +35,10 @@ export type AgentMessage = AskState & {
   event?: 'wake';
   created: string;
   actions: ActionRecord[];
+  /** When the user acknowledged it: their words replied to it, confirmed it or thanked for it. */
+  acked?: string;
+  /** When a briefing told the user of it, so no later briefing repeats it. */
+  briefed?: string;
 };
 
 export type ConversationMessage = UserMessage | AgentMessage;
@@ -46,8 +52,6 @@ export type Conversation = {
   ready: boolean;
   page: number;
   messages: ConversationMessage[];
-  /** The last message the user saw, on any desktop. */
-  seen?: string;
   /** Since when the user has been away (every desktop idle or closed); unset while one is in use. */
   away?: string;
 };
@@ -58,9 +62,9 @@ export type Presence = 'active' | 'idle';
 /**
  * The questions on the conversation. The desktop asks to `send` the user's words (joined to a
  * running answer when they continue it, else answered on their own), to `stop` an answer (every
- * running one when unnamed), for an older `page`, to mark a message `seen` once the user has seen
- * it, and tells its `presence`, with its context when it turns active, so a user back from away is
- * briefed there. The server asks the desktop to run actions and asks by name, as `askWedyan` does
+ * running one when unnamed), for an older `page`, and tells its `presence`, with its context when it
+ * turns active, so a user back from away is briefed there. What the user has taken in is known from
+ * their words, never from what was shown: each answer is `acked` once their words acknowledge it. The server asks the desktop to run actions and asks by name, as `askWedyan` does
  * (`app.*`, `desktop.*`, `ask_user`).
  */
 export type ConversationQueries = {
@@ -69,7 +73,6 @@ export type ConversationQueries = {
   send: (input: AskInput) => boolean;
   stop: (answer?: string) => boolean;
   page: (page: number) => ConversationMessage[] | undefined;
-  seen: (message: string) => boolean;
   presence: (presence: Presence, context?: AskInput['context']) => boolean;
 };
 

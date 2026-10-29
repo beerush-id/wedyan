@@ -6,10 +6,16 @@ import { fsContext } from '@irpclib/r2-file/context';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setupKernel } from '../../lib/kernel/agent.js';
 import { type AgentMessage, type Conversation, wedyan } from '../../lib/kernel/chat.h.js';
-import { CONVERSATION_DEFAULTS, CONVERSATION_PATH, pagePath, setupConversation } from '../../lib/kernel/chat.js';
+import {
+  CONVERSATION_DEFAULTS,
+  CONVERSATION_PATH,
+  JUDGE_PROMPT,
+  pagePath,
+  setupConversation,
+} from '../../lib/kernel/chat.js';
 import { PROFILE_PATH } from '../../lib/share/profile.js';
 import { AGENTS, createTestAdapter } from './fixtures.js';
-import { messagesOf, mockVendor, says } from './vendor.js';
+import { messagesOf, mockVendorAside, says } from './vendor.js';
 
 // The conversation runs for real: the kernel, the room, r2-file on local R2 and D1, and IRPC's calls.
 // Only the model provider is mocked.
@@ -42,16 +48,43 @@ async function until(check: () => boolean, timeout = 3000) {
   }
 }
 
-/**
- * The router's reply when words arrive during answers: the id of the running answer at this index,
- * read from what it was asked, or `new`.
- */
-const routesTo = (to: number | 'new') => (body: Record<string, unknown>) => {
-  if (to === 'new') return says('new');
-  const asked = (body.messages as Array<{ content?: string }>).map((message) => message.content ?? '').join('');
-  const { running } = JSON.parse(asked.slice(asked.indexOf('{'))) as { running: Array<{ id: string }> };
-  return says(running[to].id);
+/** What the router was shown of the conversation with the user's words, each answer by id. */
+type Asked = {
+  running: Array<{ id: string; line: string }>;
+  unacknowledged: Array<{ id: string; line: string; latest?: true }>;
 };
+type Judge = (body: Record<string, unknown>) => Response;
+
+/**
+ * The router's judgment of the user's words, picked from what it was shown; nothing continued,
+ * acknowledged or unclear unless picked.
+ */
+const judged =
+  (
+    pick: (asked: Asked) => { continues?: string; acks?: string[]; unclear?: string[]; missed?: string[] } = () => ({}),
+  ): Judge =>
+  (body) => {
+    const asked = (body.messages as Array<{ role: string; content?: string }>)
+      .filter((message) => message.role !== 'system')
+      .map((message) => message.content ?? '')
+      .join('');
+    const picked = pick(JSON.parse(asked.slice(asked.indexOf('{'))) as Asked);
+    return says(JSON.stringify({ continues: null, acks: [], unclear: [], missed: [], ...picked }));
+  };
+
+/** The router's judgment that the words continue the running answer at this index, or are a new request. */
+const routesTo = (to: number | 'new') => judged((asked) => (to === 'new' ? {} : { continues: asked.running[to].id }));
+
+/**
+ * The model provider for these tests: the router's judgments of the user's words come from
+ * `judgments` in order (nothing continued or acknowledged once they run out) and are kept aside,
+ * every other turn from `turns`.
+ */
+function chatVendor(judgments: Judge[], ...turns: Array<Response | Judge>) {
+  const isJudgment = (body: Record<string, unknown>) =>
+    (body.messages as Array<{ content?: string }>).some((message) => message.content?.includes(JUDGE_PROMPT));
+  return mockVendorAside({ match: isJudgment, answer: (body) => (judgments.shift() ?? judged())(body) }, ...turns);
+}
 
 /** A model reply that only starts arriving after `ms`, for what must happen while it is pending. */
 const later = (response: Response, ms: number) => () =>
@@ -68,9 +101,10 @@ const later = (response: Response, ms: number) => () =>
   );
 
 const last = (conversation: Conversation) => conversation.messages.at(-1);
+const isRunning = (message: AgentMessage) => message.status === 'running' || message.status === 'idle';
 const answered = (conversation: Conversation) => {
   const message = last(conversation);
-  return message?.role === 'agent' && message.status !== 'running' && message.status !== 'idle';
+  return message?.role === 'agent' && !isRunning(message);
 };
 
 describe('the conversation', () => {
@@ -84,7 +118,7 @@ describe('the conversation', () => {
   });
 
   it('streams an answer into the conversation, and keeps it in ~/Desktop.chat', async () => {
-    mockVendor(says('[[say]]Hello, ', 'Nanang.[[/say]]'));
+    chatVendor([], says('[[say]]Hello, ', 'Nanang.[[/say]]'));
     const who = newUser();
 
     await asDesktop(who, async () => {
@@ -105,7 +139,7 @@ describe('the conversation', () => {
   });
 
   it('shows every desktop of the session the same conversation, and no other session', async () => {
-    mockVendor(says('Hello.'));
+    chatVendor([], says('Hello.'));
     const who = newUser();
     // Another user's desktop, open in its own session until the check is done.
     let elsewhere: ReturnType<typeof wedyan> | undefined;
@@ -137,7 +171,7 @@ describe('the conversation', () => {
   });
 
   it('finishes and keeps an answer when the desktop that asked disconnects, for the next desktop to see', async () => {
-    mockVendor(says('Here is your briefing.'));
+    chatVendor([], says('Here is your briefing.'));
     const who = newUser();
 
     await asDesktop(who, async () => {
@@ -161,7 +195,8 @@ describe('the conversation', () => {
   });
 
   it('gives the agents the last turns as lines, never their tool results or widget nodes', async () => {
-    const vendor = mockVendor(
+    const vendor = chatVendor(
+      [],
       says('[[say]]Opening Motion.[[/say]][[action name=app.open]]{"app":"motion"}[[/action]]'),
       says('[[widget]]A card titled Today[[/widget]]'),
       says('{"role":"card","props":{"title":"Today"}}'),
@@ -195,15 +230,19 @@ describe('the conversation', () => {
     });
   });
 
-  it('runs actions on the desktop that sent the words, and records them', async () => {
-    mockVendor(says('[[action name=app.open]]{"app":"photos"}[[/action]]'));
+  it('runs actions on the desktop that sent the words, as the assistant, and records them', async () => {
+    chatVendor([], says('[[action name=app.open]]{"app":"photos"}[[/action]]'));
     const who = newUser();
 
     await asDesktop(who, async () => {
       const sender = wedyan('tab-a');
       const other = wedyan('tab-b');
       const ranOn: string[] = [];
-      sender.answer('app.open', () => void ranOn.push('sender'));
+      const metas: unknown[] = [];
+      sender.answer('app.open', (_args: unknown, meta: unknown) => {
+        ranOn.push('sender');
+        metas.push(meta);
+      });
       other.answer('app.open', () => void ranOn.push('other'));
       await until(() => sender.data.ready && other.data.ready);
 
@@ -211,8 +250,9 @@ describe('the conversation', () => {
       await until(() => answered(sender.data));
 
       expect(ranOn).toEqual(['sender']);
+      expect(metas).toEqual([{ after: -1, actor: 'wedyan' }]);
       expect((last(sender.data) as AgentMessage).actions).toEqual([
-        { name: 'app.open', args: { app: 'photos' }, after: -1, status: 'done' },
+        { name: 'app.open', args: { app: 'photos' }, after: -1, actor: 'wedyan', status: 'done' },
       ]);
       sender.close();
       other.close();
@@ -220,10 +260,10 @@ describe('the conversation', () => {
   });
 
   it('joins words the router says continue a running answer to it, and stops an answer on stop', async () => {
-    const vendor = mockVendor(
+    const vendor = chatVendor(
+      [routesTo(0)],
       says('[[say]]Which one?[[/say]][[ask_user]]A choice named "pick" between a and b.[[/ask_user]]'),
       says('[{"role":"radio-group"}]'),
-      routesTo(0),
       says('[[ask_user]]A yes or no named "sure".[[/ask_user]]'),
       says('[{"role":"switch"}]'),
     );
@@ -249,7 +289,7 @@ describe('the conversation', () => {
 
       expect(desktop.data.messages.map((message) => message.role)).toEqual(['user', 'agent', 'user']);
       expect(desktop.data.messages[2]).toMatchObject({ text: 'Make it b, and hurry', answer: answer()?.id });
-      const followed = messagesOf(vendor.bodies, 3).some((message) => message.content === 'Make it b, and hurry');
+      const followed = messagesOf(vendor.bodies, 2).some((message) => message.content === 'Make it b, and hurry');
       expect(followed).toBe(true);
       expect(answer()?.turn).toBe(2);
       desktop.close();
@@ -257,10 +297,10 @@ describe('the conversation', () => {
   });
 
   it('answers a new request side by side with one still waiting, each tied to its own words', async () => {
-    mockVendor(
+    chatVendor(
+      [routesTo('new')],
       says('[[say]]Remove the cat?[[/say]][[ask_user]]A yes or no named "sure".[[/ask_user]]'),
       says('[{"role":"switch"}]'),
-      routesTo('new'),
       says('[[say]]Here is last week’s meeting transcript.[[/say]]'),
       says('[[say]]Removing the cat.[[/say]]'),
     );
@@ -299,10 +339,10 @@ describe('the conversation', () => {
   });
 
   it('stops only the answer it names', async () => {
-    mockVendor(
+    chatVendor(
+      [routesTo('new')],
       says('[[ask_user]]A yes or no named "a".[[/ask_user]]'),
       says('[{"role":"switch"}]'),
-      routesTo('new'),
       says('[[ask_user]]A yes or no named "b".[[/ask_user]]'),
       says('[{"role":"switch"}]'),
       says('Done with b.'),
@@ -350,7 +390,7 @@ describe('the conversation', () => {
   });
 
   it('never runs an answer’s action on another desktop: it waits for the one that asked to come back', async () => {
-    mockVendor(later(says('[[action name=app.open]]{"app":"motion"}[[/action]]'), 150));
+    chatVendor([], later(says('[[action name=app.open]]{"app":"motion"}[[/action]]'), 150));
     const who = newUser();
     const ranOn: string[] = [];
     let done!: () => void;
@@ -388,7 +428,11 @@ describe('the conversation', () => {
 
   it('fails an action whose desktop doesn’t come back in time, tells the agent, and records it', async () => {
     setupConversation({ clientWait: 100 });
-    const vendor = mockVendor(later(says('[[action name=app.open]]{"app":"motion"}[[/action]]'), 50), says('Okay.'));
+    const vendor = chatVendor(
+      [],
+      later(says('[[action name=app.open]]{"app":"motion"}[[/action]]'), 50),
+      says('Okay.'),
+    );
     const who = newUser();
 
     await asDesktop(who, async () => {
@@ -418,6 +462,7 @@ describe('the conversation', () => {
           name: 'app.open',
           args: { app: 'motion' },
           after: -1,
+          actor: 'wedyan',
           status: 'failed',
           error: 'The desktop that asked is no longer connected',
         },
@@ -427,7 +472,7 @@ describe('the conversation', () => {
   });
 
   it('keeps the user’s words as soon as they are sent, before the answer ends', async () => {
-    mockVendor(later(says('Hello.'), 300));
+    chatVendor([], later(says('Hello.'), 300));
     const who = newUser();
 
     await asDesktop(who, async () => {
@@ -486,7 +531,7 @@ describe('the conversation', () => {
 
   it('moves older messages to a numbered page once the page outgrows its size, keeping the recent turns', async () => {
     setupConversation({ pageBytes: 1500 });
-    mockVendor(...Array.from({ length: 8 }, (_, i) => says(`Answer number ${i}, ${'with some words '.repeat(4)}`)));
+    chatVendor([], ...Array.from({ length: 8 }, (_, i) => says(`Answer number ${i}, ${'with some words '.repeat(4)}`)));
     const who = newUser();
 
     await asDesktop(who, async () => {
@@ -528,7 +573,7 @@ describe('the conversation', () => {
 
     it('briefs after the user’s own briefAfter, over the server’s', async () => {
       setupConversation({});
-      mockVendor(says('Rendering it.'), says('Welcome back.'));
+      chatVendor([], says('Rendering it.'), says('Welcome back.'));
       const who = newUser();
 
       await asDesktop(who, async () => {
@@ -547,8 +592,32 @@ describe('the conversation', () => {
       });
     });
 
-    it('keeps the last message the user saw, only ever forward', async () => {
-      mockVendor(says('Hello.'));
+    /** The context the answer at this turn was asked with. */
+    const contextOf = (bodies: Record<string, unknown>[], index: number) => {
+      const asked = messagesOf(bodies, index).find((message) => message.content?.includes('"context"'));
+      return asked && (JSON.parse(asked.content!) as { context: Record<string, unknown> }).context;
+    };
+
+    /**
+     * Leaves two answers unacknowledged: the render, slow, and the mail, asked while it runs and so
+     * the latest. Their model turns come first.
+     */
+    const twoAnswers = async (desktop: ReturnType<typeof wedyan>) => {
+      await desktop.ask('send', { text: 'Render it' });
+      await until(() => desktop.data.messages.length === 2);
+      await desktop.ask('send', { text: 'Any mail?' });
+      await until(
+        () =>
+          desktop.data.messages.length === 4 &&
+          desktop.data.messages.every((message) => message.role === 'user' || !isRunning(message)),
+      );
+    };
+    const twoTurns = () => [later(says('The render is queued.'), 300), says('Ana mailed you.')];
+    const older = (asked: Asked) => asked.unacknowledged.find((answer) => !answer.latest)!.id;
+    const latest = (asked: Asked) => asked.unacknowledged.find((answer) => answer.latest)!.id;
+
+    it('takes any words as acknowledging the answer just before them, without asking the router', async () => {
+      const vendor = chatVendor([], says('Hello.'), says('Hi.'));
       const who = newUser();
 
       await asDesktop(who, async () => {
@@ -556,23 +625,84 @@ describe('the conversation', () => {
         await until(() => desktop.data.ready);
         await desktop.ask('send', { text: 'Hi' });
         await until(() => answered(desktop.data));
-        const [words, reply] = desktop.data.messages;
+        await desktop.ask('send', { text: 'Make it shorter' });
+        await until(() => desktop.data.messages.length === 4 && answered(desktop.data));
 
-        expect(await desktop.ask('seen', reply.id)).toBe(true);
-        expect(await desktop.ask('seen', words.id)).toBe(false);
-        expect(desktop.data.seen).toBe(reply.id);
-        let kept: Conversation | undefined;
-        for (let tries = 0; kept?.seen !== reply.id && tries < 50; tries += 1) {
-          await pause(20);
-          kept = (await read(CONVERSATION_PATH, { encoding: 'json' })) as Conversation;
-        }
-        expect(kept?.seen).toBe(reply.id);
+        expect((desktop.data.messages[1] as AgentMessage).acked).toBeDefined();
+        expect(vendor.asides).toHaveLength(0);
+        desktop.close();
+      });
+    });
+
+    it('asks the router about older answers, and the assistant about unclear ones', async () => {
+      const vendor = chatVendor(
+        [routesTo('new'), judged((asked) => ({ unclear: [older(asked)] }))],
+        ...twoTurns(),
+        says('Including the render?'),
+      );
+      const who = newUser();
+
+      await asDesktop(who, async () => {
+        const desktop = wedyan('tab-a');
+        await until(() => desktop.data.ready);
+        await twoAnswers(desktop);
+        await desktop.ask('send', { text: 'Copy that', context: { time: TIME } });
+        await until(() => desktop.data.messages.length === 6 && answered(desktop.data));
+
+        const [, render, , mail] = desktop.data.messages as AgentMessage[];
+        expect(mail.acked).toBeDefined();
+        expect(render.acked).toBeUndefined();
+        expect(contextOf(vendor.bodies, 2)).toEqual({ time: TIME, unclear: ['wedyan: said "The render is queued."'] });
+        desktop.close();
+      });
+    });
+
+    it('leaves the latest answer unacknowledged when the words show the user missed it', async () => {
+      chatVendor(
+        [routesTo('new'), judged((asked) => ({ acks: [older(asked)], missed: [latest(asked)] }))],
+        ...twoTurns(),
+        says('I said Ana mailed you.'),
+      );
+      const who = newUser();
+
+      await asDesktop(who, async () => {
+        const desktop = wedyan('tab-a');
+        await until(() => desktop.data.ready);
+        await twoAnswers(desktop);
+        await desktop.ask('send', { text: 'What did you say?' });
+        await until(() => desktop.data.messages.length === 6 && answered(desktop.data));
+
+        const [, render, , mail] = desktop.data.messages as AgentMessage[];
+        expect(render.acked).toBeDefined();
+        expect(mail.acked).toBeUndefined();
+        desktop.close();
+      });
+    });
+
+    it('leaves unclear answers be when the user would rather it weren’t proactive', async () => {
+      const vendor = chatVendor(
+        [routesTo('new'), judged((asked) => ({ unclear: [older(asked)] }))],
+        ...twoTurns(),
+        says('Okay.'),
+      );
+      const who = newUser();
+
+      await asDesktop(who, async () => {
+        await write(PROFILE_PATH, { userName: 'Nanang', proactive: false } as never);
+        const desktop = wedyan('tab-a');
+        await until(() => desktop.data.ready);
+        await twoAnswers(desktop);
+        await desktop.ask('send', { text: 'Copy that', context: { time: TIME } });
+        await until(() => desktop.data.messages.length === 6 && answered(desktop.data));
+
+        expect(contextOf(vendor.bodies, 2)).toEqual({ time: TIME });
         desktop.close();
       });
     });
 
     it('briefs the user on the desktop in use again, once every desktop was away long enough', async () => {
-      const vendor = mockVendor(
+      const vendor = chatVendor(
+        [],
         says('Rendering it.'),
         says('[[say]]Welcome back, the render is done.[[/say]][[action name=app.open]]{"app":"motion"}[[/action]]'),
       );
@@ -618,7 +748,7 @@ describe('the conversation', () => {
     });
 
     it('briefs on what landed in the inboxes while the user was away, and not what was there before', async () => {
-      const vendor = mockVendor(says('Welcome back.'));
+      const vendor = chatVendor([], says('Welcome back.'));
       const who = newUser();
 
       await asDesktop(who, async () => {
@@ -645,8 +775,8 @@ describe('the conversation', () => {
       });
     });
 
-    it('doesn’t brief when nothing is unseen, or the user wasn’t away long enough', async () => {
-      mockVendor(says('Hello.'), says('Again.'));
+    it('briefs each unacknowledged answer once, and not when the user wasn’t away long enough', async () => {
+      chatVendor([], says('Hello.'), says('Welcome back.'));
       const who = newUser();
 
       await asDesktop(who, async () => {
@@ -655,26 +785,30 @@ describe('the conversation', () => {
         await desktop.ask('presence', 'active');
         await desktop.ask('send', { text: 'Hi' });
         await until(() => answered(desktop.data));
-        await desktop.ask('seen', desktop.data.messages[1].id);
 
         await desktop.ask('presence', 'idle');
-        await pause(80);
         await desktop.ask('presence', 'active');
         await pause(100);
         expect(desktop.data.messages).toHaveLength(2);
 
-        await desktop.ask('send', { text: 'Hi again' });
-        await until(() => desktop.data.messages.length === 4 && answered(desktop.data));
         await desktop.ask('presence', 'idle');
+        await pause(80);
         await desktop.ask('presence', 'active');
-        await pause(100);
-        expect(desktop.data.messages).toHaveLength(4);
+        await until(() => desktop.data.messages.length === 3 && answered(desktop.data));
+        expect((desktop.data.messages[1] as AgentMessage).briefed).toBeDefined();
+
+        // Neither the answer told of nor the briefing is told of again.
+        await desktop.ask('presence', 'idle');
+        await pause(80);
+        await desktop.ask('presence', 'active');
+        await pause(150);
+        expect(desktop.data.messages).toHaveLength(3);
         desktop.close();
       });
     });
 
     it('counts every desktop closed as away, and remembers it for the next desktop', async () => {
-      const vendor = mockVendor(says('Rendering it.'), says('Welcome back.'));
+      const vendor = chatVendor([], says('Rendering it.'), says('Welcome back.'));
       const who = newUser();
 
       await asDesktop(who, async () => {

@@ -50,6 +50,19 @@ export type AskAction = {
   ask?: true;
 };
 
+/** The actor of what the assistant itself does, whatever the user named it. */
+export const ASSISTANT_ACTOR = 'wedyan';
+
+/** The actor of what the user does by hand; the user may do anything. */
+export const USER_ACTOR = 'user';
+
+/**
+ * What the desktop is told with each action or ask: the part it comes `after`, and the `actor`
+ * that does it, stamped by the kernel and never by a model. An app refuses a command whose actor
+ * may not do it, as an agent on a part assigned to another.
+ */
+export type ActionMeta = { after: number; actor: string };
+
 /**
  * What became of an action or ask: `waiting` once queued, then `done`, `failed` (with `error`),
  * `skipped` (an earlier one of its turn failed), or `unanswered` (an ask nothing replied to).
