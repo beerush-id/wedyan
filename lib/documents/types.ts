@@ -147,16 +147,21 @@ export type TakeDocument = DocumentHeader<'take'> & {
 };
 
 /**
- * One generated sound as an editable source, like a take: how it was asked for — what it's made
- * from, whose voice speaks it — every attempt, and the one chosen.
+ * One generated sound as an editable source, like a take without a poster: music, speech, a sound
+ * effect, an ambience. Speech also has the words it says and who says them. Every attempt runs
+ * for its own seconds.
  */
 export type SoundDocument = DocumentHeader<'sound'> & {
+  kind: 'music' | 'speech' | 'sfx' | 'ambience';
+  /** How it sounds; for speech, how the words are said. */
   prompt: string;
   settings?: Pick<GenerationSettings, 'model' | 'seconds'>;
-  /** Sounds or voices it was made from, by address or path. */
-  references: string[];
-  /** Who speaks or sings in it, by path to each `.persona`. */
-  casts?: string[];
+  /** Sounds it was made from, by address or path. */
+  references?: string[];
+  /** For speech: the words it says. */
+  text?: string;
+  /** For speech: who says them, by path to a `.persona`, read for its voice. */
+  voice?: string;
   attempts: (GeneratedAttempt & { seconds: number })[];
   chosen: string;
 };

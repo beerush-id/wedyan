@@ -95,11 +95,9 @@ export const ComposeView = setup<ComposeViewProps>((props) => {
   const project = $static(() => props.project);
   // The stage's size, as the document has it now.
   const stage = () => source.composition.props;
-  // The timeline is the editing copy of the composition, which is saved back whole: it starts from
-  // a copy of the document, not from reads that would follow it.
-  const { composition } = snapshot(source);
-  const timeline = createTimeline({ frameRate: composition.options.frameRate });
-  timeline.hydrate(composition);
+  // The timeline controls the stage's composition in place, for as long as this stage is open: every
+  // edit lands in the document. The playhead is the timeline's own.
+  const timeline = createTimeline({ source: $static(() => source.composition) });
 
   // The window and its dock follow what's open here: this stage's timeline, the clips picked on it,
   // whether dragging snaps — for this stage only, starting off — and its render, started from the
