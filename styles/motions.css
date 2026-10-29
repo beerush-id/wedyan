@@ -386,6 +386,11 @@
   display: grid;
   grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr);
   gap: var(--aui-window-bar-inset);
+
+  /* Without the sidebar, the picked row takes the whole width. */
+  &:not(:has(> .wedyan-direct-list)) {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .wedyan-direct-list {
@@ -779,6 +784,33 @@
     'sources preview properties'
     'sources timeline timeline';
 
+  /* A generated clip's prompt sits beside the timeline, under the properties. */
+  &:has(> .wedyan-compose-prompt) {
+    grid-template-areas:
+      'sources preview properties'
+      'sources timeline prompt';
+  }
+
+  /* Without the sidebar, the stage takes the room the sources left, still in its own shape. */
+  &:not(:has(> .wedyan-compose-sources)) {
+    --wedyan-sources-min: 0px;
+    grid-template-columns: minmax(0, 1fr) var(--wedyan-properties-inline);
+    grid-template-areas:
+      'preview properties'
+      'timeline timeline';
+
+    & > .wedyan-compose-preview {
+      justify-self: center;
+      block-size: 100%;
+    }
+  }
+
+  &:not(:has(> .wedyan-compose-sources)):has(> .wedyan-compose-prompt) {
+    grid-template-areas:
+      'preview properties'
+      'timeline prompt';
+  }
+
   .wedyan-compose[data-shape='portrait'] > & {
     grid-template-columns:
       minmax(var(--wedyan-sources-min), 1fr) var(--wedyan-properties-inline)
@@ -787,7 +819,36 @@
     grid-template-areas:
       'sources properties preview'
       'timeline timeline preview';
+
+    &:has(> .wedyan-compose-prompt) {
+      grid-template-areas:
+        'sources properties preview'
+        'timeline prompt preview';
+    }
+
+    /* Without the sidebar, the timeline runs the full height beside the properties. */
+    &:not(:has(> .wedyan-compose-sources)) {
+      grid-template-areas:
+        'timeline properties preview'
+        'timeline properties preview';
+
+      & > .wedyan-compose-preview {
+        justify-self: auto;
+        block-size: auto;
+      }
+    }
+
+    &:not(:has(> .wedyan-compose-sources)):has(> .wedyan-compose-prompt) {
+      grid-template-areas:
+        'timeline properties preview'
+        'timeline prompt preview';
+    }
   }
+}
+
+/* How the picked generated clip was made, beside the timeline. */
+.wedyan-compose-prompt {
+  grid-area: prompt;
 }
 
 /* Assets and casts on one panel, narrowed by kind from a strip above them; it scrolls once they outgrow it. */
@@ -984,9 +1045,10 @@
   }
 }
 
-/* Making a generated clip again, at the end under its prompt. */
+/* Making a generated clip again, at the end under its prompt, a small gap below it. */
 .wedyan-compose-generate {
   align-self: flex-end;
+  margin-block-start: calc(var(--spacing-sm) - var(--spacing-xs));
 }
 
 /* A line under a group's name when it holds nothing, in from the edge as the name is. */

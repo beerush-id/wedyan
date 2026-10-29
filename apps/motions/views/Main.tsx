@@ -10,6 +10,7 @@ import {
   Select,
   Toggle,
   ToggleGroup,
+  Tooltip,
 } from '@airlib/react-aui';
 import { defineWindow, Window, WindowBody, WindowContent, WindowControls, WindowTitle, WindowToolbar } from '@airlib/react-aui/desktop';
 import { ArrowLeft } from '@airlib/react-aui/icons';
@@ -21,7 +22,17 @@ import { focusPrompt } from '@/lib/systems/focus.js';
 import manifest from '../manifest.json';
 import { ChatView, MemoView, StillView } from './Documents.js';
 import { ComposeView } from './Editor.js';
-import { AddIcon, ComposeIcon, DirectIcon, FilterIcon, ProjectsIcon, RenderIcon, SortIcon } from './icons.js';
+import {
+  AddIcon,
+  ComposeIcon,
+  DirectIcon,
+  FilterIcon,
+  ProjectsIcon,
+  RenderIcon,
+  SidebarCloseIcon,
+  SidebarOpenIcon,
+  SortIcon,
+} from './icons.js';
 import { AssigneeAvatar, assigneeAt } from './assignment.js';
 import { albumOf, albums, duration, length, type Project, projects, shortDate, stagesOf } from './library.js';
 import { MotionsDockOptions, MotionsDockSubject } from './options.js';
@@ -369,6 +380,20 @@ export const motions = defineWindow({
                     >
                       <ArrowLeft />
                     </Button>
+                    <Show when={() => isEditing(route)}>
+                      {() => (
+                        <Toggle
+                          aria-label="Sidebar"
+                          size="sm"
+                          variant="text"
+                          className={AUI_CLASS.CONTROL_ICON}
+                          pressed={$bind(session, 'sidebar')}
+                        >
+                          <Snippet>{() => (session.sidebar ? <SidebarCloseIcon /> : <SidebarOpenIcon />)}</Snippet>
+                          <Tooltip>Sidebar</Tooltip>
+                        </Toggle>
+                      )}
+                    </Show>
                     <Divider orientation="vertical" variant="ghost" size="sm" />
                   </>
                 )}

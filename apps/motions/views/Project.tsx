@@ -49,6 +49,7 @@ import {
 } from './icons.js';
 import { castsOf, duration, length, posterOf, type Project, shortDate, stagesOf } from './library.js';
 import type { MotionsRoute } from './route.js';
+import { type MotionsSession, sessionCtx } from './session.js';
 
 /** The key of the row Direct shows first: the project itself. */
 const OVERVIEW = 'overview';
@@ -90,33 +91,42 @@ export const ProjectView = setup<ProjectViewProps>((props) => {
   if (!$static(() => items.some((item) => item.key === route.item))) route.item = OVERVIEW;
   const picked = () => items.find((item) => item.key === route.item) ?? items[0];
 
+  const session = sessionCtx.get() as MotionsSession;
+
   return () => (
     <div className="wedyan-direct">
-      <WindowPanel role="navigation" aria-label="Project" className="wedyan-direct-list">
-        <Listbox
-          label="What the project holds"
-          value={$bind(route, 'item')}
-          required
-          oninput={(event) => {
-            route.item = event.detail;
-          }}
-        >
-          {groups.map((group) =>
-            group.items.length ? (
-              <div key={group.label} role="group" aria-label={group.label} className="wedyan-direct-group">
-                <span className="wedyan-direct-group-label" aria-hidden="true">
-                  {group.label}
-                </span>
-                {group.items.map((item) => (
-                  <ListboxOption key={item.key} value={item.key} className="wedyan-direct-row">
-                    <DirectRow item={item} />
-                  </ListboxOption>
-                ))}
-              </div>
-            ) : null
-          )}
-        </Listbox>
-      </WindowPanel>
+      {/* What the project holds shows while the sidebar does; the layout follows which panels are there. */}
+      <Snippet>
+        {() =>
+          session.sidebar && (
+            <WindowPanel role="navigation" aria-label="Project" className="wedyan-direct-list">
+              <Listbox
+                label="What the project holds"
+                value={$bind(route, 'item')}
+                required
+                oninput={(event) => {
+                  route.item = event.detail;
+                }}
+              >
+                {groups.map((group) =>
+                  group.items.length ? (
+                    <div key={group.label} role="group" aria-label={group.label} className="wedyan-direct-group">
+                      <span className="wedyan-direct-group-label" aria-hidden="true">
+                        {group.label}
+                      </span>
+                      {group.items.map((item) => (
+                        <ListboxOption key={item.key} value={item.key} className="wedyan-direct-row">
+                          <DirectRow item={item} />
+                        </ListboxOption>
+                      ))}
+                    </div>
+                  ) : null
+                )}
+              </Listbox>
+            </WindowPanel>
+          )
+        }
+      </Snippet>
       <WindowPanel surface="solid" role="region" aria-label="Picked" className="wedyan-direct-content">
         <Snippet>{() => picked().show()}</Snippet>
       </WindowPanel>
@@ -223,16 +233,17 @@ const ScriptPane = setup<ScriptPaneProps, ScriptPaneSlots>((props, slots) => {
   const from = $static(() => props.from);
   const script = $static(() => props.script);
   const [file, heading] = (path ?? '').split('#');
-  // Versions and asks belong to the project's script file, so only a script in that file has them.
-  const own = !!script && resolvePath(from, script.path) === file;
-  const revisions = (own && script.revisions) || [];
-  const histories = (own && script.histories) || [];
+  // Versions and asks belong to the project's script file, so only a script in that file has them,
+  // read as they stand.
+  const own = () => !!script && resolvePath(from, script.path) === file;
+  const revisions = () => (own() && script?.revisions) || [];
+  const histories = () => (own() && script?.histories) || [];
   // The version shown — the script now, or one kept before it, by revision id — how, and the
   // script now as it's being edited.
   const view = mutable({ shown: CURRENT, mode: PREVIEW, draft: (path && writingAt(path)) ?? '' });
   const textOf = (id: string) => {
     if (id === CURRENT) return view.draft || 'Nothing written yet.';
-    const revision = revisions.find((each) => each.id === id);
+    const revision = revisions().find((each) => each.id === id);
     const at = revision && resolvePath(from, revision.path);
     return (at && writingAt(heading ? `${at}#${heading}` : at)) ?? 'Not in this revision.';
   };
@@ -290,27 +301,27 @@ const ScriptPane = setup<ScriptPaneProps, ScriptPaneSlots>((props, slots) => {
           </div>
         )}
         {slots.about?.()}
-        {slots.about && (revisions.length > 0 || histories.length > 0) && <Divider />}
-        {revisions.length > 0 && (
+        {slots.about && (revisions().length > 0 || histories().length > 0) && <Divider />}
+        {revisions().length > 0 && (
           <section aria-labelledby="wedyan-script-revisions">
             <h3 id="wedyan-script-revisions">Revisions</h3>
             <ul>
               {version(CURRENT, 'Current', 'As it is now')}
-              {revisions.map((revision, at) =>
+              {revisions().map((revision, at, all) =>
                 version(
                   revision.id,
-                  revision.note ?? `Revision ${revisions.length - at}`,
+                  revision.note ?? `Revision ${all.length - at}`,
                   `${shortDate(revision.created)} · ${revision.author.kind === 'agent' ? 'Wedyan' : 'You'}`
                 )
               )}
             </ul>
           </section>
         )}
-        {histories.length > 0 && (
+        {histories().length > 0 && (
           <section aria-labelledby="wedyan-script-histories">
             <h3 id="wedyan-script-histories">History</h3>
             <ol>
-              {histories.map((history) => (
+              {histories().map((history) => (
                 <li key={history.id} className="wedyan-script-entry">
                   <span className="wedyan-script-title">{history.ask}</span>
                   <span className="wedyan-script-meta">

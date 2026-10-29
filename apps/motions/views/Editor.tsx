@@ -36,7 +36,8 @@ import {
   type TrackType,
 } from './placement.js';
 import { Properties } from './Properties.js';
-import { type MotionsSession, sessionCtx } from './session.js';
+import { GenerationFields } from './GenerationFields.js';
+import { generativeClip, type MotionsSession, sessionCtx } from './session.js';
 
 const STAGE_LABELS = { play: 'Play', pause: 'Pause', seek: 'Seek', fullscreen: 'Full screen' };
 
@@ -181,7 +182,8 @@ export const ComposeView = setup<ComposeViewProps>((props) => {
       style={{ '--wedyan-stage-ratio': `${stage().width} / ${stage().height}`, '--wedyan-stage-aspect': stage().width / stage().height } as never}
     >
       <div className="wedyan-compose-layout">
-        <Sources project={project} open={props.open} />
+        {/* The sources show while the sidebar does; the layout follows which panels are there. */}
+        <Snippet>{() => session.sidebar && <Sources project={project} open={props.open} />}</Snippet>
         <WindowPanel surface="solid" role="region" aria-label="Preview" className="wedyan-compose-preview">
           <Show when={() => !session.rendering} fallback={() => <MotionRender source={source} finish={finish} />}>
             {() => (
@@ -246,6 +248,16 @@ export const ComposeView = setup<ComposeViewProps>((props) => {
             </TimelineEditor.Snippet>
           </TimelineEditor>
         </WindowPanel>
+        {/* How the picked clip's source was made, beside the timeline, while a generated clip is picked. */}
+        <Snippet>
+          {() =>
+            generativeClip(session) && (
+              <WindowPanel role="region" aria-label="Prompt" className="wedyan-compose-group wedyan-compose-prompt">
+                <GenerationFields />
+              </WindowPanel>
+            )
+          }
+        </Snippet>
       </div>
     </div>
   );

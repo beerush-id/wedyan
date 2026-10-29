@@ -31,6 +31,8 @@ export type MotionsSession = {
   rendering: boolean;
   /** Whether dragging on the timeline snaps clips and the playhead to what's near. */
   snap: boolean;
+  /** Whether the editor's side panel shows: what a project holds in Direct, its sources in Compose. */
+  sidebar: boolean;
 };
 
 /** A generated image, video or sound, by path: what its generation is made again from. */
@@ -59,7 +61,10 @@ const SESSIONS = new Map<string, MotionsSession>();
 export function sessionOf(id: string): MotionsSession {
   let session = SESSIONS.get(id);
   if (!session) {
-    session = mutable<MotionsSession>({ clips: [], status: '', rendering: false, snap: false }, { recursive: false });
+    session = mutable<MotionsSession>(
+      { clips: [], status: '', rendering: false, snap: false, sidebar: true },
+      { recursive: false }
+    );
     SESSIONS.set(id, session);
   }
   return session;
