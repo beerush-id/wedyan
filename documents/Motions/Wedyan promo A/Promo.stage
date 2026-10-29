@@ -15,12 +15,12 @@
     "tracks": [
       {
         "id": "g01-wedyan-video",
-        "options": { "type": "video", "name": "Video" },
+        "options": { "type": "video", "name": "Video", "meta": {} },
         "segments": [
           {
             "id": "g01-wedyan-v1",
-            "options": { "type": "svg", "name": "Hero", "meta": { "thumbnail": "https://picsum.photos/seed/wedyan-hero-3/640/360", "source": "Hero.still", "assignee": "../../Agents/Illustrator.agent" }, "speed": 1, "duration": 2, "startFrame": 0 },
-            "props": { "element": "image", "href": "https://picsum.photos/seed/wedyan-hero-3/1920/1080", "x": 0, "y": 0, "width": 1920, "height": 1080, "preserveAspectRatio": "xMidYMid slice" },
+            "options": { "type": "image", "name": "Hero", "meta": { "thumbnail": "https://picsum.photos/seed/wedyan-hero-3/640/360", "source": "Hero.still", "assignee": "../../Agents/Illustrator.agent" }, "speed": 1, "duration": 2, "startFrame": 0 },
+            "props": { "src": "https://picsum.photos/seed/wedyan-hero-3/1920/1080", "fit": "cover", "x": 0, "y": 0, "width": 1920, "height": 1080 },
             "scenes": [
               { "id": "g01-wedyan-v1-k1", "options": { "atFrame": 0, "meta": { "ease": "in-out" } }, "data": { "scale": 1, "opacity": 1 } },
               { "id": "g01-wedyan-v1-k2", "options": { "atFrame": 60 }, "data": { "scale": 1.07, "opacity": 1 } }
@@ -48,18 +48,18 @@
       },
       {
         "id": "g01-wedyan-audio",
-        "options": { "type": "audio", "name": "Audio" },
+        "options": { "type": "audio", "name": "Audio", "meta": {} },
         "segments": [
           { "id": "g01-wedyan-a1", "options": { "type": "audio", "name": "Premium Ambient.mp3", "meta": { "assignee": "../../Agents/Composer.agent" }, "speed": 1, "duration": 5, "startFrame": 0 }, "props": { "src": "/assets/music.mp3" } }
         ]
       },
       {
         "id": "g01-wedyan-headline",
-        "options": { "type": "text", "name": "Headline" },
+        "options": { "type": "title", "name": "Headline", "meta": {} },
         "segments": [
           {
             "id": "g01-wedyan-t1",
-            "options": { "type": "html", "name": "Headline", "speed": 1, "duration": 2.7, "startFrame": 9 },
+            "options": { "type": "title", "name": "Headline", "speed": 1, "duration": 2.7, "startFrame": 9 },
             "props": { "text": "Your browser, now a shared desktop", "x": 160, "y": 668, "width": 1600, "height": 180, "style": { "display": "grid", "placeItems": "center", "textAlign": "center", "color": "#ffffff", "font": "700 84px/1.08 system-ui, sans-serif", "letterSpacing": "-1.5px", "textShadow": "0 6px 32px rgba(0, 0, 0, 0.55)" } },
             "scenes": [
               { "id": "g01-wedyan-t1-k1", "options": { "atFrame": 0, "meta": { "ease": "out" } }, "data": { "opacity": 0, "y": 712 } },
@@ -72,11 +72,11 @@
       },
       {
         "id": "g01-wedyan-tagline",
-        "options": { "type": "text", "name": "Tagline" },
+        "options": { "type": "title", "name": "Tagline", "meta": {} },
         "segments": [
           {
             "id": "g01-wedyan-t2",
-            "options": { "type": "html", "name": "Tagline", "speed": 1, "duration": 2, "startFrame": 30 },
+            "options": { "type": "title", "name": "Tagline", "speed": 1, "duration": 2, "startFrame": 30 },
             "props": { "text": "Work side by side with your AI agent.", "x": 260, "y": 848, "width": 1400, "height": 90, "style": { "display": "grid", "placeItems": "center", "textAlign": "center", "color": "#f3ead9", "font": "500 40px/1.2 system-ui, sans-serif", "letterSpacing": "0.2px", "textShadow": "0 4px 24px rgba(0, 0, 0, 0.5)" } },
             "scenes": [
               { "id": "g01-wedyan-t2-k1", "options": { "atFrame": 0, "meta": { "ease": "out" } }, "data": { "opacity": 0, "y": 880 } },
@@ -89,11 +89,11 @@
       },
       {
         "id": "g01-wedyan-closing",
-        "options": { "type": "text", "name": "Closing Card" },
+        "options": { "type": "title", "name": "Closing Card", "meta": {} },
         "segments": [
           {
             "id": "g01-wedyan-t3",
-            "options": { "type": "html", "name": "Wedyan", "speed": 1, "duration": 1.5, "startFrame": 105 },
+            "options": { "type": "title", "name": "Wedyan", "speed": 1, "duration": 1.5, "startFrame": 105 },
             "props": { "text": "Wedyan", "x": 360, "y": 410, "width": 1200, "height": 220, "style": { "display": "grid", "placeItems": "center", "textAlign": "center", "color": "#ffffff", "font": "700 152px/1 system-ui, sans-serif", "letterSpacing": "-3px", "textShadow": "0 10px 44px rgba(0, 0, 0, 0.6)" } },
             "scenes": [
               { "id": "g01-wedyan-t3-k1", "options": { "atFrame": 0, "meta": { "ease": "out" } }, "data": { "opacity": 0, "scale": 0.92 } },
@@ -105,11 +105,11 @@
       },
       {
         "id": "g01-wedyan-closing-sub",
-        "options": { "type": "text", "name": "Closing Subtitle" },
+        "options": { "type": "title", "name": "Closing Subtitle", "meta": {} },
         "segments": [
           {
             "id": "g01-wedyan-t4",
-            "options": { "type": "html", "name": "The browser desktop for human + AI", "speed": 1, "duration": 1.1, "startFrame": 117 },
+            "options": { "type": "title", "name": "The browser desktop for human + AI", "speed": 1, "duration": 1.1, "startFrame": 117 },
             "props": { "text": "THE BROWSER DESKTOP FOR HUMAN + AI", "x": 360, "y": 632, "width": 1200, "height": 70, "style": { "display": "grid", "placeItems": "center", "textAlign": "center", "color": "#f3ead9", "font": "600 26px/1.2 system-ui, sans-serif", "letterSpacing": "4px", "textShadow": "0 4px 24px rgba(0, 0, 0, 0.55)" } },
             "scenes": [
               { "id": "g01-wedyan-t4-k1", "options": { "atFrame": 0, "meta": { "ease": "out" } }, "data": { "opacity": 0, "y": 656 } },

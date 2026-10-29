@@ -13,7 +13,7 @@
     "tracks": [
       {
         "id": "m01-video",
-        "options": { "type": "video", "name": "Video" },
+        "options": { "type": "video", "name": "Video", "meta": {} },
         "segments": [
           {
             "id": "m01-v1",
@@ -46,18 +46,18 @@
       },
       {
         "id": "m01-audio",
-        "options": { "type": "audio", "name": "Audio" },
+        "options": { "type": "audio", "name": "Audio", "meta": {} },
         "segments": [
           { "id": "m01-a1", "options": { "type": "audio", "name": "Acoustic.mp3", "speed": 1, "duration": 13, "startFrame": 0 }, "props": { "src": "/assets/music.mp3" } }
         ]
       },
       {
         "id": "m01-text",
-        "options": { "type": "text", "name": "Titles" },
+        "options": { "type": "title", "name": "Titles", "meta": {} },
         "segments": [
           {
             "id": "m01-t1",
-            "options": { "type": "html", "name": "Saturday", "speed": 1, "duration": 3, "startFrame": 15 },
+            "options": { "type": "title", "name": "Saturday", "speed": 1, "duration": 3, "startFrame": 15 },
             "props": { "text": "Saturday", "x": 160, "y": 760, "width": 1600, "height": 160, "style": { "display": "grid", "placeItems": "center", "color": "#fff7ef", "font": "600 84px/1.1 system-ui, sans-serif", "textShadow": "0 4px 24px rgba(0, 0, 0, 0.45)" } },
             "scenes": [
               { "id": "m01-t1-k1", "options": { "atFrame": 0, "meta": { "ease": "out" } }, "data": { "opacity": 0, "y": 800 } },
@@ -68,7 +68,7 @@
           },
           {
             "id": "m01-t2",
-            "options": { "type": "html", "name": "The long way up", "speed": 1, "duration": 3, "startFrame": 150 },
+            "options": { "type": "title", "name": "The long way up", "speed": 1, "duration": 3, "startFrame": 150 },
             "props": { "text": "The long way up", "x": 160, "y": 760, "width": 1600, "height": 160, "style": { "display": "grid", "placeItems": "center", "color": "#fff7ef", "font": "600 84px/1.1 system-ui, sans-serif", "textShadow": "0 4px 24px rgba(0, 0, 0, 0.45)" } },
             "scenes": [
               { "id": "m01-t2-k1", "options": { "atFrame": 0, "meta": { "ease": "out" } }, "data": { "opacity": 0, "y": 800 } },
@@ -79,7 +79,7 @@
           },
           {
             "id": "m01-t3",
-            "options": { "type": "html", "name": "Worth it", "speed": 1, "duration": 3, "startFrame": 285 },
+            "options": { "type": "title", "name": "Worth it", "speed": 1, "duration": 3, "startFrame": 285 },
             "props": { "text": "Worth it", "x": 160, "y": 760, "width": 1600, "height": 160, "style": { "display": "grid", "placeItems": "center", "color": "#fff7ef", "font": "600 84px/1.1 system-ui, sans-serif", "textShadow": "0 4px 24px rgba(0, 0, 0, 0.45)" } },
             "scenes": [
               { "id": "m01-t3-k1", "options": { "atFrame": 0, "meta": { "ease": "out" } }, "data": { "opacity": 0, "scale": 0.9 } },

@@ -15,7 +15,7 @@
     "tracks": [
       {
         "id": "m04-video",
-        "options": { "type": "video", "name": "Video" },
+        "options": { "type": "video", "name": "Video", "meta": {} },
         "segments": [
           {
             "id": "m04-v1",
@@ -30,12 +30,12 @@
       },
       {
         "id": "m04-effects",
-        "options": { "type": "effect", "name": "Lights" },
+        "options": { "type": "painter", "name": "Lights", "meta": {} },
         "segments": [
           {
             "id": "m04-e1",
-            "options": { "type": "canvas", "name": "Lanterns", "speed": 1, "duration": 6, "startFrame": 0 },
-            "props": { "painter": "lanterns", "x": 0, "y": 0, "width": 1920, "height": 1080, "count": 28, "color": "255, 196, 120", "size": 16, "speed": 70 },
+            "options": { "type": "particle", "name": "Lanterns", "speed": 1, "duration": 6, "startFrame": 0 },
+            "props": { "x": 0, "y": 0, "width": 1920, "height": 1080, "count": 28, "color": "255, 196, 120", "size": 16, "speed": 70 },
             "scenes": [
               { "id": "m04-e1-k1", "options": { "atFrame": 0, "meta": { "ease": "out" } }, "data": { "opacity": 0 } },
               { "id": "m04-e1-k2", "options": { "atFrame": 45 }, "data": { "opacity": 1 } }

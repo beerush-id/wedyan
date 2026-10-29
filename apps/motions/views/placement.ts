@@ -1,11 +1,11 @@
 import type { Timeline, TimelineSegment, TimelineTrack } from '@airlib/react/timeline';
 import { follow } from '@/lib/documents/store.js';
 import type { GenerativeDocument, MotionAsset } from '@/lib/documents/types.js';
-import type { AudioClip, HtmlClip, StageProps, SvgClip, VideoClip } from './composition.js';
+import type { AudioClip, HtmlClip, ImageClip, StageProps, SvgClip, TitleClip, VideoClip } from './composition.js';
 import { chosenAttempt, isGenerative } from './generation.js';
 
 /** The tracks a stage can be given, by type, and what each is called. */
-export const TRACK_NAMES = { video: 'Video', audio: 'Audio', text: 'Text' };
+export const TRACK_NAMES = { video: 'Video', audio: 'Audio', title: 'Title', html: 'HTML', svg: 'SVG' };
 
 export type TrackType = keyof typeof TRACK_NAMES;
 
@@ -29,7 +29,8 @@ export type PlacementStage = { timeline: Timeline; size: StageProps; path: strin
  */
 export function addTrack(timeline: Timeline, type: TrackType): TimelineTrack {
   const count = [...timeline.tracks].filter((track) => track.type === type).length;
-  return timeline.addTrack({ type, name: `${TRACK_NAMES[type]} ${count + 1}` });
+  // The stage keeps whether a track is locked or muted in its `meta`, so every track it makes has one.
+  return timeline.addTrack({ type, name: `${TRACK_NAMES[type]} ${count + 1}`, meta: {} });
 }
 
 /**
@@ -52,8 +53,8 @@ export async function placeAsset(stage: PlacementStage, asset: MotionAsset, at: 
 
   if (asset.kind === 'image' || asset.kind === 'video' || asset.kind === 'audio') {
     if (asset.kind === 'image') {
-      const props: SvgClip = { element: 'image', href: asset.src, ...box, preserveAspectRatio: 'xMidYMid slice' };
-      return place(timeline, 'video', at, { type: 'svg', name, duration: CLIP_SECONDS, meta: { thumbnail: asset.src } }, props);
+      const props: ImageClip = { src: asset.src, fit: 'cover', ...box };
+      return place(timeline, 'video', at, { type: 'image', name, duration: CLIP_SECONDS, meta: { thumbnail: asset.src } }, props);
     }
     const props: VideoClip | AudioClip = asset.kind === 'video' ? { src: asset.src, ...box } : { src: asset.src };
     const type = asset.kind === 'video' ? 'video' : 'audio';
@@ -68,8 +69,8 @@ export async function placeAsset(stage: PlacementStage, asset: MotionAsset, at: 
   const meta = { source: pathFrom(stage.path, found.path) };
 
   if (source.type === 'still') {
-    const props: SvgClip = { element: 'image', href: attempt.src, ...box, preserveAspectRatio: 'xMidYMid slice' };
-    return place(timeline, 'video', at, { type: 'svg', name, duration: CLIP_SECONDS, meta: { ...meta, thumbnail: attempt.src } }, props);
+    const props: ImageClip = { src: attempt.src, fit: 'cover', ...box };
+    return place(timeline, 'video', at, { type: 'image', name, duration: CLIP_SECONDS, meta: { ...meta, thumbnail: attempt.src } }, props);
   }
   const { seconds, poster } = attempt as { seconds: number; poster?: string };
   if (source.type === 'sound') {
@@ -92,24 +93,22 @@ export function showAttempt(segment: TimelineSegment, source: GenerativeDocument
   const attempt = source.attempts.find((each) => each.id === id);
   if (!attempt) return;
   source.chosen = id;
-  const props = segment.props as { href?: string; src?: string };
   const thumbnail = source.type === 'still' ? attempt.src : (attempt as { poster?: string }).poster;
-  if (source.type === 'still') props.href = attempt.src;
-  else props.src = attempt.src;
+  (segment.props as { src?: string }).src = attempt.src;
   if (thumbnail) (segment.meta ??= {}).thumbnail = thumbnail;
   if (segment.timeline.status !== 'playing') void segment.timeline.scrub(segment.timeline.frame);
 }
 
 /**
- * Puts a title on a text track: words centred across the stage's middle, in white, for a few seconds.
+ * Puts a title on a title track: words centred across the stage's middle, in white, for a few seconds.
  *
  * @param timeline - The stage's timeline.
  * @param stage - The stage's size.
  * @param at - Where it goes.
  * @returns The new clip.
  */
-export function placeText(timeline: Timeline, stage: StageProps, at: Placement): TimelineSegment {
-  const props: HtmlClip = {
+export function placeTitle(timeline: Timeline, stage: StageProps, at: Placement): TimelineSegment {
+  const props: TitleClip = {
     text: 'Title',
     x: Math.round(stage.width * 0.1),
     y: Math.round(stage.height * 0.4),
@@ -123,7 +122,49 @@ export function placeText(timeline: Timeline, stage: StageProps, at: Placement):
       font: `700 ${Math.round(stage.height * 0.08)}px/1.1 system-ui, sans-serif`,
     },
   };
-  return place(timeline, 'text', at, { type: 'html', name: 'Title', duration: TEXT_SECONDS }, props);
+  return place(timeline, 'title', at, { type: 'title', name: 'Title', duration: TEXT_SECONDS }, props);
+}
+
+/**
+ * Puts a box on an HTML track: a rounded panel low on the stage, for a few seconds, to style and key.
+ *
+ * @param timeline - The stage's timeline.
+ * @param stage - The stage's size.
+ * @param at - Where it goes.
+ * @returns The new clip.
+ */
+export function placeBox(timeline: Timeline, stage: StageProps, at: Placement): TimelineSegment {
+  const props: HtmlClip = {
+    element: 'div',
+    x: Math.round(stage.width * 0.06),
+    y: Math.round(stage.height * 0.72),
+    width: Math.round(stage.width * 0.4),
+    height: Math.round(stage.height * 0.12),
+    style: { background: '#ffffff' },
+    borderRadius: Math.round(stage.height * 0.02),
+  };
+  return place(timeline, 'html', at, { type: 'html', name: 'Box', duration: TEXT_SECONDS }, props);
+}
+
+/**
+ * Puts a shape on an SVG track: a white ring in the stage's middle, for a few seconds, to style and key.
+ *
+ * @param timeline - The stage's timeline.
+ * @param stage - The stage's size.
+ * @param at - Where it goes.
+ * @returns The new clip.
+ */
+export function placeShape(timeline: Timeline, stage: StageProps, at: Placement): TimelineSegment {
+  const r = Math.round(Math.min(stage.width, stage.height) * 0.2);
+  const props: SvgClip = {
+    element: 'circle',
+    cx: Math.round(stage.width / 2),
+    cy: Math.round(stage.height / 2),
+    r,
+    attrs: { fill: 'none', stroke: '#ffffff' },
+    strokeWidth: Math.max(2, Math.round(r * 0.04)),
+  };
+  return place(timeline, 'svg', at, { type: 'svg', name: 'Shape', duration: TEXT_SECONDS }, props);
 }
 
 /**

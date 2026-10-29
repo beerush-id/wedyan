@@ -25,7 +25,16 @@ import { buffers, mediaLoader } from './media.js';
 import { AddIcon } from './icons.js';
 import { AssigneeAvatar, clipAssignee } from './assignment.js';
 import { castsOf, type Project } from './library.js';
-import { addTrack, type Placement, placeAsset, placeText, TRACK_NAMES, type TrackType } from './placement.js';
+import {
+  addTrack,
+  type Placement,
+  placeAsset,
+  placeBox,
+  placeShape,
+  placeTitle,
+  TRACK_NAMES,
+  type TrackType,
+} from './placement.js';
 import { Properties } from './Properties.js';
 import { type MotionsSession, sessionCtx } from './session.js';
 
@@ -70,8 +79,15 @@ const timecode = (frame: number, frameRate: number): string => {
 
 const TRACK_KINDS = Object.entries(TRACK_NAMES).map(([name, label]) => ({ name, label: `${label} track` }));
 
-/** What an empty spot on a text track offers: a title there. */
-const TEXT_LANE_COMMANDS = [{ name: 'add-text', label: 'Add text here' }];
+/** What an empty spot on a track offers, by the track's type: a new clip of its kind there. */
+const LANE_COMMANDS: Record<string, { name: string; label: string }[]> = {
+  title: [{ name: 'add-title', label: 'Add title here' }],
+  html: [{ name: 'add-box', label: 'Add box here' }],
+  svg: [{ name: 'add-shape', label: 'Add shape here' }],
+};
+
+/** What each lane command puts at its point. */
+const LANE_PLACERS: Record<string, typeof placeTitle> = { 'add-title': placeTitle, 'add-box': placeBox, 'add-shape': placeShape };
 
 /** How a dragged asset names itself to the timeline: its id, under this type. */
 const ASSET_DRAG = 'application/x-wedyan-asset';
@@ -148,7 +164,8 @@ export const ComposeView = setup<ComposeViewProps>((props) => {
   };
   const laneCommand = (event: CustomEvent<TimelineLaneCommand>) => {
     const { name, track, frame } = event.detail;
-    if (name === 'add-text') session.clips = [placeText(timeline, stage(), { track, frame }).id];
+    const placer = LANE_PLACERS[name];
+    if (placer) session.clips = [placer(timeline, stage(), { track, frame }).id];
   };
 
   const finish = (result?: RenderedVideo) => {
@@ -193,7 +210,7 @@ export const ComposeView = setup<ComposeViewProps>((props) => {
             progress={buffering}
             playheadLabel="Playhead"
             zoom={56}
-            laneCommands={(track) => (track.type === 'text' ? TEXT_LANE_COMMANDS : undefined)}
+            laneCommands={(track) => LANE_COMMANDS[track.type ?? '']}
             onlanecommand={laneCommand}
             onlanedrop={dropAsset}
           >

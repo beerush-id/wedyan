@@ -5,9 +5,11 @@ import type { WindowRenderProps } from '@airlib/react-aui/desktop';
 import {
   AspectRatioIcon,
   AudioFileIcon,
+  AutoAwesomeIcon,
+  CodeIcon,
   DraftIcon,
-  ImageIcon,
   MovieIcon,
+  ShapesIcon,
   TitleIcon,
 } from '@airlib/react-aui/icons';
 import type { Timeline, TimelineSegment } from '@airlib/react/timeline';
@@ -113,9 +115,11 @@ const SourceSubject = template<{ generated: GenerativeSource }>((props) => {
 /** A lane's glyph, by its track's type, for a clip without a picture of its own. */
 const LANE_GLYPHS: Record<string, FC> = {
   video: MovieIcon,
-  image: ImageIcon,
   audio: AudioFileIcon,
-  text: TitleIcon,
+  title: TitleIcon,
+  html: CodeIcon,
+  svg: ShapesIcon,
+  painter: AutoAwesomeIcon,
 };
 
 /** A picked clip, as its picture, or its lane's glyph without one. */
