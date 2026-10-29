@@ -1,20 +1,24 @@
 import { mutable } from '@airlib/react';
 import type { DocumentOf, DocumentType, WedyanDocument } from './types.js';
 
-/** Every document on the drive, by its path from the drive's root, e.g. `/Motions/Lantern river/Lantern river.motion`. */
-const DOCUMENTS = new Map<string, WedyanDocument>();
+/**
+ * Every document on the drive, by its path from the drive's root, e.g. `/Motions/Lantern river/Lantern river.motion`.
+ * The drive observes which documents it holds, not what's in them; each document observes itself.
+ */
+const DOCUMENTS = mutable({} as Record<string, WedyanDocument>, { recursive: false });
 
 /** What changes as documents are used, for this session: the ones deleted, by path. */
 export const drive = mutable({ deleted: [] as string[] });
 
 /**
  * Puts documents on the drive, where every view finds them: whatever serves Wedyan's files hands
- * them over here, before anything reads them. One already at a path is replaced.
+ * them over here, before anything reads them. One already at a path is replaced. Each is kept
+ * reactive through and through, being one file saved whole, so an edit anywhere in it is seen.
  *
  * @param documents - Each document with its path from the drive's root.
  */
 export function supply(documents: Iterable<[path: string, document: WedyanDocument]>): void {
-  for (const [path, document] of documents) DOCUMENTS.set(path, document);
+  for (const [path, document] of documents) DOCUMENTS[path] = mutable(document);
 }
 
 /** Every piece of writing on the drive — scripts, notes — as Markdown, by its path from the drive's root. */
@@ -89,7 +93,7 @@ export function sectionAt(file: string, heading: string): string {
  */
 export function documentAt<T extends DocumentType = DocumentType>(path: string): DocumentOf<T> | undefined {
   if (drive.deleted.includes(path)) return;
-  return DOCUMENTS.get(path) as DocumentOf<T> | undefined;
+  return DOCUMENTS[path] as DocumentOf<T> | undefined;
 }
 
 /**
@@ -99,7 +103,8 @@ export function documentAt<T extends DocumentType = DocumentType>(path: string):
  * @returns Each one and where it is, by path.
  */
 export function documentsOf<T extends DocumentType>(type: T): { path: string; document: DocumentOf<T> }[] {
-  return Array.from(DOCUMENTS, ([path, document]) => ({ path, document }))
+  return Object.entries(DOCUMENTS)
+    .map(([path, document]) => ({ path, document }))
     .filter((entry) => entry.document.type === type && !drive.deleted.includes(entry.path))
     .map((entry) => entry as { path: string; document: DocumentOf<T> });
 }

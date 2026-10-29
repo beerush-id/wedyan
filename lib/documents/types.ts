@@ -1,7 +1,7 @@
 import type { TimelineSnapshot } from '@airlib/react/timeline';
 
 /** Every kind of document Wedyan works with, by its file extension. */
-export type DocumentType = 'motion' | 'stage' | 'still' | 'take' | 'chat' | 'memo' | 'persona' | 'album';
+export type DocumentType = 'motion' | 'stage' | 'still' | 'take' | 'sound' | 'chat' | 'memo' | 'persona' | 'album';
 
 /** Who made a document: a person, or an agent — and then the ask it acted on. */
 export type DocumentAuthor = { kind: 'user' } | { kind: 'agent'; ask?: string };
@@ -81,11 +81,11 @@ export type ScriptHistory = {
   created: string;
 };
 
-/** Something a project's stages use: media by address, or a generated image or video by path. */
+/** Something a project's stages use: media by address, or a generated image, video or sound by path. */
 export type MotionAsset = {
   id: string;
   name: string;
-  kind: 'image' | 'video' | 'audio' | 'still' | 'take';
+  kind: 'image' | 'video' | 'audio' | 'still' | 'take' | 'sound';
   src: string;
 };
 
@@ -114,11 +114,20 @@ export type PersonaDocument = DocumentHeader<'persona'> & {
   notes?: string;
 };
 
+/**
+ * How a generation is asked for, beside its prompt: the model, the picture's aspect ratio, and how
+ * long a video or a sound runs, in seconds. Kept on the document, so it's made again the same way.
+ */
+export type GenerationSettings = { model?: string; aspect?: string; seconds?: number };
+
 /** One generated image as an editable source: how it was asked for, every attempt, its edits, and the one chosen. */
 export type StillDocument = DocumentHeader<'still'> & {
   prompt: string;
+  settings?: Pick<GenerationSettings, 'model' | 'aspect'>;
   /** Images it was made from, by address or path. */
   references: string[];
+  /** Who appears in it, by path to each `.persona`. */
+  casts?: string[];
   attempts: GeneratedAttempt[];
   /** Edits made to the chosen attempt, in order, e.g. a masked region painted over. */
   edits: StillEdit[];
@@ -129,10 +138,31 @@ export type StillDocument = DocumentHeader<'still'> & {
 /** One generated video as an editable source, like a still: how it was asked for, every attempt, and the one chosen. */
 export type TakeDocument = DocumentHeader<'take'> & {
   prompt: string;
+  settings?: GenerationSettings;
   references: string[];
+  /** Who appears in it, by path to each `.persona`. */
+  casts?: string[];
   attempts: (GeneratedAttempt & { poster?: string; seconds: number })[];
   chosen: string;
 };
+
+/**
+ * One generated sound as an editable source, like a take: how it was asked for — what it's made
+ * from, whose voice speaks it — every attempt, and the one chosen.
+ */
+export type SoundDocument = DocumentHeader<'sound'> & {
+  prompt: string;
+  settings?: Pick<GenerationSettings, 'model' | 'seconds'>;
+  /** Sounds or voices it was made from, by address or path. */
+  references: string[];
+  /** Who speaks or sings in it, by path to each `.persona`. */
+  casts?: string[];
+  attempts: (GeneratedAttempt & { seconds: number })[];
+  chosen: string;
+};
+
+/** A generated image, video or sound: what the prompt view edits and makes again. */
+export type GenerativeDocument = StillDocument | TakeDocument | SoundDocument;
 
 /** One try at a generation: its result, and what it was asked with when that differs from the document's prompt. */
 export type GeneratedAttempt = { id: string; src: string; prompt?: string; created: string };
@@ -185,6 +215,7 @@ export type WedyanDocument =
   | StageDocument
   | StillDocument
   | TakeDocument
+  | SoundDocument
   | ChatDocument
   | MemoDocument
   | PersonaDocument
