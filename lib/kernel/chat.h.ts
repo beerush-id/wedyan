@@ -33,9 +33,11 @@ export type AgentMessage = AskState & {
   to?: string;
   /**
    * Why Wedyan started it on its own: `wake` briefs the user who just came back, `job` tells them a
-   * job they started in the background finished.
+   * job they started in the background finished, `work` is an expert doing a task it was handed.
    */
-  event?: 'wake' | 'job';
+  event?: 'wake' | 'job' | 'work';
+  /** The task it does, when `event` is `work`. */
+  task?: string;
   created: string;
   actions: ActionRecord[];
   /** When the user acknowledged it: their words replied to it, confirmed it or thanked for it. */
@@ -47,6 +49,37 @@ export type AgentMessage = AskState & {
   deferred?: string;
   /** When a briefing told the user of it, so no later briefing repeats it. */
   briefed?: string;
+};
+
+/** The action that hands a task to one of the user's experts; the conversation runs it, not the desktop. */
+export const WORK_ASSIGN = 'work.assign';
+
+/** What a task is about: one file, or one part of one (clip `s3` of a stage). */
+export type WorkObject = { path: string; part?: string; id?: string };
+
+/**
+ * One piece of work handed to one of the user's experts: a goal about one object. An expert does
+ * one task at a time, in the order they were handed to it, and an object has one task working on
+ * it at a time.
+ */
+export type WorkTask = {
+  id: string;
+  /** The batch it belongs to, as the one who handed it out named it: "Lantern River episodes". */
+  title: string;
+  /** The expert doing it, by its path: `~/Agents/Director.agent`. */
+  agent: string;
+  goal: string;
+  object: WorkObject;
+  status: 'queued' | 'running' | 'done' | 'failed';
+  /** The answer that handed it out. */
+  by: string;
+  /** The desktop its actions run on: the one the work was handed out on. */
+  client: string;
+  /** The answer doing it, once it started. */
+  answer?: string;
+  created: string;
+  /** When it ended. */
+  ended?: string;
 };
 
 /** A job the desktop ran in the background and that ended, like a render: what it was, and how it ended. */
@@ -72,6 +105,8 @@ export type Conversation = {
   messages: ConversationMessage[];
   /** Since when the user has been away (every desktop idle or closed); unset while one is in use. */
   away?: string;
+  /** The work handed to the user's experts, in the order it was handed out, finished tasks included. */
+  work?: WorkTask[];
 };
 
 /** Whether a desktop is in use: `active` on input while it is shown, `idle` after a while without or when hidden. */

@@ -107,7 +107,10 @@ describe('agent loop', () => {
     await run();
 
     const retry = JSON.parse(messagesOf(vendor.bodies, 2)[1].content as string);
-    expect(retry).toMatchObject({ widget: 'A card', previous: '{"role":"card","children":[{"role":"p"},"children":["x"]]}' });
+    expect(retry).toMatchObject({
+      widget: 'A card',
+      previous: '{"role":"card","children":[{"role":"p"},"children":["x"]]}',
+    });
     expect(retry.problem).toContain("isn't JSON");
     expect(state.parts).toMatchObject([{ type: 'widget', status: 'ready', nodes: [{ role: 'card' }] }]);
   });

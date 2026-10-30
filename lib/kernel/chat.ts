@@ -1,11 +1,19 @@
 import type { ChatMessage } from '@irpclib/ai-kit';
-import { createContextStore, IRPC_STORE, type RoomSetup, SESSION_STORE, stream, withContext } from '@irpclib/irpc';
+import {
+  createContextStore,
+  IRPC_STORE,
+  type IRPCData,
+  type RoomSetup,
+  SESSION_STORE,
+  stream,
+  withContext,
+} from '@irpclib/irpc';
 import { type AsyncStore, getContextStore, mutable } from '@irpclib/irpc/core';
-import { list, read, write } from '@irpclib/r2-file';
+import { exists, list, read, write } from '@irpclib/r2-file';
 import type { DocumentHeader } from '@/lib/documents/types.js';
 import { userPath } from '@/lib/memory/files.js';
 import { PROFILE_PATH, type UserProfile } from '@/lib/share/profile.js';
-import { CONVERSATION_PATH, INBOXES } from '@/lib/share/system.js';
+import { AGENTS_PATH, CONVERSATION_PATH, INBOXES } from '@/lib/share/system.js';
 import { type ActionMeta, type AskAction, type AskInput, actorOf, type WidgetPart } from './agent.h.js';
 import { askRouter, askWith, type CallResult, toChatInput } from './agent.js';
 import { ARRIVAL_SEEDS, landed } from './arrivals.js';
@@ -18,6 +26,9 @@ import {
   type FinishedJob,
   type Presence,
   type UserMessage,
+  WORK_ASSIGN,
+  type WorkObject,
+  type WorkTask,
   wedyan,
 } from './chat.h.js';
 import { DOC_CLOSE, DOC_OPEN } from './document.h.js';
@@ -138,7 +149,7 @@ type Desktop = (action: AskAction) => Promise<CallResult>;
  * so they land once.
  */
 type ConversationPage = DocumentHeader<'chat'> &
-  Pick<Conversation, 'page' | 'messages' | 'away'> & { delivered?: string };
+  Pick<Conversation, 'page' | 'messages' | 'away' | 'work'> & { delivered?: string };
 
 /** What a page keeps of itself between saves: its id, when it was made, and when the arrivals landed. */
 type PageHeader = Pick<ConversationPage, 'id' | 'created' | 'delivered'>;
@@ -147,7 +158,15 @@ type PageHeader = Pick<ConversationPage, 'id' | 'created' | 'delivered'>;
 type Running = { message: AgentMessage; followUps: string[]; controller: AbortController };
 
 /** What an answer answers: the user's words, or an event Wedyan answers on its own; and where its actions run. */
-type Origin = { client: string; to?: string; event?: AgentMessage['event'] };
+type Origin = {
+  client: string;
+  to?: string;
+  event?: AgentMessage['event'];
+  /** The task it does, when it does one. */
+  task?: string;
+  /** Who answers first, instead of the router. */
+  entry?: string;
+};
 
 /** The words the briefing agent is given; what it briefs is in the context. */
 const WAKE_TEXT = '(The user is back.)';
@@ -205,7 +224,10 @@ function createConversation({ hold }: RoomSetup) {
       data.page = page?.page ?? 0;
       data.messages.push(...(page?.messages ?? []));
       data.away = page?.away;
+      // A task still running when the conversation was last kept was cut off: it starts over.
+      data.work = (page?.work ?? []).map((task) => (task.status === 'running' ? { ...task, status: 'queued' } : task));
       data.ready = true;
+      pump();
     }),
   );
 
@@ -248,9 +270,13 @@ function createConversation({ hold }: RoomSetup) {
   };
 
   // The finished answers the user hasn't acknowledged, oldest first, as many as the router weighs.
+  // Tasks' answers aren't among them: the work's progress tells of those.
   const unacked = () =>
     data.messages
-      .filter((message): message is AgentMessage => message.role === 'agent' && !message.acked && !isWriting(message))
+      .filter(
+        (message): message is AgentMessage =>
+          message.role === 'agent' && !message.acked && message.event !== 'work' && !isWriting(message),
+      )
       .slice(-config.acksRead);
 
   const acknowledge = (ids: string[]) => {
@@ -292,9 +318,14 @@ function createConversation({ hold }: RoomSetup) {
     const isAsking = ({ message }: Running) =>
       message.actions.some((action) => action.ask && action.status === 'waiting');
     const asking = turns.filter(isAsking).map(({ message }) => lineOf(message));
-    const working = turns.filter((turn) => !isAsking(turn)).map(({ message }) => lineOf(message));
+    const working = turns
+      .filter((turn) => !isAsking(turn) && turn.message.event !== 'work')
+      .map(({ message }) => lineOf(message));
+    const progress = progressOf(data.work ?? [], since);
     const arrived = await arrivals(since);
-    if (!told.length && !later.length && !asking.length && !working.length && !arrived.length) return;
+    if (!told.length && !later.length && !asking.length && !working.length && !progress.length && !arrived.length) {
+      return;
+    }
 
     // Each answer with the words it answered, which the briefing tells of rather than reads before it.
     const unseen = told.flatMap((message) => [...data.messages.filter(({ id }) => id === message.to), message]);
@@ -314,6 +345,7 @@ function createConversation({ hold }: RoomSetup) {
           later: later.map(lineOf),
           waiting: asking,
           working,
+          progress,
         },
       },
       data.messages.filter((message) => !unseen.includes(message)),
@@ -330,6 +362,83 @@ function createConversation({ hold }: RoomSetup) {
       const close: AskAction = { name: DOC_CLOSE, args: { path }, after: -1, agent: record.actor };
       onDesktop(client, close).catch(() => undefined);
     }
+  };
+
+  // Hands one task to one of the user's experts, from an answer to the user's words: queued behind
+  // what that expert already has, and started as soon as the expert and the object are free. A
+  // task's own answer hands nothing out, so work never fans out on its own.
+  const assign = async (args: IRPCData, by: AgentMessage, client: string): Promise<CallResult> => {
+    if (by.event === 'work') throw new Error('A task hands out no work: say in your answer what else needs doing');
+    const { title, agent, goal, object } = (args ?? {}) as Partial<
+      Pick<WorkTask, 'title' | 'agent' | 'goal' | 'object'>
+    >;
+    if (!title || !agent || !goal || !object?.path) {
+      throw new Error(`${WORK_ASSIGN} needs a title, an agent, a goal, and an object with its path`);
+    }
+    if (!agent.startsWith(`${AGENTS_PATH}/`) || !(await exists(agent))) throw new Error(`No expert at ${agent}`);
+
+    data.work ??= [];
+    const ahead = data.work.filter((task) => task.agent === agent && isOpen(task)).length;
+    const { path, part, id } = object;
+    data.work.push({
+      id: crypto.randomUUID(),
+      title,
+      agent,
+      goal,
+      object: { path, ...(part ? { part } : {}), ...(id ? { id } : {}) },
+      status: 'queued',
+      by: by.id,
+      client,
+      created: new Date().toISOString(),
+    });
+    keep();
+    pump();
+    return { queued: true, ahead };
+  };
+
+  // Starts every task whose expert and object are free, in the order they were handed out. An
+  // expert works on one task at a time, and its tasks keep their order: one waiting for its object
+  // holds the expert's later ones back.
+  const pump = () => {
+    const running = (data.work ?? []).filter((task) => task.status === 'running');
+    const busy = new Set(running.map((task) => task.agent));
+    const held = running.map((task) => task.object);
+    for (const task of data.work ?? []) {
+      if (task.status !== 'queued' || busy.has(task.agent)) continue;
+      busy.add(task.agent);
+      if (held.some((object) => overlaps(object, task.object))) continue;
+      held.push(task.object);
+      perform(task);
+    }
+  };
+
+  // Runs a task as the expert's own answer, with its goal and its object and none of the
+  // conversation, in its own copy of the current context; then the next ones start.
+  const perform = (task: WorkTask) => {
+    task.status = 'running';
+    keep();
+    const origin: Origin = { client: task.client, event: 'work', task: task.id, entry: task.agent };
+    const input: AskInput = { text: task.goal, context: { event: 'work', object: task.object as IRPCData } };
+    hold(
+      withContext(detachedContext(), async () => {
+        const message = await answer(origin, input, []).catch(() => undefined);
+        task.answer = message?.id;
+        task.status = message?.status === 'done' ? 'done' : 'failed';
+        task.ended = new Date().toISOString();
+        keep();
+        pump();
+        finished(task);
+      }),
+    ).catch((error: Error) => IRPC_STORE.error(error, [{ task: task.goal }]));
+  };
+
+  // Once a batch's last task ends, Wedyan says so on the desktop it was handed out on.
+  const finished = ({ title, by }: WorkTask) => {
+    const batch = (data.work ?? []).filter((task) => task.title === title && task.by === by);
+    if (batch.some(isOpen)) return;
+    const failed = batch.filter((task) => task.status === 'failed').length;
+    const job: FinishedJob = { title, ...(failed ? { failed: `${failed} of ${batch.length} tasks failed` } : {}) };
+    start({ client: batch[0].client, event: 'job' }, { text: JOB_TEXT, context: { event: 'job', job } });
   };
 
   const onDesktop = async (client: string, action: AskAction) => {
@@ -365,7 +474,9 @@ function createConversation({ hold }: RoomSetup) {
       await askWith({
         input: [...viewOf(before), ...toChatInput(input)],
         state: message,
-        desktop: (action) => onDesktop(origin.client, action),
+        // Work is handed out here, in the conversation; every other action runs on the desktop.
+        desktop: (action) =>
+          action.name === WORK_ASSIGN ? assign(action.args, message, origin.client) : onDesktop(origin.client, action),
         track: (action, outcome) => {
           const record = records.get(action);
           if (record) {
@@ -378,7 +489,7 @@ function createConversation({ hold }: RoomSetup) {
         },
         followUps: () => turn.followUps.splice(0),
         signal: turn.controller.signal,
-        ...(origin.event && config.briefer ? { entry: config.briefer } : {}),
+        ...(origin.entry ? { entry: origin.entry } : origin.event && config.briefer ? { entry: config.briefer } : {}),
       });
     } finally {
       running.delete(message.id);
@@ -392,6 +503,7 @@ function createConversation({ hold }: RoomSetup) {
       const words = lastWords(data, message.id);
       start(words ? originOf(words) : origin, { text: late.join('\n') });
     }
+    return message;
   };
 
   // Its own copy of the sender's context, so the answer keeps its home, session and bindings to the
@@ -520,6 +632,46 @@ async function arrivals(since: string): Promise<Array<{ path: string; name: stri
 }
 
 /** What an answer to the user's words answers, and where its actions run. */
+/** How far a batch of work got: how many of its tasks are done or failed, and what's under way. */
+type Progress = { title: string; done: number; failed: number; total: number; now: string[] };
+
+/**
+ * How far each batch of work got, for a briefing: the batches still going, and those that ended
+ * while the user was away.
+ *
+ * @param work - The conversation's work.
+ * @param since - Since when the user was away.
+ * @returns Each such batch's progress, in the order it was handed out.
+ */
+function progressOf(work: WorkTask[], since: string): Progress[] {
+  const batches = new Map<string, WorkTask[]>();
+  for (const task of work) {
+    const key = `${task.by}:${task.title}`;
+    batches.set(key, [...(batches.get(key) ?? []), task]);
+  }
+  return [...batches.values()]
+    .filter((batch) => batch.some((task) => isOpen(task) || (task.ended && task.ended >= since)))
+    .map((batch) => ({
+      title: batch[0].title,
+      done: batch.filter((task) => task.status === 'done').length,
+      failed: batch.filter((task) => task.status === 'failed').length,
+      total: batch.length,
+      now: batch.filter((task) => task.status === 'running').map((task) => `${task.agent}: ${task.goal}`),
+    }));
+}
+
+/** Whether a task is still to be done: waiting its turn, or under way. */
+function isOpen(task: WorkTask): boolean {
+  return task.status === 'queued' || task.status === 'running';
+}
+
+/** Whether two tasks are about the same thing: the same file whole, or one part of it either holds. */
+function overlaps(a: WorkObject, b: WorkObject): boolean {
+  if (a.path !== b.path) return false;
+  if (!a.part || !b.part) return true;
+  return a.part === b.part && a.id === b.id;
+}
+
 function originOf(words: UserMessage): Origin {
   return { client: words.client, to: words.id };
 }
@@ -621,12 +773,13 @@ function userMessage(input: AskInput, client: string): UserMessage {
 }
 
 /** A new answer, to the user's words or an event, before it starts. */
-function agentMessage({ to, event }: Origin): AgentMessage {
+function agentMessage({ to, event, task }: Origin): AgentMessage {
   return {
     id: crypto.randomUUID(),
     role: 'agent',
     ...(to ? { to } : {}),
     ...(event ? { event } : {}),
+    ...(task ? { task } : {}),
     created: new Date().toISOString(),
     status: 'idle',
     agent: '',
@@ -700,6 +853,7 @@ async function savePage(data: Conversation, header: PageHeader): Promise<void> {
     page,
     messages,
     ...(data.away ? { away: data.away } : {}),
+    ...(data.work?.length ? { work: JSON.parse(JSON.stringify(data.work)) as WorkTask[] } : {}),
   });
   const messages = JSON.parse(JSON.stringify(data.messages)) as ConversationMessage[];
   const keep = config.recentTurns * 2;

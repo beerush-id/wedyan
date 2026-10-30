@@ -106,6 +106,12 @@ const later = (response: Response, ms: number) => () =>
     { headers: response.headers },
   );
 
+/** The context the answer at this turn was asked with. */
+const contextOf = (bodies: Record<string, unknown>[], index: number) => {
+  const asked = messagesOf(bodies, index).find((message) => message.content?.includes('"context"'));
+  return asked && (JSON.parse(asked.content!) as { context: Record<string, unknown> }).context;
+};
+
 const last = (conversation: Conversation) => conversation.messages.at(-1);
 const isRunning = (message: AgentMessage) => message.status === 'running' || message.status === 'idle';
 const answered = (conversation: Conversation) => {
@@ -686,12 +692,6 @@ describe('the conversation', () => {
       });
     });
 
-    /** The context the answer at this turn was asked with. */
-    const contextOf = (bodies: Record<string, unknown>[], index: number) => {
-      const asked = messagesOf(bodies, index).find((message) => message.content?.includes('"context"'));
-      return asked && (JSON.parse(asked.content!) as { context: Record<string, unknown> }).context;
-    };
-
     /**
      * Leaves two answers unacknowledged: the render, slow, and the mail, asked while it runs and so
      * the latest. Their model turns come first.
@@ -914,6 +914,7 @@ describe('the conversation', () => {
           later: [],
           waiting: [],
           working: [],
+          progress: [],
         });
         first.close();
         second.close();
@@ -1006,6 +1007,247 @@ describe('the conversation', () => {
           unseen: ['user: Render it', 'wedyan: said "Rendering it."'],
         });
         next.close();
+      });
+    });
+  });
+
+  describe('when work is handed to experts', () => {
+    const DIRECTOR = '~/Agents/Director.agent';
+    const CASTING = '~/Agents/Casting.agent';
+    const episode = (n: number) => ({ path: `~/Motions/Lantern/Episode ${n}.stage` });
+
+    /** The assistant's answer handing out these tasks of one batch, each as its own action. */
+    const handsOut = (...tasks: Array<{ agent: string; goal: string; object: { path: string } }>) =>
+      says(
+        `[[say]]On it.[[/say]]${tasks
+          .map((task) => `[[action name=work.assign]]${JSON.stringify({ title: 'Lantern River', ...task })}[[/action]]`)
+          .join('')}`,
+      );
+
+    beforeEach(() => {
+      setupKernel({
+        adapter: createTestAdapter(),
+        agents: {
+          ...AGENTS,
+          [DIRECTOR]: { name: DIRECTOR, model: 'director-m', system: 'Direct.', tools: [] },
+          [CASTING]: { name: CASTING, model: 'casting-m', system: 'Cast.', tools: [] },
+        },
+        entry: 'assistant',
+        composer: 'composer',
+      });
+    });
+
+    /** A desktop of a new user who has the two experts. */
+    const withExperts = async (who: ReturnType<typeof newUser>) =>
+      asDesktop(who, async () => {
+        await write(DIRECTOR, { name: 'Director' } as never);
+        await write(CASTING, { name: 'Casting' } as never);
+      });
+
+    const taskAnswers = (conversation: Conversation) =>
+      conversation.messages.filter(
+        (message): message is AgentMessage => message.role === 'agent' && message.event === 'work',
+      );
+
+    it('runs an expert’s tasks one at a time, in order, each on its own, and says when the batch is done', async () => {
+      const vendor = chatVendor(
+        [],
+        handsOut(
+          { agent: DIRECTOR, goal: 'Write episode 1', object: episode(1) },
+          { agent: DIRECTOR, goal: 'Write episode 2', object: episode(2) },
+        ),
+        later(says('Episode 1 is written.'), 300),
+        says('Episode 2 is written.'),
+        says('The Lantern River episodes are done.'),
+      );
+      const who = newUser();
+      await withExperts(who);
+
+      await asDesktop(who, async () => {
+        const desktop = wedyan('tab-a');
+        await until(() => desktop.data.ready);
+        await desktop.ask('send', { text: 'Write the first two episodes' });
+
+        // The second waits behind the first: one expert, one task at a time.
+        await until(() => desktop.data.work?.length === 2);
+        expect(desktop.data.work?.map((task) => task.status)).toEqual(['running', 'queued']);
+
+        await until(() => last(desktop.data)?.role === 'agent' && (last(desktop.data) as AgentMessage).event === 'job');
+        await until(() => answered(desktop.data));
+        expect(desktop.data.work?.map((task) => task.status)).toEqual(['done', 'done']);
+
+        const [first, second] = taskAnswers(desktop.data);
+        expect(first).toMatchObject({ task: desktop.data.work?.[0].id, agent: DIRECTOR, status: 'done' });
+        expect(second).toMatchObject({ task: desktop.data.work?.[1].id, status: 'done' });
+        // Each starts at the expert, with its goal and its object, and none of the conversation.
+        expect(vendor.bodies[1].model).toBe('director-m');
+        expect(messagesOf(vendor.bodies, 1).filter((message) => message.role === 'user')).toEqual([
+          { role: 'user', content: JSON.stringify({ context: { event: 'work', object: episode(1) } }) },
+          { role: 'user', content: 'Write episode 1' },
+        ]);
+        expect(contextOf(vendor.bodies, 3)).toEqual({ event: 'job', job: { title: 'Lantern River' } });
+
+        // Kept on the page, for a room that comes after.
+        const kept = (await read(CONVERSATION_PATH, { encoding: 'json' })) as Conversation;
+        expect(kept.work?.map((task) => task.status)).toEqual(['done', 'done']);
+        desktop.close();
+      });
+    });
+
+    it('lets two experts work at once, but never two on one object', async () => {
+      chatVendor(
+        [],
+        handsOut(
+          { agent: DIRECTOR, goal: 'Write episode 1', object: episode(1) },
+          { agent: CASTING, goal: 'Cast episode 1', object: episode(1) },
+          { agent: CASTING, goal: 'Cast episode 2', object: episode(2) },
+        ),
+        later(says('Episode 1 is written.'), 400),
+        says('Episode 1 is cast.'),
+        says('Episode 2 is cast.'),
+        says('Done.'),
+      );
+      const who = newUser();
+      await withExperts(who);
+
+      await asDesktop(who, async () => {
+        const desktop = wedyan('tab-a');
+        await until(() => desktop.data.ready);
+        await desktop.ask('send', { text: 'Write and cast the first two episodes' });
+
+        await until(() => desktop.data.work?.length === 3 && desktop.data.work[0].status === 'running');
+        // Casting is free, but its first task's object is the Director's for now, and its tasks keep their order.
+        expect(desktop.data.work.map((task) => task.status)).toEqual(['running', 'queued', 'queued']);
+
+        await until(() => desktop.data.work?.every((task) => task.status === 'done') === true);
+        desktop.close();
+      });
+    });
+
+    it('refuses work for an expert the user doesn’t have', async () => {
+      const vendor = chatVendor(
+        [],
+        handsOut({ agent: '~/Agents/Nobody.agent', goal: 'Write episode 1', object: episode(1) }),
+        says('There’s no such expert.'),
+      );
+      const who = newUser();
+      await withExperts(who);
+
+      await asDesktop(who, async () => {
+        const desktop = wedyan('tab-a');
+        await until(() => desktop.data.ready);
+        await desktop.ask('send', { text: 'Write episode 1' });
+        await until(() => vendor.bodies.length === 2 && answered(desktop.data));
+
+        expect(desktop.data.work ?? []).toEqual([]);
+        expect((last(desktop.data) as AgentMessage).actions[0]).toMatchObject({
+          name: 'work.assign',
+          status: 'failed',
+        });
+        expect(JSON.stringify(vendor.bodies[1])).toContain('No expert at ~/Agents/Nobody.agent');
+        desktop.close();
+      });
+    });
+
+    it('lets no task hand out work of its own', async () => {
+      const vendor = chatVendor(
+        [],
+        handsOut({ agent: DIRECTOR, goal: 'Write episode 1', object: episode(1) }),
+        says(
+          `Writing it.[[action name=work.assign]]${JSON.stringify({ title: 'More', agent: CASTING, goal: 'Cast it', object: episode(1) })}[[/action]]`,
+        ),
+        says('Casting is left to do.'),
+        says('Done.'),
+      );
+      const who = newUser();
+      await withExperts(who);
+
+      await asDesktop(who, async () => {
+        const desktop = wedyan('tab-a');
+        await until(() => desktop.data.ready);
+        await desktop.ask('send', { text: 'Write episode 1' });
+        await until(() => desktop.data.work?.[0]?.status === 'done');
+
+        expect(desktop.data.work?.map((task) => task.agent)).toEqual([DIRECTOR]);
+        const [task] = taskAnswers(desktop.data);
+        expect(task.actions[0]).toMatchObject({ name: 'work.assign', status: 'failed' });
+        expect(JSON.stringify(vendor.bodies[2])).toContain('A task hands out no work');
+        desktop.close();
+      });
+    });
+
+    it('starts a task cut off when the conversation was last kept over, in the next room', async () => {
+      chatVendor([], says('Episode 1 is written.'), says('Done.'));
+      const who = newUser();
+      await withExperts(who);
+
+      await asDesktop(who, async () => {
+        await write(CONVERSATION_PATH, {
+          type: 'chat',
+          version: 1,
+          id: 'c1',
+          name: 'Desktop',
+          created: '2026-10-30T00:00:00.000Z',
+          updated: '2026-10-30T00:00:00.000Z',
+          author: { kind: 'agent' },
+          page: 0,
+          messages: [],
+          work: [
+            {
+              id: 't1',
+              title: 'Lantern River',
+              agent: DIRECTOR,
+              goal: 'Write episode 1',
+              object: episode(1),
+              status: 'running',
+              by: 'a1',
+              client: 'tab-a',
+              created: '2026-10-30T00:00:00.000Z',
+            },
+          ],
+        } as never);
+        const desktop = wedyan('tab-a');
+        await until(() => desktop.data.work?.[0]?.status === 'done');
+        expect(taskAnswers(desktop.data)).toHaveLength(1);
+        desktop.close();
+      });
+    });
+
+    it('tells the briefing how far each batch got, and leaves the tasks’ own answers out of what the user missed', async () => {
+      const vendor = chatVendor(
+        [],
+        handsOut(
+          { agent: DIRECTOR, goal: 'Write episode 1', object: episode(1) },
+          { agent: DIRECTOR, goal: 'Write episode 2', object: episode(2) },
+        ),
+        says('Episode 1 is written.'),
+        later(says('Episode 2 is written.'), 1000),
+        says('Welcome back.'),
+        says('Done.'),
+      );
+      const who = newUser();
+      await withExperts(who);
+      setupConversation({ briefAfter: 200, arrivalSeeds: {} });
+
+      await asDesktop(who, async () => {
+        const desktop = wedyan('tab-a');
+        await until(() => desktop.data.ready);
+        await desktop.ask('presence', 'active');
+        await desktop.ask('send', { text: 'Write the first two episodes' });
+        await until(() => desktop.data.work?.[1]?.status === 'running');
+
+        await desktop.ask('presence', 'idle');
+        await new Promise((resolve) => setTimeout(resolve, 250));
+        await desktop.ask('presence', 'active', { time: '2026-10-30T13:00:00+07:00' });
+        await until(() => vendor.bodies.length >= 4);
+
+        const briefing = contextOf(vendor.bodies, 3) as { progress: unknown[]; unseen: string[] };
+        expect(briefing.progress).toEqual([
+          { title: 'Lantern River', done: 1, failed: 0, total: 2, now: [`${DIRECTOR}: Write episode 2`] },
+        ]);
+        expect(briefing.unseen.some((line) => line.includes('Episode 1 is written'))).toBe(false);
+        await until(() => desktop.data.work?.[1]?.status === 'done');
+        desktop.close();
       });
     });
   });

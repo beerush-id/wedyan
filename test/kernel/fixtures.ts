@@ -32,7 +32,7 @@ export function createTestAdapter(api: 'chat' | 'responses' = 'chat'): AIAdapter
       name: 'meta',
       baseUrl: 'https://api.meta.test/v1',
       apiKey: 'k',
-      models: ['router-m', 'assistant-m', 'photos-m', 'composer-m'],
+      models: ['router-m', 'assistant-m', 'photos-m', 'composer-m', 'director-m', 'casting-m'],
       api,
     }),
   );

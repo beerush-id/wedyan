@@ -1,6 +1,7 @@
 import type { ChatTool } from '@irpclib/ai-kit';
 import { type IRPCData, IRPCRouter, type IRPCTransport } from '@irpclib/irpc';
 import { transport as fileTransport } from '@irpclib/r2-file';
+import { WORK_ASSIGN } from '../kernel/chat.h.js';
 import { DOC_CLOSE, DOC_OPEN, DOC_UPDATE } from '../kernel/document.h.js';
 import { memory } from '../memory/memory.h.js';
 import type { ActionSpec } from './format.js';
@@ -105,6 +106,11 @@ export const ACTIONS = {
   },
   tile: { name: 'desktop.tile', args: '{"apps": string[]}', does: 'Places the apps’ windows side by side.' },
   focus: { name: 'desktop.focus', args: '{"app": string}', does: 'Brings an app’s window to the front.' },
+  workAssign: {
+    name: WORK_ASSIGN,
+    args: '{"title": string, "agent": string, "goal": string, "object": {"path": string, "part"?: string, "id"?: string}}',
+    does: "Hands one task to one of the user's experts, by its path: a goal about one object, a file or one part of one. Tasks with the same title make one batch. An expert does its tasks one at a time, in the order they were handed out, while you go on with yours.",
+  },
   docClose: {
     name: DOC_CLOSE,
     args: '{"path": string}',

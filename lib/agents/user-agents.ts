@@ -34,7 +34,7 @@ export function withUserAgents(
 
   return {
     ...agents,
-    ...Object.fromEntries(own.map((agent) => [agent.path, userAgentProfile(agent, engine, skills, profile)])),
+    ...Object.fromEntries(own.map((agent) => [agent.path, userAgentProfile(agent, engine, skills, own, profile)])),
     [ENTRY]: { ...router, ...rita(router.model, Object.values(skills), listed) },
   };
 }
@@ -52,6 +52,7 @@ function userAgentProfile(
   { path, file }: UserAgent,
   engine: AgentProfile,
   skills: Record<string, AgentSkill>,
+  own: UserAgent[],
   profile?: UserProfile,
 ): AgentProfile {
   const granted = file.skills.flatMap((name) => (skills[name] ? [skills[name]] : []));
@@ -59,12 +60,19 @@ function userAgentProfile(
   const tools = new Map<string, ChatTool>(
     [...engine.tools, ...granted.flatMap((skill) => skill.tools)].map((tool) => [tool.name, tool]),
   );
+  // Who else there is, by path: whom it can hand work to, or name for what it leaves to others.
+  const others = own.filter((agent) => agent.path !== path);
+  const roster = others.length
+    ? `The user's other experts, by path:\n${others.map((agent) => `- ${agent.path}: ${agent.file.name}, ${agent.file.description}`).join('\n')}`
+    : '';
 
   return {
     ...engine,
     name: path,
     skilled: false,
-    system: [engine.system, ...granted.map((skill) => skill.system), DOCUMENT_WORK].join('\n\n'),
+    system: [engine.system, ...granted.map((skill) => skill.system), DOCUMENT_WORK, roster]
+      .filter(Boolean)
+      .join('\n\n'),
     tools: [...tools.values()],
     persona: personaPrompt(profile, file),
   };
