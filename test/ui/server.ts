@@ -9,8 +9,11 @@ import { fileURLToPath } from 'node:url';
 /** The port the test server listens on, apart from the dev server's and a running one's. */
 export const PORT = 3210;
 
+/** A deployed Wedyan to run the tests against, as a page there would, instead of a local server. */
+const DEPLOYED = process.env.WEDYAN_ORIGIN;
+
 /** The test page's origin: the server's, so the client's own endpoints and cookies reach it. */
-export const ORIGIN = `http://localhost:${PORT}`;
+export const ORIGIN = DEPLOYED ?? `http://localhost:${PORT}`;
 
 /** How long the server and the resizer get to start answering. */
 const START_TIMEOUT = 30_000;
@@ -33,6 +36,8 @@ const LOG = `${ROOT}dist/test-server.log`;
  * @returns What stops them once the run ends.
  */
 export default async function startServer(): Promise<() => void> {
+  if (DEPLOYED) return () => undefined;
+
   execFileSync('bun', ['run', 'build'], { cwd: ROOT, stdio: 'pipe', maxBuffer: 64 * 1024 * 1024 });
   const stopResizer = await startResizer();
 

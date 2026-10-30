@@ -56,9 +56,8 @@ describe('pictures on the desktop', () => {
     await write(path, PIXEL, { encoding: 'base64', type: 'image/png' });
 
     expect((await fetch(imageUrl(path, { size: 64 }), { credentials: 'omit' })).status).toBe(403);
-    expect((await fetch(imageUrl('/users/someone/Pictures/cat.png'))).status).toBe(400);
     // A `..` the URL keeps, since its slash is encoded: the route itself refuses it.
-    expect((await fetch('/images/~/..%2Fsomeone/Pictures/cat.png')).status).toBe(400);
+    expect((await fetch('/~/..%2Fsomeone/Pictures/cat.png')).status).toBe(400);
   });
 
   it('serves a picture to its own session only', async () => {
@@ -71,5 +70,81 @@ describe('pictures on the desktop', () => {
     const other = document.cookie.replace(own as string, crypto.randomUUID());
     const response = await fetch(imageUrl(path), { credentials: 'omit', headers: { cookie: other } });
     expect(response.status).toBe(404);
+  });
+});
+
+describe('any file by its home path', () => {
+  /** Bytes a seek can be told from: each one its own position. */
+  const CLIP = Uint8Array.from({ length: 256 }, (_, position) => position);
+  const base64 = btoa(String.fromCharCode(...CLIP));
+
+  /** A clip in a new folder, as a video file. */
+  async function clip(name = 'take.mp4') {
+    const path = `~/Motions/${crypto.randomUUID()}/${name}`;
+    await write(path, base64, { encoding: 'base64', type: 'video/mp4' });
+    return path;
+  }
+
+  it('serves a video as it is stored, with no function, from any page', async () => {
+    const path = await clip();
+
+    for (const src of [path, `motions/lantern/${path}`]) {
+      const response = await fetch(src);
+      expect(response.status).toBe(200);
+      expect(response.headers.get('content-type')).toBe('video/mp4');
+      expect(response.headers.get('cache-control')).toBe('private, no-cache');
+      expect(new Uint8Array(await response.arrayBuffer())).toEqual(CLIP);
+    }
+  });
+
+  it('answers the range a seek asks for', async () => {
+    const response = await fetch(await clip(), { headers: { Range: 'bytes=16-31' } });
+
+    expect(response.status).toBe(206);
+    expect(response.headers.get('content-range')).toBe('bytes 16-31/256');
+    expect(new Uint8Array(await response.arrayBuffer())).toEqual(CLIP.subarray(16, 32));
+  });
+
+  it('tells a browser its copy is still good, and when it no longer is', async () => {
+    const path = await clip();
+    const etag = (await fetch(path)).headers.get('etag') as string;
+
+    const same = await fetch(path, { headers: { 'If-None-Match': etag } });
+    expect(same.status).toBe(304);
+
+    await write(path, btoa('another take'), { encoding: 'base64', type: 'video/mp4' });
+    const changed = await fetch(path, { headers: { 'If-None-Match': etag } });
+    expect(changed.status).toBe(200);
+    expect(await changed.text()).toBe('another take');
+  });
+
+  it('serves a picture as stored unless it’s asked to change it', async () => {
+    const path = `~/Pictures/${crypto.randomUUID()}.png`;
+    await write(path, PIXEL, { encoding: 'base64', type: 'image/png' });
+
+    const original = await fetch(path);
+    expect(original.headers.get('content-type')).toBe('image/png');
+    expect(original.headers.get('cache-control')).toBe('private, no-cache');
+
+    const resized = await fetch(`${path}?s=64&f=webp`);
+    expect(resized.headers.get('content-type')).toBe('image/webp');
+  });
+
+  it('finds a name with spaces, as a browser encodes it', async () => {
+    expect((await fetch(await clip('the first take.mp4'))).status).toBe(200);
+  });
+
+  it('serves a file to its own session only, and no other way', async () => {
+    const path = await clip();
+    expect((await fetch(path, { credentials: 'omit' })).status).toBe(403);
+
+    const [own] = document.cookie.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/) ?? [];
+    const other = document.cookie.replace(own as string, crypto.randomUUID());
+    const elsewhere = await fetch(path, { credentials: 'omit', headers: { cookie: other } });
+    expect(elsewhere.status).toBe(404);
+
+    // Its storage path isn't an address: delivery opens only behind the session.
+    const direct = await fetch(`/users/${own}${path.slice(1)}`);
+    expect(direct.headers.get('content-type')).not.toBe('video/mp4');
   });
 });

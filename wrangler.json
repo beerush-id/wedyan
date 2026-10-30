@@ -21,7 +21,7 @@
 	"containers": [
 		{
 			"class_name": "ImageResizer",
-			"image": "docker.io/mahdaen/r2-image:latest",
+			"image": "docker.io/mahdaen/r2-image:2.2.0",
 			"max_instances": 3
 		}
 	],
@@ -40,13 +40,8 @@
 	"migrations": [
 		{
 			"tag": "v1",
-			"new_classes": [
-				"AirDurableLink"
-			]
-		},
-		{
-			"tag": "v2",
 			"new_sqlite_classes": [
+				"AirDurableLink",
 				"ImageResizer"
 			]
 		}
@@ -72,7 +67,8 @@
 		{
 			"binding": "DB",
 			"database_name": "wedyan-index",
-			"database_id": "local-wedyan-index"
+			"database_id": "8eb662b1-9ca2-4e9f-90c3-6ece4bbf83b0",
+			"preview_database_id": "local-wedyan-index"
 		}
 	]
 }

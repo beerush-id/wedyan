@@ -18,16 +18,24 @@ import { seedHome } from '@/lib/server/seed.js';
 import { currentSession, homeOf, sessionOf } from '@/lib/server/session.js';
 import { MODELS, picturesOf, type ServerEnv, setupServer } from '@/lib/server/setup.js';
 import { ai } from '@/lib/share/ai.js';
-import { IMAGES_PATH } from '@/lib/share/image.js';
 import { AI_ENDPOINT, FILES_ENDPOINT, httpTransport, WRPC, wsTransport } from './api.js';
 import App from './app.js';
 import router from './router.js';
 
-/** Where r2-file delivers a session's files, by their canonical path. */
-const FILES_PATH = '/users/';
+/** A home path in a URL: a `src` of `~/…` arrives under whatever page asked for it. */
+const HOME_PATH = '/~/';
 
-/** How long a browser keeps a picture it was served, in seconds. */
+/** Files r2-file delivers without a token: all of them, since only `serveFile` ever reaches it. */
+const DELIVERED_FILES = ['users/**'];
+
+/** The params that ask R2 Image to change a picture; without them a file comes as it's stored. */
+const RESIZE_PARAMS = ['s', 'size', 'w', 'width', 'h', 'height', 'f', 'format', 'q', 'quality', 'fit', 'b', 'blur'];
+
+/** How long a browser keeps a resized picture it was served, in seconds. */
 const IMAGE_BROWSER_TTL = 86400;
+
+/** Kept by the asking browser, and checked with the server before it's used again. */
+const REVALIDATE = 'private, no-cache';
 
 const httpRouter = new HTTPRouter(httpTransport);
 const wsRouter = new WebSocketRouter(wsTransport);
@@ -65,7 +73,14 @@ wsRouter.use(scopeToSession);
 // alike, each with the bindings of the call's own environment.
 // Its content index keeps memory in step with the user's files, and every change is reported to the
 // session's desktops, which keep what they hold in sync.
-const files = createFileWorker({ endpoint: FILES_ENDPOINT }).use(contentIndex()).use(reportChanges());
+const files = createFileWorker({
+  endpoint: FILES_ENDPOINT,
+  public: DELIVERED_FILES,
+  // A file can change at its path, so nothing keeps it but the asking browser, by its ETag.
+  cache: { browserTtl: 0, edgeTtl: 0 },
+})
+  .use(contentIndex())
+  .use(reportChanges());
 files.router.use(scopeToSession);
 
 // ai-kit in this worker: the desktop's own generation, on the models the agents run, so what it
@@ -89,10 +104,8 @@ export default {
   async fetch(request: Request, env?: ServerEnv, signal?: AbortSignal) {
     const url = new URL(request.url);
     if (url.pathname === AI_ENDPOINT) return models.fetch(request, await bindingsOf(env));
-    if (request.method === 'GET' && url.pathname.startsWith(IMAGES_PATH)) return serveImage(request, url, env);
-    const isFiles =
-      url.pathname === FILES_ENDPOINT || (request.method === 'GET' && url.pathname.startsWith(FILES_PATH));
-    if (!isFiles) return app.fetch(request, env, signal);
+    if (request.method === 'GET' && url.pathname.includes(HOME_PATH)) return serveFile(request, url, env);
+    if (url.pathname !== FILES_ENDPOINT) return app.fetch(request, env, signal);
 
     const bindings = await bindingsOf(env);
     return files.fetch(request, bindings, resolveCtx());
@@ -112,22 +125,26 @@ function isCall(url: URL): boolean {
 }
 
 /**
- * Serves one of the asking session's own pictures through R2 Image. The session comes from the
- * request's cookie, and the home path in the URL becomes that session's storage path, so no other
- * user's file can be named. Every user asks for the same URL, so only their own browser keeps it.
+ * Serves a file of the asking session's home by its home path, which is all a `src` needs to be:
+ * `~/Pictures/cat.png`, resolved by the browser against any page. The session comes from the
+ * request's cookie, and the home path becomes that session's storage path, so no other user's file
+ * can be named.
  *
- * @param request - The picture's request: `/images/~/Pictures/cat.png?s=256`.
+ * Asked to resize, R2 Image answers. Otherwise the file comes as it's stored, whatever it is, from
+ * r2-file's delivery, which answers the range requests a video's seeking makes.
+ *
+ * @param request - The file's request: `/~/Motions/Lantern/take.mp4`, `/~/Pictures/cat.png?s=256`.
  * @param url - Its parsed URL.
  * @param env - The bindings the runtime passed, if any.
- * @returns The picture, resized when asked; 403 without a session, 400 for a path outside the home.
+ * @returns The file; 403 without a session, 400 for a path outside the home.
  */
-async function serveImage(request: Request, url: URL, env?: ServerEnv): Promise<Response> {
+async function serveFile(request: Request, url: URL, env?: ServerEnv): Promise<Response> {
   const session = await sessionOf(request);
   if (!session) return new Response('Forbidden', { status: 403 });
 
   let path: string;
   try {
-    path = decodeURIComponent(url.pathname.slice(IMAGES_PATH.length));
+    path = decodeURIComponent(url.pathname.slice(url.pathname.indexOf(HOME_PATH) + 1));
   } catch {
     return new Response('Bad Request', { status: 400 });
   }
@@ -135,11 +152,20 @@ async function serveImage(request: Request, url: URL, env?: ServerEnv): Promise<
 
   const target = new URL(url);
   target.pathname = picturePath(homeOf(session).homeDir, path);
-  // R2 Image, reached only from here: every request scoped to its session above.
-  const response = await pictures.fetch(new Request(target, request), picturesOf(await bindingsOf(env)));
+  const scoped = new Request(target, request);
+  const bindings = await bindingsOf(env);
 
+  // R2 Image and r2-file's delivery are reached only from here: scoped to the session above.
+  if (RESIZE_PARAMS.some((param) => url.searchParams.has(param))) {
+    return privately(await pictures.fetch(scoped, picturesOf(bindings)), `private, max-age=${IMAGE_BROWSER_TTL}`);
+  }
+  return privately(await files.fetch(scoped, bindings, resolveCtx()), REVALIDATE);
+}
+
+/** A response only the asking browser keeps, since every user asks for the same URL. */
+function privately(response: Response, cacheControl: string): Response {
   const headers = new Headers(response.headers);
-  headers.set('Cache-Control', `private, max-age=${IMAGE_BROWSER_TTL}`);
+  headers.set('Cache-Control', cacheControl);
   return new Response(response.body, { status: response.status, headers });
 }
 
