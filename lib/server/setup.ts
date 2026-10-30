@@ -66,12 +66,23 @@ export function setupServer(env: ServerEnv): void {
     userAgents: loadUserAgents,
     sys: {
       [TOOLS.imageGenerate.name]: generateImage(adapter),
-      [TOOLS.stillGenerate.name]: setupStills(adapter),
+      [TOOLS.stillGenerate.name]: setupStills(adapter, picturesOf(env)),
     },
   });
   setupConversation({ briefer: BRIEFER });
   setupMemory({ vectors: env.VECTORIZE, embed: embedWith(env.AI) });
   setupSpeech(env.AI, keys.meta);
+}
+
+/**
+ * What R2 Image works with, from the server's bindings: the bucket the user's files are in, and the
+ * resizer, the bound container or, where none is bound, the one running at `RESIZER_URL`.
+ *
+ * @param env - The resolved bindings.
+ * @returns R2 Image's bindings.
+ */
+export function picturesOf(env: ServerEnv): ImageWorkerEnv {
+  return { IMAGES: env.BUCKET as never, RESIZER: (env.RESIZER ?? env.RESIZER_URL) as ImageWorkerEnv['RESIZER'] };
 }
 
 /**

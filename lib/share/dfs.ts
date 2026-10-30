@@ -1,3 +1,4 @@
+import { stillDescribe } from '@/lib/kernel/stills.h.js';
 import { createBinding } from './binding.js';
 import { generateStill } from './generate.js';
 import { imageUrl } from './image.js';
@@ -19,6 +20,8 @@ import { fileRef } from './workspace.js';
  * What only one kind of file does is under that kind:
  *
  * - `still.generate(path, request?)`: new attempts of a still a window works on, saved with its edits.
+ * - `still.describe(path, { type })`: its chosen image in words, for one purpose (`face`, `subject`);
+ *   kept wherever the app needs them.
  *
  * Paths are home paths (`~/…`).
  */
@@ -27,5 +30,5 @@ export const dfs = {
   binding: createBinding,
   image: imageUrl,
   link: openLink,
-  still: { generate: generateStill },
+  still: { generate: generateStill, describe: stillDescribe },
 };

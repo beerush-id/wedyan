@@ -1,10 +1,69 @@
 import type { AIAdapter, ImageAspectRatio, ImageOptions, ImageOutput } from '@irpclib/ai-kit/worker';
 import type { IRPCData } from '@irpclib/irpc';
 import { mutable } from '@irpclib/irpc/core';
+import { fsContext } from '@irpclib/r2-file/context';
+import { url } from '@irpclib/r2-image';
+import { createWorker as createImageWorker, type ImageWorkerEnv } from '@irpclib/r2-image/worker';
 import type { SavedOptions } from '@/lib/share/ai.js';
+import { IMAGE_SIZES } from '@/lib/share/image.js';
 
 /** The model Wedyan generates images with: Muse Image, a flat price per image whatever its size. */
 export const IMAGE_MODEL = 'muse-image-1.0';
+
+/** Where resized pictures are kept in the bucket: outside every home, so they're never a user's files. */
+const VARIANTS_PREFIX = '.variants';
+
+/** The origin R2 Image is asked on from within the server; only the path and the size matter to it. */
+const PICTURES_ORIGIN = 'http://localhost';
+
+/**
+ * R2 Image on the server: the user's pictures resized on request and kept once per size, in the same
+ * bucket as their files. It knows no sessions: reach it only with a picture already scoped to one.
+ */
+export const pictures = createImageWorker({ variantPrefix: VARIANTS_PREFIX, allowedSizes: IMAGE_SIZES });
+
+/**
+ * Whether a path names a picture inside the home and only there: R2 Image reads the bucket as it is,
+ * so a path that climbs out would reach another user's files.
+ *
+ * @param path - The picture's path, as asked.
+ * @returns Whether it's a home path (`~/…`) that never climbs out.
+ */
+export function isHomePath(path: string): boolean {
+  return path.startsWith('~/') && !path.includes('\0') && !path.split('/').includes('..');
+}
+
+/**
+ * Where a picture in a user's home is kept in the bucket, as R2 Image finds it.
+ *
+ * @param homeDir - The user's home directory in storage.
+ * @param path - The picture's home path (`~/…`).
+ * @returns The picture's storage path.
+ */
+export function picturePath(homeDir: string, path: string): string {
+  return `${homeDir}${path.slice(1)}`;
+}
+
+/**
+ * A picture of the calling user's home, resized as WebP by R2 Image, inline: for a model to look at,
+ * smaller than the original and kept once per size like the desktop's.
+ *
+ * @param env - The bucket and the resizer.
+ * @param path - The picture's home path (`~/…`).
+ * @param size - Its longest edge, one of `IMAGE_SIZES`.
+ * @returns The resized picture as a data URL; throws when there's no home or it can't be resized.
+ */
+export async function resizePicture(env: ImageWorkerEnv, path: string, size: number): Promise<string> {
+  if (!isHomePath(path)) throw new Error(`${path} isn't a picture in the home`);
+  const homeDir = fsContext.get()?.homeDir;
+  if (!homeDir) throw new Error(`No home to find ${path} in`);
+  const target = new URL(url('/', { size, format: 'webp' }), PICTURES_ORIGIN);
+  target.pathname = picturePath(homeDir, path);
+  const response = await pictures.fetch(new Request(target), env);
+  if (!response.ok) throw new Error(`${path} couldn't be resized (${response.status})`);
+  const type = response.headers.get('content-type') ?? 'image/webp';
+  return `data:${type};base64,${base64Of(new Uint8Array(await response.arrayBuffer()))}`;
+}
 
 /** What an agent asks `sys.image.generate` for. */
 type GenerateArgs = { prompt?: string; saveTo?: string; aspect?: ImageAspectRatio };
@@ -48,4 +107,13 @@ export async function drawImage(
     void adapter.draw(options, { state, resolve, reject });
   });
   return state.data;
+}
+
+/** Bytes as Base64, a slice at a time so a large picture never overflows the call stack. */
+function base64Of(bytes: Uint8Array): string {
+  let binary = '';
+  for (let at = 0; at < bytes.length; at += 0x8000) {
+    binary += String.fromCharCode(...bytes.subarray(at, at + 0x8000));
+  }
+  return btoa(binary);
 }

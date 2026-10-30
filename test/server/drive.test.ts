@@ -2,22 +2,33 @@ import { AIAdapter, type ImageContext, type ImageOutput, MuseDriver } from '@irp
 import { createContextStore, withContext } from '@irpclib/irpc';
 import { mutable } from '@irpclib/irpc/core';
 import { resolveBinding } from '@irpclib/irpc/wrangler';
-import { exists, read, stat } from '@irpclib/r2-file';
+import { exists, read, stat, write } from '@irpclib/r2-file';
 import { implement } from '@irpclib/r2-file/constructor';
 import { fsContext } from '@irpclib/r2-file/context';
+import type { ImageWorkerEnv } from '@irpclib/r2-image/worker';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { DEFAULT_MODELS } from '../../lib/agents/index.js';
 import type { StillDocument } from '../../lib/documents/types.js';
+import { stillDescribe } from '../../lib/kernel/stills.h.js';
 import { DriveDriver } from '../../lib/server/drive-driver.js';
 import { generateImage, IMAGE_MODEL } from '../../lib/server/images.js';
-import { setupStills } from '../../lib/server/stills.js';
+import { DESCRIBE_PROMPTS, setupStills } from '../../lib/server/stills.js';
 import { imageUrl } from '../../lib/share/image.js';
 import { openLink } from '../../lib/share/links.js';
+import { responses, says } from '../kernel/vendor.js';
 
-// r2-file runs for real on local R2 and D1; only the providers' hosts are mocked.
+// r2-file and R2 Image run for real on local R2 and D1; only the providers' hosts and the resizer's
+// are mocked.
+
+/** Where the resizer answers in these tests. */
+const RESIZER = 'http://resizer.test/';
+
+let pictures: ImageWorkerEnv;
 
 beforeAll(async () => {
   const env = await resolveBinding<{ BUCKET: never; DB: never }>(undefined, { remoteBindings: false });
   implement({ bucket: env.BUCKET, indexer: env.DB });
+  pictures = { IMAGES: env.BUCKET, RESIZER: RESIZER as ImageWorkerEnv['RESIZER'] };
 });
 
 /** Runs `fn` in a home of its own. */
@@ -159,7 +170,7 @@ describe('sys.still.generate', () => {
 
   it('creates a still, makes its attempts beside it, chooses the first, and gives the agent what to show', async () => {
     museDraws();
-    const generate = setupStills(adapter);
+    const generate = setupStills(adapter, pictures);
 
     await inHome(async () => {
       const result = (await generate(
@@ -187,7 +198,7 @@ describe('sys.still.generate', () => {
   it('makes a pose from the head’s chosen image, sent inline since the drive is private', async () => {
     museDraws();
     const spied = vi.mocked(globalThis.fetch);
-    const generate = setupStills(adapter);
+    const generate = setupStills(adapter, pictures);
     const ask = { agent: KAI, desktop: async () => undefined };
 
     await inHome(async () => {
@@ -202,7 +213,7 @@ describe('sys.still.generate', () => {
 
   it('leaves the still as it was when no image came back, and tells the agent', async () => {
     museDraws();
-    const generate = setupStills(adapter);
+    const generate = setupStills(adapter, pictures);
     const asked: unknown[] = [];
 
     await inHome(async () => {
@@ -213,7 +224,7 @@ describe('sys.still.generate', () => {
       const before = (await read('~/People/Ayla/Head.still', { encoding: 'json' })) as StillDocument;
 
       // No model serves this one: nothing comes back.
-      const nothing = setupStills(new AIAdapter().use(new DriveDriver()));
+      const nothing = setupStills(new AIAdapter().use(new DriveDriver()), pictures);
       const result = await nothing(
         { path: '~/People/Ayla/Head.still', prompt: 'Ayla, angry' },
         {
@@ -233,7 +244,7 @@ describe('sys.still.generate', () => {
 
   it('hands the attempts to a desktop editing the still, writing nothing over its copy', async () => {
     museDraws();
-    const generate = setupStills(adapter);
+    const generate = setupStills(adapter, pictures);
     const asked: unknown[] = [];
 
     await inHome(async () => {
@@ -257,6 +268,76 @@ describe('sys.still.generate', () => {
       // The desktop saves them with its edits; the server didn't write the still.
       const still = (await read('~/People/Ayla/Head.still', { encoding: 'json' })) as StillDocument;
       expect(still.attempts).toEqual(before.attempts);
+    });
+  });
+});
+
+describe('still.describe', () => {
+  const adapter = new AIAdapter()
+    .use(new MuseDriver({ apiKey: 'k', baseUrl: 'https://api.meta.test/v1' }))
+    .use(new DriveDriver());
+  const FACE = 'A girl of about nine: round face, freckles across the nose, hazel eyes, black shoulder-length hair.';
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  /** Muse drawing, R2 Image's resizer resizing, and Spark describing, each request kept. */
+  function served() {
+    const asked: Array<{ url: string; body: string }> = [];
+    let drawn = 0;
+    const image = () =>
+      new Response(JSON.stringify({ created: 1, data: [{ url: `https://cdn.test/${++drawn}.webp` }] }));
+    const answer = () => responses({ text: FACE });
+    const routes: Record<string, () => Response> = {
+      'https://api.meta.test/v1/images/generations': image,
+      'https://cdn.test/': webp,
+      [RESIZER]: webp,
+      'https://api.meta.test/v1/responses': answer,
+      'https://api.meta.test/v1/chat/completions': () => says(FACE),
+    };
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const request = new Request(input instanceof Request ? input : String(input), init);
+      asked.push({ url: request.url, body: request.method === 'POST' ? await request.clone().text() : '' });
+      const route = Object.entries(routes).find(([prefix]) => request.url.startsWith(prefix));
+      return route ? route[1]() : new Response('not found', { status: 404 });
+    });
+    return asked;
+  }
+
+  it('describes the chosen image for its purpose, resized by R2 Image before Spark looks', async () => {
+    const asked = served();
+    const generate = setupStills(adapter, pictures);
+
+    await inHome(async () => {
+      await generate(
+        { path: '~/People/Ayla/Head.still', prompt: 'Ayla, face' },
+        { agent: KAI, desktop: async () => undefined },
+      );
+      const said = await stillDescribe('~/People/Ayla/Head.still', { type: 'face' });
+
+      expect(said).toBe(FACE);
+      // The resizer was asked for the chosen image, and Spark was shown what came back, inline.
+      expect(asked.some(({ url }) => url.startsWith(RESIZER))).toBe(true);
+      const described = asked.find(({ url }) => /\/(responses|chat\/completions)$/.test(url));
+      expect(described?.body).toContain(DESCRIBE_PROMPTS.face.slice(0, 40));
+      expect(described?.body).toContain('data:image/webp;base64,');
+      expect(described?.body).toContain(DEFAULT_MODELS.agents.model);
+    });
+  });
+
+  it('refuses a still with no image yet, and a path that isn’t a still', async () => {
+    served();
+    setupStills(adapter, pictures);
+
+    await inHome(async () => {
+      await write('~/People/Empty.still', {
+        type: 'still',
+        attempts: [],
+        chosen: '',
+      } as never);
+      await expect(stillDescribe('~/People/Empty.still', { type: 'subject' })).rejects.toThrow('no image to describe');
+      await expect(stillDescribe('~/People/Ayla.png', { type: 'face' })).rejects.toThrow('needs a .still');
     });
   });
 });
@@ -296,7 +377,7 @@ describe('sys.image.generate', () => {
 
   it('refuses a still that isn’t one, drawing nothing', async () => {
     const fetched = mockHosts({});
-    const generate = setupStills(new AIAdapter().use(new DriveDriver()));
+    const generate = setupStills(new AIAdapter().use(new DriveDriver()), pictures);
     const ask = { agent: KAI, desktop: async () => undefined };
 
     expect(await generate({ path: '~/People/Ayla/Head.png', prompt: 'A face' }, ask)).toMatchObject({

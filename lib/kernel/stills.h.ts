@@ -15,6 +15,19 @@ export type StillRequest = {
 export type StillAttempt = GeneratedAttempt & { url: string };
 
 /**
+ * What a still can be described for: `face`, who it shows, to draw them again in another picture,
+ * and their expression as drawn, to adjust it; `subject`, what it shows (who or what, framed and posed how, where), to understand what's asked
+ * of it.
+ */
+export const DESCRIPTION_TYPES = ['face', 'subject'] as const;
+
+/** What a still is described for. */
+export type DescriptionType = (typeof DESCRIPTION_TYPES)[number];
+
+/** How a still is described. */
+export type DescribeOptions = { type: DescriptionType };
+
+/**
  * Makes new attempts of a still from what it's made from, kept beside it; they aren't in the still
  * yet: the window that asked adds them to its copy, which it saves with its own edits.
  */
@@ -29,5 +42,17 @@ export const stillAttempts = kernel.declare<(path: string, request: StillRequest
         references: z.array(z.string().max(2048)).max(8).optional(),
       }),
     ],
+  },
+});
+
+/**
+ * Describes a still's chosen image in words, for one purpose, so whoever works on it later reads
+ * what it shows instead of looking at it. Nothing is kept: the app keeps the words where it needs
+ * them.
+ */
+export const stillDescribe = kernel.declare<(path: string, options: DescribeOptions) => Promise<string>>({
+  name: 'still.describe',
+  schema: {
+    input: [z.string().min(1).max(1024), z.object({ type: z.enum(DESCRIPTION_TYPES) })],
   },
 });

@@ -9,17 +9,17 @@ import { resolveBinding, resolveCtx } from '@irpclib/irpc/wrangler';
 import { fileModule } from '@irpclib/r2-file';
 import { fsContext } from '@irpclib/r2-file/context';
 import { createWorker as createFileWorker } from '@irpclib/r2-file/worker';
-import { createWorker as createImageWorker, type ImageWorkerEnv } from '@irpclib/r2-image/worker';
 import { WebSocketRouter } from '@irpclib/ws/router';
 import { reportChanges } from '@/lib/kernel/workspace.js';
 import { logger } from '@/lib/logger.js';
 import { contentIndex } from '@/lib/memory/files.js';
 import { guardAgentFiles } from '@/lib/server/guard.js';
+import { isHomePath, picturePath, pictures } from '@/lib/server/images.js';
 import { seedHome } from '@/lib/server/seed.js';
 import { currentSession, homeOf } from '@/lib/server/session.js';
-import { MODELS, type ServerEnv, setupServer } from '@/lib/server/setup.js';
+import { MODELS, picturesOf, type ServerEnv, setupServer } from '@/lib/server/setup.js';
 import { AI_ENDPOINT, ai } from '@/lib/share/ai.js';
-import { IMAGE_SIZES, IMAGES_PATH } from '@/lib/share/image.js';
+import { IMAGES_PATH } from '@/lib/share/image.js';
 import { httpTransport, wsTransport } from './api.js';
 import App from './app.js';
 import router from './router.js';
@@ -29,9 +29,6 @@ const FILES_ENDPOINT = '/irpc';
 
 /** Where r2-file delivers a session's files, by their canonical path. */
 const FILES_PATH = '/users/';
-
-/** Where resized pictures are kept in the bucket: outside every home, so they're never a user's files. */
-const VARIANTS_PREFIX = '.variants';
 
 /** How long a browser keeps a picture it was served, in seconds. */
 const IMAGE_BROWSER_TTL = 86400;
@@ -74,10 +71,6 @@ wsRouter.use(scopeToSession);
 // session's desktops, which keep what they hold in sync.
 const files = createFileWorker({ endpoint: FILES_ENDPOINT }).use(contentIndex()).use(reportChanges());
 files.router.use(scopeToSession);
-
-// R2 Image in this worker: the user's pictures resized on request and kept once per size, in the same
-// bucket as their files. Reached only through `serveImage`, which scopes every request to its session.
-const images = createImageWorker({ variantPrefix: VARIANTS_PREFIX, allowedSizes: IMAGE_SIZES });
 
 // ai-kit in this worker: the desktop's own generation, on the models the agents run, so what it
 // makes is kept in the user's drive the same way.
@@ -131,17 +124,12 @@ async function serveImage(request: Request, url: URL, env?: ServerEnv): Promise<
   } catch {
     return new Response('Bad Request', { status: 400 });
   }
-  if (!path.startsWith('~/') || path.includes('\0') || path.split('/').includes('..')) {
-    return new Response('Bad Request', { status: 400 });
-  }
+  if (!isHomePath(path)) return new Response('Bad Request', { status: 400 });
 
   const target = new URL(url);
-  target.pathname = `${homeOf(session).homeDir}${path.slice(1)}`;
-  const bindings = await bindingsOf(env);
-  const response = await images.fetch(new Request(target, request), {
-    IMAGES: bindings.BUCKET as never,
-    RESIZER: (bindings.RESIZER ?? bindings.RESIZER_URL) as ImageWorkerEnv['RESIZER'],
-  });
+  target.pathname = picturePath(homeOf(session).homeDir, path);
+  // R2 Image, reached only from here: every request scoped to its session above.
+  const response = await pictures.fetch(new Request(target, request), picturesOf(await bindingsOf(env)));
 
   const headers = new Headers(response.headers);
   headers.set('Cache-Control', `private, max-age=${IMAGE_BROWSER_TTL}`);

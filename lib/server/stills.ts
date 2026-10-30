@@ -1,17 +1,28 @@
+import type { ChatOutput } from '@irpclib/ai-kit';
 import type { AIAdapter } from '@irpclib/ai-kit/worker';
 import type { IRPCData } from '@irpclib/irpc';
+import { mutable } from '@irpclib/irpc/core';
 import { read, write } from '@irpclib/r2-file';
+import type { ImageWorkerEnv } from '@irpclib/r2-image/worker';
+import { DEFAULT_MODELS } from '@/lib/agents/index.js';
 import { chosenAttempt } from '@/lib/documents/generation.js';
 import type { StillDocument } from '@/lib/documents/types.js';
 import type { SysAsk, SysHandler } from '@/lib/kernel/agent.js';
 import { DOC_ATTEMPTS } from '@/lib/kernel/document.h.js';
 import { kernel } from '@/lib/kernel/package.js';
-import { type StillAttempt, type StillRequest, stillAttempts } from '@/lib/kernel/stills.h.js';
+import {
+  type DescribeOptions,
+  type DescriptionType,
+  type StillAttempt,
+  type StillRequest,
+  stillAttempts,
+  stillDescribe,
+} from '@/lib/kernel/stills.h.js';
 import { imageUrl } from '@/lib/share/image.js';
 import { openLink } from '@/lib/share/links.js';
 import { pathFrom, pathTo } from '@/lib/share/paths.js';
 import { addAttempts, applyRequest, requestOf } from '@/lib/share/stills.js';
-import { drawImage, IMAGE_MODEL } from './images.js';
+import { drawImage, IMAGE_MODEL, resizePicture } from './images.js';
 
 /** The models a still is made with, by the tier the desktop offers; any other tier, the default. */
 export const STILL_MODELS: Record<string, string> = { standard: IMAGE_MODEL, detailed: IMAGE_MODEL };
@@ -24,18 +35,36 @@ const CARD_SIZE = 512;
 
 const STILL_EXTENSION = '.still';
 
+/**
+ * The model a still is described with: Spark at minimal effort, which looked as closely as Spark Open
+ * at low, in two thirds of the time and for two thirds of the cost.
+ */
+const DESCRIBER = DEFAULT_MODELS.agents;
+
+/** How large a still is shown to the describer, its longest edge: any smaller saves little and loses detail. */
+const DESCRIBE_SIZE = 512;
+
+/** What the describer is asked, by what the description is for. */
+export const DESCRIBE_PROMPTS: Record<DescriptionType, string> = {
+  face: 'Describe only the face and head of the person in this picture, in two paragraphs, plain words, no preamble. First, who they are, so an image model could draw the same person again in any scene, outfit, pose or style: apparent age and sex, face shape, skin tone and texture, eyes (shape, colour), brows, nose, lips, cheeks, jaw and chin, hair (colour, length, texture, hairline), facial hair, and distinguishing marks such as freckles, scars, moles, wrinkles or glasses. Second, starting with "Expression:", the expression exactly as drawn, so it can be adjusted: what the brows, forehead, eyes and lids, mouth, lips and jaw are each doing, how tense the face is, any tears or flush, how strong it reads, and what it could be mistaken for. Leave out clothing, pose, lighting, background and art style.',
+  subject:
+    'Say what this picture shows, for someone who can’t see it and is asked to change it: who or what the subject is (a person’s apparent age and sex, an animal’s kind), how it is framed (close-up, head and shoulders, half body, full body), its pose and what it is doing, and where it is. Two or three sentences, plain words, no preamble.',
+};
+
 /** What an agent asks `sys.still.generate` for. */
 type GenerateArgs = { path?: string; prompt?: string; aspect?: string; batch?: number; references?: string[] };
 
 /**
- * Sets up making stills on the server's models: the desktop's `still.attempts`, and the agents'
- * `sys.still.generate`, which share one way of making attempts.
+ * Sets up making stills on the server's models: the desktop's `still.attempts` and `still.describe`,
+ * and the agents' `sys.still.generate`, which shares one way of making attempts.
  *
  * @param adapter - The server's models, the drive driver last.
+ * @param pictures - The bucket and the resizer, for R2 Image to resize what's described.
  * @returns The agents' handler.
  */
-export function setupStills(adapter: AIAdapter): SysHandler {
+export function setupStills(adapter: AIAdapter, pictures: ImageWorkerEnv): SysHandler {
   kernel.construct(stillAttempts, (path, request) => makeAttempts(adapter, path, request));
+  kernel.construct(stillDescribe, (path, options) => describeStill(adapter, pictures, path, options));
   return (args, ask) => generateForAgent(adapter, args, ask);
 }
 
@@ -120,20 +149,64 @@ export async function makeAttempts(adapter: AIAdapter, path: string, request: St
 }
 
 /**
+ * Describes a still's chosen image for one purpose: resized by R2 Image so the describer reads a
+ * sixth of the tokens in half the time, with nothing lost that the words need.
+ *
+ * @param adapter - The server's models.
+ * @param pictures - The bucket and the resizer.
+ * @param path - The still's path in the home.
+ * @param options - What the description is for.
+ * @returns The description; throws when the still has no image yet.
+ */
+async function describeStill(
+  adapter: AIAdapter,
+  pictures: ImageWorkerEnv,
+  path: string,
+  { type }: DescribeOptions,
+): Promise<string> {
+  if (!path.startsWith('~/') || !path.endsWith(STILL_EXTENSION)) {
+    throw new Error('still.describe needs a .still in the home (~/…)');
+  }
+  const still = await read<StillDocument>(path, { encoding: 'json' }).catch(() => undefined);
+  const chosen = still && chosenAttempt(still);
+  if (!chosen) throw new Error(`${path} has no image to describe yet`);
+  const picture = isAddress(chosen.src)
+    ? chosen.src
+    : await resizePicture(pictures, pathFrom(path, chosen.src), DESCRIBE_SIZE);
+
+  const live = mutable<{ data?: ChatOutput }>({});
+  await new Promise<void>((resolve, reject) => {
+    void adapter.ask(
+      [{ role: 'user', type: 'text', text: DESCRIBE_PROMPTS[type], attachments: [picture] }],
+      { model: DESCRIBER.model, ...(DESCRIBER.effort ? { reasoningEffort: DESCRIBER.effort } : {}) },
+      { state: live, resolve, reject },
+    );
+  });
+  const described = (live.data?.text || (live.data?.chunks ?? []).join('')).trim();
+  if (!described) throw new Error(`No description came back for ${path}`);
+  return described;
+}
+
+/**
  * A reference as an image the model can be given: an address as it is; a picture in the drive, or
  * a still's chosen image, inline, since the drive is private. Undefined when there's none.
  */
 async function imageOf(still: string, reference: string): Promise<string | undefined> {
-  if (/^(https?|data):/.test(reference)) return reference;
+  if (isAddress(reference)) return reference;
   let path = pathFrom(still, reference);
   if (path.endsWith(STILL_EXTENSION)) {
     const source = await read<StillDocument>(path, { encoding: 'json' }).catch(() => undefined);
     const chosen = source && chosenAttempt(source);
     if (!chosen) return undefined;
-    if (/^(https?|data):/.test(chosen.src)) return chosen.src;
+    if (isAddress(chosen.src)) return chosen.src;
     path = pathFrom(path, chosen.src);
   }
   return (await read(path, { encoding: 'data-url' }).catch(() => undefined)) ?? undefined;
+}
+
+/** Whether an image is an address a model can be given as it is, rather than a path in the drive. */
+function isAddress(image: string): boolean {
+  return /^(https?|data):/.test(image);
 }
 
 /** A new, empty still at a path, made by an agent. */

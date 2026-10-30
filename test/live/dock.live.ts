@@ -13,7 +13,7 @@ import type { StillDocument } from '../../lib/documents/types.js';
 import { type SysHandler, setupKernel } from '../../lib/kernel/agent.js';
 import { type AgentMessage, conversation } from '../../lib/kernel/chat.h.js';
 import { setupConversation } from '../../lib/kernel/chat.js';
-import { withModels } from '../../lib/server/setup.js';
+import { picturesOf, type ServerEnv, withModels } from '../../lib/server/setup.js';
 import { setupStills } from '../../lib/server/stills.js';
 import { addAttempts, applyRequest } from '../../lib/share/stills.js';
 import { PROVIDERS } from './beat.js';
@@ -27,9 +27,11 @@ import { PROVIDERS } from './beat.js';
 
 const SESSION = 'dock-live-session';
 
+let env: ServerEnv;
+
 beforeAll(async () => {
-  const env = await resolveBinding<{ BUCKET: never; DB: never }>(undefined, { remoteBindings: false });
-  implement({ bucket: env.BUCKET, indexer: env.DB });
+  env = await resolveBinding<ServerEnv>(undefined, { remoteBindings: false });
+  implement({ bucket: env.BUCKET as never, indexer: env.DB as never });
   SESSION_STORE.key(SESSION);
 });
 
@@ -41,7 +43,7 @@ describe.skipIf(!PROVIDERS.meta.key)('the dock, on data, live', () => {
       baseten: PROVIDERS.baseten.key || undefined,
     });
     const made: IRPCData[] = [];
-    const stills = setupStills(adapter);
+    const stills = setupStills(adapter, picturesOf(env));
     const watched: SysHandler = (args, ask) => {
       made.push(args);
       return stills(args, ask);

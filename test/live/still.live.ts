@@ -8,6 +8,7 @@ import { fsContext } from '@irpclib/r2-file/context';
 import { beforeAll, describe, expect, it } from 'vitest';
 import type { StillDocument } from '../../lib/documents/types.js';
 import { DriveDriver } from '../../lib/server/drive-driver.js';
+import { picturesOf, type ServerEnv } from '../../lib/server/setup.js';
 import { setupStills } from '../../lib/server/stills.js';
 import { PROVIDERS } from './beat.js';
 
@@ -17,9 +18,11 @@ import { PROVIDERS } from './beat.js';
  * look at.
  */
 
+let env: ServerEnv;
+
 beforeAll(async () => {
-  const env = await resolveBinding<{ BUCKET: never; DB: never }>(undefined, { remoteBindings: false });
-  implement({ bucket: env.BUCKET, indexer: env.DB });
+  env = await resolveBinding<ServerEnv>(undefined, { remoteBindings: false });
+  implement({ bucket: env.BUCKET as never, indexer: env.DB as never });
 });
 
 describe.skipIf(!PROVIDERS.meta.key)('stills on Muse Image, live', () => {
@@ -27,7 +30,7 @@ describe.skipIf(!PROVIDERS.meta.key)('stills on Muse Image, live', () => {
     const adapter = new AIAdapter()
       .use(new MuseDriver({ apiKey: PROVIDERS.meta.key, baseUrl: PROVIDERS.meta.base }))
       .use(new DriveDriver());
-    const generate = setupStills(adapter);
+    const generate = setupStills(adapter, picturesOf(env));
     const ask = { agent: '~/Agents/Image.agent', desktop: async () => undefined };
     const user = `u-${crypto.randomUUID().slice(0, 8)}`;
 
