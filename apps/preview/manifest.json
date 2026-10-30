@@ -1,0 +1,7 @@
+{
+  "name": "preview",
+  "label": "Preview",
+  "version": "0.0.1",
+  "icon": "/icons/preview.svg",
+  "main": "./views/index.ts"
+}

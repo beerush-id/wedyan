@@ -39,6 +39,24 @@
   }
 }
 
+/*
+ * Downloading the picture a preview shows: floating at its top end corner, over whatever holds it,
+ * showing while the picture is hovered or the button has the keyboard's focus.
+ */
+.wedyan-floating-download {
+  position: absolute;
+  z-index: 1;
+  inset-block-start: var(--spacing-sm);
+  inset-inline-end: var(--spacing-sm);
+  opacity: 0;
+  transition: opacity 120ms ease;
+
+  :hover > &,
+  &:focus-within {
+    opacity: 1;
+  }
+}
+
 /* The preview's picture opens what's picked; its corners are concentric with the pane's. Without a picture, its kind's glyph sits in the middle. */
 .wedyan-browse-preview-open {
   --aui-icon-size: calc(var(--spacing) * 12);

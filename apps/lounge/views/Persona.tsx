@@ -3,12 +3,14 @@ import { $bind, $static, $use, createContext, For, mutable, Show, Snippet, setup
 import { Avatar, Button, EmptyState, Listbox, ListboxOption, Select, TextInput, Tooltip } from '@airlib/react-aui';
 import { WindowPanel } from '@airlib/react-aui/desktop';
 import type { ReactNode } from 'react';
+import { ConfirmButton } from '@/components/ConfirmButton.js';
+import { FloatingDownload } from '@/components/FloatingDownload.js';
 import { generationCtx } from '@/components/generation.js';
 import { GenerationForm, GenerationGroup } from '@/components/GenerationForm.js';
 import { GenerativeIcon } from '@/components/icons.js';
 import { WRITING_MODELS } from '@/lib/documents/generation.js';
 import type { PersonaDocument, PersonaLook } from '@/lib/documents/types.js';
-import { ConfirmButton } from './ConfirmButton.js';
+import { system } from '@/lib/systems/system.js';
 import { AddIcon, CloseIcon, DeleteIcon, ImageIcon, PeopleIcon, PersonIcon } from './icons.js';
 import { edit, KINDS, newStill, type PersonaKind, personaAt, personalityOf, pictureOf, portraitOf, stillAt } from './library.js';
 import { type LoungeSession, loungeCtx, PERSON_TABS, type PersonTab } from './session.js';
@@ -69,6 +71,7 @@ const CLASS = {
   PICK: 'wedyan-lounge-pick',
   SLOT: 'wedyan-lounge-slot',
   SLOT_PICTURE: 'wedyan-lounge-slot-picture',
+  SLOT_FRAME: 'wedyan-lounge-slot-frame',
   HEAD: 'wedyan-lounge-editor-head',
   NAME: 'wedyan-lounge-editor-name',
   META: 'wedyan-lounge-editor-meta',
@@ -179,7 +182,7 @@ export const PersonaEditor = setup(() => {
                       <Show
                         when={pickedStill}
                         fallback={() => (
-                          <EmptyState size="sm" title="Not made in Wedyan" description="This picture comes from elsewhere, so it has no prompt or history.">
+                          <EmptyState size="sm" title="No still there" description="Its still was moved or deleted, so there's no prompt or history to show.">
                             <EmptyState.Snippet for="icon">{() => <ImageIcon />}</EmptyState.Snippet>
                           </EmptyState>
                         )}
@@ -403,10 +406,14 @@ const LookTab = setup<{ part: Part }>((props) => {
         <Snippet data={() => (main() ? (picture() ?? '') : null)}>
           {(src) => {
             if (src) {
+              // The picture picks itself; downloading it floats at its corner, beside, not inside.
               return (
-                <PictureButton source={main()} label={part.main}>
-                  <img src={src} alt="" className={CLASS.SLOT_PICTURE} />
-                </PictureButton>
+                <div className={CLASS.SLOT_FRAME}>
+                  <PictureButton source={main()} label={part.main}>
+                    <img src={src} alt="" className={CLASS.SLOT_PICTURE} />
+                  </PictureButton>
+                  <FloatingDownload src={src} name={`${persona()?.name || 'Unnamed'} ${part.main.toLowerCase()}`} />
+                </div>
               );
             }
             if (src === '') {
@@ -501,10 +508,17 @@ const WardrobeTab = setup(() => {
 
 /**
  * One of the open persona's pictures as something to pick, marked while picked, so how it was made
- * shows beside the persona.
+ * shows beside the persona. A double click opens its still in a Preview window, larger.
  */
 const PictureButton = setup<{ source: string; label: string; children?: ReactNode }>((props) => {
+  const session = loungeCtx.get() as LoungeSession;
   const view = personaViewCtx.get() as PersonaView;
+
+  // The persona writes its pictures by path from its own file; Preview takes the still's own path.
+  const enlarge = () => {
+    const still = session.path ? stillAt(session.path, props.source) : undefined;
+    if (still) system.preview(still.path);
+  };
 
   return () => (
     <button
@@ -513,6 +527,7 @@ const PictureButton = setup<{ source: string; label: string; children?: ReactNod
       aria-label={props.label}
       aria-pressed={view.picked === props.source}
       onClick={() => view.pick(props.source)}
+      onDoubleClick={enlarge}
     >
       {props.children}
     </button>

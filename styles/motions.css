@@ -715,6 +715,24 @@
   list-style: none;
 }
 
+/* A reference, holding its remove button over its middle, which shows while it's hovered or focused. */
+.wedyan-compose-reference {
+  position: relative;
+}
+
+.wedyan-compose-reference-remove {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  transition: opacity 120ms ease;
+
+  .wedyan-compose-reference:is(:hover, :focus-within) > & {
+    opacity: 1;
+  }
+}
+
 /* Who's in it: each their look and name on a line. */
 .wedyan-compose-casts {
   display: flex;

@@ -1,0 +1,49 @@
+/* A Preview window: what it shows takes the whole window, as tall as it shows. */
+.wedyan-preview {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  block-size: 100cqb;
+
+  /* The viewer takes the window's height, its stage filling it as in full screen, so the toolbar stays over the picture. */
+  & > .aui-image-viewer {
+    flex: 1 1 auto;
+    min-block-size: 0;
+
+    & > .aui-image-viewer-stage {
+      flex: 1 1 auto;
+      min-block-size: 0;
+      aspect-ratio: auto;
+    }
+  }
+
+  /* With nothing to show, the empty state sits in the middle. */
+  & > .aui-empty-state {
+    margin: auto;
+  }
+
+  /* Downloading the picture shown, in its top corner, on the dark side as the viewer's toolbar is. */
+  & > .wedyan-floating-download {
+    inset-block-start: var(--spacing-md);
+    inset-inline-end: var(--spacing-md);
+    color-scheme: only dark;
+  }
+}
+
+/* A video fills the window on black, kept in its shape; a sound's player sits in the middle. */
+.wedyan-preview-media {
+  flex: 1 1 auto;
+  min-block-size: 0;
+  inline-size: 100%;
+  border-radius: var(--radius-md);
+  background: #000;
+  object-fit: contain;
+
+  &:is(audio) {
+    flex: none;
+    margin: auto;
+    inline-size: min(100%, 32rem);
+    background: none;
+  }
+}

@@ -1,9 +1,9 @@
 import { $bind, $use, Show, Snippet, setup } from '@airlib/react';
 import { Avatar, CheckboxGroup, EmptyState, TextInput } from '@airlib/react-aui';
 import { WindowPanel } from '@airlib/react-aui/desktop';
+import { ConfirmButton } from '@/components/ConfirmButton.js';
 import type { AgentFile } from '@/lib/share/agents.js';
 import { Choice } from './Choice.js';
-import { ConfirmButton } from './ConfirmButton.js';
 import { AgentsIcon, DeleteIcon } from './icons.js';
 import { agentAt, byName, edit, factsOf, SKILLS, skillRef, skills } from './library.js';
 import { loungeCtx, type LoungeSession } from './session.js';

@@ -103,7 +103,10 @@ export type StageDocument = DocumentHeader<'stage'> & {
   composition: TimelineSnapshot & { props: { width: number; height: number; background?: string } };
 };
 
-/** One side of how a persona looks: its main picture, and its other poses — expressions, angles — each a `.still` path or an image address. */
+/**
+ * One side of how a persona looks: its main picture, and its other poses — expressions, angles —
+ * each a `.still` path. An outside image is never one; it's only a reference a still is made from.
+ */
 export type PersonaLook = { main: string; poses?: string[] };
 
 /**
@@ -117,7 +120,7 @@ export type PersonaDocument = DocumentHeader<'persona'> & {
   head: PersonaLook;
   /** Their whole figure, for full shots, and its poses. */
   body?: PersonaLook;
-  /** The outfits they can wear, by `.still` path or image address. */
+  /** The outfits they can wear, by `.still` path. */
   wardrobe?: string[];
   voice?: { name: string; sample?: string };
   /** Anything longer about them, by path to a Markdown file. */

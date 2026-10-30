@@ -20,6 +20,7 @@ import {
 } from '@airlib/react-aui/desktop';
 import { AddIcon, ArrowLeft, FolderIcon } from '@airlib/react-aui/icons';
 import type { ReactNode } from 'react';
+import { FloatingDownload } from '@/components/FloatingDownload.js';
 import { DeleteIcon, DownloadIcon, ShareIcon, SidebarCloseIcon, SidebarOpenIcon } from '@/components/icons.js';
 import { type SelectionAction, SelectionActions } from '@/components/SelectionActions.js';
 import {
@@ -69,6 +70,7 @@ const CLASS = {
   GALLERY: BROWSE_CLASS.GALLERY,
   PREVIEW: BROWSE_CLASS.PREVIEW,
   PREVIEW_OPEN: BROWSE_CLASS.PREVIEW_OPEN,
+  PREVIEW_PICTURE: 'wedyan-photos-preview-picture',
   PREVIEW_NAME: BROWSE_CLASS.PREVIEW_NAME,
 };
 
@@ -265,9 +267,13 @@ export const photos = defineWindow({
           const facts = entryFacts(entry);
           return (
             <>
-              <button type="button" className={CLASS.PREVIEW_OPEN} aria-label={`Open ${entry.name}`} onClick={() => open(entry)}>
-                {facts.picture ? <img src={facts.picture} alt="" /> : <FolderIcon />}
-              </button>
+              {/* The picture opens what's picked; downloading it floats at its corner, beside, not inside. */}
+              <div className={CLASS.PREVIEW_PICTURE}>
+                <button type="button" className={CLASS.PREVIEW_OPEN} aria-label={`Open ${entry.name}`} onClick={() => open(entry)}>
+                  {facts.picture ? <img src={facts.picture} alt="" /> : <FolderIcon />}
+                </button>
+                {facts.picture && <FloatingDownload src={facts.picture} name={entry.name.replace(/\.[^.]+$/, '')} />}
+              </div>
               <h3 className={CLASS.PREVIEW_NAME}>{entry.name}</h3>
               <DescriptionList size="sm" items={facts.items} />
               {facts.prompt && <DescriptionList size="sm" layout="stacked" items={[{ label: 'Prompt', value: facts.prompt }]} />}

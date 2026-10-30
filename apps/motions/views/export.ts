@@ -65,21 +65,6 @@ export async function renderMp4(
 }
 
 /**
- * Saves a file to the person's downloads under a name.
- *
- * @param file - The file.
- * @param name - What to call it, e.g. "Mixed layers.mp4".
- */
-export function download(file: Blob, name: string): void {
-  const url = URL.createObjectURL(file);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = name;
-  link.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-/**
  * The H.264 encoder settings for a size: High profile at the level the size needs, on the graphics
  * hardware when the browser has it there, otherwise in software.
  *

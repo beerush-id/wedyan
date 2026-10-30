@@ -2,6 +2,7 @@ import { AUI_CLASS } from '@airlib/aui/utils';
 import { $bind, $static, $use, Show, Snippet, setup } from '@airlib/react';
 import { EmptyState, Gallery, type GalleryEntry, ImageViewer, type ImageViewerEntry } from '@airlib/react-aui';
 import { Window, WindowTitle } from '@airlib/react-aui/desktop';
+import { FloatingDownload } from '@/components/FloatingDownload.js';
 import { generationCtx } from '@/components/generation.js';
 import { GenerationForm } from '@/components/GenerationForm.js';
 import { GenerativeIcon } from '@/components/icons.js';
@@ -104,6 +105,13 @@ export const StillProject = setup<{ path: string }>((props) => {
                 <div className={`${CLASS.ATTEMPTS} ${AUI_CLASS.GLASS_FRAME}`}>
                   <Gallery label="Attempts" items={$use(tiles)} value={$bind(picked, 'value')} flow={false} />
                 </div>
+                {/* Downloading the attempt the viewer shows. */}
+                <Snippet>
+                  {() => {
+                    const shown = slides()[viewer.index];
+                    return shown ? <FloatingDownload src={shown.src} name={still()?.name ?? 'Still'} /> : null;
+                  }}
+                </Snippet>
               </>
             )}
           </Show>

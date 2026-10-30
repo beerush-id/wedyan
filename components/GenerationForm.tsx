@@ -1,10 +1,11 @@
 import { $bind, Snippet, setup, template } from '@airlib/react';
-import { Button, Listbox, ListboxOption, Select, Stepper, TextInput } from '@airlib/react-aui';
-import { AddIcon } from '@airlib/react-aui/icons';
+import { Button, Listbox, ListboxOption, Select, Stepper, TextInput, Tooltip } from '@airlib/react-aui';
+import { AddIcon, CloseIcon } from '@airlib/react-aui/icons';
 import type { ReactNode } from 'react';
 import { ASPECTS, chosenAttempt, isGenerative, MODELS, reuseAttempt, settingsOf } from '@/lib/documents/generation.js';
 import { follow } from '@/lib/documents/store.js';
 import type { GeneratedAttempt, GenerativeDocument, PersonaDocument, SoundDocument } from '@/lib/documents/types.js';
+import { ConfirmButton } from './ConfirmButton.js';
 import { type GenerationSubject, generationCtx } from './generation.js';
 import { GenerativeIcon, SoundIcon } from './icons.js';
 import { PeopleTile } from './PeopleTile.js';
@@ -159,8 +160,22 @@ const referencesGroup = (source: GenerativeDocument, subject: GenerationSubject)
       <Snippet>
         {() =>
           (source.references ?? []).map((reference) => (
-            <li key={reference} title={reference}>
+            <li key={reference} title={reference} className="wedyan-compose-reference">
               <Thumb src={pictureOf(subject.path ?? '', reference)} />
+              {/* Taking it off, once confirmed: small, over the picture's middle, while it's hovered or focused. */}
+              <span className="wedyan-compose-reference-remove">
+                <ConfirmButton
+                  size="xs"
+                  variant="glass"
+                  title={() => 'Remove reference?'}
+                  description="It's taken off what this is made from. The image itself stays where it is."
+                  action="Remove"
+                  onconfirm={() => removeReference(source, reference)}
+                >
+                  <CloseIcon />
+                  <Tooltip>Remove reference</Tooltip>
+                </ConfirmButton>
+              </span>
             </li>
           ))
         }
@@ -171,6 +186,18 @@ const referencesGroup = (source: GenerativeDocument, subject: GenerationSubject)
     </ul>,
     true
   );
+
+/**
+ * Takes one of a generation's references off it.
+ *
+ * @param source - The generated document.
+ * @param reference - The reference, as written.
+ */
+function removeReference(source: GenerativeDocument, reference: string): void {
+  const references = source.references ?? [];
+  const at = references.indexOf(reference);
+  if (at >= 0) references.splice(at, 1);
+}
 
 /**
  * Adding references: a tile, always at the end, picking from the user's own files — images, or

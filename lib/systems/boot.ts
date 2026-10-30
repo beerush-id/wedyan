@@ -7,6 +7,8 @@ import filesMain from '@/apps/files/views/index.js';
 import loungeManifest from '@/apps/lounge/manifest.json';
 import loungeMain from '@/apps/lounge/views/index.js';
 import mailManifest from '@/apps/mail/manifest.json';
+import previewManifest from '@/apps/preview/manifest.json';
+import previewMain from '@/apps/preview/views/index.js';
 import mailMain from '@/apps/mail/views/index.js';
 import memoManifest from '@/apps/memo/manifest.json';
 import memoMain from '@/apps/memo/views/index.js';
@@ -50,6 +52,7 @@ export async function boot(): Promise<void> {
       { manifest: mailManifest, main: mailMain },
       { manifest: calendarManifest, main: calendarMain },
       { manifest: loungeManifest, main: loungeMain },
+      { manifest: previewManifest, main: previewMain },
       { manifest: settingsManifest, main: settingsMain }
     );
   });

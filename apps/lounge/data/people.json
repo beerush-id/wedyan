@@ -11,10 +11,10 @@
     "kind": "character",
     "head": {
       "main": "Ayla/Head.still",
-      "poses": ["Ayla/Smile.still", "https://api.dicebear.com/9.x/notionists/svg?seed=AylaSide&backgroundColor=f6d8b8"]
+      "poses": ["Ayla/Smile.still", "Ayla/Side.still"]
     },
     "body": { "main": "Ayla/Body.still" },
-    "wardrobe": ["Ayla/Oilskin coat.still", "https://picsum.photos/seed/ayla-sweater/600/800"],
+    "wardrobe": ["Ayla/Oilskin coat.still", "Ayla/Sweater.still"],
     "voice": { "name": "Bright and sure" }
   },
   "/People/Ayla/Head.still": {
@@ -132,6 +132,52 @@
         "prompt": "A worn yellow oilskin coat with a hood and brass buttons, on a plain backdrop, front view.",
         "settings": { "model": "standard", "aspect": "9:16" },
         "created": "2026-10-29T16:20:00Z"
+      }
+    ],
+    "edits": [],
+    "chosen": "t1"
+  },
+  "/People/Ayla/Side.still": {
+    "type": "still",
+    "version": 1,
+    "id": "p05-side",
+    "name": "Side",
+    "created": "2026-10-29T15:30:00Z",
+    "updated": "2026-10-29T15:40:00Z",
+    "author": { "kind": "user" },
+    "prompt": "The same girl in profile, looking out to sea, calm.",
+    "settings": { "model": "detailed", "aspect": "1:1", "batch": 1 },
+    "references": ["https://api.dicebear.com/9.x/notionists/svg?seed=AylaSide&backgroundColor=f6d8b8"],
+    "attempts": [
+      {
+        "id": "t1",
+        "src": "https://api.dicebear.com/9.x/notionists/svg?seed=AylaSide&backgroundColor=f6d8b8",
+        "prompt": "The same girl in profile, looking out to sea, calm.",
+        "settings": { "model": "detailed", "aspect": "1:1" },
+        "created": "2026-10-29T15:35:00Z"
+      }
+    ],
+    "edits": [],
+    "chosen": "t1"
+  },
+  "/People/Ayla/Sweater.still": {
+    "type": "still",
+    "version": 1,
+    "id": "p05-sweater",
+    "name": "Sweater",
+    "created": "2026-10-29T16:30:00Z",
+    "updated": "2026-10-29T16:40:00Z",
+    "author": { "kind": "user" },
+    "prompt": "A thick cream fisherman's sweater with a rolled collar, on a plain backdrop, front view.",
+    "settings": { "model": "standard", "aspect": "9:16", "batch": 1 },
+    "references": ["https://picsum.photos/seed/ayla-sweater/600/800"],
+    "attempts": [
+      {
+        "id": "t1",
+        "src": "https://picsum.photos/seed/ayla-sweater/600/800",
+        "prompt": "A thick cream fisherman's sweater with a rolled collar, on a plain backdrop, front view.",
+        "settings": { "model": "standard", "aspect": "9:16" },
+        "created": "2026-10-29T16:35:00Z"
       }
     ],
     "edits": [],

@@ -75,13 +75,13 @@ export const PeopleTile = setup<PeopleTileProps>((props) => {
                   {group.label}
                 </span>
                 <div className="wedyan-people-pictures-row">
-                  {group.sources.map((source, index) => (
+                  {group.sources.map((source) => (
                     <button
                       key={source}
                       type="button"
                       className="wedyan-people-picture"
-                      aria-label={pictureName(source, group.label, index)}
-                      title={pictureName(source, group.label, index)}
+                      aria-label={pictureName(source)}
+                      title={pictureName(source)}
                       aria-pressed={choice.picked.includes(source)}
                       onClick={() => toggle(source)}
                     >
@@ -119,15 +119,13 @@ function groupsOf(persona: PersonaDocument): PictureGroup[] {
 }
 
 /**
- * What one of a person's pictures is called: a still by its name, an outside image by its kind and place.
+ * What one of a person's pictures is called: its still's name.
  *
- * @param source - The picture, as the persona writes it.
- * @param kind - The group it's in, e.g. `Wardrobe`.
- * @param index - Its place in the group, from 0.
- * @returns E.g. `Oilskin coat`, or `Wardrobe 2`.
+ * @param source - The picture, as the persona writes it: a path to its `.still`.
+ * @returns E.g. `Oilskin coat` for `Ayla/Oilskin coat.still`.
  */
-function pictureName(source: string, kind: string, index: number): string {
-  return source.endsWith('.still') ? source.slice(source.lastIndexOf('/') + 1, -'.still'.length) : `${kind} ${index + 1}`;
+function pictureName(source: string): string {
+  return source.slice(source.lastIndexOf('/') + 1).replace(/\.still$/, '');
 }
 
 /**

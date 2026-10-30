@@ -66,6 +66,19 @@
   & > .aui-empty-state {
     margin-block: auto;
   }
+
+  /* Downloading the shown attempt, in the picture's top corner, on the dark side as the viewer's toolbar is. */
+  & > .wedyan-floating-download {
+    inset-block-start: var(--spacing-md);
+    inset-inline-end: var(--spacing-md);
+    color-scheme: only dark;
+  }
+}
+
+/* The browser preview's picture, holding its download at the corner. */
+.wedyan-photos-preview-picture {
+  position: relative;
+  flex: none;
 }
 
 /*

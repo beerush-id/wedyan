@@ -254,28 +254,25 @@ export function portraitOf(path: string, persona: PersonaDocument): string | und
 }
 
 /**
- * One of a persona's pictures as a picture to show: an address as it is, a `.still` by the
- * attempt it shows.
+ * One of a persona's pictures as a picture to show: the attempt its `.still` shows.
  *
  * @param from - The path of the persona it is written in.
- * @param source - The picture, by image address or by path from the persona.
- * @returns The picture's address, unless the path leads to no picture.
+ * @param source - The picture, by path from the persona to its `.still`.
+ * @returns The picture's address, unless the path leads to no still or the still has no attempt yet.
  */
 export function pictureOf(from: string, source: string): string | undefined {
-  if (isAddress(source)) return source;
   const still = stillAt(from, source);
   return still && chosenAttempt(still.document)?.src;
 }
 
 /**
- * The `.still` one of a persona's pictures was made as: what keeps its prompt, settings and attempts.
+ * The `.still` one of a persona's pictures is: what keeps its prompt, settings, references and attempts.
  *
  * @param from - The path of the persona it is written in.
- * @param source - The picture, by image address or by path from the persona.
- * @returns The still and where it is, unless the picture is an address or its path leads to no still.
+ * @param source - The picture, by path from the persona to its `.still`.
+ * @returns The still and where it is, unless the path leads to none.
  */
 export function stillAt(from: string, source: string): { path: string; document: StillDocument } | undefined {
-  if (isAddress(source)) return;
   const { path, document } = follow(from, source);
   return document?.type === 'still' ? { path, document } : undefined;
 }
@@ -324,16 +321,6 @@ export function factsOf(document: AgentFile): string {
  */
 function longDate(iso: string): string {
   return new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
-}
-
-/**
- * Whether a picture is written as an image's address rather than a path on the drive.
- *
- * @param source - The picture as written.
- * @returns Whether it's an address.
- */
-function isAddress(source: string): boolean {
-  return /^(https?:|data:|blob:)/.test(source);
 }
 
 /**

@@ -180,6 +180,11 @@
   margin: 0;
 }
 
+/* The main picture, holding its download at the corner. */
+.wedyan-lounge-slot-frame {
+  position: relative;
+}
+
 /* The main picture fills the column's width in its look's frame — a face square, a figure wide; while it's missing, its empty place fills the frame. */
 .wedyan-lounge-slot-picture {
   display: grid;
