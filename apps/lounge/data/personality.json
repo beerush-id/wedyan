@@ -1,0 +1,21 @@
+{
+  "/People/Ayla.persona": {
+    "prompt": "A lighthouse keeper's daughter who sails the lanterns back home: brave, a little stubborn, speaks plainly.",
+    "model": "balanced",
+    "tries": [
+      {
+        "id": "p1",
+        "prompt": "A lighthouse keeper's daughter, brave and quiet.",
+        "model": "fast",
+        "created": "2026-10-28T09:40:00Z"
+      },
+      {
+        "id": "p2",
+        "prompt": "A lighthouse keeper's daughter who sails the lanterns back home: brave, a little stubborn, speaks plainly.",
+        "model": "balanced",
+        "created": "2026-10-28T09:55:00Z"
+      }
+    ],
+    "chosen": "p2"
+  }
+}

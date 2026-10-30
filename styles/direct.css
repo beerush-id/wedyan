@@ -1,0 +1,196 @@
+/*
+ * A view in the Direct layout — a project in Motions, People and Agents in Lounge: its toolbar rests
+ * on the window's glass, not on a panel of its own, and its panels sit on the same glass, one bar
+ * inset apart, their corners the window's panels'.
+ */
+.wedyan-editor > .wedyan-editor-toolbar {
+  position: static;
+  background: none;
+  backdrop-filter: none;
+
+  /* The taller tab list would centre the controls lower than they sit from the side; at the top, they keep to the corner. */
+  & > .aui-window-controls {
+    align-self: flex-start;
+  }
+}
+
+/*
+ * Direct: what the view holds, listed down a glass panel, and the picked row in full on a solid
+ * surface beside it, each scrolling within itself.
+ */
+.wedyan-direct {
+  flex: 1 1 auto;
+  min-block-size: 0;
+  display: grid;
+  grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr);
+  gap: var(--aui-window-bar-inset);
+
+  /* Without the sidebar, the picked row takes the whole width. */
+  &:not(:has(> .wedyan-direct-list)) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.wedyan-direct-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+
+  & .aui-listbox {
+    background: none;
+  }
+}
+
+.wedyan-direct-search {
+  flex: none;
+}
+
+.wedyan-direct-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+
+  & + & {
+    margin-block-start: var(--spacing-md);
+  }
+}
+
+.wedyan-direct-group-label {
+  margin-block-end: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-label-sm-size);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/*
+ * A row: a square picture, then its title over a line about it, padded the same on every side.
+ * The picture sets its height, so it's the same with or without the line.
+ */
+.wedyan-direct-row {
+  display: grid;
+  grid-template-columns: calc(var(--spacing) * 10) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--spacing-sm);
+  block-size: auto;
+  min-block-size: 0;
+  padding: var(--spacing-sm);
+
+  /* The highlight marks the picked row; the list's own check isn't needed. */
+  & > .aui-icon {
+    display: none;
+  }
+}
+
+.wedyan-direct-thumb {
+  display: grid;
+  place-items: center;
+  inline-size: calc(var(--spacing) * 10);
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
+  color: var(--color-on-surface-variant);
+
+  /* On the picked row's fill, the icon and its square take the row's own ink. */
+  .wedyan-direct-row[aria-selected='true'] & {
+    background: color-mix(in oklch, currentColor 16%, transparent);
+    color: inherit;
+  }
+}
+
+.wedyan-direct-text {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+
+  & > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.wedyan-direct-title {
+  font-weight: 500;
+}
+
+.wedyan-direct-description {
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-label-md-size);
+
+  /* On the picked row's fill, the line takes the row's own ink, a little softer. */
+  .wedyan-direct-row[aria-selected='true'] & {
+    color: inherit;
+    opacity: 0.8;
+  }
+}
+
+/* The picked row in full: a picture in its shape, a heading, its facts, then anything longer. */
+.wedyan-direct-content {
+  /* The room at its sides, and between the main column and an aside beside it: one measure, so they read as one. */
+  --wedyan-direct-room: calc(var(--spacing) * 16);
+  padding: calc(var(--spacing) * 24) var(--wedyan-direct-room);
+
+  /* Whatever it shows keeps a readable measure, centred in the surface; wider where an aside sits beside it. */
+  & > * {
+    max-inline-size: 48rem;
+    margin-inline: auto;
+  }
+
+  & > :has(> .wedyan-direct-aside) {
+    max-inline-size: 70rem;
+  }
+}
+
+.wedyan-direct-pane {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+
+  /* With an aside, the main column keeps its measure and the aside sits beside it. */
+  &:has(> .wedyan-direct-aside) {
+    display: grid;
+    grid-template-columns: minmax(0, 48rem) minmax(14rem, 18rem);
+    align-items: start;
+    column-gap: var(--wedyan-direct-room);
+  }
+}
+
+/* What sits beside the main column, staying in view as it scrolls. */
+.wedyan-direct-aside {
+  position: sticky;
+  inset-block-start: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+.wedyan-direct-hero {
+  display: block;
+  inline-size: 100%;
+  max-block-size: 24rem;
+  object-fit: cover;
+  border-radius: var(--radius-lg);
+  background: #000;
+}
+
+.wedyan-direct-heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+
+  & > h2 {
+    margin: 0;
+    font-size: var(--font-title-lg-size);
+  }
+
+  & > p {
+    margin: 0;
+    color: var(--color-on-surface-variant);
+    line-height: 1.5;
+  }
+}

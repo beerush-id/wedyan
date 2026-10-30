@@ -1,6 +1,6 @@
 import { SymbolIcon } from '@/components/SymbolIcon.js';
 
-export { GenerativeIcon, SidebarCloseIcon, SidebarOpenIcon, SoundIcon } from '@/components/icons.js';
+export { EditIcon, GenerativeIcon, PreviewIcon, SidebarCloseIcon, SidebarOpenIcon, SoundIcon } from '@/components/icons.js';
 
 /** Motions' glyphs for its views: Material Symbols, weight 200. */
 
@@ -32,16 +32,6 @@ export const FrameBackIcon = () => (
 /** `chevron_right` */
 export const FrameForwardIcon = () => (
   <SymbolIcon d="m531.69-480-184-184L376-692.31 588.31-480 376-267.69 347.69-296l184-184Z" />
-);
-
-/** `visibility` */
-export const PreviewIcon = () => (
-  <SymbolIcon d="M583.65-396.53q42.5-42.68 42.5-103.65 0-60.97-42.68-103.47t-103.65-42.5q-60.97 0-103.47 42.68t-42.5 103.65q0 60.97 42.68 103.47t103.65 42.5q60.97 0 103.47-42.68ZM403.5-423.5Q372-455 372-500t31.5-76.5Q435-608 480-608t76.5 31.5Q588-545 588-500t-31.5 76.5Q525-392 480-392t-76.5-31.5ZM243.23-310.73Q136.31-381.46 83.08-500q53.23-118.54 160.04-189.27T479.89-760q129.96 0 236.88 70.73Q823.69-618.54 876.92-500q-53.23 118.54-160.04 189.27T480.11-240q-129.96 0-236.88-70.73ZM480-500Zm207.5 160.5Q782-399 832-500q-50-101-144.5-160.5T480-720q-113 0-207.5 59.5T128-500q50 101 144.5 160.5T480-280q113 0 207.5-59.5Z" />
-);
-
-/** `edit` */
-export const EditIcon = () => (
-  <SymbolIcon d="M200-200h43.92l427.93-427.92-43.93-43.93L200-243.92V-200Zm-40 40v-100.77l527.23-527.77q6.15-5.48 13.57-8.47 7.43-2.99 15.49-2.99t15.62 2.54q7.55 2.54 13.94 9.15l42.69 42.93q6.61 6.38 9.04 14 2.42 7.63 2.42 15.25 0 8.13-2.74 15.56-2.74 7.42-8.72 13.57L260.77-160H160Zm600.77-556.31-44.46-44.46 44.46 44.46ZM649.5-649.5l-21.58-22.35 43.93 43.93-22.35-21.58Z" />
 );
 
 /** `format_bold` */

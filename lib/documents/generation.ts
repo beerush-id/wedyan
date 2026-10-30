@@ -7,6 +7,9 @@ export const MODELS: Record<GenerativeDocument['type'], Record<string, string>> 
   sound: { standard: 'Standard', voice: 'Voice' },
 };
 
+/** The models writing — a script, a persona's personality — can be asked of. Placeholders until the kernel names its own. */
+export const WRITING_MODELS = { fast: 'Fast', balanced: 'Balanced', best: 'Best' };
+
 /** The aspect ratios a picture can be made at. */
 export const ASPECTS = { '16:9': '16:9', '9:16': '9:16', '1:1': '1:1' };
 

@@ -2,19 +2,12 @@ import { AUI_CLASS } from '@airlib/aui/utils';
 import { $bind, $static, $use, Show, Snippet, setup } from '@airlib/react';
 import { Button, EmptyState, Gallery, type GalleryEntry, ImageViewer, type ImageViewerEntry } from '@airlib/react-aui';
 import { Window, WindowTitle } from '@airlib/react-aui/desktop';
-import { GenerationForm, generationCtx } from '@/components/GenerationForm.js';
+import { generationCtx } from '@/components/generation.js';
+import { GenerationForm } from '@/components/GenerationForm.js';
 import { GenerativeIcon } from '@/components/icons.js';
 import { chosenAttempt, differsFrom, reuseAttempt } from '@/lib/documents/generation.js';
 import { documentAt } from '@/lib/documents/store.js';
-
-/** What the image viewer's buttons say. */
-export const VIEWER_LABELS = {
-  previous: 'Previous photo',
-  next: 'Next photo',
-  zoomIn: 'Zoom in',
-  zoomOut: 'Zoom out',
-  fullscreen: 'Full screen',
-};
+import { VIEWER_LABELS } from './library.js';
 
 const CLASS = {
   STILL: 'wedyan-still',

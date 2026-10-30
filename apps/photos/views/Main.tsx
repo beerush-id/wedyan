@@ -48,10 +48,11 @@ import {
   type Photo,
   ROOT,
   toggleTag,
+  VIEWER_LABELS,
 } from './library.js';
 import { generation, PhotosDockOptions } from './options.js';
 import { COMMANDS, CONTEXTS } from './prompt.js';
-import { StillProject, VIEWER_LABELS } from './Still.js';
+import { StillProject } from './Still.js';
 
 /** What a Photos window can be opened with: a still project to show, by path; the browser otherwise. */
 export type PhotosData = { still?: string } | undefined;

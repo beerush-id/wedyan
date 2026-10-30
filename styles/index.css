@@ -9,10 +9,12 @@
 @import './splash.css' layer(app);
 @import './gallery.css' layer(app);
 @import './files.css' layer(app);
+@import './direct.css' layer(app);
 @import './photos.css' layer(app);
 @import './motions.css' layer(app);
 @import './memo.css' layer(app);
 @import './mail.css' layer(app);
 @import './calendar.css' layer(app);
+@import './lounge.css' layer(app);
 @import './settings.css' layer(app);
 @import './selection.css' layer(app);

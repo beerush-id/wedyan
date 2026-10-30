@@ -1,0 +1,393 @@
+/*
+ * Lounge's panels on the window's glass, one bar inset apart, as a Motions project's: the list on
+ * the left, the open one in the middle, and for a person, how their picked picture was made on the
+ * right. The columns follow which panels are there.
+ */
+.wedyan-lounge {
+  --wedyan-lounge-list: minmax(14rem, 18rem);
+  --wedyan-lounge-side: 20rem;
+  flex: 1 1 auto;
+  min-block-size: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--aui-window-bar-inset);
+
+  &:has(> .wedyan-direct-list) {
+    grid-template-columns: var(--wedyan-lounge-list) minmax(0, 1fr);
+  }
+
+  &:has(> .wedyan-lounge-side) {
+    grid-template-columns: minmax(0, 1fr) var(--wedyan-lounge-side);
+  }
+
+  &:has(> .wedyan-direct-list):has(> .wedyan-lounge-side) {
+    grid-template-columns: var(--wedyan-lounge-list) minmax(0, 1fr) var(--wedyan-lounge-side);
+  }
+}
+
+/* The open person, agent or skill on a solid surface, kept narrow enough to read in a wide window, centred. */
+.wedyan-lounge-open {
+  padding: var(--spacing-lg);
+
+  /* An agent's or a skill's page starts with its fields, not a picture, so it keeps more room from the panel's top and bottom. */
+  &:has(> :is(.wedyan-lounge-agent, .wedyan-lounge-skill-page)) {
+    padding-block: calc(var(--spacing) * 10);
+  }
+
+  & > * {
+    max-inline-size: 560px;
+    margin-inline: auto;
+  }
+
+  /* With nobody to show, the empty state sits in the middle. */
+  & > .aui-empty-state {
+    margin-block: auto;
+  }
+}
+
+/* An agent's or a skill's fields, stacked with a tab's spacing. */
+.wedyan-lounge-agent,
+.wedyan-lounge-skill-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+/* Who they are runs long: the field grows with what's written, from four lines, so the panel scrolls rather than the field. */
+.wedyan-lounge-bio {
+  &:is(textarea),
+  & textarea {
+    field-sizing: content;
+    min-block-size: calc(4lh + var(--spacing-sm) * 2);
+    resize: none;
+  }
+}
+
+/* How much of the field's room is used, quiet at its end. */
+.wedyan-lounge-count {
+  align-self: flex-end;
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-label-sm-size);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * A personality try in the history: words only, with no picture to fill the option's rounded
+ * start, so the option grows with its lines and keeps them clear of its corners.
+ */
+.wedyan-lounge-try {
+  block-size: auto;
+  min-block-size: 0;
+  padding: var(--spacing-sm) var(--spacing-md);
+}
+
+/* A side panel: its groups stacked, scrolling once they outgrow it. */
+.wedyan-lounge-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  overflow: auto;
+  padding: var(--spacing-md);
+
+  & > .aui-empty-state {
+    margin-block: auto;
+  }
+}
+
+/* A picture to pick: bare, ringed while picked. */
+.wedyan-lounge-pick {
+  display: block;
+  inline-size: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  cursor: pointer;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+
+  &[aria-pressed='true'] {
+    outline-color: var(--color-primary);
+  }
+
+  &:focus-visible {
+    outline-color: var(--color-primary);
+  }
+}
+
+/* Their picture, then their name as the title. */
+.wedyan-lounge-editor-head {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+
+  & > .wedyan-lounge-editor-name {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+  }
+}
+
+.wedyan-lounge-editor-name {
+  font-size: var(--font-title-md-size);
+  font-weight: 500;
+}
+
+/* The short fields, in as many columns as fit. */
+.wedyan-lounge-editor-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(calc(var(--spacing) * 44), 1fr));
+  align-items: end;
+  gap: var(--spacing-sm) var(--spacing-md);
+}
+
+/* A field's name over its control. */
+.wedyan-lounge-editor-field,
+.wedyan-lounge-editor-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  min-inline-size: 0;
+}
+
+.wedyan-lounge-editor-section {
+  gap: var(--spacing-sm);
+
+  & > .aui-empty-state {
+    padding-block: var(--spacing-md);
+  }
+}
+
+.wedyan-lounge-editor-field-label {
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-label-sm-size);
+}
+
+/* What a tab holds, stacked with the editor's spacing. */
+.wedyan-lounge-tab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  min-inline-size: 0;
+}
+
+/* A look's main picture: the picture, large, and its source to replace it. */
+.wedyan-lounge-slot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  min-inline-size: 0;
+  margin: 0;
+}
+
+/* The main picture fills the column's width in its look's frame — a face square, a figure wide; while it's missing, its empty place fills the frame. */
+.wedyan-lounge-slot-picture {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  inline-size: 100%;
+  aspect-ratio: 1;
+  max-block-size: calc(var(--spacing) * 140);
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  background: color-mix(in oklch, currentColor 6%, transparent);
+
+  .wedyan-lounge-slot[data-part='body'] & {
+    aspect-ratio: 16 / 9;
+  }
+}
+
+div.wedyan-lounge-slot-picture {
+  padding: var(--spacing-md);
+  border: 1px dashed color-mix(in oklch, currentColor 24%, transparent);
+}
+
+/* Poses and outfits as a grid of smaller pictures, each with what can be done with it under it. */
+.wedyan-lounge-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(calc(var(--spacing) * 30), 1fr));
+  gap: var(--spacing-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wedyan-lounge-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  min-inline-size: 0;
+}
+
+/*
+ * What can be done with a tile's picture, inset at its top corners as a gallery tile's checkbox is —
+ * making it the main picture at the start, removing it at the end — showing while the tile is
+ * hovered or holds focus.
+ */
+.wedyan-lounge-tile-promote,
+.wedyan-lounge-tile-remove {
+  position: absolute;
+  inset-block-start: var(--spacing-xs);
+  opacity: 0;
+  transition: opacity 120ms ease;
+
+  .wedyan-lounge-tile:is(:hover, :focus-within) > & {
+    opacity: 1;
+  }
+}
+
+.wedyan-lounge-tile-promote {
+  inset-inline-start: var(--spacing-xs);
+}
+
+.wedyan-lounge-tile-remove {
+  inset-inline-end: var(--spacing-xs);
+}
+
+/* A tile's picture, or the image glyph while its path leads to none. */
+.wedyan-lounge-tile-picture {
+  display: grid;
+  place-items: center;
+  inline-size: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--radius-xs);
+  background: color-mix(in oklch, currentColor 8%, transparent);
+}
+
+/* Adding one: a square the size of a tile's picture, its edge dashed as an empty main picture's is, the glyph over what it adds. */
+.wedyan-lounge-tile-add {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  box-sizing: border-box;
+  inline-size: 100%;
+  aspect-ratio: 1;
+  padding: var(--spacing-sm);
+  border: 1px dashed color-mix(in oklch, currentColor 24%, transparent);
+  border-radius: var(--radius-xs);
+  background: color-mix(in oklch, currentColor 4%, transparent);
+  color: var(--color-on-surface-variant);
+  font: inherit;
+  font-size: var(--font-label-md-size);
+  cursor: pointer;
+
+  &:hover {
+    background: color-mix(in oklch, currentColor 8%, transparent);
+    color: var(--color-on-surface);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+/* Each skill with what it lets the agent do beside it. */
+.wedyan-lounge-skills {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.wedyan-lounge-skill {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--spacing-xs) var(--spacing-md);
+}
+
+.wedyan-lounge-skill-hint {
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-label-sm-size);
+}
+
+/* Where the skills come from, over each run of them: the apps', then the user's own. */
+.wedyan-lounge-skills-label {
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-label-sm-size);
+  font-weight: 600;
+
+  &:not(:first-child) {
+    margin-block-start: var(--spacing-sm);
+  }
+}
+
+/* A skill's glyph where an agent has its picture: a tinted square of the avatar's size. */
+.wedyan-lounge-skill-glyph {
+  display: grid;
+  flex: none;
+  place-items: center;
+  inline-size: calc(var(--spacing) * 12);
+  aspect-ratio: 1;
+  border-radius: var(--radius-md);
+  background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
+  color: var(--color-on-surface-variant);
+}
+
+/* A field's name at the start of its line, how it shows at the end. */
+.wedyan-lounge-editor-field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+/* A skill's instructions as their source: the field grows with what's written, so the panel scrolls rather than the field. */
+.wedyan-lounge-instructions {
+  &:is(textarea),
+  & textarea {
+    field-sizing: content;
+    min-block-size: calc(10lh + var(--spacing-sm) * 2);
+    resize: none;
+  }
+}
+
+/* A skill's instructions, drawn, before any are written. */
+.wedyan-lounge-instructions-empty {
+  margin: 0;
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-label-md-size);
+}
+
+/* What a skill may call, one under another, each its name over what it does. */
+.wedyan-lounge-callables {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+}
+
+.wedyan-lounge-callable {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-inline-size: 0;
+}
+
+.wedyan-lounge-callable-hint {
+  padding-inline-start: calc(var(--spacing) * 7);
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-label-sm-size);
+}
+
+/* Who made them and when, if it shows, then deleting them at the end of the line. */
+.wedyan-lounge-editor-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-md);
+
+  & > .wedyan-lounge-editor-facts {
+    flex: 1 1 auto;
+  }
+}
+
+.wedyan-lounge-editor-facts {
+  margin: 0;
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-label-sm-size);
+}

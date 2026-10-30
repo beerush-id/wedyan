@@ -4,6 +4,8 @@ import calendarManifest from '@/apps/calendar/manifest.json';
 import calendarMain from '@/apps/calendar/views/index.js';
 import filesManifest from '@/apps/files/manifest.json';
 import filesMain from '@/apps/files/views/index.js';
+import loungeManifest from '@/apps/lounge/manifest.json';
+import loungeMain from '@/apps/lounge/views/index.js';
 import mailManifest from '@/apps/mail/manifest.json';
 import mailMain from '@/apps/mail/views/index.js';
 import memoManifest from '@/apps/memo/manifest.json';
@@ -47,6 +49,7 @@ export async function boot(): Promise<void> {
       { manifest: memoManifest, main: memoMain },
       { manifest: mailManifest, main: mailMain },
       { manifest: calendarManifest, main: calendarMain },
+      { manifest: loungeManifest, main: loungeMain },
       { manifest: settingsManifest, main: settingsMain }
     );
   });

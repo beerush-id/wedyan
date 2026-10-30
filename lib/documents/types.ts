@@ -103,14 +103,22 @@ export type StageDocument = DocumentHeader<'stage'> & {
   composition: TimelineSnapshot & { props: { width: number; height: number; background?: string } };
 };
 
+/** One side of how a persona looks: its main picture, and its other poses — expressions, angles — each a `.still` path or an image address. */
+export type PersonaLook = { main: string; poses?: string[] };
+
 /**
- * Someone or something that appears or speaks — a person, a character, a mascot, an agent — the
- * same file wherever they appear: a film's character, a promo's narrator, a contact.
+ * Someone or something that appears or speaks — a person, a character, a mascot — the same file
+ * wherever they appear: a film's character, a promo's narrator, a contact. An agent is never one:
+ * it's an `.agent` of its own.
  */
 export type PersonaDocument = DocumentHeader<'persona'> & {
-  kind: 'person' | 'character' | 'mascot' | 'agent';
-  /** Reference looks, by `.still` path or image address; the first is their portrait. */
-  looks: string[];
+  kind: 'person' | 'character' | 'mascot';
+  /** Their face: the main one, which close-ups are made from and which is their portrait, and its poses. */
+  head: PersonaLook;
+  /** Their whole figure, for full shots, and its poses. */
+  body?: PersonaLook;
+  /** The outfits they can wear, by `.still` path or image address. */
+  wardrobe?: string[];
   voice?: { name: string; sample?: string };
   /** Anything longer about them, by path to a Markdown file. */
   notes?: string;

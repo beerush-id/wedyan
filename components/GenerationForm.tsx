@@ -1,32 +1,12 @@
-import { $bind, createContext, Snippet, setup, template } from '@airlib/react';
+import { $bind, Snippet, setup, template } from '@airlib/react';
 import { Button, Listbox, ListboxOption, Select, Stepper, TextInput } from '@airlib/react-aui';
+import { AddIcon } from '@airlib/react-aui/icons';
 import type { ReactNode } from 'react';
 import { ASPECTS, chosenAttempt, isGenerative, MODELS, settingsOf } from '@/lib/documents/generation.js';
 import { follow } from '@/lib/documents/store.js';
 import type { GeneratedAttempt, GenerativeDocument, PersonaDocument, SoundDocument } from '@/lib/documents/types.js';
+import { type GenerationSubject, generationCtx } from './generation.js';
 import { GenerativeIcon, SoundIcon } from './icons.js';
-
-/**
- * What a generation form works on: a generated image, video or sound by its path, and what making
- * it again and choosing one of its attempts mean where it's shown.
- */
-export type GenerationSubject = {
-  /** The generated document's path, which its references and casts are written from. */
-  readonly path?: string;
-  /** The generated document; none while there's nothing to show. */
-  readonly source?: GenerativeDocument;
-  /** Makes it again, as a new attempt. */
-  generate(): void;
-  /**
-   * Chooses one of its attempts to show.
-   *
-   * @param id - The attempt's id.
-   */
-  choose(id: string): void;
-};
-
-/** The generated document a view's generation form works on, set by whatever shows it. */
-export const generationCtx = createContext<GenerationSubject>();
 
 /** What a generated sound can be. */
 const SOUND_KINDS: Record<SoundDocument['kind'], string> = { music: 'Music', speech: 'Speech', sfx: 'Sound effect', ambience: 'Ambience' };
@@ -58,21 +38,35 @@ export const GenerationForm = setup(() => {
 }, 'GenerationForm');
 
 /**
- * A group: its name over what it holds.
+ * One group of a generation panel: its name over what it holds — set apart on a card of its own,
+ * as a history's list is, when asked — for any panel that makes something from a prompt.
+ */
+export const GenerationGroup = template<{ label: string; card?: boolean; children?: ReactNode }>(
+  ({ label, card, children }) => (
+    <div role="group" aria-label={label} className="wedyan-compose-property-group">
+      <div className="wedyan-compose-property-head">
+        <span className="wedyan-compose-property-label" aria-hidden="true">
+          {label}
+        </span>
+      </div>
+      {card ? <div className="wedyan-compose-property-card">{children}</div> : children}
+    </div>
+  ),
+  'GenerationGroup'
+);
+
+/**
+ * A group of this form.
  *
  * @param label - Its name.
  * @param children - What it holds.
+ * @param card - Whether what it holds sits on its own card.
  * @returns The group.
  */
-const group = (label: string, children: ReactNode) => (
-  <div role="group" aria-label={label} className="wedyan-compose-property-group">
-    <div className="wedyan-compose-property-head">
-      <span className="wedyan-compose-property-label" aria-hidden="true">
-        {label}
-      </span>
-    </div>
+const group = (label: string, children: ReactNode, card = false) => (
+  <GenerationGroup label={label} card={card}>
     {children}
-  </div>
+  </GenerationGroup>
 );
 
 /** What the generation is asked, written onto its document — speech also says its words — and Generate, to make it again. */
@@ -151,7 +145,8 @@ const settingsGroup = (source: GenerativeDocument) => {
           />
         </div>
       )}
-    </>
+    </>,
+    true
   );
 };
 
@@ -159,25 +154,56 @@ const settingsGroup = (source: GenerativeDocument) => {
 const referencesGroup = (source: GenerativeDocument, subject: GenerationSubject) =>
   group(
     'References',
-    source.references?.length ? (
-      <ul className="wedyan-compose-thumbs">
-        {source.references.map((reference) => (
-          <li key={reference} title={reference}>
-            <Thumb src={pictureOf(subject.path ?? '', reference)} />
-          </li>
-        ))}
-      </ul>
-    ) : (
-      <p className="wedyan-compose-property-note">Made from the prompt alone.</p>
-    )
+    <ul className="wedyan-compose-thumbs">
+      <Snippet>
+        {() =>
+          (source.references ?? []).map((reference) => (
+            <li key={reference} title={reference}>
+              <Thumb src={pictureOf(subject.path ?? '', reference)} />
+            </li>
+          ))
+        }
+      </Snippet>
+      <li>
+        <ReferenceAdd source={source} />
+      </li>
+    </ul>,
+    true
   );
+
+/**
+ * Adding references: a tile, always at the end, picking from the user's own files — images, or
+ * sounds for a sound — each added as it's picked.
+ */
+const ReferenceAdd = template<{ source: GenerativeDocument }>(
+  ({ source }) => (
+    <label className="wedyan-compose-thumb wedyan-compose-thumb-add" title="Add reference">
+      <AddIcon />
+      <input
+        type="file"
+        multiple
+        accept={source.type === 'sound' ? 'audio/*' : 'image/*'}
+        aria-label="Add reference"
+        className="wedyan-compose-thumb-file"
+        onChange={(event) => {
+          const input = event.currentTarget;
+          // Until the drive takes uploads, a picked file is referenced where the browser keeps it.
+          const added = [...(input.files ?? [])].map((file) => URL.createObjectURL(file));
+          (source.references ??= []).push(...added);
+          input.value = '';
+        }}
+      />
+    </label>
+  ),
+  'ReferenceAdd'
+);
 
 /**
  * Who's in it, each their first look and name — for speech, who says the words — and one whose
  * file is gone drops out. A sound other than speech has no one in it.
  */
 const castsGroup = (source: GenerativeDocument, subject: GenerationSubject) => {
-  if (source.type === 'sound' && source.kind !== 'speech') return null;
+  if (subject.casts === false || (source.type === 'sound' && source.kind !== 'speech')) return null;
   const speech = source.type === 'sound';
   const path = subject.path ?? '';
   const casts = (speech ? (source.voice ? [source.voice] : []) : (source.casts ?? []))
@@ -189,14 +215,15 @@ const castsGroup = (source: GenerativeDocument, subject: GenerationSubject) => {
       <ul className="wedyan-compose-casts">
         {casts.map((cast) => (
           <li key={cast.path} title={cast.document.description ?? cast.document.name}>
-            <Thumb src={cast.document.looks[0] && pictureOf(cast.path, cast.document.looks[0])} />
+            <Thumb src={cast.document.head?.main && pictureOf(cast.path, cast.document.head.main)} />
             <span>{cast.document.name}</span>
           </li>
         ))}
       </ul>
     ) : (
       <p className="wedyan-compose-property-note">{speech ? 'No one says it yet.' : 'No one is cast in it.'}</p>
-    )
+    ),
+    true
   );
 };
 
@@ -262,7 +289,7 @@ function pictureOf(from: string, reference: string): string | undefined {
   const document = found.document;
   if (!document) return reference;
   if (isGenerative(document)) return attemptPicture(document, chosenAttempt(document));
-  if (document.type === 'persona') return document.looks[0] && pictureOf(found.path, document.looks[0]);
+  if (document.type === 'persona') return document.head?.main && pictureOf(found.path, document.head.main);
 }
 
 /**

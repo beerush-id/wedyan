@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Lounge">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#5f8f7a"/>
+      <stop offset="1" stop-color="#24493f"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="28%" cy="14%" r="75%">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.3"/>
+      <stop offset="0.6" stop-color="#ffffff" stop-opacity="0.04"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="front" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff7ec"/>
+      <stop offset="1" stop-color="#ecdcc6"/>
+    </linearGradient>
+    <linearGradient id="back" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f3c79a"/>
+      <stop offset="1" stop-color="#d79a5e"/>
+    </linearGradient>
+    <filter id="drop" x="-25%" y="-25%" width="150%" height="160%">
+      <feDropShadow dx="0" dy="3.5" stdDeviation="3.2" flood-color="#0f2621" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <rect width="100" height="100" fill="url(#bg)"/>
+  <rect width="100" height="100" fill="url(#glow)"/>
+
+  <g filter="url(#drop)">
+    <!-- The one behind: an agent, its round head and antenna. -->
+    <g fill="url(#back)">
+      <rect x="54" y="30" width="26" height="22" rx="8"/>
+      <rect x="66" y="22" width="2.4" height="9" rx="1.2"/>
+      <circle cx="67.2" cy="21" r="3"/>
+      <path d="M50 78q0-20 17-20t17 20z"/>
+    </g>
+    <circle cx="62" cy="41" r="2.6" fill="#24493f"/>
+    <circle cx="72.4" cy="41" r="2.6" fill="#24493f"/>
+
+    <!-- The one in front: a person. -->
+    <g fill="url(#front)">
+      <circle cx="38" cy="42" r="13"/>
+      <path d="M16 82q0-24 22-24t22 24z"/>
+    </g>
+  </g>
+</svg>

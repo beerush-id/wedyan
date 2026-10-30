@@ -1,6 +1,7 @@
 import { Show, setup } from '@airlib/react';
 import { EmptyState } from '@airlib/react-aui';
-import { GenerationForm, generationCtx } from '@/components/GenerationForm.js';
+import { generationCtx } from '@/components/generation.js';
+import { GenerationForm } from '@/components/GenerationForm.js';
 import { GenerativeIcon } from './icons.js';
 import { showAttempt } from './placement.js';
 import { generate, generativeClip, type MotionsSession, sessionCtx } from './session.js';

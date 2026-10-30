@@ -16,6 +16,15 @@ export const GENERATIVE = 'generative';
 /** The albums: each a tag that the files in it carry, and its name. */
 export const ALBUMS: { tag: string; label: string }[] = LISTING.albums;
 
+/** What the image viewer's buttons say. */
+export const VIEWER_LABELS = {
+  previous: 'Previous photo',
+  next: 'Next photo',
+  zoomIn: 'Zoom in',
+  zoomOut: 'Zoom out',
+  fullscreen: 'Full screen',
+};
+
 /**
  * An image in Photos: its path, which is also its id, its picture, size and date, its tags, and the
  * prompt it was made from when Wedyan made it.

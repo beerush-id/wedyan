@@ -1,0 +1,7 @@
+{
+  "name": "lounge",
+  "label": "Lounge",
+  "version": "0.0.1",
+  "icon": "/icons/lounge.svg",
+  "main": "./views/index.ts"
+}

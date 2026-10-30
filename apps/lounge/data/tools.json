@@ -1,0 +1,16 @@
+{
+  "tools": [
+    { "name": "sys.photos.search", "hint": "Finds photos in the user's library." },
+    { "name": "sys.image.segment", "hint": "Cuts a subject out of an image." }
+  ],
+  "actions": [
+    { "name": "app.open", "hint": "Opens an app, optionally with a file." },
+    { "name": "app.mail.open", "hint": "Opens one mail." },
+    { "name": "app.files.reveal", "hint": "Shows a file or folder in Files." },
+    { "name": "app.files.delete", "hint": "Moves a file to the trash, once the user says yes." },
+    { "name": "app.photos.show", "hint": "Shows photos in Photos." },
+    { "name": "app.motion.import", "hint": "Adds a photo or clip to the open Motion project." },
+    { "name": "desktop.tile", "hint": "Places apps' windows side by side." },
+    { "name": "desktop.focus", "hint": "Brings an app's window to the front." }
+  ]
+}

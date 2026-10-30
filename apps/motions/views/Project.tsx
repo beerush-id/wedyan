@@ -1,5 +1,5 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
-import { $bind, $static, derived, mutable, Snippet, setup, template } from '@airlib/react';
+import { $bind, $static, type AnyType, derived, mutable, Snippet, setup, template } from '@airlib/react';
 import { LIVE_SELECTION } from '@airlib/react/browser';
 import {
   Button,
@@ -7,8 +7,6 @@ import {
   Divider,
   EmptyState,
   FloatingToolbar,
-  Listbox,
-  ListboxOption,
   TextInput,
   Toggle,
   ToggleGroup,
@@ -17,6 +15,7 @@ import {
 import { WindowPanel } from '@airlib/react-aui/desktop';
 import { MarkdownRenderer } from '@airlib/react-aui/markdown';
 import type { FC, ReactNode } from 'react';
+import { DirectList, type DirectGroup as Group, type DirectItem as Row } from '@/components/Direct.js';
 import { documentAt, follow, keepWriting, resolvePath, sectionAt, writingAt } from '@/lib/documents/store.js';
 import type {
   ChatDocument,
@@ -54,19 +53,14 @@ import { type MotionsSession, sessionCtx } from './session.js';
 /** The key of the row Direct shows first: the project itself. */
 const OVERVIEW = 'overview';
 
-/** One row of Direct's list — a picture or an icon, a title, a line about it — and what it shows. */
-type DirectItem = {
-  key: string;
-  title: string;
-  description?: string;
-  picture?: string;
-  icon?: FC;
+/** One row of Direct's list, and what it shows. */
+type DirectItem = Row & {
   /** What the content shows while the row is picked. */
   show: () => ReactNode;
 };
 
 /** A run of rows of one kind, under its name. */
-type DirectGroup = { label: string; items: DirectItem[] };
+type DirectGroup = Group<DirectItem>;
 
 type ProjectViewProps = {
   project: Project;
@@ -99,31 +93,7 @@ export const ProjectView = setup<ProjectViewProps>((props) => {
       <Snippet>
         {() =>
           session.sidebar && (
-            <WindowPanel role="navigation" aria-label="Project" className="wedyan-direct-list">
-              <Listbox
-                label="What the project holds"
-                value={$bind(route, 'item')}
-                required
-                oninput={(event) => {
-                  route.item = event.detail;
-                }}
-              >
-                {groups.map((group) =>
-                  group.items.length ? (
-                    <div key={group.label} role="group" aria-label={group.label} className="wedyan-direct-group">
-                      <span className="wedyan-direct-group-label" aria-hidden="true">
-                        {group.label}
-                      </span>
-                      {group.items.map((item) => (
-                        <ListboxOption key={item.key} value={item.key} className="wedyan-direct-row">
-                          <DirectRow item={item} />
-                        </ListboxOption>
-                      ))}
-                    </div>
-                  ) : null
-                )}
-              </Listbox>
-            </WindowPanel>
+            <DirectList label="Project" listLabel="What the project holds" groups={() => groups} value={$bind(route as AnyType, 'item')} />
           )
         }
       </Snippet>
@@ -133,27 +103,6 @@ export const ProjectView = setup<ProjectViewProps>((props) => {
     </div>
   );
 }, 'ProjectView');
-
-/** A row's face: its picture, or its kind's icon on a tinted square, its title, and a line about it. */
-const DirectRow = template<{ item: DirectItem }>((props) => {
-  const { item } = props;
-  const Icon = item.icon;
-  return (
-    <>
-      {item.picture ? (
-        <img className="wedyan-direct-thumb" src={item.picture} alt="" />
-      ) : (
-        <span className="wedyan-direct-thumb" aria-hidden="true">
-          {Icon && <Icon />}
-        </span>
-      )}
-      <span className="wedyan-direct-text" title={item.description ? `${item.title}\n${item.description}` : item.title}>
-        <span className="wedyan-direct-title">{item.title}</span>
-        {item.description && <span className="wedyan-direct-description">{item.description}</span>}
-      </span>
-    </>
-  );
-}, 'DirectRow');
 
 /** The project itself: its whole script, beside its cover, what it is, and where it stands. */
 const OverviewPane = template<{ project: Project }>((props) => {
@@ -276,7 +225,7 @@ const ScriptPane = setup<ScriptPaneProps, ScriptPaneSlots>((props, slots) => {
   return () => (
     <article className="wedyan-direct-pane wedyan-direct-script">
       {path ? body() : <div className="wedyan-script-body">{slots.empty?.()}</div>}
-      <aside className="wedyan-script-aside" aria-label={props.label}>
+      <aside className="wedyan-direct-aside wedyan-script-aside" aria-label={props.label}>
         {(path || slots.actions) && (
           <div className="wedyan-script-controls">
             {path && (
@@ -538,10 +487,15 @@ const AssetPane = template<{ asset: MotionAsset; from: string; open: (path: stri
   );
 }, 'AssetPane');
 
-/** A cast: their portrait, who they are, their other looks, and their voice. */
+/** A cast: their main face as their portrait, who they are, their poses, body and wardrobe, and their voice. */
 const CastPane = template<{ persona: PersonaDocument }>((props) => {
   const { persona } = props;
-  const [portrait, ...looks] = persona.looks;
+  const portrait = persona.head?.main;
+  const looks = [
+    ...(persona.head?.poses ?? []),
+    ...(persona.body ? [persona.body.main, ...(persona.body.poses ?? [])] : []),
+    ...(persona.wardrobe ?? []),
+  ];
   return (
     <article className="wedyan-direct-pane">
       <div className="wedyan-direct-person">
@@ -638,7 +592,7 @@ function groupsOf(project: Project, open: (path: string) => void): DirectGroup[]
         key: path,
         title: document.name,
         description: document.description ?? capitalize(document.kind),
-        picture: document.looks[0],
+        picture: document.head?.main,
         show: () => <CastPane persona={document} />,
       })),
     },

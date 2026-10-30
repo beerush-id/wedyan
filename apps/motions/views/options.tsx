@@ -26,7 +26,7 @@ import {
   ToEndIcon,
   ToStartIcon,
 } from './icons.js';
-import { ASPECTS, chosenAttempt, MODELS, settingsOf } from '@/lib/documents/generation.js';
+import { ASPECTS, chosenAttempt, MODELS, settingsOf, WRITING_MODELS } from '@/lib/documents/generation.js';
 import {
   type GenerativeSource,
   generate,
@@ -45,7 +45,6 @@ const MOTION_MODELS = MODELS.take;
 export const animation = mutable({ model: 'standard', aspect: '16:9', seconds: 6 });
 
 
-const WRITING_MODELS = { fast: 'Fast', balanced: 'Balanced', best: 'Best' };
 const EFFORTS = { low: 'Low effort', medium: 'Medium effort', high: 'High effort' };
 
 /**

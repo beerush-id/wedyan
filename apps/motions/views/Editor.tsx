@@ -378,13 +378,13 @@ const AssetTile = setup<{ project: Project; open: (path: string) => void; asset:
   );
 }, 'AssetTile');
 
-/** Casts as tiles of a tile list, each its first look and name. */
+/** Casts as tiles of a tile list, each its head and name. */
 const CastTiles = template<{ casts: ReturnType<typeof castsOf> }>(({ casts }) => (
   <>
     {casts.map(({ path, document }) => (
       <li key={path}>
         <button type="button" className="wedyan-compose-tile" title={document.description ?? document.name}>
-          {document.looks[0] ? <img src={document.looks[0]} alt="" /> : <span className="wedyan-compose-tile-blank" />}
+          {document.head?.main ? <img src={document.head.main} alt="" /> : <span className="wedyan-compose-tile-blank" />}
           <span>{document.name}</span>
         </button>
       </li>
