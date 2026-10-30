@@ -88,6 +88,26 @@ export const TOOLS = {
       ['prompt', 'saveTo'],
     ),
   },
+  stillGenerate: {
+    name: 'sys.still.generate',
+    description:
+      'Makes new attempts of a still: a generated image kept as an editable source, with its prompt, settings, references and every attempt. Creates the still when it doesn’t exist yet. What you pass is written into it first, then its attempts are made and added to its history. Returns each new attempt with an address to show it at (url), and a link that opens the still (open): show the attempts on a card, the pictures with an Open link.',
+    parameters: object(
+      {
+        path: text('The still, a .still in the home: e.g. "~/People/Ayla/Head.still".'),
+        prompt: text('What to draw. Needed for a new still; leave it out to make more of the same.'),
+        aspect: { type: 'string', enum: ['1:1', '16:9', '9:16', '4:3', '3:4'] },
+        batch: { type: 'integer', minimum: 1, maximum: 4, description: 'How many to make at once.' },
+        references: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'Images to make it from, so someone or somewhere looks the same: a .still (its chosen image) or a picture, by path in the home.',
+        },
+      },
+      ['path'],
+    ),
+  },
 } satisfies Record<string, ChatTool>;
 
 export const ACTIONS = {

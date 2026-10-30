@@ -2,6 +2,7 @@ import { $static, setup } from '@airlib/react';
 import { fileModule, read, readStub, write } from '@irpclib/r2-file';
 import { act, cleanup, render, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
+import type { StillDocument } from '../../lib/documents/types.js';
 import { documentPresence } from '../../lib/kernel/document.h.js';
 import { createBinding } from '../../lib/share/binding.js';
 import { fileRef } from '../../lib/share/workspace.js';
@@ -84,6 +85,68 @@ describe('a window binding its document', () => {
     // Changed in place: whoever held it holds the change.
     expect(hero?.title).toBe('Episode 2');
     expect(reference.data?.clips[0]).toBe(hero);
+  });
+
+  it('takes an agent’s new attempts into a still the window is editing, and saves them with it', async () => {
+    const path = `~/People/${crypto.randomUUID()}/Head.still`;
+    const still = {
+      type: 'still',
+      version: 1,
+      id: 'h1',
+      name: 'Head',
+      created: '2026-10-30T00:00:00.000Z',
+      updated: '2026-10-30T00:00:00.000Z',
+      author: { kind: 'user' },
+      prompt: 'Ayla, face',
+      references: [],
+      attempts: [],
+      edits: [],
+      chosen: '',
+    };
+    await write(path, still);
+    const ask = desktopAnswers();
+    const attempt = {
+      id: 'a1',
+      src: 'Head/a1.webp',
+      prompt: 'Ayla, face',
+      settings: {},
+      created: still.created,
+      url: '/x',
+    };
+
+    // Not open here: the server keeps them itself.
+    expect(ask('doc.attempts', { path, request: { prompt: 'Ayla, face' }, attempts: [attempt] }, KAI)).toEqual({
+      added: false,
+    });
+
+    const StillView = setup((props: { path: string }) => {
+      const doc = createBinding<StillDocument>(
+        $static(() => props.path),
+        { open: () => 'No parts', update: () => 'No parts' },
+      );
+      return () => (
+        <p>{doc.ready ? `${doc.data?.attempts.length} attempts, chosen ${doc.data?.chosen || 'none'}` : 'Loading'}</p>
+      );
+    }, 'StillView');
+    const view = render(<StillView path={path} />);
+    await waitFor(() => expect(view.container.textContent).toBe('0 attempts, chosen none'));
+
+    act(() => {
+      expect(ask('doc.attempts', { path, request: { prompt: 'Ayla, smiling' }, attempts: [attempt] }, KAI)).toEqual({
+        added: true,
+      });
+    });
+    await waitFor(() => expect(view.container.textContent).toBe('1 attempts, chosen a1'));
+    await waitFor(async () => {
+      fileModule.invalidate(readStub, path, { encoding: 'json' });
+      const saved = await read<StillDocument>(path, { encoding: 'json' });
+      expect(saved).toMatchObject({
+        prompt: 'Ayla, smiling',
+        chosen: 'a1',
+        attempts: [{ id: 'a1', src: 'Head/a1.webp' }],
+      });
+      expect(saved?.attempts[0]).not.toHaveProperty('url');
+    });
   });
 
   it('shows a document opened again at once, from its kept content', async () => {

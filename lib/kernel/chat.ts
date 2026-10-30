@@ -31,7 +31,7 @@ import {
   type WorkTask,
   wedyan,
 } from './chat.h.js';
-import { DOC_CLOSE, DOC_OPEN } from './document.h.js';
+import { DOC_ATTEMPTS, DOC_CLOSE, DOC_OPEN } from './document.h.js';
 import { kernel } from './package.js';
 
 /** The session's room the conversation lives in: one per user, whichever desktop opens it first. */
@@ -483,9 +483,13 @@ function createConversation({ hold }: RoomSetup) {
       await askWith({
         input: [...viewOf(before), ...toChatInput(input)],
         state: message,
-        // Work is handed out here, in the conversation; every other action runs on the desktop.
-        desktop: (action) =>
-          action.name === WORK_ASSIGN ? assign(action.args, message, origin.client) : onDesktop(origin.client, action),
+        // Work is handed out here, in the conversation; every other action runs on the desktop. A
+        // desktop away isn't waited for to take new attempts: the server keeps them itself.
+        desktop: (action) => {
+          if (action.name === WORK_ASSIGN) return assign(action.args, message, origin.client);
+          if (action.name === DOC_ATTEMPTS && !desktops.has(origin.client)) return Promise.resolve(undefined);
+          return onDesktop(origin.client, action);
+        },
         track: (action, outcome) => {
           const record = records.get(action);
           if (record) {

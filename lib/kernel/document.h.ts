@@ -23,6 +23,12 @@ export const DOC_OPEN = 'doc.open';
 export const DOC_UPDATE = 'doc.update';
 export const DOC_CLOSE = 'doc.close';
 
+/**
+ * What the server asks a desktop when an agent made new attempts of a generated document: to take
+ * them into its copy, if it's editing that document, so they're saved with its own edits.
+ */
+export const DOC_ATTEMPTS = 'doc.attempts';
+
 /** The key a part's presence is kept under. */
 export function partKey(part: string, id: string): string {
   return `${part}:${id}`;

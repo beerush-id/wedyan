@@ -36,7 +36,10 @@ export type { AskState } from './agent.h.js';
 export type CallResult = Awaited<IRPCData> | undefined;
 
 /** A call the kernel resolves on the server, by name. `undefined` means nothing to return. */
-export type SysHandler = (args: IRPCData) => Promise<CallResult> | IRPCData | undefined;
+export type SysHandler = (args: IRPCData, ask: SysAsk) => Promise<CallResult> | IRPCData | undefined;
+
+/** The ask a `sys.*` call is made in: the agent making it, and the desktop the ask reaches. */
+export type SysAsk = { agent: string; desktop: (action: AskAction) => Promise<CallResult> };
 
 /** What a model is told when a call gives it binary content, which it can't read. */
 const BINARY = 'That is binary content: read it with an encoding, like "text" or "base64"';
@@ -181,9 +184,12 @@ export async function askWith(options: AskOptions): Promise<void> {
         const args = router.argsOf(call.name, call.args as Record<string, unknown>);
         if (tool && args) return (await tool.pkg.call(tool.spec.name, ...args)) as CallResult;
       }
-      return sys[call.name]?.(call.args);
+      return sys[call.name]?.(call.args, { agent: options.state.agent, desktop: options.desktop });
     },
-    act: async (action) => (sys[action.name] ? sys[action.name](action.args) : options.desktop(action)),
+    act: async (action) =>
+      sys[action.name]
+        ? sys[action.name](action.args, { agent: options.state.agent, desktop: options.desktop })
+        : options.desktop(action),
     followUps: options.followUps,
     track: options.track,
     signal: options.signal,

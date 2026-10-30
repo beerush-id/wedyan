@@ -64,6 +64,18 @@ export function edit<T>(path: string): FileRef<T> {
   return kept.state as FileRef<T>;
 }
 
+/**
+ * A JSON file being edited on this desktop, as its editors hold it: changes made to it here are
+ * saved with theirs. Undefined when nothing here is editing it, or its content hasn't arrived.
+ *
+ * @param path - The file's home path (`~/…`).
+ * @returns Its live content.
+ */
+export function edited<T>(path: string): T | undefined {
+  const kept = KEPT.get(keyOf(path, 'json'));
+  return kept?.editors && kept.state.ready ? (kept.state.data as T) : undefined;
+}
+
 /** A file the desktop keeps, and what's editing it. */
 type Kept = {
   path: string;

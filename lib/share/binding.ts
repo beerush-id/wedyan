@@ -1,8 +1,11 @@
 import type { IRPCData } from '@irpclib/irpc';
 import { onCleanup } from '@irpclib/irpc/core';
+import type { StillDocument } from '@/lib/documents/types.js';
 import type { ActionMeta } from '@/lib/kernel/agent.h.js';
-import { DOC_CLOSE, DOC_OPEN, DOC_UPDATE, documentPresence, partKey } from '@/lib/kernel/document.h.js';
-import { edit, type FileRef } from './workspace.js';
+import { DOC_ATTEMPTS, DOC_CLOSE, DOC_OPEN, DOC_UPDATE, documentPresence, partKey } from '@/lib/kernel/document.h.js';
+import type { StillAttempt, StillRequest } from '@/lib/kernel/stills.h.js';
+import { addAttempts, applyRequest } from './stills.js';
+import { edit, edited, type FileRef } from './workspace.js';
 
 /** An agent asking for a part of a document: what kind of part, which one, and who asks. */
 export type PartRequest = { part: string; id: string; actor: string };
@@ -107,6 +110,16 @@ export function answerDocuments(chat: Answerable): void {
     if (!bound || open?.part !== args.part || open.id !== args.id) return { refused: 'Open that part first' };
     const done = bound.rules.update({ ...args, actor, entity: open.entity });
     return done === true ? { updated: true } : { refused: done };
+  });
+
+  // An agent's new attempts of a generated document this desktop is editing: taken into its copy,
+  // so they're saved with its own edits instead of written over by them.
+  chat.answer(DOC_ATTEMPTS, (args: { path: string; request: StillRequest; attempts: StillAttempt[] }) => {
+    const still = edited<StillDocument>(args.path);
+    if (!still) return { added: false };
+    applyRequest(still, args.request);
+    addAttempts(still, args.attempts);
+    return { added: true };
   });
 
   chat.answer(DOC_CLOSE, (args: { path: string }, { actor }) => {

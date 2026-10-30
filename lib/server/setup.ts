@@ -22,6 +22,7 @@ import { type SpeechModel, setupSpeech } from '@/lib/speech/speech.js';
 import { wsTransport } from '@/src/api.js';
 import { DriveDriver } from './drive-driver.js';
 import { generateImage } from './images.js';
+import { setupStills } from './stills.js';
 
 /** The bindings and secrets the server runs with (see `wrangler.json`). */
 export type ServerEnv = FileWorkerEnv & {
@@ -63,7 +64,10 @@ export function setupServer(env: ServerEnv): void {
     routers: [new IRPCRouter(fileTransport), new IRPCRouter(wsTransport)],
     persona: loadPersona,
     userAgents: loadUserAgents,
-    sys: { [TOOLS.imageGenerate.name]: generateImage(adapter) },
+    sys: {
+      [TOOLS.imageGenerate.name]: generateImage(adapter),
+      [TOOLS.stillGenerate.name]: setupStills(adapter),
+    },
   });
   setupConversation({ briefer: BRIEFER });
   setupMemory({ vectors: env.VECTORIZE, embed: embedWith(env.AI) });

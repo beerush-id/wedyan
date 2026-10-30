@@ -1,4 +1,5 @@
 import type { DocumentHeader } from '@/lib/documents/types.js';
+import { pathFrom } from './paths.js';
 
 /**
  * One of the user's own skills (`~/Skills/<Name>.skill`): what it's for, how to work as it, and
@@ -33,12 +34,5 @@ export type Callable = { name: string; hint: string };
  * @returns Its path in the home, or undefined for an app's skill, given by name.
  */
 export function userSkillPath(agent: string, skill: string): string | undefined {
-  if (!skill.endsWith(SKILL_EXTENSION)) return undefined;
-  const parts = skill.startsWith('~/') ? [] : agent.split('/').slice(0, -1);
-  for (const part of (skill.startsWith('~/') ? skill.slice(2) : skill).split('/')) {
-    if (part === '..') {
-      if (parts.length > 1) parts.pop();
-    } else if (part && part !== '.') parts.push(part);
-  }
-  return skill.startsWith('~/') ? `~/${parts.join('/')}` : parts.join('/');
+  return skill.endsWith(SKILL_EXTENSION) ? pathFrom(agent, skill) : undefined;
 }

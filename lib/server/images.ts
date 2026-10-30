@@ -22,16 +22,30 @@ export function generateImage(adapter: AIAdapter): (args: IRPCData) => Promise<I
     if (!prompt || !saveTo?.startsWith('~/')) {
       return { error: 'sys.image.generate needs a prompt, and saveTo: a folder in the home (~/…)' };
     }
-    const options: ImageOptions & SavedOptions = {
+    const output = await drawImage(adapter, {
       prompt,
       model: IMAGE_MODEL,
       saveTo,
       ...(aspect ? { aspectRatio: aspect } : {}),
-    };
-    const state = mutable<{ data?: ImageOutput }>({});
-    await new Promise<void>((resolve, reject) => {
-      void adapter.draw(options, { state, resolve, reject });
     });
-    return state.data?.url ? { path: state.data.url } : { error: 'No image came back' };
+    return output?.url ? { path: output.url } : { error: 'No image came back' };
   };
+}
+
+/**
+ * Draws one image on the server's models, kept in the drive when the options say where.
+ *
+ * @param adapter - The server's models, the drive driver last.
+ * @param options - What to draw, and where to keep it.
+ * @returns What was drawn: its id, and its path in the drive once kept.
+ */
+export async function drawImage(
+  adapter: AIAdapter,
+  options: ImageOptions & SavedOptions,
+): Promise<ImageOutput | undefined> {
+  const state = mutable<{ data?: ImageOutput }>({});
+  await new Promise<void>((resolve, reject) => {
+    void adapter.draw(options, { state, resolve, reject });
+  });
+  return state.data;
 }

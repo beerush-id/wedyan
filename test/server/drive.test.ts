@@ -6,8 +6,12 @@ import { exists, read, stat } from '@irpclib/r2-file';
 import { implement } from '@irpclib/r2-file/constructor';
 import { fsContext } from '@irpclib/r2-file/context';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import type { StillDocument } from '../../lib/documents/types.js';
 import { DriveDriver } from '../../lib/server/drive-driver.js';
 import { generateImage, IMAGE_MODEL } from '../../lib/server/images.js';
+import { setupStills } from '../../lib/server/stills.js';
+import { imageUrl } from '../../lib/share/image.js';
+import { openLink } from '../../lib/share/links.js';
 
 // r2-file runs for real on local R2 and D1; only the providers' hosts are mocked.
 
@@ -131,6 +135,101 @@ describe('drive driver', () => {
   });
 });
 
+const KAI = '~/Agents/Animation.agent';
+
+/** Muse drawing at the generations endpoint, and editing with references at the edits one, each a new image. */
+function museDraws() {
+  let drawn = 0;
+  const image = () => new Response(JSON.stringify({ created: 1, data: [{ url: `https://cdn.test/${++drawn}.webp` }] }));
+  return mockHosts({
+    'https://api.meta.test/v1/images/generations': image,
+    'https://api.meta.test/v1/images/edits': image,
+    'https://cdn.test/': webp,
+  });
+}
+
+describe('sys.still.generate', () => {
+  const adapter = new AIAdapter()
+    .use(new MuseDriver({ apiKey: 'k', baseUrl: 'https://api.meta.test/v1' }))
+    .use(new DriveDriver());
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('creates a still, makes its attempts beside it, chooses the first, and gives the agent what to show', async () => {
+    museDraws();
+    const generate = setupStills(adapter);
+
+    await inHome(async () => {
+      const result = (await generate(
+        { path: '~/People/Ayla/Head.still', prompt: 'Ayla, a lighthouse keeper’s daughter', batch: 2, aspect: '1:1' },
+        { agent: KAI, desktop: async () => undefined },
+      )) as { open: string; attempts: Array<{ id: string; url: string }> };
+
+      const still = (await read('~/People/Ayla/Head.still', { encoding: 'json' })) as StillDocument;
+      expect(still).toMatchObject({ type: 'still', name: 'Head', prompt: 'Ayla, a lighthouse keeper’s daughter' });
+      expect(still.settings).toMatchObject({ aspect: '1:1', batch: 2 });
+      expect(still.attempts).toHaveLength(2);
+      expect(still.chosen).toBe(still.attempts[0].id);
+      // Each image kept beside it, by path from the still.
+      for (const attempt of still.attempts) {
+        expect(attempt.src).toBe(`Head/${attempt.id}.webp`);
+        expect(await exists(`~/People/Ayla/${attempt.src}`)).toBe(true);
+      }
+      expect(result.attempts.map(({ url }) => url)).toEqual(
+        still.attempts.map((attempt) => imageUrl(`~/People/Ayla/${attempt.src}`, { size: 512 })),
+      );
+      expect(result.open).toBe(openLink('~/People/Ayla/Head.still'));
+    });
+  });
+
+  it('makes a pose from the head’s chosen image, sent inline since the drive is private', async () => {
+    museDraws();
+    const spied = vi.mocked(globalThis.fetch);
+    const generate = setupStills(adapter);
+    const ask = { agent: KAI, desktop: async () => undefined };
+
+    await inHome(async () => {
+      await generate({ path: '~/People/Ayla/Head.still', prompt: 'Ayla, face' }, ask);
+      await generate({ path: '~/People/Ayla/Smile.still', prompt: 'Ayla smiling', references: ['Head.still'] }, ask);
+
+      const [, init] = spied.mock.calls.find(([input]) => String(input).endsWith('/images/edits')) ?? [];
+      const body = JSON.parse(String(init?.body)) as { images: Array<{ image_url: string }> };
+      expect(body.images[0].image_url).toMatch(/^data:image\/webp;base64,/);
+    });
+  });
+
+  it('hands the attempts to a desktop editing the still, writing nothing over its copy', async () => {
+    museDraws();
+    const generate = setupStills(adapter);
+    const asked: unknown[] = [];
+
+    await inHome(async () => {
+      await generate(
+        { path: '~/People/Ayla/Head.still', prompt: 'Ayla, face' },
+        { agent: KAI, desktop: async () => undefined },
+      );
+      const before = (await read('~/People/Ayla/Head.still', { encoding: 'json' })) as StillDocument;
+      await generate(
+        { path: '~/People/Ayla/Head.still' },
+        {
+          agent: KAI,
+          desktop: async (action) => {
+            asked.push(action);
+            return { added: true };
+          },
+        },
+      );
+
+      expect(asked).toMatchObject([{ name: 'doc.attempts', args: { path: '~/People/Ayla/Head.still' }, ask: true }]);
+      // The desktop saves them with its edits; the server didn't write the still.
+      const still = (await read('~/People/Ayla/Head.still', { encoding: 'json' })) as StillDocument;
+      expect(still.attempts).toEqual(before.attempts);
+    });
+  });
+});
+
 describe('sys.image.generate', () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -162,6 +261,20 @@ describe('sys.image.generate', () => {
         prompt: 'Mira, an old lantern maker, face',
       });
     });
+  });
+
+  it('refuses a still that isn’t one, drawing nothing', async () => {
+    const fetched = mockHosts({});
+    const generate = setupStills(new AIAdapter().use(new DriveDriver()));
+    const ask = { agent: KAI, desktop: async () => undefined };
+
+    expect(await generate({ path: '~/People/Ayla/Head.png', prompt: 'A face' }, ask)).toMatchObject({
+      error: expect.any(String),
+    });
+    expect(await generate({ path: '~/People/Ayla/Head.still' }, ask)).toMatchObject({
+      error: 'A new still needs a prompt',
+    });
+    expect(fetched).toEqual([]);
   });
 
   it('refuses without a folder in the home to keep it in, drawing nothing', async () => {
