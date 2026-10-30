@@ -21,6 +21,7 @@
     "start": "NODE_ENV=production bun run server/bun.js",
     "start:node": "NODE_ENV=production node server/node.js",
     "start:deno": "NODE_ENV=production deno run --allow-net --allow-read --allow-env server/deno.js",
+    "deploy": "bun run build && wrangler deploy --env production",
     "lint": "biome check",
     "test": "vitest --run",
     "test:live": "vitest --run --config vitest.live.config.ts"

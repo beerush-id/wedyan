@@ -310,10 +310,10 @@ const BEATS: Array<{
           JSON.stringify(action.args).includes('short-drama'),
       );
       const mail = acted(result, 'app.mail.open')[0];
-      const mailId = (mail?.args as { id?: string })?.id;
+      const mailPath = (mail?.args as { path?: string })?.path;
       return [
         { name: 'opens the project', pass: Boolean(project), detail: project?.name },
-        { name: 'opens a mail', pass: mailId === 'm1' || mailId === 'm2', detail: mailId },
+        { name: 'opens a mail', pass: /^~\/Mail\/m[12]\.eml$/.test(mailPath ?? ''), detail: mailPath },
         { name: 'actions anchored', pass: result.actions.every((action) => action.after >= 0) },
       ];
     },

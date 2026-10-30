@@ -112,7 +112,7 @@ export const TOOLS = {
 
 export const ACTIONS = {
   open: { name: 'app.open', args: '{"app": string, "file"?: string}', does: 'Opens an app, optionally with a file.' },
-  mailOpen: { name: 'app.mail.open', args: '{"id": string}', does: 'Opens one mail.' },
+  mailOpen: { name: 'app.mail.open', args: '{"path": string}', does: 'Opens one mail, by its path in the home.' },
   filesReveal: { name: 'app.files.reveal', args: '{"path": string}', does: 'Shows a file or folder in Files.' },
   filesDelete: {
     name: 'app.files.delete',

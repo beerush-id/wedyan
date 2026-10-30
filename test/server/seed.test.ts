@@ -1,6 +1,6 @@
 import { createContextStore, withContext } from '@irpclib/irpc';
 import { resolveBinding } from '@irpclib/irpc/wrangler';
-import { exists, read, remove, write } from '@irpclib/r2-file';
+import { exists, read, remove, stat, write } from '@irpclib/r2-file';
 import { implement } from '@irpclib/r2-file/constructor';
 import { fsContext } from '@irpclib/r2-file/context';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -34,6 +34,17 @@ describe('seeding a new home', () => {
       expect(await read('~/Agents/Story.agent', { encoding: 'json' })).toEqual({ name: 'Story' });
       expect(await read('~/Memos/Brief.md', { encoding: 'text' })).toBe('# Brief');
       expect(await exists(SEED_MARKER)).toBe(true);
+    });
+  });
+
+  it('writes a picture byte for byte, as it was bundled', async () => {
+    const home = newHome();
+    const PIXEL = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+
+    await home(async () => {
+      await seedHome(crypto.randomUUID(), { 'Pictures/Cat.png': `data:image/png;base64,${PIXEL}` });
+      expect(await read('~/Pictures/Cat.png', { encoding: 'base64' })).toBe(PIXEL);
+      expect(await stat('~/Pictures/Cat.png')).toMatchObject({ type: 'image/png' });
     });
   });
 

@@ -3,16 +3,33 @@ import { exists, write } from '@irpclib/r2-file';
 /** Where a new home's seed is bundled from, beside the app. */
 const SOURCE = '../../seeds/home/';
 
-/** The home seed as bundled, by its path from here. */
-const BUNDLED = import.meta.glob('../../seeds/home/**/*', { query: '?raw', import: 'default', eager: true });
+/** The home seed's text as bundled, by its path from here. */
+const BUNDLED_TEXT = import.meta.glob(['../../seeds/home/**/*', '!**/*.{png,jpg,jpeg,webp,gif,mp4,webm,mp3,wav}'], {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+});
+
+/** The home seed's pictures and media, bundled inline as data URLs: raw, their bytes wouldn't survive. */
+const BUNDLED_MEDIA = import.meta.glob('../../seeds/home/**/*.{png,jpg,jpeg,webp,gif,mp4,webm,mp3,wav}', {
+  query: '?inline',
+  import: 'default',
+  eager: true,
+});
 
 /**
  * What every new home starts with, by its path in the home without `~/` (`Agents/Story.agent`):
- * `seeds/home/X` lands at `~/X`.
+ * `seeds/home/X` lands at `~/X`. Text as it is; pictures and media as data URLs.
  */
 export const HOME_SEEDS: Record<string, string> = Object.fromEntries(
-  Object.entries(BUNDLED as Record<string, string>).map(([file, text]) => [file.slice(SOURCE.length), text]),
+  Object.entries({ ...BUNDLED_TEXT, ...BUNDLED_MEDIA } as Record<string, string>).map(([file, content]) => [
+    file.slice(SOURCE.length),
+    content,
+  ]),
 );
+
+/** A seed bundled inline, and the media type it carries, unlike any text seed. */
+const INLINE = /^data:([^;,]+)/;
 
 /** The hidden file recording that a home was seeded, so it's never seeded again. */
 export const SEED_MARKER = '~/.seeded';
@@ -42,6 +59,11 @@ export function seedHome(session: string, seeds: Record<string, string> = HOME_S
 
 async function plant(seeds: Record<string, string>): Promise<void> {
   if (await exists(SEED_MARKER)) return;
-  await Promise.all(Object.entries(seeds).map(([path, text]) => write(`~/${path}`, text)));
+  await Promise.all(
+    Object.entries(seeds).map(([path, content]) => {
+      const [, type] = INLINE.exec(content) ?? [];
+      return write(`~/${path}`, content, type ? { encoding: 'data-url', type } : undefined);
+    }),
+  );
   await write(SEED_MARKER, { seeded: new Date().toISOString() }, { hidden: true });
 }

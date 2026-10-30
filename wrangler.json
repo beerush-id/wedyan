@@ -1,74 +1,116 @@
 {
-	"$schema": "https://unpkg.com/wrangler/config-schema.json",
-	"name": "wedyan-app",
-	"main": "./server/worker.js",
-	"compatibility_date": "2025-06-10",
-	"compatibility_flags": [
-		"nodejs_compat",
-		"enable_request_signal"
-	],
-	"dev": {
-		"enable_containers": false
-	},
-	"vars": {
-		"RESIZER_URL": "http://localhost:8080"
-	},
-	"assets": {
-		"directory": "./dist/client",
-		"binding": "ASSETS",
-		"html_handling": "drop-trailing-slash"
-	},
-	"containers": [
-		{
-			"class_name": "ImageResizer",
-			"image": "docker.io/mahdaen/r2-image:2.2.0",
-			"max_instances": 3
-		}
-	],
-	"durable_objects": {
-		"bindings": [
-			{
-				"name": "DURABLE_LINK",
-				"class_name": "AirDurableLink"
-			},
-			{
-				"name": "RESIZER",
-				"class_name": "ImageResizer"
-			}
-		]
-	},
-	"migrations": [
-		{
-			"tag": "v1",
-			"new_sqlite_classes": [
-				"AirDurableLink",
-				"ImageResizer"
-			]
-		}
-	],
-	"vectorize": [
-		{
-			"binding": "VECTORIZE",
-			"index_name": "wedyan-memory-dev",
-			"remote": true
-		}
-	],
-	"ai": {
-		"binding": "AI",
-		"remote": true
-	},
-	"r2_buckets": [
-		{
-			"binding": "BUCKET",
-			"bucket_name": "wedyan-files"
-		}
-	],
-	"d1_databases": [
-		{
-			"binding": "DB",
-			"database_name": "wedyan-index",
-			"database_id": "8eb662b1-9ca2-4e9f-90c3-6ece4bbf83b0",
-			"preview_database_id": "local-wedyan-index"
-		}
-	]
+  "$schema": "https://unpkg.com/wrangler/config-schema.json",
+  "name": "wedyan-app",
+  "main": "./server/worker.js",
+  "compatibility_date": "2025-06-10",
+  "compatibility_flags": ["nodejs_compat", "enable_request_signal"],
+  "dev": {
+    "enable_containers": false
+  },
+  "vars": {
+    "RESIZER_URL": "http://localhost:8080"
+  },
+  "assets": {
+    "directory": "./dist/client",
+    "binding": "ASSETS",
+    "html_handling": "drop-trailing-slash"
+  },
+  "containers": [
+    {
+      "class_name": "ImageResizer",
+      "image": "docker.io/mahdaen/r2-image:2.2.0",
+      "max_instances": 3
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "DURABLE_LINK",
+        "class_name": "AirDurableLink"
+      },
+      {
+        "name": "RESIZER",
+        "class_name": "ImageResizer"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["AirDurableLink", "ImageResizer"]
+    }
+  ],
+  "vectorize": [
+    {
+      "binding": "VECTORIZE",
+      "index_name": "wedyan-memory-dev",
+      "remote": true
+    }
+  ],
+  "ai": {
+    "binding": "AI",
+    "remote": true
+  },
+  "r2_buckets": [
+    {
+      "binding": "BUCKET",
+      "bucket_name": "wedyan-files"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "wedyan-index",
+      "database_id": "8eb662b1-9ca2-4e9f-90c3-6ece4bbf83b0",
+      "preview_database_id": "local-wedyan-index"
+    }
+  ],
+  "env": {
+    "production": {
+      "name": "wedyan-app",
+      "vars": {},
+      "containers": [
+        {
+          "name": "wedyan-app-imageresizer",
+          "class_name": "ImageResizer",
+          "image": "docker.io/mahdaen/r2-image:2.2.0",
+          "max_instances": 3
+        }
+      ],
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "DURABLE_LINK",
+            "class_name": "AirDurableLink"
+          },
+          {
+            "name": "RESIZER",
+            "class_name": "ImageResizer"
+          }
+        ]
+      },
+      "vectorize": [
+        {
+          "binding": "VECTORIZE",
+          "index_name": "wedyan-memory"
+        }
+      ],
+      "ai": {
+        "binding": "AI"
+      },
+      "r2_buckets": [
+        {
+          "binding": "BUCKET",
+          "bucket_name": "wedyan-files"
+        }
+      ],
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "wedyan-index",
+          "database_id": "8eb662b1-9ca2-4e9f-90c3-6ece4bbf83b0"
+        }
+      ]
+    }
+  }
 }
