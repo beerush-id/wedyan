@@ -11,6 +11,9 @@ export const ENTRY = 'rita';
 /** The agent that composes every widget and form the others describe: June. */
 export const COMPOSER = 'june';
 
+/** The agent that answers what Wedyan starts on its own, a briefing or a finished job: Wendy. */
+export const BRIEFER = 'wendy';
+
 /** The engine that does a specialized job with the skills it has: Lita, and every user's own agent. */
 export const SPECIALIST = 'lita';
 

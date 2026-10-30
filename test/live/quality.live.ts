@@ -1,6 +1,6 @@
 import { writeFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import type { AgentModels } from '../../lib/agents/index.js';
+import { type AgentModels, BRIEFER } from '../../lib/agents/index.js';
 import type { TextPart, WidgetPart } from '../../lib/kernel/agent.h.js';
 import { ARRIVED, ask, type BeatResult, PROFILE, PROVIDERS, runBeat } from './beat.js';
 
@@ -104,6 +104,9 @@ const spoken = (result: BeatResult) =>
     .map((part) => part.text ?? part.chunks.join(''))
     .join(' ');
 const widgets = (result: BeatResult) => result.parts.filter((part): part is WidgetPart => part.type === 'widget');
+/** What an answer told the user: what it spoke, and what its widgets show. */
+const told = (result: BeatResult) =>
+  [spoken(result), ...widgets(result).map((widget) => `${widget.intent} ${JSON.stringify(widget.nodes)}`)].join(' ');
 const called = (result: BeatResult, name: string) => result.calls.filter((call) => call.name === name);
 const acted = (result: BeatResult, name: string) => result.actions.filter((action) => action.name === name);
 
@@ -180,6 +183,50 @@ const BEATS: Array<{
       { name: 'reads what arrived', pass: called(result, 'r2-file.read').length > 0 },
       { name: 'shows ≥ 2 widgets', pass: widgets(result).length >= 2, detail: `${widgets(result).length}` },
       { name: 'greets by name', pass: /nanang/i.test(spoken(result)) },
+    ],
+  },
+  {
+    name: 'wake-later',
+    run: (models) =>
+      runBeat(
+        ask('(The user is back.)', {
+          event: 'wake',
+          awayMinutes: 25,
+          arrived: [],
+          unseen: [],
+          later: ['wedyan: said "Your render is done, let me know if you want to play it."'],
+          waiting: [],
+          working: ['wedyan: said "Scripting the drama: episode 12 of 30 done."'],
+          ...PROFILE,
+        }),
+        { models, entry: BRIEFER },
+      ),
+    checks: (result) => [
+      { name: 'answered by wendy', pass: result.agents.join() === 'wendy', detail: result.agents.join(' → ') },
+      // Told when spoken or shown: a briefing speaks the few that matter most and shows each on a card.
+      { name: 'reminds of the render', pass: /render/i.test(told(result)), detail: spoken(result) },
+      { name: 'tells how far the work got', pass: /\b12\b|twelve/i.test(told(result)), detail: spoken(result) },
+    ],
+  },
+  {
+    name: 'job',
+    run: (models) =>
+      runBeat(
+        ask('(A background job ended.)', {
+          event: 'job',
+          job: { title: 'the Wedyan promo render', path: '~/Motions/Wedyan promo/Renders/promo.mp4' },
+          ...PROFILE,
+        }),
+        { models, entry: BRIEFER },
+      ),
+    checks: (result) => [
+      { name: 'answered by wendy', pass: result.agents.join() === 'wendy', detail: result.agents.join(' → ') },
+      { name: 'tells of the render', pass: /render/i.test(spoken(result)), detail: spoken(result) },
+      {
+        name: 'opens nothing unasked',
+        pass: !result.actions.length,
+        detail: result.actions.map((action) => action.name).join(', '),
+      },
     ],
   },
   {

@@ -134,6 +134,11 @@ export interface AskOptions {
   /** Hears what became of each action and ask. */
   track?: AgentLoopOptions['track'];
   signal?: AbortSignal;
+  /**
+   * The agent that answers first, instead of the kernel's entry (the router): for an ask whose
+   * handler is already known, like one Wedyan starts on its own.
+   */
+  entry?: string;
 }
 
 /**
@@ -160,7 +165,7 @@ export async function askWith(options: AskOptions): Promise<void> {
   await runAgentLoop({
     adapter,
     agents,
-    entry,
+    entry: options.entry ?? entry,
     composer,
     skills,
     persona,

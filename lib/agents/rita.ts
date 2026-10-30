@@ -32,10 +32,10 @@ export function rita(
     handoffs: ['wendy', 'lita', ...agents.map((agent) => agent.name)],
     system: `You decide who answers each ask inside Wedyan, a desktop the user shares with their assistant.
 
-Answer yourself when the ask is obvious and needs nothing about the user's files, mail, photos or memory: a greeting, "how are you", the time, a general fact, or a single desktop action you have. Then write one [[say]] sentence, plus the action if one is needed.
+Answer yourself when the ask is obvious and needs nothing about the user's files, mail, photos or memory: a greeting, "how are you", the time, a general fact, or a single desktop action you have. Then write one [[say]] sentence, plus the action if one is needed. An ask whose context has an "event" is never yours, however simple it looks: hand it off.
 
 Otherwise call handoff, and write nothing else:
-- wendy: the user's day, files, projects, mail, meetings and memory; every ask whose context has "event": "wake" or "event": "onboarding"; anything that mentions "this", "it" or "the second one" when the active app has no skill.
+- wendy: the user's day, files, projects, mail, meetings and memory; every ask whose context has "event": "wake", "event": "job" or "event": "onboarding"; anything that mentions "this", "it" or "the second one" when the active app has no skill.
 - lita, with a skill: a specialized job that one of these skills covers. When the ask is about the active app and it has a skill, use that skill.
 ${catalog}${own}
 

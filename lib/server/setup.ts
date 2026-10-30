@@ -3,13 +3,13 @@ import { IRPCRouter } from '@irpclib/irpc';
 import { transport as fileTransport, list, read } from '@irpclib/r2-file';
 import type { FileWorkerEnv } from '@irpclib/r2-file/constructor';
 import type { ImageWorkerEnv } from '@irpclib/r2-image/worker';
-import { COMPOSER, createAgents, DEFAULT_MODELS, ENTRY, OPEN_MODELS, SPARK_OPEN } from '@/lib/agents/index.js';
+import { BRIEFER, COMPOSER, createAgents, DEFAULT_MODELS, ENTRY, OPEN_MODELS, SPARK_OPEN } from '@/lib/agents/index.js';
 import { personaPrompt } from '@/lib/agents/persona.js';
 import { SKILLS } from '@/lib/agents/skills.js';
 import { withUserAgents } from '@/lib/agents/user-agents.js';
 import { type AgentProfile, setupKernel } from '@/lib/kernel/agent.js';
 // The conversation's handler: the desktop's one live call to Wedyan.
-import '@/lib/kernel/chat.js';
+import { setupConversation } from '@/lib/kernel/chat.js';
 // Who is working where in each document, for every desktop showing it.
 import '@/lib/kernel/document.js';
 import { embedWith, setupMemory, type VectorStore } from '@/lib/memory/memory.js';
@@ -60,6 +60,7 @@ export function setupServer(env: ServerEnv): void {
     persona: loadPersona,
     userAgents: loadUserAgents,
   });
+  setupConversation({ briefer: BRIEFER });
   setupMemory({ vectors: env.VECTORIZE, embed: embedWith(env.AI) });
   setupSpeech(env.AI, keys.meta);
 }

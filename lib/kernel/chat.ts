@@ -15,6 +15,7 @@ import {
   type Conversation,
   type ConversationMessage,
   type ConversationQueries,
+  type FinishedJob,
   type Presence,
   type UserMessage,
   wedyan,
@@ -55,6 +56,11 @@ export type ConversationConfig = {
   acksRead: number;
   /** Whether the assistant asks if the user's words cover answers they may not, unless their profile says otherwise. */
   proactive: boolean;
+  /**
+   * The agent that answers what Wedyan starts on its own (a briefing, a finished job), without
+   * asking the router; the router decides when unset.
+   */
+  briefer?: string;
 };
 
 /** The conversation's settings when none are given. */
@@ -113,6 +119,7 @@ kernel.construct(wedyan, (client) => {
       state.answer('stop', (answer) => member.ask('stop', answer));
       state.answer('page', (page) => member.ask('page', page));
       state.answer('presence', (presence, context) => member.ask('presence', presence, client, context));
+      state.answer('finished', (job) => member.ask('finished', job, client));
 
       return () => {
         detach();
@@ -144,6 +151,9 @@ type Origin = { client: string; to?: string; event?: AgentMessage['event'] };
 
 /** The words the briefing agent is given; what it briefs is in the context. */
 const WAKE_TEXT = '(The user is back.)';
+
+/** The words the agent telling of a finished job is given; the job is in the context. */
+const JOB_TEXT = '(A background job ended.)';
 
 /**
  * Builds the session's conversation room: the conversation, read from its current page, and what
@@ -246,26 +256,50 @@ function createConversation({ hold }: RoomSetup) {
   const acknowledge = (ids: string[]) => {
     const now = new Date().toISOString();
     const acked = unacked().filter((message) => ids.includes(message.id));
-    for (const message of acked) message.acked = now;
+    for (const message of acked) {
+      message.acked = now;
+      delete message.deferred;
+    }
     if (acked.length) keep();
   };
 
+  // Answers the user put off for later: no longer acknowledged, and told of again by the next
+  // briefing, even one that told of them before.
+  const defer = (ids: string[]) => {
+    const now = new Date().toISOString();
+    const put = data.messages.filter(
+      (message): message is AgentMessage => message.role === 'agent' && ids.includes(message.id) && !isWriting(message),
+    );
+    for (const message of put) {
+      message.deferred = now;
+      delete message.acked;
+      delete message.briefed;
+    }
+    if (put.length) keep();
+  };
+
   // Briefs the user who is back, when there is something to tell: what arrived in their inboxes,
-  // the answers they haven't acknowledged and no briefing told them of, and the asks still waiting
-  // on them. Each answer is told once; a briefing is never told of in another. The agents read the
-  // rest of the conversation as usual.
+  // the answers they haven't acknowledged and no briefing told them of, what they put off for
+  // later, the asks still waiting on them, and the answers still working. Each answer is told once;
+  // a briefing is never told of in another. The agents read the rest of the conversation as usual.
   const brief = async (client: string, since: string, context?: AskInput['context']) => {
-    const told = unacked().filter((message) => !message.briefed && message.event !== 'wake');
-    const asking = [...running.values()]
-      .filter(({ message }) => message.actions.some((action) => action.ask && action.status === 'waiting'))
-      .map(({ message }) => lineOf(message));
+    const told = unacked().filter((message) => !message.briefed && !message.deferred && message.event !== 'wake');
+    const later = data.messages.filter(
+      (message): message is AgentMessage =>
+        message.role === 'agent' && Boolean(message.deferred) && !message.acked && !message.briefed,
+    );
+    const turns = [...running.values()];
+    const isAsking = ({ message }: Running) =>
+      message.actions.some((action) => action.ask && action.status === 'waiting');
+    const asking = turns.filter(isAsking).map(({ message }) => lineOf(message));
+    const working = turns.filter((turn) => !isAsking(turn)).map(({ message }) => lineOf(message));
     const arrived = await arrivals(since);
-    if (!told.length && !asking.length && !arrived.length) return;
+    if (!told.length && !later.length && !asking.length && !working.length && !arrived.length) return;
 
     // Each answer with the words it answered, which the briefing tells of rather than reads before it.
     const unseen = told.flatMap((message) => [...data.messages.filter(({ id }) => id === message.to), message]);
     const now = new Date().toISOString();
-    for (const message of told) message.briefed = now;
+    for (const message of [...told, ...later]) message.briefed = now;
 
     start(
       { client, event: 'wake' },
@@ -277,7 +311,9 @@ function createConversation({ hold }: RoomSetup) {
           awayMinutes: Math.round((Date.now() - Date.parse(since)) / 60_000),
           arrived,
           unseen: unseen.map(lineOf),
+          later: later.map(lineOf),
           waiting: asking,
+          working,
         },
       },
       data.messages.filter((message) => !unseen.includes(message)),
@@ -342,6 +378,7 @@ function createConversation({ hold }: RoomSetup) {
         },
         followUps: () => turn.followUps.splice(0),
         signal: turn.controller.signal,
+        ...(origin.event && config.briefer ? { entry: config.briefer } : {}),
       });
     } finally {
       running.delete(message.id);
@@ -408,10 +445,12 @@ function createConversation({ hold }: RoomSetup) {
         }
 
         // The router decides whether the words continue a running answer, which older answers they
-        // acknowledge, and whether they show the user missed any, the latest included.
+        // acknowledge or put off for later, and whether they show the user missed any, the latest
+        // included.
         const judgment = await judge(input.text, answers, earlier, latestUnacked);
         const taken = latestUnacked ? [latestUnacked.id, ...judgment.acks] : judgment.acks;
-        acknowledge(taken.filter((id) => !judgment.missed.includes(id)));
+        acknowledge(taken.filter((id) => !judgment.missed.includes(id) && !judgment.later.includes(id)));
+        defer(judgment.later.filter((id) => earlier.some((message) => message.id === id)));
         const target = running.get(judgment.continues ?? '');
         if (target) {
           words.answer = target.message.id;
@@ -438,6 +477,13 @@ function createConversation({ hold }: RoomSetup) {
         if (!desktops.has(client)) return false;
         presences.set(client, presence);
         await notice(client, context);
+        return true;
+      },
+      // A job the desktop ran ended: Wedyan says so on that desktop. Told while the user is away,
+      // it stays unacknowledged, so the briefing tells of it.
+      finished: async (job: FinishedJob, client: string) => {
+        await loaded;
+        start({ client, event: 'job' }, { text: JOB_TEXT, context: { event: 'job', job } });
         return true;
       },
     },
@@ -487,16 +533,17 @@ export const JUDGE_PROMPT = `Words from the user arrived. Below are Wedyan's ans
 - acks: the ids of the other unacknowledged answers the words show the user has taken in: replying to them, building on them, confirming them or thanking for them, like "copy that".
 - unclear: the ids of the other unacknowledged answers the words may or may not cover.
 - missed: the ids of any unacknowledged answers, the latest included, the words show the user hasn't taken in, like "what did you say?".
+- later: the ids of any unacknowledged answers, the latest included, the words put off for later, like "I'll watch it later" or "remind me when I'm back".
 
-Reply with only JSON: {"continues": id or null, "acks": [ids], "unclear": [ids], "missed": [ids]}`;
+Reply with only JSON: {"continues": id or null, "acks": [ids], "unclear": [ids], "missed": [ids], "later": [ids]}`;
 
 /** What the router made of the user's words; ids it made up are dropped where they are used. */
-type Judgment = { continues?: string; acks: string[]; unclear: string[]; missed: string[] };
+type Judgment = { continues?: string; acks: string[]; unclear: string[]; missed: string[]; later: string[] };
 
 /**
  * Judges the user's words: which running answer they continue, which older answers they
- * acknowledge or may, and which they show the user missed. Nothing continued, acknowledged or missed
- * when the router fails or can't tell.
+ * acknowledge or may, which they show the user missed, and which they put off for later. Nothing
+ * continued, acknowledged, missed or put off when the router fails or can't tell.
  *
  * @param text - The user's words.
  * @param answers - The answers being written.
@@ -527,9 +574,10 @@ async function judge(
       acks: ids(parsed.acks),
       unclear: ids(parsed.unclear),
       missed: ids(parsed.missed),
+      later: ids(parsed.later),
     };
   } catch {
-    return { acks: [], unclear: [], missed: [] };
+    return { acks: [], unclear: [], missed: [], later: [] };
   }
 }
 

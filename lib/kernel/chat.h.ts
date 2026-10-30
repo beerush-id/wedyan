@@ -31,14 +31,32 @@ export type AgentMessage = AskState & {
   role: 'agent';
   /** The user's words it answers; unset when Wedyan started it. */
   to?: string;
-  /** Why Wedyan started it on its own: `wake` briefs the user who just came back. */
-  event?: 'wake';
+  /**
+   * Why Wedyan started it on its own: `wake` briefs the user who just came back, `job` tells them a
+   * job they started in the background finished.
+   */
+  event?: 'wake' | 'job';
   created: string;
   actions: ActionRecord[];
   /** When the user acknowledged it: their words replied to it, confirmed it or thanked for it. */
   acked?: string;
+  /**
+   * When the user put it off for later, like "I'll watch it later": not acknowledged, and brought
+   * back up by the next briefing.
+   */
+  deferred?: string;
   /** When a briefing told the user of it, so no later briefing repeats it. */
   briefed?: string;
+};
+
+/** A job the desktop ran in the background and that ended, like a render: what it was, and how it ended. */
+export type FinishedJob = {
+  /** What it was, as the user would say it: "the Wedyan promo render". */
+  title: string;
+  /** Where its result is, when it made one. */
+  path?: string;
+  /** Why it failed, when it did. */
+  failed?: string;
 };
 
 export type ConversationMessage = UserMessage | AgentMessage;
@@ -63,9 +81,11 @@ export type Presence = 'active' | 'idle';
  * The questions on the conversation. The desktop asks to `send` the user's words (joined to a
  * running answer when they continue it, else answered on their own), to `stop` an answer (every
  * running one when unnamed), for an older `page`, and tells its `presence`, with its context when it
- * turns active, so a user back from away is briefed there. What the user has taken in is known from
- * their words, never from what was shown: each answer is `acked` once their words acknowledge it. The server asks the desktop to run actions and asks by name, as `askWedyan` does
- * (`app.*`, `desktop.*`, `ask_user`).
+ * turns active, so a user back from away is briefed there. It tells when a job it ran in the
+ * background ended (`finished`), so Wedyan says so and the next briefing knows. What the user has
+ * taken in is known from their words, never from what was shown: each answer is `acked` once their
+ * words acknowledge it, or `deferred` when they put it off for later. The server asks the desktop to
+ * run actions and asks by name, as `askWedyan` does (`app.*`, `desktop.*`, `ask_user`).
  */
 export type ConversationQueries = {
   // biome-ignore lint/suspicious/noExplicitAny: action and ask names are registered by the client at runtime
@@ -74,6 +94,7 @@ export type ConversationQueries = {
   stop: (answer?: string) => boolean;
   page: (page: number) => ConversationMessage[] | undefined;
   presence: (presence: Presence, context?: AskInput['context']) => boolean;
+  finished: (job: FinishedJob) => boolean;
 };
 
 /**

@@ -61,7 +61,13 @@ type Judge = (body: Record<string, unknown>) => Response;
  */
 const judged =
   (
-    pick: (asked: Asked) => { continues?: string; acks?: string[]; unclear?: string[]; missed?: string[] } = () => ({}),
+    pick: (asked: Asked) => {
+      continues?: string;
+      acks?: string[];
+      unclear?: string[];
+      missed?: string[];
+      later?: string[];
+    } = () => ({}),
   ): Judge =>
   (body) => {
     const asked = (body.messages as Array<{ role: string; content?: string }>)
@@ -767,6 +773,83 @@ describe('the conversation', () => {
       });
     });
 
+    it('puts off what the user leaves for later, and brings it back in the next briefing', async () => {
+      const vendor = chatVendor(
+        [routesTo('new'), judged((asked) => ({ later: [older(asked)] }))],
+        ...twoTurns(),
+        says('See you later.'),
+        says('Welcome back, your render is still waiting.'),
+      );
+      const who = newUser();
+
+      await asDesktop(who, async () => {
+        const desktop = wedyan('tab-a');
+        await until(() => desktop.data.ready);
+        await desktop.ask('presence', 'active');
+        await twoAnswers(desktop);
+        await desktop.ask('send', { text: 'I need to go, will watch it later' });
+        await until(() => desktop.data.messages.length === 6 && answered(desktop.data));
+
+        const [, render, , mail] = desktop.data.messages as AgentMessage[];
+        expect(render.deferred).toBeDefined();
+        expect(render.acked).toBeUndefined();
+        expect(mail.acked).toBeDefined();
+
+        await desktop.ask('presence', 'idle');
+        await pause(AWAY + 50);
+        await desktop.ask('presence', 'active', { time: TIME });
+        await until(() => desktop.data.messages.length === 7 && answered(desktop.data));
+
+        const { later: putOff, unseen } = briefed(vendor.bodies, 3) as { later: string[]; unseen: string[] };
+        expect(putOff).toEqual(['wedyan: said "The render is queued."']);
+        expect(unseen).not.toContain('wedyan: said "The render is queued."');
+        expect(render.briefed).toBeDefined();
+        desktop.close();
+      });
+    });
+
+    it('tells the user a background job ended, on the desktop that ran it, by the briefer without the router', async () => {
+      setupConversation({ briefAfter: AWAY, arrivalSeeds: {}, briefer: 'photos' });
+      const vendor = chatVendor([], says('Your render is done, let me know if you want to play it.'));
+      const who = newUser();
+      const job = { title: 'the Wedyan promo render', path: '~/Motions/Wedyan promo/Renders/promo.mp4' };
+
+      await asDesktop(who, async () => {
+        const desktop = wedyan('tab-a');
+        await until(() => desktop.data.ready);
+        await desktop.ask('finished', job);
+        await until(() => desktop.data.messages.length === 1 && answered(desktop.data));
+
+        expect(last(desktop.data)).toMatchObject({ event: 'job', status: 'done', agent: 'photos' });
+        expect(vendor.bodies[0].model).toBe('photos-m');
+        expect(contextOf(vendor.bodies, 0)).toEqual({ event: 'job', job });
+        desktop.close();
+      });
+    });
+
+    it('tells the briefing what is still at work, apart from what waits on the user', async () => {
+      const vendor = chatVendor([], later(says('Episode 12 of 30 is scripted.'), 1000), says('Welcome back.'));
+      const who = newUser();
+
+      await asDesktop(who, async () => {
+        const desktop = wedyan('tab-a');
+        await until(() => desktop.data.ready);
+        await desktop.ask('presence', 'active');
+        await desktop.ask('send', { text: 'Script all 30 episodes' });
+        await until(() => desktop.data.messages.length === 2);
+
+        await desktop.ask('presence', 'idle');
+        await pause(AWAY + 50);
+        await desktop.ask('presence', 'active', { time: TIME });
+        await until(() => desktop.data.messages.length === 3 && answered(desktop.data));
+
+        const { working, waiting } = briefed(vendor.bodies, 1) as { working: string[]; waiting: string[] };
+        expect(working).toHaveLength(1);
+        expect(waiting).toEqual([]);
+        desktop.close();
+      });
+    });
+
     it('leaves unclear answers be when the user would rather it weren’t proactive', async () => {
       const vendor = chatVendor(
         [routesTo('new'), judged((asked) => ({ unclear: [older(asked)] }))],
@@ -828,7 +911,9 @@ describe('the conversation', () => {
           awayMinutes: 0,
           arrived: [],
           unseen: ['user: Render the short drama', 'wedyan: said "Rendering it."'],
+          later: [],
           waiting: [],
+          working: [],
         });
         first.close();
         second.close();

@@ -98,12 +98,13 @@ export interface BeatResult {
 }
 
 /**
- * Runs one ask through the real loop and agents. Server calls get the seeded answers; asks to the
- * user get `replies` in order; every action succeeds.
+ * Runs one ask through the real loop and agents, from the router unless `entry` names who answers
+ * first. Server calls get the seeded answers; asks to the user get `replies` in order; every action
+ * succeeds.
  */
 export async function runBeat(
   input: ChatMessage[],
-  options: { models?: AgentModels; replies?: string[] } = {},
+  options: { models?: AgentModels; replies?: string[]; entry?: string } = {},
 ): Promise<BeatResult> {
   const replies = [...(options.replies ?? [])];
   const state = mutable<AskState>({ status: 'idle', agent: '', turn: 0, parts: [] });
@@ -125,7 +126,7 @@ export async function runBeat(
     runAgentLoop({
       adapter: liveAdapter(),
       agents: createAgents(options.models),
-      entry: ENTRY,
+      entry: options.entry ?? ENTRY,
       composer: COMPOSER,
       skills: SKILLS,
       persona: personaPrompt(PROFILE),
