@@ -1,27 +1,9 @@
 import { settingsOf } from '@/lib/documents/generation.js';
 import type { GeneratedAttempt, StillDocument } from '@/lib/documents/types.js';
-import { type StillAttempt, type StillRequest, stillAttempts } from '@/lib/kernel/stills.h.js';
+import type { StillRequest } from '@/lib/kernel/stills.h.js';
 
-/**
- * Generates new attempts of a still a window is editing, the way its Generate button does: what's
- * asked is written into the still, then its new attempts are made and added to it, so they're
- * saved with the window's own edits.
- *
- * @param still - The still, as the window edits it.
- * @param path - Its path in the home.
- * @param request - What to change before making it, if anything.
- * @returns The new attempts, each with an address to show it at.
- */
-export async function generateStill(
-  still: StillDocument,
-  path: string,
-  request?: Partial<StillRequest>,
-): Promise<StillAttempt[]> {
-  if (request) applyRequest(still, request);
-  const attempts = await stillAttempts(path, requestOf(still));
-  addAttempts(still, attempts);
-  return attempts;
-}
+// How a still is read and changed, the same on the desktop and the server: what it asks for, a
+// request written into it, and new attempts added to it.
 
 /**
  * What a still asks for now: its prompt, its settings with the defaults filled in, and its references.
