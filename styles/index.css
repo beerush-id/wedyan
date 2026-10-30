@@ -10,6 +10,7 @@
 @import './gallery.css' layer(app);
 @import './files.css' layer(app);
 @import './direct.css' layer(app);
+@import './people.css' layer(app);
 @import './photos.css' layer(app);
 @import './motions.css' layer(app);
 @import './memo.css' layer(app);

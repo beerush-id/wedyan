@@ -2,11 +2,12 @@ import { $bind, Snippet, setup, template } from '@airlib/react';
 import { Button, Listbox, ListboxOption, Select, Stepper, TextInput } from '@airlib/react-aui';
 import { AddIcon } from '@airlib/react-aui/icons';
 import type { ReactNode } from 'react';
-import { ASPECTS, chosenAttempt, isGenerative, MODELS, settingsOf } from '@/lib/documents/generation.js';
+import { ASPECTS, chosenAttempt, isGenerative, MODELS, reuseAttempt, settingsOf } from '@/lib/documents/generation.js';
 import { follow } from '@/lib/documents/store.js';
 import type { GeneratedAttempt, GenerativeDocument, PersonaDocument, SoundDocument } from '@/lib/documents/types.js';
 import { type GenerationSubject, generationCtx } from './generation.js';
 import { GenerativeIcon, SoundIcon } from './icons.js';
+import { PeopleTile } from './PeopleTile.js';
 
 /** What a generated sound can be. */
 const SOUND_KINDS: Record<SoundDocument['kind'], string> = { music: 'Music', speech: 'Speech', sfx: 'Sound effect', ambience: 'Ambience' };
@@ -199,8 +200,8 @@ const ReferenceAdd = template<{ source: GenerativeDocument }>(
 );
 
 /**
- * Who's in it, each their first look and name — for speech, who says the words — and one whose
- * file is gone drops out. A sound other than speech has no one in it.
+ * Who's in it, each a tile picking which of their pictures it takes — for speech, who says the words, by
+ * portrait and name — and one whose file is gone drops out. A sound other than speech has no one in it.
  */
 const castsGroup = (source: GenerativeDocument, subject: GenerationSubject) => {
   if (subject.casts === false || (source.type === 'sound' && source.kind !== 'speech')) return null;
@@ -209,27 +210,43 @@ const castsGroup = (source: GenerativeDocument, subject: GenerationSubject) => {
   const casts = (speech ? (source.voice ? [source.voice] : []) : (source.casts ?? []))
     .map((cast) => follow<'persona'>(path, cast))
     .filter((found): found is { path: string; document: PersonaDocument } => !!found.document);
+  const portraitOf = (cast: { path: string; document: PersonaDocument }) =>
+    cast.document.head?.main && pictureOf(cast.path, cast.document.head.main);
+  if (!casts.length) {
+    return group(
+      speech ? 'Voice' : 'Casts',
+      <p className="wedyan-compose-property-note">{speech ? 'No one says it yet.' : 'No one is cast in it.'}</p>,
+      true
+    );
+  }
+  // A voice is who says the words, a row; someone cast is a tile picking which of their pictures it takes.
   return group(
     speech ? 'Voice' : 'Casts',
-    casts.length ? (
+    speech ? (
       <ul className="wedyan-compose-casts">
         {casts.map((cast) => (
           <li key={cast.path} title={cast.document.description ?? cast.document.name}>
-            <Thumb src={cast.document.head?.main && pictureOf(cast.path, cast.document.head.main)} />
+            <Thumb src={portraitOf(cast)} />
             <span>{cast.document.name}</span>
           </li>
         ))}
       </ul>
     ) : (
-      <p className="wedyan-compose-property-note">{speech ? 'No one says it yet.' : 'No one is cast in it.'}</p>
+      <ul className="wedyan-people-tiles">
+        {casts.map((cast) => (
+          <li key={cast.path}>
+            <PeopleTile persona={cast.document} pictureOf={(source) => pictureOf(cast.path, source)} />
+          </li>
+        ))}
+      </ul>
     ),
     true
   );
 };
 
 /**
- * Every attempt, newest first: its picture, the prompt and settings it was made with, and when. The
- * chosen one is picked; picking another chooses it.
+ * Every attempt, newest first: its picture, the prompt and settings it was made with, and when, and
+ * reusing those in place of the current ones. The chosen one is picked; picking another chooses it.
  */
 const historyGroup = (source: GenerativeDocument, subject: GenerationSubject) => {
   const choice = {
@@ -253,6 +270,12 @@ const historyGroup = (source: GenerativeDocument, subject: GenerationSubject) =>
                 <span>{settingsLine(source, attempt)}</span>
                 <time dateTime={attempt.created}>{when(attempt.created)}</time>
               </span>
+              {/* Asks again what this attempt asked: its prompt and settings replace the current ones. */}
+              <span className="wedyan-compose-attempt-reuse" ref={pressedApart(() => reuseAttempt(source, attempt))}>
+                <Button size="xs" variant="text" aria-label="Reuse this attempt's prompt and settings">
+                  Reuse
+                </Button>
+              </span>
             </span>
           </ListboxOption>
         ))}
@@ -262,6 +285,30 @@ const historyGroup = (source: GenerativeDocument, subject: GenerationSubject) =>
     )
   );
 };
+
+/** What a press on a control inside a history row is made of, kept from the row. */
+const ROW_PRESS = ['pointerdown', 'mousedown', 'click', 'keydown'];
+
+/**
+ * A control in a history row, pressed apart from the row: its press does what it's for and goes no
+ * further, so it doesn't choose the row too. The row listens on its own element, before the page's
+ * handlers would, so this listens natively on the element around the control and acts there.
+ *
+ * @param run - What pressing the control does.
+ * @returns The ref for the element around the control.
+ */
+function pressedApart(run: () => void): (element: HTMLElement | null) => void {
+  return (element) => {
+    if (!element || element.dataset.apart) return;
+    element.dataset.apart = 'true';
+    for (const type of ROW_PRESS) {
+      element.addEventListener(type, (event) => {
+        event.stopPropagation();
+        if (type === 'click') run();
+      });
+    }
+  };
+}
 
 /** A small square picture, or a blank — a sound's glyph for a sound — when there's none. */
 const Thumb = template<{ src?: string; sound?: boolean }>(

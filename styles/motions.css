@@ -738,6 +738,26 @@
   align-items: center;
   gap: var(--spacing-sm);
   min-inline-size: 0;
+  inline-size: 100%;
+}
+
+/*
+ * Reusing what an attempt asked: small, at the row's end, in the row's own colour, and tinted with
+ * that colour when hovered, so it reads on a picked row's fill as on a plain one.
+ */
+.wedyan-compose-attempt-reuse {
+  flex: none;
+  margin-inline-start: auto;
+
+  & > .aui-button {
+    background-color: transparent;
+    color: inherit;
+
+    &:is(:hover, :focus-visible) {
+      background-color: color-mix(in oklch, currentColor 16%, transparent);
+      color: inherit;
+    }
+  }
 }
 
 .wedyan-compose-attempt-text {

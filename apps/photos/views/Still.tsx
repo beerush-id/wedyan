@@ -1,11 +1,11 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
 import { $bind, $static, $use, Show, Snippet, setup } from '@airlib/react';
-import { Button, EmptyState, Gallery, type GalleryEntry, ImageViewer, type ImageViewerEntry } from '@airlib/react-aui';
+import { EmptyState, Gallery, type GalleryEntry, ImageViewer, type ImageViewerEntry } from '@airlib/react-aui';
 import { Window, WindowTitle } from '@airlib/react-aui/desktop';
 import { generationCtx } from '@/components/generation.js';
 import { GenerationForm } from '@/components/GenerationForm.js';
 import { GenerativeIcon } from '@/components/icons.js';
-import { chosenAttempt, differsFrom, reuseAttempt } from '@/lib/documents/generation.js';
+import { chosenAttempt } from '@/lib/documents/generation.js';
 import { documentAt } from '@/lib/documents/store.js';
 import { VIEWER_LABELS } from './library.js';
 
@@ -13,7 +13,6 @@ const CLASS = {
   STILL: 'wedyan-still',
   PREVIEW: 'wedyan-still-preview',
   ATTEMPTS: 'wedyan-still-attempts',
-  REUSE: 'wedyan-still-reuse',
   PROMPT: 'wedyan-still-prompt',
 };
 
@@ -75,20 +74,6 @@ export const StillProject = setup<{ path: string }>((props) => {
   const slides = (): ImageViewerEntry[] =>
     (still()?.attempts ?? []).map((attempt, at) => ({ src: attempt.src, alt: `Attempt ${at + 1}` }));
 
-  // The shown attempt, while it was made with something other than what the still asks now.
-  const reusable = () => {
-    const document = still();
-    const shown = document && chosenAttempt(document);
-    return document && shown && differsFrom(document, shown) ? shown : undefined;
-  };
-
-  // Makes the still ask what the shown attempt was made with — its prompt and settings — to make it again from there.
-  const reuse = () => {
-    const document = still();
-    const shown = reusable();
-    if (document && shown) reuseAttempt(document, shown);
-  };
-
   // Each attempt as its picture alone; what it was asked shows as the viewer's caption.
   const tiles = (): GalleryEntry[] =>
     (still()?.attempts ?? []).map((attempt, at) => ({ value: attempt.id, src: attempt.src, alt: `Attempt ${at + 1}` }));
@@ -118,11 +103,6 @@ export const StillProject = setup<{ path: string }>((props) => {
                 {/* Every attempt, small, floating over the picture, to choose from without leaving it. */}
                 <div className={`${CLASS.ATTEMPTS} ${AUI_CLASS.GLASS_FRAME}`}>
                   <Gallery label="Attempts" items={$use(tiles)} value={$bind(picked, 'value')} flow={false} />
-                </div>
-                <div className={`${CLASS.REUSE} ${AUI_CLASS.GLASS_FRAME}`}>
-                  <Button size="sm" variant="text" disabled={$use(() => !reusable())} onClick={reuse}>
-                    Reuse
-                  </Button>
                 </div>
               </>
             )}

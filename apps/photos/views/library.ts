@@ -1,8 +1,12 @@
 import { mutable } from '@airlib/react';
 import { chosenAttempt } from '@/lib/documents/generation.js';
-import { documentsOf, drive, nameOf } from '@/lib/documents/store.js';
-import type { StillDocument } from '@/lib/documents/types.js';
+import { documentsOf, drive, nameOf, supply } from '@/lib/documents/store.js';
+import type { StillDocument, WedyanDocument } from '@/lib/documents/types.js';
 import LISTING from '../data/photos.json';
+import STILLS_SAMPLE from '../data/stills.json';
+
+// A still with someone cast in it, until the drive serves the user's own: Lounge's Ayla, with her face, figure and wardrobe.
+supply(Object.entries(STILLS_SAMPLE) as unknown as [string, WedyanDocument][]);
 
 /** Where Photos browses from: the Photos folder at the drive's root. */
 export const ROOT = '/Photos';

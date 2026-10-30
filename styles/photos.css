@@ -68,20 +68,6 @@
   }
 }
 
-/* Reusing the shown attempt's prompt, on the same dark glass, in the picture's top corner. */
-.wedyan-still-reuse {
-  --aui-glass-radius: var(--radius-full);
-  color-scheme: only dark;
-  position: absolute;
-  inset-block-start: var(--spacing-md);
-  inset-inline-end: var(--spacing-md);
-  padding: var(--spacing-xs);
-
-  & > .aui-button {
-    color: var(--color-on-surface);
-  }
-}
-
 /*
  * Every attempt as a small picture, in one row on glass floating over the picture's top edge, clear
  * of the viewer's toolbar at its foot. On the dark side, as that toolbar is, to read on any picture;

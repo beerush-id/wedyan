@@ -79,21 +79,6 @@ export function reuseAttempt(source: GenerativeDocument, attempt: GeneratedAttem
 }
 
 /**
- * Whether making a generated document again would ask something other than one of its attempts did.
- *
- * @param source - The generated document.
- * @param attempt - The attempt.
- * @returns Whether its prompt or any of its settings differ from the document's now.
- */
-export function differsFrom(source: GenerativeDocument, attempt: GeneratedAttempt): boolean {
-  const settings = settingsOf(source);
-  return (
-    attempt.prompt !== source.prompt ||
-    Object.entries(attempt.settings).some(([key, value]) => settings[key as keyof GenerationSettings] !== value)
-  );
-}
-
-/**
  * A generated document's chosen attempt, or its first when the choice is gone.
  *
  * @param source - The generated document.
