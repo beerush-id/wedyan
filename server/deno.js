@@ -1,5 +1,9 @@
 import worker from '../dist/server/worker.js';
 
+// Cloudflare's edge cache (`caches.default`), which r2-file's and R2 Image's delivery use, as one of
+// Deno's own caches.
+globalThis.caches.default ??= await globalThis.caches.open('default');
+
 Deno.serve({
   port: Deno.env.get('PORT') || 3000,
 }, async (req) => {

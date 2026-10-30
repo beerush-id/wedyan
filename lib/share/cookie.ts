@@ -1,12 +1,12 @@
 import { cookies } from '@airlib/react';
 
 /** The visitor's session: who their files and memories belong to, and when it began. */
-export interface UserSession {
+export type UserSession = {
   /** A random UUID, issued on the first page load; empty until then. */
   id: string;
   /** When the session was issued, as an ISO date, so an expired one can be cleaned up. */
   started: string;
-}
+};
 
 /** The cookie the session lives in. */
 export const SESSION_COOKIE = 'wedyan_session';

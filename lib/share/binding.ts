@@ -1,0 +1,118 @@
+import type { IRPCData } from '@irpclib/irpc';
+import { onCleanup } from '@irpclib/irpc/core';
+import type { ActionMeta } from '@/lib/kernel/agent.h.js';
+import { DOC_CLOSE, DOC_OPEN, DOC_UPDATE, documentPresence, partKey } from '@/lib/kernel/document.h.js';
+import { edit, type FileRef } from './workspace.js';
+
+/** An agent asking for a part of a document: what kind of part, which one, and who asks. */
+export type PartRequest = { part: string; id: string; actor: string };
+
+/**
+ * What only the app knows about its document: which parts an agent may work on, and how an
+ * agent's value is written into one.
+ */
+export type BindingRules = {
+  /** Grants a part by returning it, the live object in the document; or refuses it with a reason. */
+  open: (request: PartRequest) => object | string;
+  /**
+   * Writes an agent's value into the part it opened (`entity`, the object `open` granted); returns
+   * `true`, or a reason to refuse it.
+   */
+  update: (request: PartRequest & { value: IRPCData; entity: object }) => true | string;
+};
+
+/** A document as a window works with it: its live content, and who is working on which part. */
+export type DocumentBinding<T> = {
+  /** Whether both its content and its presence have arrived. */
+  readonly ready: boolean;
+  /**
+   * The document's live content: the same object every window and document referring to it holds,
+   * changed in place, saved, and kept in sync with every change made to it in the session.
+   */
+  readonly data: T | undefined;
+  /** Who is working on a part right now: their actors. */
+  who(part: string, id: string): string[];
+};
+
+/** A document a window is showing: its live content and presence, and how the agents' asks reach it. */
+type Bound = {
+  content: FileRef<unknown>;
+  presence: ReturnType<typeof documentPresence>;
+  rules: BindingRules;
+  /** What each agent has open here: one part at a time. */
+  granted: Map<string, { part: string; id: string; entity: object }>;
+};
+
+/** The documents windows are showing on this desktop, by path: what the agents' asks reach. */
+const BOUND = new Map<string, Bound>();
+
+/**
+ * Binds a document for a window working on it: its content, edited and saved (the workspace's one
+ * live object for the file, so a document referring to it sees every change), who is working on
+ * which part on every desktop, and the app's rules for agents that join it. While bound, the
+ * agents' `doc.open`, `doc.update` and `doc.close` asks reach it through `answerDocuments`. Closes
+ * with the window. A document only referred to needs `fileRef`, not a binding.
+ *
+ * @param path - The document's home path (`~/…`).
+ * @param rules - Which parts agents may open, and how their values are written.
+ * @returns The live document.
+ */
+export function createBinding<T>(path: string, rules: BindingRules): DocumentBinding<T> {
+  const content = edit<T>(path);
+  const presence = documentPresence(path);
+  const bound: Bound = { content, presence, rules, granted: new Map() };
+  BOUND.set(path, bound);
+
+  onCleanup(() => {
+    if (BOUND.get(path) === bound) BOUND.delete(path);
+    presence.close();
+  });
+
+  return {
+    get ready() {
+      return Boolean(content.ready && presence.data.ready);
+    },
+    get data() {
+      return content.data;
+    },
+    who: (part, id) => presence.data.parts[partKey(part, id)] ?? [],
+  };
+}
+
+/** Something the server asks the desktop on, as the conversation (`wedyan()`) is. */
+type Answerable = { answer(name: string, handler: (args: never, meta: ActionMeta) => unknown): unknown };
+
+/**
+ * Answers the agents' document asks on the desktop's conversation: `doc.open` grants a part by the
+ * app's rules and answers with its current value, `doc.update` writes into a part the agent has
+ * open, and `doc.close` lets go of it. The actor is the kernel's stamp, never the agent's say.
+ *
+ * @param chat - The desktop's live conversation.
+ */
+export function answerDocuments(chat: Answerable): void {
+  chat.answer(DOC_OPEN, (args: { path: string; part: string; id: string }, { actor }) => {
+    const bound = BOUND.get(args.path);
+    if (!bound) return { refused: 'That document is not open on the desktop' };
+    if (!bound.content.ready) return { refused: 'The document is still loading: try again in a moment' };
+    const granted = bound.rules.open({ part: args.part, id: args.id, actor });
+    if (typeof granted === 'string') return { refused: granted };
+    bound.granted.set(actor, { part: args.part, id: args.id, entity: granted });
+    void bound.presence.ask('open', args.part, args.id, actor);
+    return { opened: JSON.parse(JSON.stringify(granted)) as IRPCData };
+  });
+
+  chat.answer(DOC_UPDATE, (args: { path: string; part: string; id: string; value: IRPCData }, { actor }) => {
+    const bound = BOUND.get(args.path);
+    const open = bound?.granted.get(actor);
+    if (!bound || open?.part !== args.part || open.id !== args.id) return { refused: 'Open that part first' };
+    const done = bound.rules.update({ ...args, actor, entity: open.entity });
+    return done === true ? { updated: true } : { refused: done };
+  });
+
+  chat.answer(DOC_CLOSE, (args: { path: string }, { actor }) => {
+    const bound = BOUND.get(args.path);
+    if (!bound?.granted.delete(actor)) return { closed: false };
+    void bound.presence.ask('close', actor);
+    return { closed: true };
+  });
+}

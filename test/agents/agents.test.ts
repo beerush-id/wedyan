@@ -257,6 +257,9 @@ describe('user agents', () => {
     expect(kai.system).toContain(AGENTS.lita.system);
     expect(kai.system).toContain(SKILLS.photos.system);
     expect(kai.system).toContain(SKILLS.motions.system);
+    // Every one of them can work inside a document open on the desktop.
+    expect(kai.system).toContain('[[ask_app name=doc.open]]');
+    expect(kai.system).toContain('doc.update {"path": string, "part": string, "id": string, "value": object}');
     // Both skills offer the file lookups; each tool is offered once.
     const names = kai.tools.map((tool) => tool.name);
     expect(new Set(names).size).toBe(names.length);

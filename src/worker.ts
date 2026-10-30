@@ -1,3 +1,4 @@
+import { decodeCookies, setCookieContext, withContext } from '@airlib/react';
 import { createApp } from '@airlib/react/ssr';
 import { LogLevel } from '@beerush/logger';
 import { consoleAdapter } from '@beerush/logger/adapters/console';
@@ -8,13 +9,16 @@ import { resolveBinding, resolveCtx } from '@irpclib/irpc/wrangler';
 import { fileModule } from '@irpclib/r2-file';
 import { fsContext } from '@irpclib/r2-file/context';
 import { createWorker as createFileWorker } from '@irpclib/r2-file/worker';
+import { createWorker as createImageWorker, type ImageWorkerEnv } from '@irpclib/r2-image/worker';
 import { WebSocketRouter } from '@irpclib/ws/router';
+import { reportChanges } from '@/lib/kernel/workspace.js';
 import { logger } from '@/lib/logger.js';
 import { contentIndex } from '@/lib/memory/files.js';
 import { guardAgentFiles } from '@/lib/server/guard.js';
 import { currentSession, homeOf } from '@/lib/server/session.js';
 import { MODELS, type ServerEnv, setupServer } from '@/lib/server/setup.js';
 import { AI_ENDPOINT, ai } from '@/lib/share/ai.js';
+import { IMAGE_SIZES, IMAGES_PATH } from '@/lib/share/image.js';
 import { httpTransport, wsTransport } from './api.js';
 import App from './app.js';
 import router from './router.js';
@@ -24,6 +28,12 @@ const FILES_ENDPOINT = '/irpc';
 
 /** Where r2-file delivers a session's files, by their canonical path. */
 const FILES_PATH = '/users/';
+
+/** Where resized pictures are kept in the bucket: outside every home, so they're never a user's files. */
+const VARIANTS_PREFIX = '.variants';
+
+/** How long a browser keeps a picture it was served, in seconds. */
+const IMAGE_BROWSER_TTL = 86400;
 
 const httpRouter = new HTTPRouter(httpTransport);
 const wsRouter = new WebSocketRouter(wsTransport);
@@ -57,9 +67,14 @@ wsRouter.use(scopeToSession);
 
 // r2-file in this worker: its handlers serve the desktop's file calls and the agents' tool calls
 // alike, each with the bindings of the call's own environment.
-// Its content index keeps memory in step with the user's files.
-const files = createFileWorker({ endpoint: FILES_ENDPOINT }).use(contentIndex());
+// Its content index keeps memory in step with the user's files, and every change is reported to the
+// session's desktops, which keep what they hold in sync.
+const files = createFileWorker({ endpoint: FILES_ENDPOINT }).use(contentIndex()).use(reportChanges());
 files.router.use(scopeToSession);
+
+// R2 Image in this worker: the user's pictures resized on request and kept once per size, in the same
+// bucket as their files. Reached only through `serveImage`, which scopes every request to its session.
+const images = createImageWorker({ variantPrefix: VARIANTS_PREFIX, allowedSizes: IMAGE_SIZES });
 
 // ai-kit in this worker: the desktop's own generation, on the models the agents run, so what it
 // makes is kept in the user's drive the same way.
@@ -80,6 +95,7 @@ export default {
   async fetch(request: Request, env?: ServerEnv, signal?: AbortSignal) {
     const url = new URL(request.url);
     if (url.pathname === AI_ENDPOINT) return models.fetch(request, await bindingsOf(env));
+    if (request.method === 'GET' && url.pathname.startsWith(IMAGES_PATH)) return serveImage(request, url, env);
     const isFiles =
       url.pathname === FILES_ENDPOINT || (request.method === 'GET' && url.pathname.startsWith(FILES_PATH));
     if (!isFiles) return app.fetch(request, env, signal);
@@ -88,6 +104,46 @@ export default {
     return files.fetch(request, bindings, resolveCtx());
   },
 };
+
+/**
+ * Serves one of the asking session's own pictures through R2 Image. The session comes from the
+ * request's cookie, and the home path in the URL becomes that session's storage path, so no other
+ * user's file can be named. Every user asks for the same URL, so only their own browser keeps it.
+ *
+ * @param request - The picture's request: `/images/~/Pictures/cat.png?s=256`.
+ * @param url - Its parsed URL.
+ * @param env - The bindings the runtime passed, if any.
+ * @returns The picture, resized when asked; 403 without a session, 400 for a path outside the home.
+ */
+async function serveImage(request: Request, url: URL, env?: ServerEnv): Promise<Response> {
+  const session = await withContext(() => {
+    setCookieContext(decodeCookies(request.headers.get('cookie') ?? ''));
+    return currentSession();
+  });
+  if (!session) return new Response('Forbidden', { status: 403 });
+
+  let path: string;
+  try {
+    path = decodeURIComponent(url.pathname.slice(IMAGES_PATH.length));
+  } catch {
+    return new Response('Bad Request', { status: 400 });
+  }
+  if (!path.startsWith('~/') || path.includes('\0') || path.split('/').includes('..')) {
+    return new Response('Bad Request', { status: 400 });
+  }
+
+  const target = new URL(url);
+  target.pathname = `${homeOf(session).homeDir}${path.slice(1)}`;
+  const bindings = await bindingsOf(env);
+  const response = await images.fetch(new Request(target, request), {
+    IMAGES: bindings.BUCKET as never,
+    RESIZER: (bindings.RESIZER ?? bindings.RESIZER_URL) as ImageWorkerEnv['RESIZER'],
+  });
+
+  const headers = new Headers(response.headers);
+  headers.set('Cache-Control', `private, max-age=${IMAGE_BROWSER_TTL}`);
+  return new Response(response.body, { status: response.status, headers });
+}
 
 /**
  * The bindings, resolved once per request: emulated or remote in development, the platform's in

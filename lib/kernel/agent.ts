@@ -29,8 +29,30 @@ const log = logger.create({ tags: ['kernel'] });
 
 export type { AskState } from './agent.h.js';
 
+/**
+ * What awaiting a call, an action or an ask gives: its data, with any blob it points at downloaded,
+ * as awaiting an `IRPCBlob` does; `undefined` when there was nothing to return.
+ */
+export type CallResult = Awaited<IRPCData> | undefined;
+
 /** A call the kernel resolves on the server, by name. `undefined` means nothing to return. */
-export type SysHandler = (args: IRPCData) => Promise<IRPCData | undefined> | IRPCData | undefined;
+export type SysHandler = (args: IRPCData) => Promise<CallResult> | IRPCData | undefined;
+
+/** What a model is told when a call gives it binary content, which it can't read. */
+const BINARY = 'That is binary content: read it with an encoding, like "text" or "base64"';
+
+/**
+ * A call's result as a model reads it: data as it is, and a downloaded blob as a note on how to
+ * read it instead, since binary content reaches a model as nothing.
+ *
+ * @param result - What awaiting the call gave.
+ * @returns What the model reads.
+ */
+export function dataOf(result: Awaited<IRPCData>): IRPCData;
+export function dataOf(result: CallResult): IRPCData | undefined;
+export function dataOf(result: CallResult): IRPCData | undefined {
+  return result instanceof Blob ? { error: BINARY } : result;
+}
 
 /** What the kernel runs asks with: model access, the agents, and its server-side calls. */
 export interface KernelConfig {
@@ -106,7 +128,7 @@ export interface AskOptions {
   /** The answer's live state, mutated in place as it runs. */
   state: AskState;
   /** Runs an action or ask on the desktop; `undefined` means no desktop ran it. */
-  desktop: (action: AskAction) => Promise<IRPCData | undefined>;
+  desktop: (action: AskAction) => Promise<CallResult>;
   /** What the user said while the ask was running. */
   followUps?: () => string[];
   /** Hears what became of each action and ask. */
@@ -152,7 +174,7 @@ export async function askWith(options: AskOptions): Promise<void> {
         // The mapping and the stub come from the same package, so they always agree.
         const tool = router.toolOf(call.name);
         const args = router.argsOf(call.name, call.args as Record<string, unknown>);
-        if (tool && args) return tool.pkg.call(tool.spec.name, ...args) as Promise<IRPCData>;
+        if (tool && args) return (await tool.pkg.call(tool.spec.name, ...args)) as CallResult;
       }
       return sys[call.name]?.(call.args);
     },
@@ -238,13 +260,13 @@ export interface AgentLoopOptions {
    * Resolves every call except `handoff`, wherever its data lives. `undefined` means nothing
    * answers that call, which the model is told.
    */
-  resolve: (call: ToolCall) => Promise<IRPCData | undefined>;
+  resolve: (call: ToolCall) => Promise<CallResult>;
   /**
    * Runs one action or ask. They run one at a time, in order; a throw is a failure the model is told
    * about, and skips that turn's remaining ones. For an action, `undefined` means nothing ran it: a
    * no-op. For an ask, what it returns is the reply the model reads; `undefined` means nothing answered.
    */
-  act?: (action: AskAction) => Promise<IRPCData | undefined>;
+  act?: (action: AskAction) => Promise<CallResult>;
   /**
    * Hears what became of each action and ask: queued (`waiting`), then `done`, `failed` (with the
    * error), `skipped` (an earlier one of its turn failed), or `unanswered` (an ask nothing replied to).
@@ -377,7 +399,10 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
 
       const [handoff, ...extraHandoffs] = reply.toolCalls.filter((call) => call.name === HANDOFF);
       const calls = reply.toolCalls.filter((call) => call.name !== HANDOFF);
-      const results = await Promise.all(calls.map((call) => resolveCall(options.resolve, call, agent.name)));
+      // Already data the model reads; awaiting them again only widens their type to downloaded blobs.
+      const results = (await Promise.all(calls.map((call) => resolveCall(options.resolve, call, agent.name)))).map(
+        (result) => dataOf(result),
+      );
       for (const [index, call] of calls.entries()) history.push(toolTurn(call.id, results[index]));
       for (const call of extraHandoffs) history.push(toolTurn(call.id, { error: 'Only one handoff per turn' }));
       if (signal?.aborted) return end('stopped', 'Aborted');
@@ -618,8 +643,8 @@ function createActionQueue(act: AgentLoopOptions['act'], track?: AgentLoopOption
           return;
         }
         try {
-          const reply = await act?.(prepared ? { ...action, args: await prepared } : action);
-          if (action.ask) replies.push(replyOf(action, reply));
+          const reply = await act?.(prepared ? { ...action, args: dataOf(await prepared) ?? null } : action);
+          if (action.ask) replies.push(replyOf(action, dataOf(reply)));
           track?.(action, { status: action.ask && reply === undefined ? 'unanswered' : 'done' });
         } catch (error) {
           IRPC_STORE.error(error as Error, [{ action: action.name, args: action.args }]);
@@ -729,7 +754,7 @@ function withSkill(agent: AgentProfile, skill?: AgentSkill): AgentProfile {
 /** Resolves one call into what the model reads back: the answer, or an error it can act on. */
 async function resolveCall(resolve: AgentLoopOptions['resolve'], call: ToolCall, agent: string): Promise<IRPCData> {
   try {
-    const result = (await resolve(call)) ?? { error: 'not available' };
+    const result = dataOf(await resolve(call)) ?? { error: 'not available' };
     log.debug(`tool ${call.name}`, { agent, args: call.args, result: summaryOf(result) });
     return result;
   } catch (error) {

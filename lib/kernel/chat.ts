@@ -1,13 +1,5 @@
 import type { ChatMessage } from '@irpclib/ai-kit';
-import {
-  createContextStore,
-  IRPC_STORE,
-  type IRPCData,
-  type RoomSetup,
-  SESSION_STORE,
-  stream,
-  withContext,
-} from '@irpclib/irpc';
+import { createContextStore, IRPC_STORE, type RoomSetup, SESSION_STORE, stream, withContext } from '@irpclib/irpc';
 import { type AsyncStore, getContextStore, mutable } from '@irpclib/irpc/core';
 import { list, read, write } from '@irpclib/r2-file';
 import type { DocumentHeader } from '@/lib/documents/types.js';
@@ -15,7 +7,7 @@ import { userPath } from '@/lib/memory/files.js';
 import { PROFILE_PATH, type UserProfile } from '@/lib/share/profile.js';
 import { CONVERSATION_PATH, INBOXES } from '@/lib/share/system.js';
 import { type ActionMeta, type AskAction, type AskInput, actorOf, type WidgetPart } from './agent.h.js';
-import { askRouter, askWith, toChatInput } from './agent.js';
+import { askRouter, askWith, type CallResult, toChatInput } from './agent.js';
 import { ARRIVAL_SEEDS, landed } from './arrivals.js';
 import {
   type ActionRecord,
@@ -27,6 +19,7 @@ import {
   type UserMessage,
   wedyan,
 } from './chat.h.js';
+import { DOC_CLOSE, DOC_OPEN } from './document.h.js';
 import { kernel } from './package.js';
 
 /** The session's room the conversation lives in: one per user, whichever desktop opens it first. */
@@ -131,7 +124,7 @@ kernel.construct(wedyan, (client) => {
 });
 
 /** A desktop of the session: runs an action or ask there; `undefined` when it didn't. */
-type Desktop = (action: AskAction) => Promise<IRPCData | undefined>;
+type Desktop = (action: AskAction) => Promise<CallResult>;
 
 /**
  * A conversation page as kept in a `.chat` file; `delivered` is when the demo's arrivals landed,
@@ -291,6 +284,18 @@ function createConversation({ hold }: RoomSetup) {
     );
   };
 
+  // What an answer's agents still have open in documents is let go of on the desktop that granted
+  // it, once the answer ends, so no part stays shown as worked on. A desktop gone by then has let go
+  // of it already.
+  const release = (client: string, message: AgentMessage) => {
+    for (const record of message.actions) {
+      const path = (record.args as { path?: unknown } | null)?.path;
+      if (record.name !== DOC_OPEN || record.status !== 'done' || typeof path !== 'string') continue;
+      const close: AskAction = { name: DOC_CLOSE, args: { path }, after: -1, agent: record.actor };
+      onDesktop(client, close).catch(() => undefined);
+    }
+  };
+
   const onDesktop = async (client: string, action: AskAction) => {
     const desktop = desktops.get(client) ?? (await comesBack(client));
     return desktop(action);
@@ -340,6 +345,7 @@ function createConversation({ hold }: RoomSetup) {
       });
     } finally {
       running.delete(message.id);
+      release(origin.client, message);
       await persist();
     }
 

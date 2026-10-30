@@ -1,6 +1,7 @@
 import type { ChatTool } from '@irpclib/ai-kit';
 import { type IRPCData, IRPCRouter, type IRPCTransport } from '@irpclib/irpc';
 import { transport as fileTransport } from '@irpclib/r2-file';
+import { DOC_CLOSE, DOC_OPEN, DOC_UPDATE } from '../kernel/document.h.js';
 import { memory } from '../memory/memory.h.js';
 import type { ActionSpec } from './format.js';
 
@@ -104,6 +105,25 @@ export const ACTIONS = {
   },
   tile: { name: 'desktop.tile', args: '{"apps": string[]}', does: 'Places the apps’ windows side by side.' },
   focus: { name: 'desktop.focus', args: '{"app": string}', does: 'Brings an app’s window to the front.' },
+  docClose: {
+    name: DOC_CLOSE,
+    args: '{"path": string}',
+    does: 'Lets go of the part you have open in that document, once you are done with it.',
+  },
+} satisfies Record<string, ActionSpec>;
+
+/** The app asks for working on a document beside the user, one part at a time. */
+export const DOCUMENT_ASKS = {
+  open: {
+    name: DOC_OPEN,
+    args: '{"path": string, "part": string, "id": string}',
+    does: 'Opens one part of a document to work on, like {"part": "clip", "id": "v3"}. The reply is its current value, {"opened": {...}}, or why you can’t, {"refused": "..."}. Opening another part lets go of this one.',
+  },
+  update: {
+    name: DOC_UPDATE,
+    args: '{"path": string, "part": string, "id": string, "value": object}',
+    does: 'Writes the part you have open. Write its whole value, every field, changed or not. The reply is {"updated": true}, or why not, {"refused": "..."}.',
+  },
 } satisfies Record<string, ActionSpec>;
 
 /** Every tool an agent or skill can name, by its tool name: the packages' own and the `sys.*` ones. */

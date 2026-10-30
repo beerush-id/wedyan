@@ -372,6 +372,29 @@ describe('the conversation', () => {
     });
   });
 
+  it('lets go of a document part an answer opened once the answer ends, on the desktop that granted it', async () => {
+    chatVendor(
+      [],
+      says('[[ask_app name=doc.open]]{"path": "~/A.motion", "part": "clip", "id": "v3"}[[/ask_app]]'),
+      says('Done.'),
+    );
+    const who = newUser();
+
+    await asDesktop(who, async () => {
+      const desktop = wedyan('tab-a');
+      const closes: unknown[] = [];
+      desktop.answer('doc.open', () => ({ opened: { id: 'v3' } }));
+      desktop.answer('doc.close', (args: unknown, meta: unknown) => void closes.push([args, meta]));
+      await until(() => desktop.data.ready);
+
+      await desktop.ask('send', { text: 'Fix the hero clip' });
+      await until(() => answered(desktop.data) && closes.length === 1);
+
+      expect(closes).toEqual([[{ path: '~/A.motion' }, { after: -1, actor: 'wedyan' }]]);
+      desktop.close();
+    });
+  });
+
   it('refuses a second live connection with a client ID already connected, and takes it once free', async () => {
     const who = newUser();
 

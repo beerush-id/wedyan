@@ -5,6 +5,7 @@ import type { UserProfile } from '../share/profile.js';
 import { ENTRY, SPECIALIST } from './index.js';
 import { personaPrompt } from './persona.js';
 import { rita } from './rita.js';
+import { ACTIONS, DOCUMENT_ASKS } from './tools.js';
 
 /** One of the user's own agents: its file, and its path, which is its name and its actor. */
 export type UserAgent = { path: string; file: AgentFile };
@@ -38,6 +39,14 @@ export function withUserAgents(
   };
 }
 
+/**
+ * How the user's own agents work inside a document open on the desktop, like a person in the same
+ * file: open one part, write it whole, let go. Shown to every one of them, whatever their skills.
+ */
+const DOCUMENT_WORK = `Working inside a document open on the desktop:
+${[...Object.values(DOCUMENT_ASKS), ACTIONS.docClose].map((spec) => `- ${spec.name} ${spec.args}: ${spec.does}`).join('\n')}
+Write doc.open and doc.update as app asks, [[ask_app name=doc.open]]{...}[[/ask_app]], and doc.close as an action. Open a part before writing it, and work only on parts you were given.`;
+
 /** One of the user's own agents as the loop runs it: the engine, with its skills and its own persona. */
 function userAgentProfile(
   { path, file }: UserAgent,
@@ -55,7 +64,7 @@ function userAgentProfile(
     ...engine,
     name: path,
     skilled: false,
-    system: [engine.system, ...granted.map((skill) => skill.system)].join('\n\n'),
+    system: [engine.system, ...granted.map((skill) => skill.system), DOCUMENT_WORK].join('\n\n'),
     tools: [...tools.values()],
     persona: personaPrompt(profile, file),
   };

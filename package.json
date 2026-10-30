@@ -35,6 +35,7 @@
     "@irpclib/http": "workspace:*",
     "@irpclib/irpc": "workspace:*",
     "@irpclib/r2-file": "workspace:*",
+    "@irpclib/r2-image": "workspace:*",
     "@irpclib/ws": "workspace:*",
     "gsap": "catalog:lib",
     "mediabunny": "^1.62.1",
@@ -45,10 +46,12 @@
   "devDependencies": {
     "@airlib/vite": "workspace:*",
     "@biomejs/biome": "catalog:",
+    "@testing-library/react": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:lib",
     "@types/react-dom": "catalog:lib",
     "@vitejs/plugin-react": "catalog:",
+    "jsdom": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:"
