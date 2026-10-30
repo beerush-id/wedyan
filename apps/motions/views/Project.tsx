@@ -494,7 +494,7 @@ const CastPane = template<{ persona: PersonaDocument }>((props) => {
   const looks = [
     ...(persona.head?.poses ?? []),
     ...(persona.body ? [persona.body.main, ...(persona.body.poses ?? [])] : []),
-    ...(persona.wardrobe ?? []),
+    ...(persona.wardrobe ? [persona.wardrobe.main, ...(persona.wardrobe.outfits ?? [])] : []),
   ];
   return (
     <article className="wedyan-direct-pane">

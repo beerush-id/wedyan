@@ -9,6 +9,7 @@ import {
   WindowTitle,
 } from '@airlib/react-aui/desktop';
 import type { FC } from 'react';
+import { deleteConfirm } from '@/components/confirm.js';
 import { DeleteIcon, DownloadIcon, ShareIcon } from '@/components/icons.js';
 import { type SelectionAction, SelectionActions } from '@/components/SelectionActions.js';
 import {
@@ -102,7 +103,7 @@ export const files = defineWindow({
       { label: 'Share', icon: <ShareIcon /> },
       { label: 'Download', icon: <DownloadIcon /> },
     ],
-    [{ label: 'Delete', icon: <DeleteIcon />, run: remove }],
+    [{ label: 'Delete', icon: <DeleteIcon />, run: remove, confirm: deleteConfirm(pickedPaths().length, 'item', 'items', 'your drive') }],
   ];
 
   const place = (item: Place) => {

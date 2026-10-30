@@ -1,22 +1,11 @@
-import { $static, $use, Show, Snippet, setup, template } from '@airlib/react';
-import { Button, DescriptionList, EmptyState } from '@airlib/react-aui';
-import { Window, WindowTitle } from '@airlib/react-aui/desktop';
+import { $use, Show, Snippet, template } from '@airlib/react';
+import { Button, DescriptionList } from '@airlib/react-aui';
 import { CheckIcon, CloseIcon } from '@airlib/react-aui/icons';
 import { BROWSE_CLASS } from '@/components/WedyanGallery.js';
 import { whenOf } from './dates.js';
-import { LibraryIcon } from './icons.js';
-import {
-  type AttendeeResponse,
-  type CalendarEvent,
-  calendarOf,
-  eventAt,
-  type InviteResponse,
-  respond,
-  tintOf,
-} from './library.js';
+import { type AttendeeResponse, type CalendarEvent, calendarOf, type InviteResponse, respond, tintOf } from './library.js';
 
 const CLASS = {
-  EVENT: 'wedyan-calendar-event',
   CALENDAR: 'wedyan-calendar-of',
   REPLY: 'wedyan-calendar-reply',
   HEADING: 'wedyan-calendar-heading',
@@ -38,41 +27,7 @@ const REPLY_WORDS: Record<InviteResponse, string> = {
 };
 
 /**
- * An event in a window of its own, for as long as it's open: everything about it, and for an
- * invite, the reply. Once the event is deleted, the window says so.
- */
-export const EventWindow = setup<{ path: string }>((props) => {
-  // A window shows one event for its whole life.
-  const path = $static(() => props.path);
-  const event = () => eventAt(path);
-
-  return () => (
-    <Window>
-      <Window.Snippet for="title">
-        {() => (
-          <WindowTitle>
-            <Snippet>{() => event()?.summary ?? ''}</Snippet>
-          </WindowTitle>
-        )}
-      </Window.Snippet>
-      <div className={CLASS.EVENT}>
-        <Show
-          when={event}
-          fallback={() => (
-            <EmptyState title="Event deleted" description="This event is no longer in your calendar." level={3}>
-              <EmptyState.Snippet for="icon">{() => <LibraryIcon />}</EmptyState.Snippet>
-            </EmptyState>
-          )}
-        >
-          {(entry) => <EventDetails event={entry} />}
-        </Show>
-      </div>
-    </Window>
-  );
-}, 'EventWindow');
-
-/**
- * Everything about an event, as its preview and its window show it: its summary and calendar;
+ * Everything about an event, as its preview shows it: its summary and calendar;
  * when, where and who organized it; for an invite, the reply, to accept or decline; who's invited
  * and how they answered; and what it's about.
  */

@@ -53,6 +53,25 @@
   gap: var(--spacing-lg);
 }
 
+/* A setting to switch: what it is over what it does, then the switch at the end of the line. */
+.wedyan-lounge-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+
+  & > .aui-switch {
+    flex: none;
+  }
+}
+
+.wedyan-lounge-switch-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-inline-size: 0;
+}
+
 /* Who they are runs long: the field grows with what's written, from four lines, so the panel scrolls rather than the field. */
 .wedyan-lounge-bio {
   &:is(textarea),
@@ -200,6 +219,17 @@
   .wedyan-lounge-slot[data-part='body'] & {
     aspect-ratio: 16 / 9;
   }
+
+  .wedyan-lounge-slot[data-part='wardrobe'] & {
+    aspect-ratio: 9 / 16;
+  }
+}
+
+/* A default outfit stands tall: kept narrow, so it doesn't run far down the tab, and centred in it. */
+.wedyan-lounge-slot[data-part='wardrobe'] {
+  inline-size: 100%;
+  max-inline-size: 20rem;
+  margin-inline: auto;
 }
 
 div.wedyan-lounge-slot-picture {

@@ -14,7 +14,8 @@
       "poses": ["Ayla/Smile.still", "Ayla/Side.still"]
     },
     "body": { "main": "Ayla/Body.still" },
-    "wardrobe": ["Ayla/Oilskin coat.still", "Ayla/Sweater.still"],
+    "wardrobe": { "main": "Ayla/Oilskin coat.still", "outfits": ["Ayla/Sweater.still"] },
+    "attachDefault": true,
     "voice": { "name": "Bright and sure" }
   },
   "/People/Ayla/Head.still": {

@@ -11,21 +11,17 @@ import {
 } from '@airlib/react-aui/desktop';
 import { ArrowLeft, ArrowRight } from '@airlib/react-aui/icons';
 import type { ReactNode } from 'react';
+import { deleteConfirm } from '@/components/confirm.js';
 import { type SelectionAction, SelectionActions } from '@/components/SelectionActions.js';
 import { BROWSE_CLASS, WedyanGallerySearch } from '@/components/WedyanGallery.js';
-import { nameOf } from '@/lib/documents/store.js';
 import { fullRect } from '@/lib/systems/window.js';
 import manifest from '../manifest.json';
 import { type CalendarState, calendarCtx } from './context.js';
 import { monthTitle, stepped, todayKey } from './dates.js';
-import { EventDetails, EventWindow } from './Event.js';
+import { EventDetails } from './Event.js';
 import { CalendarGrid } from './Grid.js';
-import { DeleteIcon, InvitesIcon, LibraryIcon, OpenIcon, PreviewIcon, SidebarCloseIcon, SidebarOpenIcon } from './icons.js';
+import { DeleteIcon, InvitesIcon, LibraryIcon, PreviewIcon, SidebarCloseIcon, SidebarOpenIcon } from './icons.js';
 import { CALENDARS, type CalendarEvent, eventAt, library, type ListingRequest, listing, tintOf } from './library.js';
-import { COMMANDS, CONTEXTS } from './prompt.js';
-
-/** What a Calendar window can be opened with: an event to show, by path; the calendar otherwise. */
-export type CalendarData = { event?: string } | undefined;
 
 const CLASS = {
   BROWSE: BROWSE_CLASS.ROOT,
@@ -35,11 +31,12 @@ const CLASS = {
 };
 
 /**
- * Calendar: the events and invites in the Calendar inbox, by the day. Down the side: Calendar
- * itself, the invites waiting on a reply, and each calendar, which narrow what the days show. The
- * days: a month of weeks, or one week, today marked; Today and the arrows move between them. Beside
- * them, a preview of the picked event, which can be turned off, where an invite is accepted or
- * declined. A double click, or Enter on the picked event, opens it in a window of its own.
+ * Calendar: the events and invites in the Calendar inbox, by the day, in one window. Down the side:
+ * Calendar itself, the invites waiting on a reply, and each calendar, which narrow what the days
+ * show. The days: a month of weeks, or one week, today marked; Today and the arrows move between
+ * them. Beside them, a preview of the picked event, which can be turned off, where an invite is
+ * accepted or declined. A double click, or Enter on the picked event, opens it there, showing the
+ * preview if it was hidden.
  */
 export const calendar = defineWindow({
   name: manifest.name,
@@ -48,12 +45,7 @@ export const calendar = defineWindow({
   image: manifest.icon,
   rect: fullRect(),
   window: { snap: '.aui-window', minWidth: 640, minHeight: 420 },
-  multiple: true,
-}).render((props) => {
-  // A window opened on an event shows that event for its whole life.
-  const event = (props.instance.data as CalendarData)?.event;
-  if (event) return () => <EventWindow path={event} />;
-
+}).render(() => {
   const view = mutable<CalendarState>({
     place: { view: 'calendar' },
     anchor: todayKey(),
@@ -74,7 +66,12 @@ export const calendar = defineWindow({
   const invites = () => listing({ view: 'invites' }).length;
   const isAt = (request: ListingRequest) => samePlace(view.place, request);
 
-  calendarCtx.set({ state: view, shown, open: openEvent });
+  // An event opens in the preview beside the days, the preview showing again if it was hidden.
+  const open = (path: string) => {
+    Object.assign(view, { picked: path, previewHidden: false });
+  };
+
+  calendarCtx.set({ state: view, shown, open });
 
   /**
    * Shows everything, the invites, or a calendar, with nothing picked and nothing searched, as a
@@ -109,10 +106,9 @@ export const calendar = defineWindow({
     if (path) library.deleted.push(path);
   };
 
-  /** The actions for the picked event, in their groups: open; remove. */
-  const selection = (path: string): SelectionAction[][] => [
-    [{ label: 'Open in a window', icon: <OpenIcon />, run: () => openEvent(path) }],
-    [{ label: 'Delete', icon: <DeleteIcon />, run: remove }],
+  /** The actions for the picked event: removing it. */
+  const selection = (): SelectionAction[][] => [
+    [{ label: 'Delete', icon: <DeleteIcon />, run: remove, confirm: deleteConfirm(1, 'event', 'events', 'your calendar') }],
   ];
 
   /** One place down the side: Calendar itself, the invites, or a calendar. */
@@ -152,7 +148,7 @@ export const calendar = defineWindow({
               <Snippet>{() => monthTitle(view.anchor)}</Snippet>
             </WindowTitle>
             {/* While an event is picked, what can be done with it sits beside the title. */}
-            <Show when={() => picked()?.path}>{(path) => <SelectionActions label="Picked event" groups={selection(path)} />}</Show>
+            <Show when={() => picked()?.path}>{() => <SelectionActions label="Picked event" groups={selection()} />}</Show>
           </>
         )}
       </Window.Snippet>
@@ -226,32 +222,6 @@ export const calendar = defineWindow({
     </Window>
   );
 });
-
-/**
- * Opens an event in a Calendar window of its own, or brings forward the one already showing it.
- *
- * @param path - The event's `.ics` path.
- * @returns The window showing it.
- */
-export function openEvent(path: string) {
-  const showing = calendar.instances.find((instance) => (instance.data as CalendarData)?.event === path);
-  if (showing) {
-    showing.focus();
-    return showing;
-  }
-
-  return calendar.open(
-    { event: path },
-    {
-      name: 'event',
-      commands: COMMANDS,
-      contexts: CONTEXTS,
-      get title() {
-        return eventAt(path)?.summary ?? nameOf(path);
-      },
-    }
-  );
-}
 
 /**
  * Whether two places down the side are the same: both everything, both the invites, or the same calendar.

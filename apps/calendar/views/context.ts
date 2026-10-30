@@ -26,7 +26,7 @@ export type CalendarView = {
   state: CalendarState;
   /** The events the picked place and the search leave. */
   shown(): CalendarEvent[];
-  /** Opens an event in a window of its own. */
+  /** Opens an event in the preview beside the days, showing the preview if it was hidden. */
   open(path: string): void;
 };
 

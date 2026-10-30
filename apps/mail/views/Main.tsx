@@ -11,6 +11,7 @@ import {
 } from '@airlib/react-aui/desktop';
 import { ArrowLeft } from '@airlib/react-aui/icons';
 import type { ReactNode } from 'react';
+import { deleteConfirm } from '@/components/confirm.js';
 import { SidebarCloseIcon, SidebarOpenIcon } from '@/components/icons.js';
 import { type SelectionAction, SelectionActions } from '@/components/SelectionActions.js';
 import { WedyanGallery, type WedyanGalleryEntry, WedyanGallerySearch } from '@/components/WedyanGallery.js';
@@ -157,7 +158,7 @@ export const mail = defineWindow({
     return [
       [{ label: read ? 'Mark as unread' : 'Mark as read', icon: read ? <UnreadIcon /> : <ReadIcon />, run: () => toggleRead(paths) }],
       [{ label: flagged ? 'Unflag' : 'Flag', icon: flagged ? <FlaggedIcon /> : <FlagIcon />, run: () => toggleTag(paths, FLAGGED) }],
-      [{ label: 'Delete', icon: <DeleteIcon />, run: remove }],
+      [{ label: 'Delete', icon: <DeleteIcon />, run: remove, confirm: deleteConfirm(paths.length, 'mail', 'mails', 'your mailbox') }],
     ];
   };
 

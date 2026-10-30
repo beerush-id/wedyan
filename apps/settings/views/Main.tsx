@@ -1,8 +1,9 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
 import { $bind, $use, effect, mutable, Snippet } from '@airlib/react';
-import { Button, Toggle, Tooltip } from '@airlib/react-aui';
+import { Button, Divider, Toggle, Tooltip } from '@airlib/react-aui';
 import { defineWindow, Window, WindowSidebar, WindowSidebarPanel, WindowTitle } from '@airlib/react-aui/desktop';
 import type { ReactNode } from 'react';
+import { SaveButton } from '@/components/SaveButton.js';
 import manifest from '../manifest.json';
 import { AccountPage } from './Account.js';
 import { GeneralPage } from './General.js';
@@ -91,6 +92,16 @@ export const settings = defineWindow({
             <WindowTitle>
               <Snippet>{() => SECTION_LABELS[place.section]}</Snippet>
             </WindowTitle>
+          </>
+        )}
+      </Window.Snippet>
+      {/* Settings edit your profile file: saving it, at the end of the toolbar. */}
+      <Window.Snippet for="actions">
+        {() => (
+          <>
+            <SaveButton />
+            {/* Sets the app's own buttons apart from the window's. */}
+            <Divider orientation="vertical" variant="ghost" size="sm" />
           </>
         )}
       </Window.Snippet>

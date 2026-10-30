@@ -3,6 +3,8 @@ import { Confirm, ConfirmAction, ConfirmCancel, ConfirmDescription, ConfirmPanel
 import type { ReactNode } from 'react';
 
 type ConfirmButtonProps = {
+  /** The trigger's name for screen readers, when it shows only a glyph, e.g. "Delete". */
+  label?: string;
   /** The question, read live, e.g. "Delete Ayla?". */
   title: () => string;
   /** What answering yes does, in a line. */
@@ -26,7 +28,7 @@ type ConfirmButtonProps = {
 export const ConfirmButton = template<ConfirmButtonProps>(
   (props) => (
     <Confirm color="error" onconfirm={props.onconfirm}>
-      <ConfirmTrigger size={props.size} variant={props.variant} color="error">
+      <ConfirmTrigger size={props.size} variant={props.variant} color="error" {...({ 'aria-label': props.label } as object)}>
         {props.children}
       </ConfirmTrigger>
       <ConfirmPanel>

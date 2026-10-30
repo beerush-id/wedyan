@@ -11,6 +11,8 @@ import {
 } from '@airlib/react-aui/desktop';
 import { AddIcon, ArrowLeft } from '@airlib/react-aui/icons';
 import type { ReactNode } from 'react';
+import { deleteConfirm } from '@/components/confirm.js';
+import { SaveButton } from '@/components/SaveButton.js';
 import { type SelectionAction, SelectionActions } from '@/components/SelectionActions.js';
 import { WedyanGallery, type WedyanGalleryEntry, WedyanGallerySearch } from '@/components/WedyanGallery.js';
 import { drive, nameOf, parentOf, supply } from '@/lib/documents/store.js';
@@ -168,7 +170,7 @@ export const memo = defineWindow({
     const pinned = allPinned(paths);
     return [
       [{ label: pinned ? 'Unpin' : 'Pin', icon: pinned ? <PinnedIcon /> : <PinIcon />, run: () => togglePinned(paths) }],
-      [{ label: 'Delete', icon: <DeleteIcon />, run: remove }],
+      [{ label: 'Delete', icon: <DeleteIcon />, run: remove, confirm: deleteConfirm(paths.length, 'memo', 'memos', 'your memos') }],
     ];
   };
 
@@ -270,7 +272,7 @@ export const memo = defineWindow({
               <AddIcon />
               <Tooltip>New memo</Tooltip>
             </Button>
-            {/* How the open memo's words show, apart from making one. */}
+            {/* How the open memo's words show, and saving it, apart from making one. */}
             <Show when={opened}>
               {() => (
                 <>
@@ -285,6 +287,7 @@ export const memo = defineWindow({
                       <Tooltip>Read</Tooltip>
                     </Toggle>
                   </ToggleGroup>
+                  <SaveButton />
                 </>
               )}
             </Show>

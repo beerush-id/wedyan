@@ -165,6 +165,7 @@ const referencesGroup = (source: GenerativeDocument, subject: GenerationSubject)
               {/* Taking it off, once confirmed: small, over the picture's middle, while it's hovered or focused. */}
               <span className="wedyan-compose-reference-remove">
                 <ConfirmButton
+                  label="Remove reference"
                   size="xs"
                   variant="glass"
                   title={() => 'Remove reference?'}

@@ -1,6 +1,6 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
 import { $bind, $static, $use, createContext, For, mutable, Show, Snippet, setup } from '@airlib/react';
-import { Avatar, Button, EmptyState, Listbox, ListboxOption, Select, TextInput, Tooltip } from '@airlib/react-aui';
+import { Avatar, Button, EmptyState, Listbox, ListboxOption, Select, Switch, TextInput, Tooltip } from '@airlib/react-aui';
 import { WindowPanel } from '@airlib/react-aui/desktop';
 import type { ReactNode } from 'react';
 import { ConfirmButton } from '@/components/ConfirmButton.js';
@@ -9,43 +9,90 @@ import { generationCtx } from '@/components/generation.js';
 import { GenerationForm, GenerationGroup } from '@/components/GenerationForm.js';
 import { GenerativeIcon } from '@/components/icons.js';
 import { WRITING_MODELS } from '@/lib/documents/generation.js';
-import type { PersonaDocument, PersonaLook } from '@/lib/documents/types.js';
+import type { PersonaDocument } from '@/lib/documents/types.js';
 import { system } from '@/lib/systems/system.js';
 import { AddIcon, CloseIcon, DeleteIcon, ImageIcon, PeopleIcon, PersonIcon } from './icons.js';
 import { edit, KINDS, newStill, type PersonaKind, personaAt, personalityOf, pictureOf, portraitOf, stillAt } from './library.js';
 import { type LoungeSession, loungeCtx, PERSON_TABS, type PersonTab } from './session.js';
 
+/** The id naming the Profile's attach-defaults switch, and its hint as `-hint` after it. */
+const ATTACH_ID = 'wedyan-lounge-attach-defaults';
+
 /** How long who a persona is may run: the format keeps a description under 256 characters. */
 const DESCRIPTION_MAX = 255;
 
-/** The tabs that hold pictures. */
-type PictureTab = Exclude<PersonTab, 'profile'>;
+/**
+ * A persona's three sides, each a main picture and others: the head, which close-ups are made
+ * from; the body, for full shots; and the wardrobe, its default outfit and the others.
+ */
+type Part = Exclude<PersonTab, 'profile'>;
 
-/** A persona's two looks: the head, which close-ups are made from, and the body, for full shots. */
-type Part = 'head' | 'body';
+/** One side as written: its main picture, and the others — a look's poses, or the wardrobe's outfits. */
+type Side = { main: string; poses?: string[]; outfits?: string[] };
 
 /**
- * What each look's main picture and poses are called, what an empty main picture invites and its
- * button says, and the shape its pictures are made in.
+ * What each side's main picture and its others are called and kept under, what an empty main
+ * picture invites and its button says, what making another the main one and taking one away say,
+ * and the shape its pictures are made in.
  */
-const PARTS: Record<Part, { main: string; pose: string; empty: string; hint: string; add: string; poses: string; aspect: string }> = {
+const PARTS: Record<
+  Part,
+  {
+    main: string;
+    other: string;
+    others: 'poses' | 'outfits';
+    empty: string;
+    hint: string;
+    add: string;
+    addOther: string;
+    othersLabel: string;
+    promote: string;
+    remove: string;
+    removeHint: string;
+    aspect: string;
+  }
+> = {
   head: {
     main: 'Face',
-    pose: 'Face pose',
+    other: 'Face pose',
+    others: 'poses',
     empty: 'No face yet',
     hint: 'Close-ups are made from it, and it’s their portrait.',
     add: 'Add face',
-    poses: 'Poses — expressions and angles of their face',
+    addOther: 'Add pose',
+    othersLabel: 'Poses — expressions and angles of their face',
+    promote: 'Make face',
+    remove: 'Remove pose',
+    removeHint: 'It’s taken off their poses. Its still stays in their folder.',
     aspect: '1:1',
   },
   body: {
     main: 'Figure',
-    pose: 'Figure pose',
+    other: 'Figure pose',
+    others: 'poses',
     empty: 'No figure yet',
     hint: 'Full shots are made from it.',
     add: 'Add figure',
-    poses: 'Poses — stances and angles of their figure',
+    addOther: 'Add pose',
+    othersLabel: 'Poses — stances and angles of their figure',
+    promote: 'Make figure',
+    remove: 'Remove pose',
+    removeHint: 'It’s taken off their poses. Its still stays in their folder.',
     aspect: '16:9',
+  },
+  wardrobe: {
+    main: 'Outfit',
+    other: 'Outfit',
+    others: 'outfits',
+    empty: 'No outfit yet',
+    hint: 'What they wear unless told otherwise.',
+    add: 'Add outfit',
+    addOther: 'Add outfit',
+    othersLabel: 'Other outfits they can wear',
+    promote: 'Make default',
+    remove: 'Remove outfit',
+    removeHint: 'It’s taken out of their wardrobe. Its still stays in their folder.',
+    aspect: '9:16',
   },
 };
 
@@ -81,6 +128,8 @@ const CLASS = {
   TILES: 'wedyan-lounge-tiles',
   TILE: 'wedyan-lounge-tile',
   TILE_PICTURE: 'wedyan-lounge-tile-picture',
+  SWITCH_ROW: 'wedyan-lounge-switch-row',
+  SWITCH_TEXT: 'wedyan-lounge-switch-text',
   BIO: 'wedyan-lounge-bio',
   COUNT: 'wedyan-lounge-count',
   TILE_ADD: 'wedyan-lounge-tile-add',
@@ -108,7 +157,7 @@ export const PersonaEditor = setup(() => {
     const { tab } = session;
     if (!document || tab === 'profile') return null;
     if (view.picked && picturesOf(document, tab).includes(view.picked)) return view.picked;
-    return tab === 'wardrobe' ? null : document[tab]?.main || null;
+    return document[tab]?.main || null;
   };
   personaViewCtx.set({
     get picked() {
@@ -159,7 +208,6 @@ export const PersonaEditor = setup(() => {
             <Snippet data={() => session.tab}>
               {(tab) => {
                 if (tab === 'profile') return <ProfileTab />;
-                if (tab === 'wardrobe') return <WardrobeTab />;
                 return <LookTab key={tab} part={tab} />;
               }}
             </Snippet>
@@ -246,6 +294,15 @@ const ProfileTab = setup(() => {
     set voiceName(name: string) {
       change((document) => setVoice(document, name, document.voice?.sample ?? ''));
     },
+    get attachDefault() {
+      return !!persona()?.attachDefault;
+    },
+    set attachDefault(attach: boolean) {
+      change((document) => {
+        if (attach) document.attachDefault = true;
+        else delete document.attachDefault;
+      });
+    },
   };
 
   const portrait = () => {
@@ -274,6 +331,16 @@ const ProfileTab = setup(() => {
           </span>
           <TextInput size="sm" label="Voice" placeholder="How they sound, e.g. Calm" value={$bind(fields, 'voiceName')} />
         </div>
+      </div>
+      {/* Whether casting them brings their defaults along on its own. */}
+      <div className={CLASS.SWITCH_ROW}>
+        <span className={CLASS.SWITCH_TEXT}>
+          <span id={ATTACH_ID}>Attach defaults</span>
+          <span id={`${ATTACH_ID}-hint`} className={CLASS.FIELD_LABEL}>
+            When cast, their face, figure and default outfit go along as references. Off, only their face does.
+          </span>
+        </span>
+        <Switch aria-labelledby={ATTACH_ID} aria-describedby={`${ATTACH_ID}-hint`} checked={$bind(fields, 'attachDefault')} />
       </div>
       <div className={CLASS.FIELD}>
         <span className={CLASS.FIELD_LABEL} aria-hidden="true">
@@ -371,19 +438,19 @@ const PersonalityForm = setup(() => {
 }, 'PersonalityForm');
 
 /**
- * One of the open persona's looks, the head or the body: its main picture, large — the picture,
- * an empty still waiting to be made, or an empty place offering to add one — then, once the look
- * exists, its poses, each to pick, make the main picture or remove, ending with a tile adding one.
- * What's added is a new, empty still, picked at once so its prompt is beside it.
+ * One of the open persona's sides — the head, the body, or the wardrobe: its main picture, large —
+ * the picture, an empty still waiting to be made, or an empty place offering to add one — then, once
+ * it exists, its others — poses, or outfits — each to pick, make the main one or remove, ending with
+ * a tile adding one. What's added is a new, empty still, picked at once so its prompt is beside it.
  */
 const LookTab = setup<{ part: Part }>((props) => {
   const session = loungeCtx.get() as LoungeSession;
   const view = personaViewCtx.get() as PersonaView;
   const persona = () => (session.path ? personaAt(session.path) : undefined);
-  // Head and Body each get their own tab, made afresh, so which look it is never changes under it.
+  // Each side gets its own tab, made afresh, so which side it is never changes under it.
   const part = $static(() => PARTS[props.part]);
 
-  const look = () => persona()?.[props.part];
+  const look = (): Side | undefined => persona()?.[props.part];
   const main = () => look()?.main ?? '';
   const picture = () => (main() && session.path ? pictureOf(session.path, main()) : undefined);
 
@@ -448,19 +515,19 @@ const LookTab = setup<{ part: Part }>((props) => {
       </figure>
       <Show when={main}>
         {() => (
-          <section className={CLASS.SECTION} aria-label="Poses">
-            <span className={CLASS.FIELD_LABEL}>{part.poses}</span>
+          <section className={CLASS.SECTION} aria-label={part.othersLabel}>
+            <span className={CLASS.FIELD_LABEL}>{part.othersLabel}</span>
             {tiles(session, {
-              items: () => look()?.poses ?? [],
-              label: 'Pose',
-              add: { label: 'Add pose', run: () => add(part.pose, (document, source) => (lookOf(document, props.part).poses ??= []).push(source)) },
+              items: () => look()?.[part.others] ?? [],
+              label: part.other,
+              add: { label: part.addOther, run: () => add(part.other, (document, source) => (lookOf(document, props.part)[part.others] ??= []).push(source)) },
               remove: {
-                label: 'Remove pose',
-                description: 'It’s taken off their poses. Its still stays in their folder.',
-                run: (source) => changeOpen(session, (document) => removePose(document, props.part, source)),
+                label: part.remove,
+                description: part.removeHint,
+                run: (source) => changeOpen(session, (document) => removeOther(document, props.part, source)),
               },
               promote: {
-                label: `Make ${part.main.toLowerCase()}`,
+                label: part.promote,
                 run: (source) => changeOpen(session, (document) => makeMain(document, props.part, source)),
               },
             })}
@@ -470,41 +537,6 @@ const LookTab = setup<{ part: Part }>((props) => {
     </div>
   );
 }, 'LookTab');
-
-/**
- * The open persona's wardrobe: the outfits they can wear, each to pick or remove, ending with a
- * tile adding one — a new, empty still, picked at once so its prompt is beside it.
- */
-const WardrobeTab = setup(() => {
-  const session = loungeCtx.get() as LoungeSession;
-  const view = personaViewCtx.get() as PersonaView;
-  const persona = () => (session.path ? personaAt(session.path) : undefined);
-
-  const addOutfit = () => {
-    if (!session.path) return;
-    const source = newStill(session.path, 'Outfit', '9:16');
-    changeOpen(session, (document) => (document.wardrobe ??= []).push(source));
-    view.pick(source);
-  };
-
-  return () => (
-    <div className={CLASS.TAB}>
-      <section className={CLASS.SECTION} aria-label="Wardrobe">
-        <span className={CLASS.FIELD_LABEL}>Wardrobe — the outfits they can wear</span>
-        {tiles(session, {
-          items: () => persona()?.wardrobe ?? [],
-          label: 'Outfit',
-          add: { label: 'Add outfit', run: addOutfit },
-          remove: {
-            label: 'Remove outfit',
-            description: 'It’s taken out of their wardrobe. Its still stays in their folder.',
-            run: (source) => changeOpen(session, (document) => removeOutfit(document, source)),
-          },
-        })}
-      </section>
-    </div>
-  );
-}, 'WardrobeTab');
 
 /**
  * One of the open persona's pictures as something to pick, marked while picked, so how it was made
@@ -610,6 +642,7 @@ function tiles(
 function removeButton(remove: { label: string; description: string; run: (source: string) => void }, source: string): ReactNode {
   return (
     <ConfirmButton
+      label={remove.label}
       size="xs"
       variant="glass"
       title={() => `${remove.label}?`}
@@ -636,72 +669,62 @@ function changeOpen(session: LoungeSession, apply: (document: PersonaDocument) =
 }
 
 /**
- * Every picture on one of a persona's tabs: a look's main picture and poses, or the outfits.
+ * Every picture on one of a persona's sides: its main picture and its others.
  *
  * @param document - The persona.
- * @param tab - The head, the body, or the wardrobe.
+ * @param part - The head, the body, or the wardrobe.
  * @returns The pictures, as the persona writes them.
  */
-function picturesOf(document: PersonaDocument, tab: PictureTab): string[] {
-  if (tab === 'wardrobe') return document.wardrobe ?? [];
-  const look = document[tab];
-  return look ? [look.main, ...(look.poses ?? [])].filter(Boolean) : [];
+function picturesOf(document: PersonaDocument, part: Part): string[] {
+  const side: Side | undefined = document[part];
+  return side ? [side.main, ...(side[PARTS[part].others] ?? [])].filter(Boolean) : [];
 }
 
 /**
- * One of a persona's looks, made empty first when it has none, to be written into.
+ * One of a persona's sides, made empty first when it has none, to be written into.
  *
  * @param document - The persona.
- * @param part - The head or the body.
- * @returns The look.
+ * @param part - The head, the body, or the wardrobe.
+ * @returns The side.
  */
-function lookOf(document: PersonaDocument, part: Part): PersonaLook {
+function lookOf(document: PersonaDocument, part: Part): Side {
   if (!document[part]) document[part] = { main: '' };
-  return document[part] as PersonaLook;
+  return document[part] as Side;
 }
 
 /**
- * Makes a pose a look's main picture; the main picture it replaces becomes a pose in its place, so
- * nothing is lost.
+ * Makes one of a side's others its main picture; the main picture it replaces takes its place
+ * among the others, so nothing is lost.
  *
  * @param document - The persona.
- * @param part - The head or the body.
- * @param source - The pose.
+ * @param part - The head, the body, or the wardrobe.
+ * @param source - The pose or outfit.
  */
 function makeMain(document: PersonaDocument, part: Part, source: string): void {
-  const look = lookOf(document, part);
-  const poses = look.poses ?? [];
-  poses.splice(poses.indexOf(source), 1, ...(look.main ? [look.main] : []));
-  look.main = source;
-  if (!poses.length) delete look.poses;
+  const side = lookOf(document, part);
+  const key = PARTS[part].others;
+  const others = side[key] ?? [];
+  others.splice(others.indexOf(source), 1, ...(side.main ? [side.main] : []));
+  side.main = source;
+  if (!others.length) delete side[key];
 }
 
 /**
- * Takes a pose away; poses are optional, so with none left they're left out, and so is a body with
- * no picture at all.
+ * Takes one of a side's others away; they're optional, so with none left they're left out, and so
+ * is a body or a wardrobe with no picture at all.
  *
  * @param document - The persona.
- * @param part - The head or the body.
- * @param source - The pose.
+ * @param part - The head, the body, or the wardrobe.
+ * @param source - The pose or outfit.
  */
-function removePose(document: PersonaDocument, part: Part, source: string): void {
-  const look = document[part];
-  if (!look?.poses) return;
-  look.poses.splice(look.poses.indexOf(source), 1);
-  if (!look.poses.length) delete look.poses;
-  if (part === 'body' && !look.main && !look.poses) delete document.body;
-}
-
-/**
- * Takes an outfit away; the wardrobe is optional, so with none left it's left out.
- *
- * @param document - The persona.
- * @param source - The outfit.
- */
-function removeOutfit(document: PersonaDocument, source: string): void {
-  const wardrobe = document.wardrobe ?? [];
-  wardrobe.splice(wardrobe.indexOf(source), 1);
-  if (!wardrobe.length) delete document.wardrobe;
+function removeOther(document: PersonaDocument, part: Part, source: string): void {
+  const side: Side | undefined = document[part];
+  const key = PARTS[part].others;
+  const others = side?.[key];
+  if (!side || !others) return;
+  others.splice(others.indexOf(source), 1);
+  if (!others.length) delete side[key];
+  if (part !== 'head' && !side.main && !side[key]) delete document[part];
 }
 
 /**

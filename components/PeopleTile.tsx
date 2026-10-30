@@ -24,15 +24,16 @@ const STACKED = 3;
  * Someone cast in a generation, as a square tile of their portrait, with the pictures it takes of
  * them stacked small at its corner. Hovered or focused, their name shows
  * below it; clicked, every picture of theirs — face, expressions, figure, poses, wardrobe — opens
- * above it, to pick which ones the generation takes along.
+ * above it, to pick which ones the generation takes along. Their defaults start picked when they
+ * attach them; their face alone otherwise.
  */
 export const PeopleTile = setup<PeopleTileProps>((props) => {
   // The tile is made for one person; their pictures are read as it's made.
   const groups = $static(() => groupsOf(props.persona));
   const name = $static(() => props.persona.name || 'Unnamed');
   const portrait = $static(() => (props.persona.head?.main ? props.pictureOf(props.persona.head.main) : undefined));
-  // Until the drive keeps the choice on the cast, their face goes along.
-  const choice = mutable({ picked: $static(() => (props.persona.head?.main ? [props.persona.head.main] : [])) as string[] });
+  // Until the drive keeps the choice on the cast, what goes along is their defaults, or their face alone.
+  const choice = mutable({ picked: $static(() => defaultsOf(props.persona)) });
 
   /**
    * Takes a picture along, or leaves it out.
@@ -113,9 +114,21 @@ function groupsOf(persona: PersonaDocument): PictureGroup[] {
     { label: 'Expressions', sources: persona.head?.poses ?? [] },
     { label: 'Figure', sources: persona.body?.main ? [persona.body.main] : [] },
     { label: 'Poses', sources: persona.body?.poses ?? [] },
-    { label: 'Wardrobe', sources: persona.wardrobe ?? [] },
+    { label: 'Wardrobe', sources: persona.wardrobe ? [persona.wardrobe.main, ...(persona.wardrobe.outfits ?? [])].filter(Boolean) : [] },
   ];
   return groups.filter((group) => group.sources.length);
+}
+
+/**
+ * What casting a person takes along before anything's picked: with `attachDefault`, their main
+ * face, figure and outfit; otherwise their face alone.
+ *
+ * @param persona - The person.
+ * @returns Those pictures, as the persona writes them.
+ */
+function defaultsOf(persona: PersonaDocument): string[] {
+  const defaults = persona.attachDefault ? [persona.head?.main, persona.body?.main, persona.wardrobe?.main] : [persona.head?.main];
+  return defaults.filter((source): source is string => !!source);
 }
 
 /**

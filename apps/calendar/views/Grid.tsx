@@ -20,8 +20,8 @@ const CLASS = {
 /**
  * The calendar's days, under the weekdays' names: the whole weeks of a month, or one week, each day
  * with its events and today marked. Picking an event shows it in the preview; a double click, or
- * Enter on the picked one, opens it in a window of its own. What shows and how comes from the
- * Calendar window around it.
+ * Enter on the picked one, opens it there, showing the preview if it was hidden. What shows and how
+ * comes from the Calendar window around it.
  */
 export const CalendarGrid = setup(() => {
   const calendar = calendarCtx.get();

@@ -12,6 +12,7 @@ import {
 import { AddIcon } from '@airlib/react-aui/icons';
 import type { FC } from 'react';
 import { type DirectItem, DirectList } from '@/components/Direct.js';
+import { SaveButton } from '@/components/SaveButton.js';
 import { fullRect } from '@/lib/systems/window.js';
 import manifest from '../manifest.json';
 import { AgentEditor } from './Agent.js';
@@ -196,14 +197,7 @@ export const lounge = defineWindow({
                     </Button>
                   )}
                 </Snippet>
-                {/* Saving the open one is the drive's to do; the button stands where it will. */}
-                <Show when={opened}>
-                  {() => (
-                    <Button size="sm" variant="filled">
-                      Save
-                    </Button>
-                  )}
-                </Show>
+                <Show when={opened}>{() => <SaveButton />}</Show>
                 {/* Sets the app's own buttons apart from the window's. */}
                 <Divider orientation="vertical" variant="ghost" size="sm" />
               </WindowControls>

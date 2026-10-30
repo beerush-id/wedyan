@@ -5,7 +5,6 @@ import { SymbolIcon } from '@/components/SymbolIcon.js';
 export { CalendarIcon as LibraryIcon } from '@airlib/react-aui/icons';
 export {
   DeleteIcon,
-  OpenIcon,
   PreviewPanelIcon as PreviewIcon,
   SidebarCloseIcon,
   SidebarOpenIcon,

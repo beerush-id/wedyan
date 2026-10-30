@@ -20,6 +20,7 @@ import {
 } from '@airlib/react-aui/desktop';
 import { AddIcon, ArrowLeft, FolderIcon } from '@airlib/react-aui/icons';
 import type { ReactNode } from 'react';
+import { deleteConfirm } from '@/components/confirm.js';
 import { FloatingDownload } from '@/components/FloatingDownload.js';
 import { DeleteIcon, DownloadIcon, ShareIcon, SidebarCloseIcon, SidebarOpenIcon } from '@/components/icons.js';
 import { type SelectionAction, SelectionActions } from '@/components/SelectionActions.js';
@@ -230,7 +231,7 @@ export const photos = defineWindow({
         { label: 'Share', icon: <ShareIcon /> },
         { label: 'Download', icon: <DownloadIcon /> },
       ],
-      [{ label: 'Delete', icon: <DeleteIcon />, run: remove }],
+      [{ label: 'Delete', icon: <DeleteIcon />, run: remove, confirm: deleteConfirm(paths.length, 'item', 'items', 'your drive') }],
     ];
   };
 

@@ -109,6 +109,9 @@ export type StageDocument = DocumentHeader<'stage'> & {
  */
 export type PersonaLook = { main: string; poses?: string[] };
 
+/** The outfits a persona can wear: the one they wear unless told otherwise, and the others, each a `.still` path. */
+export type PersonaWardrobe = { main: string; outfits?: string[] };
+
 /**
  * Someone or something that appears or speaks — a person, a character, a mascot — the same file
  * wherever they appear: a film's character, a promo's narrator, a contact. An agent is never one:
@@ -120,8 +123,10 @@ export type PersonaDocument = DocumentHeader<'persona'> & {
   head: PersonaLook;
   /** Their whole figure, for full shots, and its poses. */
   body?: PersonaLook;
-  /** The outfits they can wear, by `.still` path. */
-  wardrobe?: string[];
+  /** The outfits they can wear: their default one, and the others. */
+  wardrobe?: PersonaWardrobe;
+  /** Whether casting them takes their defaults along as references — the main face, figure and outfit — without picking them. */
+  attachDefault?: boolean;
   voice?: { name: string; sample?: string };
   /** Anything longer about them, by path to a Markdown file. */
   notes?: string;

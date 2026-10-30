@@ -15,6 +15,8 @@ import {
 } from '@airlib/react-aui/desktop';
 import { ArrowLeft, ClockIcon, FolderIcon } from '@airlib/react-aui/icons';
 import type { ReactNode } from 'react';
+import { deleteConfirm } from '@/components/confirm.js';
+import { SaveButton } from '@/components/SaveButton.js';
 import { AlbumIcon, DeleteIcon, DownloadIcon, FavoritesIcon, PreviewPanelIcon, ShareIcon } from '@/components/icons.js';
 import { type SelectionAction, SelectionActions } from '@/components/SelectionActions.js';
 import {
@@ -198,7 +200,7 @@ export const motions = defineWindow({
         { label: 'Share', icon: <ShareIcon /> },
         { label: 'Download', icon: <DownloadIcon /> },
       ],
-      [{ label: 'Delete', icon: <DeleteIcon />, run: remove }],
+      [{ label: 'Delete', icon: <DeleteIcon />, run: remove, confirm: deleteConfirm(pickedPaths().length, 'item', 'items', 'your drive') }],
     ];
   };
 
@@ -435,6 +437,8 @@ export const motions = defineWindow({
                 )}
               </Show>
               <WindowControls>
+                {/* A project open in Direct or Compose is being edited: saving it leads what can be done. */}
+                <Show when={() => isEditing(route)}>{() => <SaveButton />}</Show>
                 <Show when={() => route.view === 'stage'}>{() => <ComposeActions />}</Show>
                 <Show when={() => route.view === 'library'}>
                   {() => (

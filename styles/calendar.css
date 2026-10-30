@@ -208,20 +208,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* An event in its own window: its details in a readable column. */
-.wedyan-calendar-event {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-  max-inline-size: 64ch;
-  box-sizing: border-box;
-  min-block-size: 100cqb;
-
-  & > .aui-empty-state {
-    margin-block: auto;
-  }
-}
-
 /* The calendar an event is in, by its dot and name. */
 .wedyan-calendar-of {
   display: flex;
