@@ -50,7 +50,7 @@ async function until(check: () => boolean, timeout = 3000) {
 
 /** What the router was shown of the conversation with the user's words, each answer by id. */
 type Asked = {
-  running: Array<{ id: string; line: string }>;
+  running: Array<{ id: string; agent: string; line: string; goal?: string }>;
   unacknowledged: Array<{ id: string; line: string; latest?: true }>;
 };
 type Judge = (body: Record<string, unknown>) => Response;
@@ -63,6 +63,7 @@ const judged =
   (
     pick: (asked: Asked) => {
       continues?: string;
+      about?: string;
       acks?: string[];
       unclear?: string[];
       missed?: string[];
@@ -1149,14 +1150,16 @@ describe('the conversation', () => {
       });
     });
 
-    it('lets no task hand out work of its own', async () => {
+    it('lets a task hand work only to its own expert, for what it means to do next', async () => {
+      const assignment = (agent: string, goal: string) =>
+        `[[action name=work.assign]]${JSON.stringify({ title: 'Trailer', agent, goal, object: { path: '~/Motions/Lantern/Trailer.stage' } })}[[/action]]`;
       const vendor = chatVendor(
         [],
         handsOut({ agent: DIRECTOR, goal: 'Write episode 1', object: episode(1) }),
-        says(
-          `Writing it.[[action name=work.assign]]${JSON.stringify({ title: 'More', agent: CASTING, goal: 'Cast it', object: episode(1) })}[[/action]]`,
-        ),
-        says('Casting is left to do.'),
+        says(`Writing it.${assignment(CASTING, 'Cast the trailer')}`),
+        says(`I'll write the trailer next.${assignment(DIRECTOR, 'Write the trailer')}`),
+        says('Done.'),
+        says('Done.'),
         says('Done.'),
       );
       const who = newUser();
@@ -1166,12 +1169,52 @@ describe('the conversation', () => {
         const desktop = wedyan('tab-a');
         await until(() => desktop.data.ready);
         await desktop.ask('send', { text: 'Write episode 1' });
-        await until(() => desktop.data.work?.[0]?.status === 'done');
+        await until(() => desktop.data.work?.length === 2 && desktop.data.work.every((task) => task.status === 'done'));
 
-        expect(desktop.data.work?.map((task) => task.agent)).toEqual([DIRECTOR]);
+        expect(desktop.data.work?.map((task) => [task.agent, task.goal])).toEqual([
+          [DIRECTOR, 'Write episode 1'],
+          [DIRECTOR, 'Write the trailer'],
+        ]);
         const [task] = taskAnswers(desktop.data);
-        expect(task.actions[0]).toMatchObject({ name: 'work.assign', status: 'failed' });
-        expect(JSON.stringify(vendor.bodies[2])).toContain('A task hands out no work');
+        expect(task.actions.map((action) => action.status)).toEqual(['failed', 'done']);
+        expect(JSON.stringify(vendor.bodies[2])).toContain('A task hands work only to its own expert');
+        desktop.close();
+      });
+    });
+
+    it('answers a question about work under way at once, from the expert at it, without stopping it', async () => {
+      const vendor = chatVendor(
+        [judged((asked) => ({ about: asked.running[0].id }))],
+        handsOut({ agent: DIRECTOR, goal: 'Write episode 1', object: episode(1) }),
+        later(says('Episode 1 is written.'), 1000),
+        says('Halfway through episode 1.'),
+        says('Done.'),
+      );
+      const who = newUser();
+      await withExperts(who);
+
+      await asDesktop(who, async () => {
+        const desktop = wedyan('tab-a');
+        await until(() => desktop.data.ready);
+        await desktop.ask('send', { text: 'Write episode 1' });
+        await until(() => desktop.data.work?.[0]?.status === 'running');
+
+        await desktop.ask('send', { text: 'How far are you?' });
+        await until(() => vendor.bodies.length >= 3);
+
+        // Told by the Director, from what it's doing, while the task is still at work.
+        expect(vendor.bodies[2].model).toBe('director-m');
+        expect(contextOf(vendor.bodies, 2)).toMatchObject({
+          event: 'about',
+          working: { agent: DIRECTOR, goal: 'Write episode 1' },
+        });
+        expect(desktop.data.work?.[0]?.status).toBe('running');
+        const words = desktop.data.messages.find(
+          (message) => message.role === 'user' && message.text === 'How far are you?',
+        );
+        expect(words).not.toHaveProperty('answer');
+
+        await until(() => desktop.data.work?.[0]?.status === 'done');
         desktop.close();
       });
     });

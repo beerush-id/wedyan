@@ -37,6 +37,9 @@ export function capabilities(actions: ActionSpec[], asks: ActionSpec[] = []): st
 }
 
 /** The rules every agent writes its answer by, whatever it can do. */
+/** How an agent answers a question about work it is doing, asked while that work goes on. */
+export const ABOUT_WORK = `When the context has "event": "about", the user is asking about work you are doing right now, in its "working": what you have said and done so far, and the goal of your task, if any. Answer briefly from it, as yourself, with the numbers it gives. Call nothing and change nothing: the work goes on without you. To change it, the user tells you, and you take it in as you work.`;
+
 export const FORMAT_RULES = `How to write your answer:
 - Write Markdown. Everything you write is shown on screen.
 - Wrap what you say aloud in [[say]]...[[/say]]. Speak one or two short sentences per answer; put details, lists and tables outside it.

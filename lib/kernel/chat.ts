@@ -364,16 +364,25 @@ function createConversation({ hold }: RoomSetup) {
     }
   };
 
-  // Hands one task to one of the user's experts, from an answer to the user's words: queued behind
-  // what that expert already has, and started as soon as the expert and the object are free. A
-  // task's own answer hands nothing out, so work never fans out on its own.
+  // A running answer as the router and whoever is asked about it see it: who is at work, what it
+  // said and did so far, and the goal of the task it does, if any.
+  const runningLine = (message: AgentMessage): RunningLine => {
+    const task = message.task ? data.work?.find(({ id }) => id === message.task) : undefined;
+    return { id: message.id, agent: message.agent, line: lineOf(message), ...(task ? { goal: task.goal } : {}) };
+  };
+
+  // Hands one task to one of the user's experts: queued behind what that expert already has, and
+  // started as soon as the expert and the object are free. A task's own answer hands work only to
+  // its own expert, what it means to do next, so work never fans out on its own.
   const assign = async (args: IRPCData, by: AgentMessage, client: string): Promise<CallResult> => {
-    if (by.event === 'work') throw new Error('A task hands out no work: say in your answer what else needs doing');
     const { title, agent, goal, object } = (args ?? {}) as Partial<
       Pick<WorkTask, 'title' | 'agent' | 'goal' | 'object'>
     >;
     if (!title || !agent || !goal || !object?.path) {
       throw new Error(`${WORK_ASSIGN} needs a title, an agent, a goal, and an object with its path`);
+    }
+    if (by.event === 'work' && agent !== by.agent) {
+      throw new Error('A task hands work only to its own expert: say in your answer what else needs doing');
     }
     if (!agent.startsWith(`${AGENTS_PATH}/`) || !(await exists(agent))) throw new Error(`No expert at ${agent}`);
 
@@ -559,10 +568,26 @@ function createConversation({ hold }: RoomSetup) {
         // The router decides whether the words continue a running answer, which older answers they
         // acknowledge or put off for later, and whether they show the user missed any, the latest
         // included.
-        const judgment = await judge(input.text, answers, earlier, latestUnacked);
+        const judgment = await judge(
+          input.text,
+          answers.map(({ message }) => runningLine(message)),
+          earlier,
+          latestUnacked,
+        );
         const taken = latestUnacked ? [latestUnacked.id, ...judgment.acks] : judgment.acks;
         acknowledge(taken.filter((id) => !judgment.missed.includes(id) && !judgment.later.includes(id)));
         defer(judgment.later.filter((id) => earlier.some((message) => message.id === id)));
+
+        // Words that only ask about running work are told at once, by whoever is at it, from what
+        // it's doing, while it goes on.
+        const asked = running.get(judgment.about ?? '');
+        if (asked) {
+          const working = runningLine(asked.message);
+          const context = { ...input.context, event: 'about', working: working as IRPCData };
+          start({ ...originOf(words), entry: working.agent }, { ...input, context });
+          return true;
+        }
+
         const target = running.get(judgment.continues ?? '');
         if (target) {
           words.answer = target.message.id;
@@ -682,20 +707,32 @@ function originOf(words: UserMessage): Origin {
  */
 export const JUDGE_PROMPT = `Words from the user arrived. Below are Wedyan's answers still being written ("running") and its earlier answers the user hasn't acknowledged yet ("unacknowledged"), each with its id. The one marked "latest" came just before the words: the user has it in front of them. Decide:
 - continues: the id of the running answer the words continue, by answering its question, correcting it or adding to it; null when they are a request of their own.
+- about: the id of the running answer the words only ask about, like "how far are you?" or "why that scene?", to be told without changing it; null otherwise. Words that change what it does continue it instead.
 - acks: the ids of the other unacknowledged answers the words show the user has taken in: replying to them, building on them, confirming them or thanking for them, like "copy that".
 - unclear: the ids of the other unacknowledged answers the words may or may not cover.
 - missed: the ids of any unacknowledged answers, the latest included, the words show the user hasn't taken in, like "what did you say?".
 - later: the ids of any unacknowledged answers, the latest included, the words put off for later, like "I'll watch it later" or "remind me when I'm back".
 
-Reply with only JSON: {"continues": id or null, "acks": [ids], "unclear": [ids], "missed": [ids], "later": [ids]}`;
+Reply with only JSON: {"continues": id or null, "about": id or null, "acks": [ids], "unclear": [ids], "missed": [ids], "later": [ids]}`;
 
 /** What the router made of the user's words; ids it made up are dropped where they are used. */
-type Judgment = { continues?: string; acks: string[]; unclear: string[]; missed: string[]; later: string[] };
+type Judgment = {
+  continues?: string;
+  about?: string;
+  acks: string[];
+  unclear: string[];
+  missed: string[];
+  later: string[];
+};
+
+/** A running answer as the router is shown it: who is at work, what it said and did, and a task's goal. */
+type RunningLine = { id: string; agent: string; line: string; goal?: string };
 
 /**
- * Judges the user's words: which running answer they continue, which older answers they
- * acknowledge or may, which they show the user missed, and which they put off for later. Nothing
- * continued, acknowledged, missed or put off when the router fails or can't tell.
+ * Judges the user's words: which running answer they continue or only ask about, which older
+ * answers they acknowledge or may, which they show the user missed, and which they put off for
+ * later. Nothing continued, asked about, acknowledged, missed or put off when the router fails or
+ * can't tell.
  *
  * @param text - The user's words.
  * @param answers - The answers being written.
@@ -705,13 +742,13 @@ type Judgment = { continues?: string; acks: string[]; unclear: string[]; missed:
  */
 async function judge(
   text: string,
-  answers: Running[],
+  answers: RunningLine[],
   earlier: AgentMessage[],
   latest?: AgentMessage,
 ): Promise<Judgment> {
   const reply = await askRouter(JUDGE_PROMPT, {
     words: text,
-    running: answers.map(({ message }) => ({ id: message.id, line: lineOf(message) })),
+    running: answers,
     unacknowledged: earlier.map((message) => ({
       id: message.id,
       line: lineOf(message),
@@ -723,6 +760,7 @@ async function judge(
     const ids = (value: unknown) => (Array.isArray(value) ? value.filter((id) => typeof id === 'string') : []);
     return {
       ...(typeof parsed.continues === 'string' ? { continues: parsed.continues } : {}),
+      ...(typeof parsed.about === 'string' ? { about: parsed.about } : {}),
       acks: ids(parsed.acks),
       unclear: ids(parsed.unclear),
       missed: ids(parsed.missed),

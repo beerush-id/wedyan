@@ -46,4 +46,35 @@ describe.skipIf(!PROVIDERS.meta.key && !PROVIDERS.baseten.key)('the router’s j
 
     process.stdout.write(`\n=== judge (later expected for the first two)\n${lines.join('\n')}\n`);
   });
+
+  it('tells a question about running work from a change to it', { timeout: 600_000 }, async () => {
+    setupKernel({ adapter: liveAdapter(), agents: createAgents(), entry: ENTRY, composer: COMPOSER });
+    const working = {
+      id: 'episode',
+      agent: '~/Agents/Sora.agent',
+      line: 'wedyan: did r2-file.write {"path":"~/Motions/Lantern River/Episode 13.stage"}',
+      goal: 'Write episode 13 of Lantern River',
+    };
+    const cases: Array<{ words: string; about: boolean; continues: boolean }> = [
+      { words: 'Sora, how far are you?', about: true, continues: false },
+      { words: 'Why did you set episode 13 at the harbor?', about: true, continues: false },
+      { words: 'Make episode 13 darker.', about: false, continues: true },
+    ];
+    const lines: string[] = [];
+
+    for (const { words, about, continues } of cases) {
+      for (let run = 1; run <= RUNS; run += 1) {
+        const reply = await askRouter(JUDGE_PROMPT, { words, running: [working], unacknowledged: [] });
+        const judged = JSON.parse(reply.slice(reply.indexOf('{'), reply.lastIndexOf('}') + 1)) as {
+          about?: string | null;
+          continues?: string | null;
+        };
+        lines.push(`${words} #${run} | about: ${judged.about} | continues: ${judged.continues}`);
+        expect.soft(judged.about === working.id, `${words} #${run}: ${reply}`).toBe(about);
+        expect.soft(judged.continues === working.id, `${words} #${run}: ${reply}`).toBe(continues);
+      }
+    }
+
+    process.stdout.write(`\n=== judge: about or continues\n${lines.join('\n')}\n`);
+  });
 });
