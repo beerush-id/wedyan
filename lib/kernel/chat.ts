@@ -23,13 +23,14 @@ import {
   type Conversation,
   type ConversationMessage,
   type ConversationQueries,
+  conversation,
+  DUPLICATE_CLIENT,
   type FinishedJob,
   type Presence,
   type UserMessage,
   WORK_ASSIGN,
   type WorkObject,
   type WorkTask,
-  wedyan,
 } from './chat.h.js';
 import { DOC_ATTEMPTS, DOC_CLOSE, DOC_OPEN } from './document.h.js';
 import { kernel } from './package.js';
@@ -110,12 +111,12 @@ export function pagePath(page?: number): string {
   return page ? `~/Desktop.${page}.chat` : CONVERSATION_PATH;
 }
 
-kernel.construct(wedyan, (client) => {
+kernel.construct(conversation, (client) => {
   const member = SESSION_STORE.room(CONVERSATION_ROOM, createConversation);
   // Refused before the stream opens, so the desktop is told and makes a fresh ID.
   if (member.ask('connected', client)) {
     member.leave();
-    throw new Error('This client is already connected');
+    throw new Error(DUPLICATE_CLIENT);
   }
 
   return stream<Conversation, ConversationQueries>(

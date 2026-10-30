@@ -11,7 +11,7 @@ import { BRIEFER, COMPOSER, createAgents, DEFAULT_MODELS, ENTRY, OPEN_MODELS } f
 import { SKILLS } from '../../lib/agents/skills.js';
 import type { StillDocument } from '../../lib/documents/types.js';
 import { type SysHandler, setupKernel } from '../../lib/kernel/agent.js';
-import { type AgentMessage, wedyan } from '../../lib/kernel/chat.h.js';
+import { type AgentMessage, conversation } from '../../lib/kernel/chat.h.js';
 import { setupConversation } from '../../lib/kernel/chat.js';
 import { withModels } from '../../lib/server/setup.js';
 import { setupStills } from '../../lib/server/stills.js';
@@ -79,7 +79,7 @@ describe.skipIf(!PROVIDERS.meta.key)('the dock, on data, live', () => {
       const first = window.still.chosen;
 
       // The desktop: a client of the conversation, answering what it's asked.
-      const chat = wedyan('dock-tab');
+      const chat = conversation('dock-tab');
       const acted: string[] = [];
       chat.answer('doc.attempts', async (args: { path: string; request: never; attempts: never[] }) => {
         if (args.path !== path) return { added: false };

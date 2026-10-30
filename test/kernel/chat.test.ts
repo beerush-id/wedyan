@@ -5,7 +5,7 @@ import { implement } from '@irpclib/r2-file/constructor';
 import { fsContext } from '@irpclib/r2-file/context';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { setupKernel } from '../../lib/kernel/agent.js';
-import { type AgentMessage, type Conversation, wedyan } from '../../lib/kernel/chat.h.js';
+import { type AgentMessage, type Conversation, conversation } from '../../lib/kernel/chat.h.js';
 import {
   CONVERSATION_DEFAULTS,
   CONVERSATION_PATH,
@@ -135,7 +135,7 @@ describe('the conversation', () => {
     const who = newUser();
 
     await asDesktop(who, async () => {
-      const desktop = wedyan('tab-a');
+      const desktop = conversation('tab-a');
       await until(() => desktop.data.ready);
       await desktop.ask('send', { text: 'Hi', context: { time: '2026-10-29T09:00:00+07:00' } });
       await until(() => answered(desktop.data));
@@ -155,20 +155,20 @@ describe('the conversation', () => {
     chatVendor([], says('Hello.'));
     const who = newUser();
     // Another user's desktop, open in its own session until the check is done.
-    let elsewhere: ReturnType<typeof wedyan> | undefined;
+    let elsewhere: ReturnType<typeof conversation> | undefined;
     let done!: () => void;
     const checked = new Promise<void>((resolve) => {
       done = resolve;
     });
     const otherDesktop = asDesktop(newUser(), async () => {
-      elsewhere = wedyan('tab-a');
+      elsewhere = conversation('tab-a');
       await checked;
       elsewhere.close();
     });
 
     await asDesktop(who, async () => {
-      const first = wedyan('tab-a');
-      const second = wedyan('tab-b');
+      const first = conversation('tab-a');
+      const second = conversation('tab-b');
       await until(() => first.data.ready && second.data.ready && elsewhere?.data.ready === true);
 
       await first.ask('send', { text: 'Hi' });
@@ -188,7 +188,7 @@ describe('the conversation', () => {
     const who = newUser();
 
     await asDesktop(who, async () => {
-      const desktop = wedyan('tab-a');
+      const desktop = conversation('tab-a');
       await until(() => desktop.data.ready);
       await desktop.ask('send', { text: 'Brief me' });
       desktop.close();
@@ -196,7 +196,7 @@ describe('the conversation', () => {
 
     await asDesktop(who, async () => {
       await until(() => false, 300).catch(() => undefined);
-      const next = wedyan('tab-b');
+      const next = conversation('tab-b');
       await until(() => next.data.ready);
 
       expect(next.data.messages).toMatchObject([
@@ -218,7 +218,7 @@ describe('the conversation', () => {
     const who = newUser();
 
     await asDesktop(who, async () => {
-      const desktop = wedyan('tab-a');
+      const desktop = conversation('tab-a');
       desktop.answer('app.open', () => true);
       await until(() => desktop.data.ready);
       await desktop.ask('send', { text: 'Open Motion' });
@@ -248,8 +248,8 @@ describe('the conversation', () => {
     const who = newUser();
 
     await asDesktop(who, async () => {
-      const sender = wedyan('tab-a');
-      const other = wedyan('tab-b');
+      const sender = conversation('tab-a');
+      const other = conversation('tab-b');
       const ranOn: string[] = [];
       const metas: unknown[] = [];
       sender.answer('app.open', (_args: unknown, meta: unknown) => {
@@ -283,7 +283,7 @@ describe('the conversation', () => {
     const who = newUser();
 
     await asDesktop(who, async () => {
-      const desktop = wedyan('tab-a');
+      const desktop = conversation('tab-a');
       let asked = 0;
       desktop.answer('ask_user', async () => {
         asked += 1;
@@ -320,7 +320,7 @@ describe('the conversation', () => {
     const who = newUser();
 
     await asDesktop(who, async () => {
-      const desktop = wedyan('tab-a');
+      const desktop = conversation('tab-a');
       let confirm!: (reply: { sure: boolean }) => void;
       desktop.answer('ask_user', () => new Promise((resolve) => (confirm = resolve)));
       await until(() => desktop.data.ready);
@@ -363,7 +363,7 @@ describe('the conversation', () => {
     const who = newUser();
 
     await asDesktop(who, async () => {
-      const desktop = wedyan('tab-a');
+      const desktop = conversation('tab-a');
       const waiting: Array<(reply: unknown) => void> = [];
       desktop.answer('ask_user', () => new Promise((resolve) => waiting.push(resolve)));
       await until(() => desktop.data.ready);
@@ -394,7 +394,7 @@ describe('the conversation', () => {
     const who = newUser();
 
     await asDesktop(who, async () => {
-      const desktop = wedyan('tab-a');
+      const desktop = conversation('tab-a');
       const closes: unknown[] = [];
       desktop.answer('doc.open', () => ({ opened: { id: 'v3' } }));
       desktop.answer('doc.close', (args: unknown, meta: unknown) => void closes.push([args, meta]));
@@ -412,13 +412,13 @@ describe('the conversation', () => {
     const who = newUser();
 
     await asDesktop(who, async () => {
-      const first = wedyan('tab-a');
+      const first = conversation('tab-a');
       await until(() => first.data.ready);
 
-      await expect(wedyan('tab-a')).rejects.toThrow('This client is already connected');
+      await expect(conversation('tab-a')).rejects.toThrow('This client is already connected');
       first.close();
       await until(() => false, 50).catch(() => undefined);
-      const again = wedyan('tab-a');
+      const again = conversation('tab-a');
       await until(() => again.data.ready);
       expect(again.status).toBe('pending');
       again.close();
@@ -435,14 +435,14 @@ describe('the conversation', () => {
     });
     // Another desktop of the session, open the whole time.
     const other = asDesktop(who, async () => {
-      const desktop = wedyan('tab-b');
+      const desktop = conversation('tab-b');
       desktop.answer('app.open', () => void ranOn.push('tab-b'));
       await checked;
       desktop.close();
     });
 
     await asDesktop(who, async () => {
-      const sender = wedyan('tab-a');
+      const sender = conversation('tab-a');
       await until(() => sender.data.ready);
       await sender.ask('send', { text: 'Open Motion' });
       sender.close();
@@ -451,7 +451,7 @@ describe('the conversation', () => {
     expect(ranOn).toEqual([]);
 
     await asDesktop(who, async () => {
-      const back = wedyan('tab-a');
+      const back = conversation('tab-a');
       back.answer('app.open', () => void ranOn.push('tab-a'));
       await until(() => answered(back.data));
       expect(ranOn).toEqual(['tab-a']);
@@ -472,7 +472,7 @@ describe('the conversation', () => {
     const who = newUser();
 
     await asDesktop(who, async () => {
-      const sender = wedyan('tab-a');
+      const sender = conversation('tab-a');
       await until(() => sender.data.ready);
       await sender.ask('send', { text: 'Open Motion' });
       sender.close();
@@ -491,7 +491,7 @@ describe('the conversation', () => {
         }),
       });
 
-      const next = wedyan('tab-b');
+      const next = conversation('tab-b');
       await until(() => next.data.ready && answered(next.data));
       expect((last(next.data) as AgentMessage).actions).toEqual([
         {
@@ -512,7 +512,7 @@ describe('the conversation', () => {
     const who = newUser();
 
     await asDesktop(who, async () => {
-      const desktop = wedyan('tab-a');
+      const desktop = conversation('tab-a');
       await until(() => desktop.data.ready);
       await desktop.ask('send', { text: 'Hi' });
 
@@ -557,7 +557,7 @@ describe('the conversation', () => {
         ],
       });
 
-      const desktop = wedyan('tab-a');
+      const desktop = conversation('tab-a');
       await until(() => desktop.data.ready);
 
       expect(last(desktop.data)).toMatchObject({ role: 'agent', status: 'stopped', reason: 'Interrupted' });
@@ -571,7 +571,7 @@ describe('the conversation', () => {
     const who = newUser();
 
     await asDesktop(who, async () => {
-      const desktop = wedyan('tab-a');
+      const desktop = conversation('tab-a');
       await until(() => desktop.data.ready);
       for (let i = 0; i < 8; i += 1) {
         await desktop.ask('send', { text: `Question ${i}` });
@@ -623,7 +623,7 @@ describe('the conversation', () => {
       const who = newUser();
 
       await asDesktop(who, async () => {
-        const desktop = wedyan('tab-a');
+        const desktop = conversation('tab-a');
         await until(() => desktop.data.ready);
         await desktop.ask('presence', 'active');
 
@@ -679,7 +679,7 @@ describe('the conversation', () => {
 
       await asDesktop(who, async () => {
         await write(PROFILE_PATH, { userName: 'Nanang', briefAfter: 0 } as never);
-        const desktop = wedyan('tab-a');
+        const desktop = conversation('tab-a');
         await until(() => desktop.data.ready);
         await desktop.ask('presence', 'active');
         await desktop.ask('send', { text: 'Render it' });
@@ -697,7 +697,7 @@ describe('the conversation', () => {
      * Leaves two answers unacknowledged: the render, slow, and the mail, asked while it runs and so
      * the latest. Their model turns come first.
      */
-    const twoAnswers = async (desktop: ReturnType<typeof wedyan>) => {
+    const twoAnswers = async (desktop: ReturnType<typeof conversation>) => {
       await desktop.ask('send', { text: 'Render it' });
       await until(() => desktop.data.messages.length === 2);
       await desktop.ask('send', { text: 'Any mail?' });
@@ -716,7 +716,7 @@ describe('the conversation', () => {
       const who = newUser();
 
       await asDesktop(who, async () => {
-        const desktop = wedyan('tab-a');
+        const desktop = conversation('tab-a');
         await until(() => desktop.data.ready);
         await desktop.ask('send', { text: 'Hi' });
         await until(() => answered(desktop.data));
@@ -738,7 +738,7 @@ describe('the conversation', () => {
       const who = newUser();
 
       await asDesktop(who, async () => {
-        const desktop = wedyan('tab-a');
+        const desktop = conversation('tab-a');
         await until(() => desktop.data.ready);
         await twoAnswers(desktop);
         await desktop.ask('send', { text: 'Copy that', context: { time: TIME } });
@@ -761,7 +761,7 @@ describe('the conversation', () => {
       const who = newUser();
 
       await asDesktop(who, async () => {
-        const desktop = wedyan('tab-a');
+        const desktop = conversation('tab-a');
         await until(() => desktop.data.ready);
         await twoAnswers(desktop);
         await desktop.ask('send', { text: 'What did you say?' });
@@ -784,7 +784,7 @@ describe('the conversation', () => {
       const who = newUser();
 
       await asDesktop(who, async () => {
-        const desktop = wedyan('tab-a');
+        const desktop = conversation('tab-a');
         await until(() => desktop.data.ready);
         await desktop.ask('presence', 'active');
         await twoAnswers(desktop);
@@ -816,7 +816,7 @@ describe('the conversation', () => {
       const job = { title: 'the Wedyan promo render', path: '~/Motions/Wedyan promo/Renders/promo.mp4' };
 
       await asDesktop(who, async () => {
-        const desktop = wedyan('tab-a');
+        const desktop = conversation('tab-a');
         await until(() => desktop.data.ready);
         await desktop.ask('finished', job);
         await until(() => desktop.data.messages.length === 1 && answered(desktop.data));
@@ -833,7 +833,7 @@ describe('the conversation', () => {
       const who = newUser();
 
       await asDesktop(who, async () => {
-        const desktop = wedyan('tab-a');
+        const desktop = conversation('tab-a');
         await until(() => desktop.data.ready);
         await desktop.ask('presence', 'active');
         await desktop.ask('send', { text: 'Script all 30 episodes' });
@@ -861,7 +861,7 @@ describe('the conversation', () => {
 
       await asDesktop(who, async () => {
         await write(PROFILE_PATH, { userName: 'Nanang', proactive: false } as never);
-        const desktop = wedyan('tab-a');
+        const desktop = conversation('tab-a');
         await until(() => desktop.data.ready);
         await twoAnswers(desktop);
         await desktop.ask('send', { text: 'Copy that', context: { time: TIME } });
@@ -881,8 +881,8 @@ describe('the conversation', () => {
       const who = newUser();
 
       await asDesktop(who, async () => {
-        const first = wedyan('tab-a');
-        const second = wedyan('tab-b');
+        const first = conversation('tab-a');
+        const second = conversation('tab-b');
         const ranOn: string[] = [];
         first.answer('app.open', () => void ranOn.push('first'));
         second.answer('app.open', () => void ranOn.push('second'));
@@ -928,7 +928,7 @@ describe('the conversation', () => {
 
       await asDesktop(who, async () => {
         await write('~/Mail/before.mail', { from: 'Rudi', subject: 'Old news' } as never);
-        const desktop = wedyan('tab-a');
+        const desktop = conversation('tab-a');
         await until(() => desktop.data.ready);
         await desktop.ask('presence', 'active');
         await desktop.ask('presence', 'idle');
@@ -955,7 +955,7 @@ describe('the conversation', () => {
       const who = newUser();
 
       await asDesktop(who, async () => {
-        const desktop = wedyan('tab-a');
+        const desktop = conversation('tab-a');
         await until(() => desktop.data.ready);
         await desktop.ask('presence', 'active');
         await desktop.ask('send', { text: 'Hi' });
@@ -987,7 +987,7 @@ describe('the conversation', () => {
       const who = newUser();
 
       await asDesktop(who, async () => {
-        const desktop = wedyan('tab-a');
+        const desktop = conversation('tab-a');
         await until(() => desktop.data.ready);
         await desktop.ask('presence', 'active');
         await desktop.ask('send', { text: 'Render it' });
@@ -997,7 +997,7 @@ describe('the conversation', () => {
 
       await asDesktop(who, async () => {
         await pause(AWAY + 50);
-        const next = wedyan('tab-b');
+        const next = conversation('tab-b');
         await until(() => next.data.ready);
         expect(next.data.away).toBeDefined();
         await next.ask('presence', 'active', { time: TIME });
@@ -1065,7 +1065,7 @@ describe('the conversation', () => {
       await withExperts(who);
 
       await asDesktop(who, async () => {
-        const desktop = wedyan('tab-a');
+        const desktop = conversation('tab-a');
         await until(() => desktop.data.ready);
         await desktop.ask('send', { text: 'Write the first two episodes' });
 
@@ -1112,7 +1112,7 @@ describe('the conversation', () => {
       await withExperts(who);
 
       await asDesktop(who, async () => {
-        const desktop = wedyan('tab-a');
+        const desktop = conversation('tab-a');
         await until(() => desktop.data.ready);
         await desktop.ask('send', { text: 'Write and cast the first two episodes' });
 
@@ -1135,7 +1135,7 @@ describe('the conversation', () => {
       await withExperts(who);
 
       await asDesktop(who, async () => {
-        const desktop = wedyan('tab-a');
+        const desktop = conversation('tab-a');
         await until(() => desktop.data.ready);
         await desktop.ask('send', { text: 'Write episode 1' });
         await until(() => vendor.bodies.length === 2 && answered(desktop.data));
@@ -1166,7 +1166,7 @@ describe('the conversation', () => {
       await withExperts(who);
 
       await asDesktop(who, async () => {
-        const desktop = wedyan('tab-a');
+        const desktop = conversation('tab-a');
         await until(() => desktop.data.ready);
         await desktop.ask('send', { text: 'Write episode 1' });
         await until(() => desktop.data.work?.length === 2 && desktop.data.work.every((task) => task.status === 'done'));
@@ -1194,7 +1194,7 @@ describe('the conversation', () => {
       await withExperts(who);
 
       await asDesktop(who, async () => {
-        const desktop = wedyan('tab-a');
+        const desktop = conversation('tab-a');
         await until(() => desktop.data.ready);
         await desktop.ask('send', { text: 'Write episode 1' });
         await until(() => desktop.data.work?.[0]?.status === 'running');
@@ -1249,7 +1249,7 @@ describe('the conversation', () => {
             },
           ],
         } as never);
-        const desktop = wedyan('tab-a');
+        const desktop = conversation('tab-a');
         await until(() => desktop.data.work?.[0]?.status === 'done');
         expect(taskAnswers(desktop.data)).toHaveLength(1);
         desktop.close();
@@ -1273,7 +1273,7 @@ describe('the conversation', () => {
       setupConversation({ briefAfter: 200, arrivalSeeds: {} });
 
       await asDesktop(who, async () => {
-        const desktop = wedyan('tab-a');
+        const desktop = conversation('tab-a');
         await until(() => desktop.data.ready);
         await desktop.ask('presence', 'active');
         await desktop.ask('send', { text: 'Write the first two episodes' });

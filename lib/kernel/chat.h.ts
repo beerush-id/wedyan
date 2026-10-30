@@ -134,18 +134,22 @@ export type ConversationQueries = {
 
 /**
  * Opens the conversation as one desktop: `client` is that desktop's own stable ID, one per tab,
- * kept across reloads (in `sessionStorage`). A second live connection with an ID already connected
- * is refused, as when a tab is duplicated: the desktop then makes a fresh ID and opens again.
+ * kept across reloads. A second live connection with an ID already connected is refused
+ * (`DUPLICATE_CLIENT`), as when a tab is duplicated: the desktop then opens again with a fresh ID.
  */
-export type WedyanFn = (client: string) => RemoteState<Conversation, ConversationQueries>;
+export type ConversationFn = (client: string) => RemoteState<Conversation, ConversationQueries>;
+
+/** Why a desktop is refused the conversation: its ID is already connected, as a duplicated tab's is. */
+export const DUPLICATE_CLIENT = 'This client is already connected';
 
 /**
- * The user's conversation with Wedyan, live. Every desktop of the session opens it and sees the same
- * conversation as it is written; the server owns it, runs each ask to the end even if the desktop
- * that sent it disconnects, and keeps it in the user's `~/Desktop.chat`. Each answer's actions run
- * only on the desktop that sent its words.
+ * The user's conversation with Wedyan, live, as IRPC declares it. Every desktop of the session opens
+ * it and sees the same conversation as it is written; the server owns it, runs each ask to the end
+ * even if the desktop that sent it disconnects, and keeps it in the user's `~/Desktop.chat`. Each
+ * answer's actions run only on the desktop that sent its words. A desktop opens it with `wedyan()`
+ * (`lib/share/wedyan.ts`), which owns its ID; other clients, with an ID of their own.
  */
-export const wedyan = kernel.declare<WedyanFn>({
+export const conversation = kernel.declare<ConversationFn>({
   name: 'wedyan.chat',
   stream: true,
   keepAlive: true,
