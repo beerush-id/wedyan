@@ -16,7 +16,7 @@ const wss = new WebSocketServer({ noServer: true });
 server.on('upgrade', async (request, socket, head) => {
   const url = new URL(request.url, `http://${request.headers.host || 'localhost'}`);
   
-  if (url.pathname.startsWith('/ws/')) {
+  if (url.pathname.startsWith('/wrpc-ws/')) {
     try {
       const headers = new Headers();
       for (let i = 0; i < request.rawHeaders.length; i += 2) {

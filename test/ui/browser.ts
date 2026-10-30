@@ -1,5 +1,7 @@
 import { withContext } from '@airlib/react';
+import { configure } from '@irpclib/r2-file';
 import { issueSession } from '@/lib/share/cookie.js';
+import { FILES_ENDPOINT } from '@/src/api.js';
 
 // What a browser does that jsdom doesn't: a page's fetch and WebSocket resolve relative URLs against
 // the page, and its fetch sends the page's cookies to its own origin (jsdom's WebSocket does that).
@@ -24,6 +26,9 @@ globalThis.fetch = (input, init) => {
   headers.set('cookie', document.cookie);
   return nodeFetch(new Request(request, { headers, duplex: 'half' } as RequestInit));
 };
+
+// What the app's entry sets up, for a page that isn't the whole app.
+configure({ endpoint: FILES_ENDPOINT });
 
 // Each test file is a visitor: given a session as the first page load gives one.
 withContext(issueSession);

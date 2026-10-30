@@ -8,9 +8,7 @@ import {
   type VideoOutput,
 } from '@irpclib/ai-kit';
 import type { IRPCReader } from '@irpclib/irpc';
-
-/** Where the desktop reaches ai-kit on Wedyan's own server, scoped to the session like every call. */
-export const AI_ENDPOINT = '/irpc-ai';
+import { AI_ENDPOINT } from '@/src/api.js';
 
 /** Wedyan's ai-kit: the models the server runs, for the desktop's own generation. */
 export const ai = createAI({ name: 'wedyan-ai', endpoint: AI_ENDPOINT });

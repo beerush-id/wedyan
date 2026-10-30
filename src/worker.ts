@@ -1,4 +1,3 @@
-import { decodeCookies, setCookieContext, withContext } from '@airlib/react';
 import { createApp } from '@airlib/react/ssr';
 import { LogLevel } from '@beerush/logger';
 import { consoleAdapter } from '@beerush/logger/adapters/console';
@@ -16,16 +15,13 @@ import { contentIndex } from '@/lib/memory/files.js';
 import { guardAgentFiles } from '@/lib/server/guard.js';
 import { isHomePath, picturePath, pictures } from '@/lib/server/images.js';
 import { seedHome } from '@/lib/server/seed.js';
-import { currentSession, homeOf } from '@/lib/server/session.js';
+import { currentSession, homeOf, sessionOf } from '@/lib/server/session.js';
 import { MODELS, picturesOf, type ServerEnv, setupServer } from '@/lib/server/setup.js';
-import { AI_ENDPOINT, ai } from '@/lib/share/ai.js';
+import { ai } from '@/lib/share/ai.js';
 import { IMAGES_PATH } from '@/lib/share/image.js';
-import { httpTransport, wsTransport } from './api.js';
+import { AI_ENDPOINT, FILES_ENDPOINT, httpTransport, WRPC, wsTransport } from './api.js';
 import App from './app.js';
 import router from './router.js';
-
-/** Where r2-file's calls arrive: its client's default endpoint, same origin. */
-const FILES_ENDPOINT = '/irpc';
 
 /** Where r2-file delivers a session's files, by their canonical path. */
 const FILES_PATH = '/users/';
@@ -88,6 +84,8 @@ const app = createApp(router, App, {
 
 export default {
   ...app,
+  isCall,
+  sessionOf,
   async fetch(request: Request, env?: ServerEnv, signal?: AbortSignal) {
     const url = new URL(request.url);
     if (url.pathname === AI_ENDPOINT) return models.fetch(request, await bindingsOf(env));
@@ -102,6 +100,18 @@ export default {
 };
 
 /**
+ * Whether a request is an IRPC call. Deployed, these all run in their session's Durable Object, the
+ * one process that holds the session's live calls, so a change or a broadcast reaches every one of
+ * them. Delivering a picture or a file holds nothing, so that stays on the worker.
+ *
+ * @param url - The request's URL.
+ * @returns Whether it's a call.
+ */
+function isCall(url: URL): boolean {
+  return url.pathname.startsWith(WRPC);
+}
+
+/**
  * Serves one of the asking session's own pictures through R2 Image. The session comes from the
  * request's cookie, and the home path in the URL becomes that session's storage path, so no other
  * user's file can be named. Every user asks for the same URL, so only their own browser keeps it.
@@ -112,10 +122,7 @@ export default {
  * @returns The picture, resized when asked; 403 without a session, 400 for a path outside the home.
  */
 async function serveImage(request: Request, url: URL, env?: ServerEnv): Promise<Response> {
-  const session = await withContext(() => {
-    setCookieContext(decodeCookies(request.headers.get('cookie') ?? ''));
-    return currentSession();
-  });
+  const session = await sessionOf(request);
   if (!session) return new Response('Forbidden', { status: 403 });
 
   let path: string;

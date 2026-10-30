@@ -11,7 +11,7 @@ Bun.serve({
     const url = new URL(req.url);
     
     // Intercept WebSocket upgrade requests
-    if (url.pathname.startsWith('/ws/')) {
+    if (url.pathname.startsWith('/wrpc-ws/')) {
       try {
         const resolver = await worker.upgrade(req);
         if (server.upgrade(req, { data: { resolver } })) {

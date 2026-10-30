@@ -9,7 +9,7 @@ Deno.serve({
 }, async (req) => {
   const url = new URL(req.url);
   
-  if (url.pathname.startsWith('/ws/')) {
+  if (url.pathname.startsWith('/wrpc-ws/')) {
     try {
       const resolver = await worker.upgrade(req);
       const { response, socket } = Deno.upgradeWebSocket(req);

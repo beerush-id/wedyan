@@ -1,3 +1,4 @@
+import { decodeCookies, setCookieContext, withContext } from '@airlib/react';
 import type { FsContext } from '@irpclib/r2-file/context';
 import { userSession } from '@/lib/share/cookie.js';
 
@@ -12,6 +13,19 @@ const SESSION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 export function currentSession(): string | undefined {
   const { id } = userSession();
   return SESSION_ID.test(id) ? id : undefined;
+}
+
+/**
+ * The session a request belongs to, from its cookie, for code that runs before any call's scope does.
+ *
+ * @param request - The request.
+ * @returns The session id, or undefined without a valid one.
+ */
+export function sessionOf(request: Request): Promise<string | undefined> {
+  return withContext(() => {
+    setCookieContext(decodeCookies(request.headers.get('cookie') ?? ''));
+    return currentSession();
+  });
 }
 
 /**

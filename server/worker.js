@@ -1,4 +1,12 @@
+import { Container } from '@cloudflare/containers';
 import worker from '../dist/server/worker.js';
+
+/** R2 Image's resizer: a private container, reached only by the worker through its `RESIZER` binding. */
+export class ImageResizer extends Container {
+  defaultPort = 8080;
+  // Asleep between pictures: each size is resized once, then served from storage.
+  sleepAfter = '5m';
+}
 
 export class AirDurableLink {
   constructor(state, env) {
@@ -8,7 +16,7 @@ export class AirDurableLink {
 
   async fetch(req) {
     if (req.headers.get('Upgrade') !== 'websocket') {
-      return new Response('Expected Upgrade: websocket', { status: 426 });
+      return worker.fetch(req, this.env, req.signal);
     }
 
     try {
@@ -41,11 +49,12 @@ export class AirDurableLink {
 
 export default {
   async fetch(req, env) {
-    const url = new URL(req.url);
-
-    if (env.DURABLE_LINK && url.pathname.startsWith('/ws/')) {
-      const id = env.DURABLE_LINK.idFromName('global-link');
-      return env.DURABLE_LINK.get(id).fetch(req);
+    // Every call runs in its session's own Durable Object, so all of a session's live calls share
+    // one process and reach each other.
+    if (env.DURABLE_LINK && worker.isCall(new URL(req.url))) {
+      const session = await worker.sessionOf(req);
+      if (!session) return new Response('No session: load the page first', { status: 401 });
+      return env.DURABLE_LINK.get(env.DURABLE_LINK.idFromName(session)).fetch(req);
     }
 
     // Use the explicit signal since Cloudflare uses request level signal

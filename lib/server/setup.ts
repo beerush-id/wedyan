@@ -31,9 +31,9 @@ export type ServerEnv = FileWorkerEnv & {
   MUSE_API_KEY?: string;
   /** Baseten's key; with it, Spark Open takes over routing and composing. */
   BASETEN_API_KEY?: string;
-  /** The picture resizer: R2 Image's container, bound where Wedyan is deployed. */
+  /** The picture resizer: R2 Image's container, which runs only where Wedyan is deployed. */
   RESIZER?: ImageWorkerEnv['RESIZER'];
-  /** The picture resizer by URL, where no container is bound: R2 Image's image running locally. */
+  /** The picture resizer in development: R2 Image's image running locally. */
   RESIZER_URL?: string;
 };
 
@@ -76,13 +76,15 @@ export function setupServer(env: ServerEnv): void {
 
 /**
  * What R2 Image works with, from the server's bindings: the bucket the user's files are in, and the
- * resizer, the bound container or, where none is bound, the one running at `RESIZER_URL`.
+ * resizer: the bound container where deployed; locally the binding exists but can't run a container,
+ * so the one running at `RESIZER_URL`.
  *
  * @param env - The resolved bindings.
  * @returns R2 Image's bindings.
  */
 export function picturesOf(env: ServerEnv): ImageWorkerEnv {
-  return { IMAGES: env.BUCKET as never, RESIZER: (env.RESIZER ?? env.RESIZER_URL) as ImageWorkerEnv['RESIZER'] };
+  const resizer = process.env.NODE_ENV === 'production' ? env.RESIZER : env.RESIZER_URL;
+  return { IMAGES: env.BUCKET as never, RESIZER: resizer as ImageWorkerEnv['RESIZER'] };
 }
 
 /**
