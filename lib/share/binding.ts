@@ -37,11 +37,11 @@ export type DocumentBinding<T> = {
   who(part: string, id: string): string[];
 };
 
-/** A document a window is showing: its live content and presence, and how the agents' asks reach it. */
+/** A document a window is showing: its live content, and with rules, its presence. */
 type Bound = {
   content: FileRef<unknown>;
-  presence: ReturnType<typeof documentPresence>;
-  rules: BindingRules;
+  presence?: ReturnType<typeof documentPresence>;
+  rules?: BindingRules;
   /** What each agent has open here: one part at a time. */
   granted: Map<string, { part: string; id: string; entity: object }>;
 };
@@ -51,34 +51,34 @@ const BOUND = new Map<string, Bound>();
 
 /**
  * Binds a document for a window working on it: its content, edited and saved (the workspace's one
- * live object for the file, so a document referring to it sees every change), who is working on
- * which part on every desktop, and the app's rules for agents that join it. While bound, the
- * agents' `doc.open`, `doc.update` and `doc.close` asks reach it through `answerDocuments`. Closes
+ * live object for the file, so a document referring to it sees every change). With rules, agents
+ * work inside it part by part, and who is working on which part shows on every desktop. Closes
  * with the window. A document only referred to needs `fileRef`, not a binding.
  *
  * @param path - The document's home path (`~/…`).
- * @param rules - Which parts agents may open, and how their values are written.
+ * @param rules - Which parts agents may open, and how their values are written; none, for a
+ *   document they don't work inside.
  * @returns The live document.
  */
-export function createBinding<T>(path: string, rules: BindingRules): DocumentBinding<T> {
+export function createBinding<T>(path: string, rules?: BindingRules): DocumentBinding<T> {
   const content = edit<T>(path);
-  const presence = documentPresence(path);
+  const presence = rules ? documentPresence(path) : undefined;
   const bound: Bound = { content, presence, rules, granted: new Map() };
   BOUND.set(path, bound);
 
   onCleanup(() => {
     if (BOUND.get(path) === bound) BOUND.delete(path);
-    presence.close();
+    presence?.close();
   });
 
   return {
     get ready() {
-      return Boolean(content.ready && presence.data.ready);
+      return Boolean(content.ready && (presence?.data.ready ?? true));
     },
     get data() {
       return content.data;
     },
-    who: (part, id) => presence.data.parts[partKey(part, id)] ?? [],
+    who: (part, id) => presence?.data.parts[partKey(part, id)] ?? [],
   };
 }
 
@@ -96,18 +96,19 @@ export function answerDocuments(chat: Answerable): void {
   chat.answer(DOC_OPEN, (args: { path: string; part: string; id: string }, { actor }) => {
     const bound = BOUND.get(args.path);
     if (!bound) return { refused: 'That document is not open on the desktop' };
+    if (!bound.rules) return { refused: 'That document has no parts to open: work on it whole' };
     if (!bound.content.ready) return { refused: 'The document is still loading: try again in a moment' };
     const granted = bound.rules.open({ part: args.part, id: args.id, actor });
     if (typeof granted === 'string') return { refused: granted };
     bound.granted.set(actor, { part: args.part, id: args.id, entity: granted });
-    void bound.presence.ask('open', args.part, args.id, actor);
+    void bound.presence?.ask('open', args.part, args.id, actor);
     return { opened: JSON.parse(JSON.stringify(granted)) as IRPCData };
   });
 
   chat.answer(DOC_UPDATE, (args: { path: string; part: string; id: string; value: IRPCData }, { actor }) => {
     const bound = BOUND.get(args.path);
     const open = bound?.granted.get(actor);
-    if (!bound || open?.part !== args.part || open.id !== args.id) return { refused: 'Open that part first' };
+    if (!bound?.rules || open?.part !== args.part || open.id !== args.id) return { refused: 'Open that part first' };
     const done = bound.rules.update({ ...args, actor, entity: open.entity });
     return done === true ? { updated: true } : { refused: done };
   });
@@ -125,7 +126,7 @@ export function answerDocuments(chat: Answerable): void {
   chat.answer(DOC_CLOSE, (args: { path: string }, { actor }) => {
     const bound = BOUND.get(args.path);
     if (!bound?.granted.delete(actor)) return { closed: false };
-    void bound.presence.ask('close', actor);
+    void bound.presence?.ask('close', actor);
     return { closed: true };
   });
 }

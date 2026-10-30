@@ -4,8 +4,7 @@ import { act, cleanup, render, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { StillDocument } from '../../lib/documents/types.js';
 import { documentPresence } from '../../lib/kernel/document.h.js';
-import { createBinding } from '../../lib/share/binding.js';
-import { fileRef } from '../../lib/share/workspace.js';
+import { dfs } from '../../lib/share/dfs.js';
 import { clipRules, desktopAnswers, KAI, PROJECT, type Project, projectPath } from '../fixtures/documents.js';
 
 // A window as an app writes one: it binds its document in setup and draws who works on a clip. Its
@@ -16,7 +15,7 @@ afterEach(cleanup);
 /** A clip as a Motion window shows it: its title, and who is working on it. */
 const ClipView = setup((props: { path: string; id: string }) => {
   // A window's document never changes while it's open.
-  const doc = createBinding<Project>(
+  const doc = dfs.binding<Project>(
     $static(() => props.path),
     clipRules(() => doc.data),
   );
@@ -75,7 +74,7 @@ describe('a window binding its document', () => {
     await waitFor(() => expect(view.container.textContent).toBe('Hero: nobody'));
 
     // Referred to elsewhere: the same object the window works on, nothing opened for it.
-    const reference = fileRef<Project>(path);
+    const reference = dfs.read<Project>(path);
     const hero = reference.data?.clips[0];
     expect(hero?.title).toBe('Hero');
 
@@ -119,17 +118,18 @@ describe('a window binding its document', () => {
       added: false,
     });
 
+    // A still window: no parts for agents to open, just the still, worked on whole.
     const StillView = setup((props: { path: string }) => {
-      const doc = createBinding<StillDocument>(
-        $static(() => props.path),
-        { open: () => 'No parts', update: () => 'No parts' },
-      );
+      const doc = dfs.binding<StillDocument>($static(() => props.path));
       return () => (
         <p>{doc.ready ? `${doc.data?.attempts.length} attempts, chosen ${doc.data?.chosen || 'none'}` : 'Loading'}</p>
       );
     }, 'StillView');
     const view = render(<StillView path={path} />);
     await waitFor(() => expect(view.container.textContent).toBe('0 attempts, chosen none'));
+    expect(ask('doc.open', { path, part: 'clip', id: 'a1' }, KAI)).toEqual({
+      refused: 'That document has no parts to open: work on it whole',
+    });
 
     act(() => {
       expect(ask('doc.attempts', { path, request: { prompt: 'Ayla, smiling' }, attempts: [attempt] }, KAI)).toEqual({
@@ -157,7 +157,7 @@ describe('a window binding its document', () => {
     first.unmount();
 
     const again = render(<ClipView path={path} id="v4" />);
-    expect(fileRef<Project>(path).ready).toBe(true);
+    expect(dfs.read<Project>(path).ready).toBe(true);
     // Its content is there at once; the window waits only for its presence.
     await waitFor(() => expect(again.container.textContent).toBe('Closing: nobody'));
   });
