@@ -1,4 +1,4 @@
-import type { DocumentType, GenerationSettings, GenerativeDocument, WedyanDocument } from '@/lib/documents/types.js';
+import type { DocumentType, GeneratedAttempt, GenerationSettings, GenerativeDocument, WedyanDocument } from './types.js';
 
 /** The models a generation can be asked of, by what it makes. Placeholders until the kernel names its own. */
 export const MODELS: Record<GenerativeDocument['type'], Record<string, string>> = {
@@ -11,7 +11,7 @@ export const MODELS: Record<GenerativeDocument['type'], Record<string, string>> 
 export const ASPECTS = { '16:9': '16:9', '9:16': '9:16', '1:1': '1:1' };
 
 /** What a generation is made with when its document doesn't say. */
-const DEFAULT_SETTINGS: Required<GenerationSettings> = { model: 'standard', aspect: '16:9', seconds: 4, attempts: 2 };
+const DEFAULT_SETTINGS: Required<GenerationSettings> = { model: 'standard', aspect: '16:9', seconds: 4, batch: 2 };
 
 /** The document types that are generated, and made again from their prompt. */
 const GENERATIVE_TYPES = new Set<DocumentType>(['still', 'take', 'sound']);
@@ -31,7 +31,7 @@ export function isGenerative(document?: WedyanDocument): document is GenerativeD
  * what it's made with when it doesn't say, and writes onto the document.
  *
  * @param source - The generated document.
- * @returns Its model, aspect ratio, seconds and attempts, read from and written to the document.
+ * @returns Its model, aspect ratio, seconds and batch size, read from and written to the document.
  */
 export function settingsOf(source: GenerativeDocument): Required<GenerationSettings> {
   const settings = () => (source.settings ??= {}) as GenerationSettings;
@@ -54,13 +54,40 @@ export function settingsOf(source: GenerativeDocument): Required<GenerationSetti
     set seconds(seconds: number) {
       settings().seconds = seconds;
     },
-    get attempts() {
-      return (source.settings as GenerationSettings | undefined)?.attempts ?? DEFAULT_SETTINGS.attempts;
+    get batch() {
+      return (source.settings as GenerationSettings | undefined)?.batch ?? DEFAULT_SETTINGS.batch;
     },
-    set attempts(attempts: number) {
-      settings().attempts = attempts;
+    set batch(batch: number) {
+      settings().batch = batch;
     },
   };
+}
+
+/**
+ * Makes a generated document ask again what one of its attempts was made with: its prompt, and its
+ * settings over the document's own. Its batch size stays the document's, since no attempt has one.
+ *
+ * @param source - The generated document.
+ * @param attempt - The attempt to make again from.
+ */
+export function reuseAttempt(source: GenerativeDocument, attempt: GeneratedAttempt): void {
+  source.prompt = attempt.prompt;
+  source.settings = { ...source.settings, ...attempt.settings };
+}
+
+/**
+ * Whether making a generated document again would ask something other than one of its attempts did.
+ *
+ * @param source - The generated document.
+ * @param attempt - The attempt.
+ * @returns Whether its prompt or any of its settings differ from the document's now.
+ */
+export function differsFrom(source: GenerativeDocument, attempt: GeneratedAttempt): boolean {
+  const settings = settingsOf(source);
+  return (
+    attempt.prompt !== source.prompt ||
+    Object.entries(attempt.settings).some(([key, value]) => settings[key as keyof GenerationSettings] !== value)
+  );
 }
 
 /**

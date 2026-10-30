@@ -121,12 +121,14 @@ export type PersonaDocument = DocumentHeader<'persona'> & {
  * long a video or a sound runs, in seconds, and how many attempts an image is made in at a time.
  * Kept on the document, so it's made again the same way.
  */
-export type GenerationSettings = { model?: string; aspect?: string; seconds?: number; attempts?: number };
+/** How a generation is asked: its model, a picture's aspect ratio, how long a video or a sound runs, and how many it makes in one request. */
+export type GenerationSettings = { model?: string; aspect?: string; seconds?: number; batch?: number };
 
 /** One generated image as an editable source: how it was asked for, every attempt, its edits, and the one chosen. */
 export type StillDocument = DocumentHeader<'still'> & {
   prompt: string;
-  settings?: Pick<GenerationSettings, 'model' | 'aspect' | 'attempts'>;
+  /** How it is made again: the model, the aspect ratio, and how many images one request makes. */
+  settings?: Pick<GenerationSettings, 'model' | 'aspect' | 'batch'>;
   /** Images it was made from, by address or path. */
   references: string[];
   /** Who appears in it, by path to each `.persona`. */
@@ -172,8 +174,8 @@ export type SoundDocument = DocumentHeader<'sound'> & {
 /** A generated image, video or sound: what the prompt view edits and makes again. */
 export type GenerativeDocument = StillDocument | TakeDocument | SoundDocument;
 
-/** One try at a generation: its result, and what it was asked with when that differs from the document's prompt. */
-export type GeneratedAttempt = { id: string; src: string; prompt?: string; created: string };
+/** One try at a generation: its result, and the prompt and settings it was made with, to make it again from. */
+export type GeneratedAttempt = { id: string; src: string; prompt: string; settings: Omit<GenerationSettings, 'batch'>; created: string };
 
 /** One edit to a still's picture. */
 export type StillEdit = {

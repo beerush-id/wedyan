@@ -1,6 +1,0 @@
-[
-  { "id": "g01", "name": "Lantern festival.png", "size": "2.1 MB", "modified": "Oct 27", "src": "https://picsum.photos/seed/wedyan-gen-lantern/480/360", "prompt": "Paper lanterns over a river at dusk, warm light on the water" },
-  { "id": "g02", "name": "Desert bloom.png", "size": "1.8 MB", "modified": "Oct 27", "src": "https://picsum.photos/seed/wedyan-gen-bloom/480/360", "prompt": "Wildflowers across red dunes after the first rain" },
-  { "id": "g03", "name": "Glass city.png", "size": "2.4 MB", "modified": "Oct 26", "src": "https://picsum.photos/seed/wedyan-gen-glass/480/360", "prompt": "A city of frosted glass towers in morning fog" },
-  { "id": "g04", "name": "Tea house.png", "size": "1.6 MB", "modified": "Oct 26", "src": "https://picsum.photos/seed/wedyan-gen-tea/480/360", "prompt": "A quiet tea house in a bamboo forest, soft rain" }
-]

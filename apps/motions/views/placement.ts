@@ -1,8 +1,8 @@
 import type { Timeline, TimelineSegment, TimelineTrack } from '@airlib/react/timeline';
+import { chosenAttempt, isGenerative } from '@/lib/documents/generation.js';
 import { follow } from '@/lib/documents/store.js';
 import type { GenerativeDocument, MotionAsset } from '@/lib/documents/types.js';
 import type { AudioClip, HtmlClip, ImageClip, StageProps, SvgClip, TitleClip, VideoClip } from './composition.js';
-import { chosenAttempt, isGenerative } from './generation.js';
 
 /** The tracks a stage can be given, by type, and what each is called. */
 export const TRACK_NAMES = { video: 'Video', audio: 'Audio', title: 'Title', html: 'HTML', svg: 'SVG' };

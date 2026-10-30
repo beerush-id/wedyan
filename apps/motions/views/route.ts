@@ -7,10 +7,8 @@ import { stagesOf } from './library.js';
  * in its own view. Each window keeps its own, so two windows can show two projects.
  */
 export type MotionsRoute = {
-  /** Which view shows: the library, an album, or the type of the document open. */
-  view: 'library' | 'album' | Exclude<DocumentType, 'take' | 'sound'>;
-  /** The album open, by key, or the one a project was opened from, which going up comes back to. */
-  place?: string;
+  /** Which view shows: the library, or the type of the document open. */
+  view: 'library' | Exclude<DocumentType, 'take' | 'sound'>;
   /** The open project's path. */
   motion?: string;
   /** The open document's path, for a view below the project. */
@@ -23,9 +21,6 @@ export type MotionsRoute = {
 
 /** What Direct shows for a document of a project, rather than a view of its own. */
 const DIRECT_TYPES = new Set(['still', 'take', 'chat', 'memo', 'persona', 'md']);
-
-/** What a Motions window can be opened with: a document to show, by path. */
-export type MotionsData = { path?: string; motion?: string } | undefined;
 
 /**
  * The view a document's path opens in, by its extension.
@@ -63,27 +58,15 @@ export function openIn(route: MotionsRoute, path: string, motion = route.motion)
 }
 
 /**
- * Goes up one level: from a document to its project, from the project — Direct or Compose — to the
- * album it was opened from, or the library, and from an album to the library.
+ * Goes up one level: from a document to its project, and from the project — Direct or Compose — to
+ * the library.
  *
  * @param route - The window's route.
  */
 export function goUp(route: MotionsRoute): void {
-  if (route.view === 'album') Object.assign(route, { view: 'library', place: undefined });
-  else if (isEditing(route) || !route.motion) {
-    Object.assign(route, { view: route.place ? 'album' : 'library', motion: undefined, path: undefined, stage: undefined, item: undefined });
-  }
-  else Object.assign(route, { view: 'motion', path: undefined });
-}
-
-/**
- * Opens an album of the library.
- *
- * @param route - The window's route.
- * @param key - The album's key.
- */
-export function openAlbum(route: MotionsRoute, key: string): void {
-  Object.assign(route, { view: 'album', place: key, motion: undefined, path: undefined, stage: undefined, item: undefined });
+  if (isEditing(route) || !route.motion) {
+    Object.assign(route, { view: 'library', motion: undefined, path: undefined, stage: undefined, item: undefined });
+  } else Object.assign(route, { view: 'motion', path: undefined });
 }
 
 /**

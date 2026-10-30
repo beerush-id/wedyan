@@ -1,23 +1,31 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
 import { $bind, $use, effect, mutable, onCleanup, Show, Snippet, setup } from '@airlib/react';
+import { Button, DescriptionList, Divider, EmptyState, Toggle, ToggleGroup, Tooltip } from '@airlib/react-aui';
 import {
-  Button,
-  DescriptionList,
-  Divider,
-  EmptyState,
-  Gallery,
-  type GalleryEntry,
-  Select,
-  Toggle,
-  ToggleGroup,
-  Tooltip,
-} from '@airlib/react-aui';
-import { defineWindow, Window, WindowBody, WindowContent, WindowControls, WindowTitle, WindowToolbar } from '@airlib/react-aui/desktop';
-import { ArrowLeft } from '@airlib/react-aui/icons';
-import type { KeyboardEvent, MouseEvent, ReactNode } from 'react';
-import { DeleteIcon, DownloadIcon, ShareIcon } from '@/components/icons.js';
+  defineWindow,
+  Window,
+  WindowBody,
+  WindowContent,
+  WindowControls,
+  WindowSidebar,
+  WindowSidebarLabel,
+  WindowSidebarPanel,
+  WindowTitle,
+  WindowToolbar,
+} from '@airlib/react-aui/desktop';
+import { ArrowLeft, ClockIcon, FolderIcon } from '@airlib/react-aui/icons';
+import type { ReactNode } from 'react';
+import { AlbumIcon, DeleteIcon, DownloadIcon, FavoritesIcon, PreviewPanelIcon, ShareIcon } from '@/components/icons.js';
 import { type SelectionAction, SelectionActions } from '@/components/SelectionActions.js';
-import { documentAt, drive } from '@/lib/documents/store.js';
+import {
+  BROWSE_CLASS,
+  WedyanGallery,
+  type WedyanGalleryEntry,
+  type WedyanGalleryLayout,
+  WedyanGalleryLayoutToggle,
+  WedyanGallerySearch,
+} from '@/components/WedyanGallery.js';
+import { documentAt, drive, nameOf, parentOf } from '@/lib/documents/store.js';
 import { focusPrompt } from '@/lib/systems/focus.js';
 import manifest from '../manifest.json';
 import { ChatView, MemoView, StillView } from './Documents.js';
@@ -26,56 +34,49 @@ import {
   AddIcon,
   ComposeIcon,
   DirectIcon,
-  FilterIcon,
+  GenerativeIcon,
   ProjectsIcon,
   RenderIcon,
   SidebarCloseIcon,
   SidebarOpenIcon,
-  SortIcon,
 } from './icons.js';
 import { AssigneeAvatar, assigneeAt } from './assignment.js';
-import { albumOf, albums, duration, length, type Project, projects, shortDate, stagesOf } from './library.js';
+import {
+  ALBUMS,
+  duration,
+  type Entry,
+  FAVORITE,
+  GENERATIVE,
+  length,
+  type ListingRequest,
+  listing,
+  type Project,
+  projects,
+  ROOT,
+  shortDate,
+  stagesOf,
+} from './library.js';
 import { MotionsDockOptions, MotionsDockSubject } from './options.js';
 import { ProjectView } from './Project.js';
-import { goUp, isEditing, type MotionsData, type MotionsRoute, openAlbum, openIn } from './route.js';
+import { COMMANDS, CONTEXTS } from './prompt.js';
+import { goUp, isEditing, type MotionsRoute, openIn } from './route.js';
 import { endSession, type MotionsSession, sessionCtx, sessionOf } from './session.js';
 
-const CLASS = {
-  SHEET: 'wedyan-motions-sheet',
-  RECENTS: 'wedyan-motions-recents',
-  NEW: 'wedyan-motions-new',
-  ALBUM: 'wedyan-motions-album',
-  PREVIEW: 'wedyan-motions-preview',
-  ALBUM_PAGE: 'wedyan-motions-album-page',
-  SHELF: 'wedyan-motions-shelf',
-};
-
-/** How many of the newest projects the library's first row shows. */
-const RECENTS = 8;
-
-/** How many of an album's projects its row on the library shows, before showing all. */
-const ALBUM_PREVIEW = 3;
-
-/** How an album's projects can be ordered. */
-const SORTS = { updated: 'Recently updated', name: 'Name' };
-
-/** Which of an album's projects show, by where they stand. */
-const STATUSES = { all: 'Any status', draft: 'Drafts', rendered: 'Rendered' };
-
-/** Why an album narrowed to where its projects stand shows nothing. */
-const NONE_SHOWN: Record<string, string> = {
-  draft: 'No drafts in this album.',
-  rendered: 'Nothing rendered in this album yet.',
+/** The tags Motions lists down its side, with their names: Favorites, Generative, and each album. */
+const TAG_LABELS: Record<string, string> = {
+  [FAVORITE]: 'Favorites',
+  [GENERATIVE]: 'Generative',
+  ...Object.fromEntries(ALBUMS.map((album) => [album.tag, album.label])),
 };
 
 /**
- * Motions: a library of projects, each a `.motion` — from the ask it started with to the video it
- * becomes. The library is one sheet: the newest projects in a row, after a way to start a new one,
- * then the albums they're kept in, each opening to its projects, ordered and narrowed as asked.
- * Each window keeps its own place: the library, an album, a project open, or one of the project's
- * documents open in its own view — a stage in the editor, a still, a chat, a memo. Back goes up a
- * level. Opened with a document's path, a window starts there. While Motions is in front, the dock
- * holds how new motions are made.
+ * Motions: a browser of the Motions folder, as Photos is of its own, where each project — a
+ * `.motion`, from the ask it started with to the video it becomes — lists as one file. Down the
+ * side: Motions itself, Recents, and the tags — Favorites, Generative, and each album. Beside the
+ * tiles, a preview of the picked project. Opening a folder lists it here; opening a project opens it
+ * in a window of its own, which keeps its place: the project in Direct or Compose, or one of its
+ * documents in its own view — a still, a chat, a memo. Back goes up a level. While Motions is in
+ * front, the dock holds how new motions are made.
  */
 export const motions = defineWindow({
   name: manifest.name,
@@ -84,12 +85,12 @@ export const motions = defineWindow({
   image: manifest.icon,
   rect: { width: 960, height: 620 },
   window: { snap: '.aui-window', minWidth: 560, minHeight: 400 },
+  multiple: true,
   dockExtensions: MotionsDockOptions,
   dockSubject: MotionsDockSubject,
 }).render((props) => {
-  const data = props.instance.data as MotionsData;
-  const route = mutable<MotionsRoute>({ view: 'library' });
-  if (data?.path) openIn(route, data.path, data.motion);
+  // A window opened on a project brings its own live route, which its title and picture follow; the library otherwise.
+  const route = (props.instance.data as MotionsRoute | undefined) ?? mutable<MotionsRoute>({ view: 'library' });
 
   // What this window works on, shared with its dock, which can open documents here too.
   const id = props.instance.id;
@@ -102,58 +103,72 @@ export const motions = defineWindow({
   // `picked` is one project's path while picking one, and the checked paths while picking several.
   const pick = mutable({ picked: null as string | string[] | null, several: false });
 
-  // How an album's projects are ordered and narrowed, kept as the window moves between albums.
-  const shelf = mutable({ sort: 'updated', status: 'all' });
+  // What the library lists and how: a folder, a tag or the newest; while a tag or the newest is
+  // listed, `folder` is still the one it was opened from, to go back to.
+  const browse = mutable({
+    place: { folder: ROOT } as ListingRequest,
+    folder: ROOT,
+    layout: 'grid' as WedyanGalleryLayout,
+    query: '',
+    sidebarHidden: false,
+    previewHidden: false,
+  });
 
   const project = (): Project | undefined => {
     const document = route.motion ? documentAt<'motion'>(route.motion) : undefined;
     return document && route.motion ? { path: route.motion, document } : undefined;
   };
   const opened = () => (route.path ? documentAt(route.path) : undefined);
-  const title = () => {
-    if (route.view === 'library') return manifest.label;
-    if (route.view === 'album') return albumOf(route.place)?.name ?? '';
-    return opened()?.name ?? project()?.document.name ?? '';
-  };
+  const title = () => (route.view === 'library' ? browseTitle() : titleOf(route));
 
-  // Each view starts at its top, rather than where the one before it was scrolled to, with nothing picked.
+  // Each view starts at its top, rather than where the one before it was scrolled to, with nothing picked or searched.
   let body: HTMLDivElement | null = null;
   effect(() => {
-    void [route.view, route.place, route.motion, route.path];
+    void [route.view, route.motion, route.path];
     body?.closest('.aui-window-scroll')?.scrollTo({ top: 0 });
     Object.assign(pick, { picked: null, several: false });
+    browse.query = '';
   });
   const open = (path: string) => openIn(route, path);
-  const recents = () => projects().slice(0, RECENTS);
-  // The open album's projects, narrowed to where they stand, then ordered.
-  const shelved = () => {
-    const kept = (albumOf(route.place)?.projects() ?? []).filter((item) => shelf.status === 'all' || item.document.status === shelf.status);
-    return shelf.sort === 'name' ? kept.sort((a, b) => a.document.name.localeCompare(b.document.name)) : kept;
+
+  const entries = (): Entry[] => listing(browse.place);
+  const picked = () => entries().find((entry) => entry.path === pick.picked);
+  const checked = () => (Array.isArray(pick.picked) ? pick.picked.length : 0);
+  const browseTitle = () => {
+    const { place } = browse;
+    if ('recent' in place) return 'Recents';
+    if ('tag' in place) return TAG_LABELS[place.tag] ?? place.tag;
+    return place.folder === ROOT ? manifest.label : nameOf(place.folder);
+  };
+  // Whether the library has somewhere to go back to: the folder a tag or the newest was opened from, or the folder above.
+  const canGoBack = () => !('folder' in browse.place) || browse.place.folder !== ROOT;
+
+  /**
+   * Lists a folder, a tag or the newest in place of what's shown, with nothing picked and nothing
+   * searched, as a new place starts.
+   *
+   * @param request - The folder, the tag, or the newest.
+   */
+  const go = (request: ListingRequest) => {
+    Object.assign(pick, { several: false, picked: null });
+    Object.assign(browse, { place: request, query: '' }, 'folder' in request ? { folder: request.folder } : {});
+  };
+
+  // Back from a tag or the newest to the folder it was opened from, or up from a folder to the one it's in.
+  const back = () => go({ folder: 'folder' in browse.place ? parentOf(browse.folder) : browse.folder });
+
+  /**
+   * Opens what a tile is: a folder, here; a project, in a window of its own.
+   *
+   * @param entry - What the tile is.
+   */
+  const openEntry = (entry: Entry) => {
+    if (entry.kind === 'folder') go({ folder: entry.path });
+    else openMotions(entry.path);
   };
 
   /** The paths picked: the one project, or every checked one. */
   const pickedPaths = (): string[] => (Array.isArray(pick.picked) ? pick.picked : pick.picked ? [pick.picked] : []);
-
-  // A double click opens the tile. While picking one, its second click unpicks the tile again, so the
-  // tile is found by its place among the tiles and picked; while picking several, its two clicks cancel out.
-  const openTile = (event: MouseEvent<HTMLElement>, shown: () => Project[]) => {
-    const tile = (event.target as Element).closest('[role="option"]');
-    if (!tile) return;
-    const at = [...event.currentTarget.querySelectorAll('[role="option"]')].indexOf(tile);
-    const item = shown()[at];
-    if (!item) return;
-    if (!pick.several) pick.picked = item.path;
-    open(item.path);
-  };
-
-  // While picking one, Enter on the picked tile opens it, caught before the gallery would take it as unpicking.
-  const openOnEnter = (event: KeyboardEvent<HTMLElement>) => {
-    const tile = (event.target as Element).closest('[role="option"]');
-    if (event.key !== 'Enter' || pick.several || tile?.getAttribute('aria-selected') !== 'true') return;
-    event.preventDefault();
-    event.stopPropagation();
-    open(pick.picked as string);
-  };
 
   // Takes the picked projects out for this session: the mode first, while the value is still a list.
   const remove = () => {
@@ -174,8 +189,8 @@ export const motions = defineWindow({
         ? []
         : [
             [
-              { label: 'Open in Direct', icon: <DirectIcon />, run: () => Object.assign(route, { view: 'motion', motion: one, path: undefined, stage: undefined, item: undefined }) },
-              { label: 'Open in Compose', icon: <ComposeIcon />, run: () => open(one) },
+              { label: 'Open in Direct', icon: <DirectIcon />, run: () => openMotions(one, true) },
+              { label: 'Open in Compose', icon: <ComposeIcon />, run: () => openMotions(one) },
             ],
           ]),
       [
@@ -186,64 +201,64 @@ export const motions = defineWindow({
     ];
   };
 
-  // Projects to pick and open, as tiles wrapping into rows — or, for the newest, one row that scrolls along.
-  const gallery = (label: string, shown: () => Project[], className: string) => (
-    <div className={className} onDoubleClick={(event) => openTile(event, shown)} onKeyDownCapture={openOnEnter}>
-      <Gallery
-        label={label}
-        items={$use(() => shown().map(toTile))}
-        value={$bind(pick, 'picked')}
-        multiple={$bind(pick, 'several')}
-        checkable
-        flow={className !== CLASS.RECENTS}
-      />
-    </div>
+  /** The picked project or folder, beside the tiles: its picture, its facts, and what it was asked to be. */
+  const preview = () => (
+    <aside className={`${BROWSE_CLASS.PREVIEW} ${AUI_CLASS.GLASS_PANEL}`} aria-label="Preview">
+      <Show
+        when={picked}
+        fallback={() => (
+          <Show
+            when={checked}
+            fallback={() => (
+              <EmptyState title="Nothing picked" description="Pick a project to see it here." level={3}>
+                <EmptyState.Snippet for="icon">{() => <ProjectsIcon />}</EmptyState.Snippet>
+              </EmptyState>
+            )}
+          >
+            {(count) => (
+              <EmptyState title={count === 1 ? '1 item checked' : `${count} items checked`} description="Press Escape to pick one again." level={3}>
+                <EmptyState.Snippet for="icon">{() => <ProjectsIcon />}</EmptyState.Snippet>
+              </EmptyState>
+            )}
+          </Show>
+        )}
+      >
+        {(entry) => {
+          const facts = entryFacts(entry);
+          return (
+            <>
+              <button type="button" className={BROWSE_CLASS.PREVIEW_OPEN} aria-label={`Open ${entry.name}`} onClick={() => openEntry(entry)}>
+                {facts.picture ? <img src={facts.picture} alt="" /> : <FolderIcon />}
+              </button>
+              <h3 className={BROWSE_CLASS.PREVIEW_NAME}>{entry.name}</h3>
+              <DescriptionList size="sm" items={facts.items} />
+              {facts.ask && <DescriptionList size="sm" layout="stacked" items={[{ label: 'Asked', value: facts.ask }]} />}
+            </>
+          );
+        }}
+      </Show>
+    </aside>
   );
 
-  // Starting a motion is asking Wedyan for one, so it puts the caret in the prompt, the dock's tools for it beside.
-  const newMotion = (
-    <button type="button" className={CLASS.NEW} onClick={focusPrompt}>
-      <AddIcon />
-      <span>New motion</span>
-    </button>
-  );
-
-  /** The library: the newest projects after a way to start one, then the albums, each opening to its projects. */
+  /** The library: what's listed as tiles or rows, the picked one's preview beside — or a way to start the first. */
   const sheet = (): ReactNode =>
     projects().length ? (
-      <div className={CLASS.SHEET}>
-        <section aria-labelledby="wedyan-motions-recents">
-          <h2 id="wedyan-motions-recents">Recents</h2>
-          <div className={`${CLASS.RECENTS}-row`}>
-            {newMotion}
-            {gallery('Recent projects', recents, CLASS.RECENTS)}
-          </div>
-        </section>
-        {albums().map((album, at) => {
-          const count = album.projects().length;
-          const heading = `wedyan-motions-album-${at}`;
-          return (
-            <section key={album.key} aria-labelledby={heading} className={CLASS.ALBUM}>
-              <h2 id={heading}>
-                <button type="button" onClick={() => openAlbum(route, album.key)}>
-                  {album.name}
-                </button>
-              </h2>
-              <div className={`${CLASS.ALBUM}-about`}>
-                {album.cover && <img src={album.cover} alt="" />}
-                <p>{album.description}</p>
-              </div>
-              <div className={`${CLASS.ALBUM}-projects`}>
-                {count ? gallery(album.name, () => album.projects().slice(0, ALBUM_PREVIEW), CLASS.PREVIEW) : <p>Nothing kept here yet.</p>}
-                {count > ALBUM_PREVIEW && (
-                  <Button size="sm" variant="text" onClick={() => openAlbum(route, album.key)}>
-                    {`Show all (${count})`}
-                  </Button>
-                )}
-              </div>
-            </section>
-          );
-        })}
+      <div className={BROWSE_CLASS.ROOT}>
+        <WedyanGallery
+          label={$use(browseTitle)}
+          entries={$use(() => entries().map(galleryEntryOf))}
+          value={$bind(pick, 'picked')}
+          multiple={$bind(pick, 'several')}
+          layout={$use(() => browse.layout)}
+          query={$use(() => browse.query)}
+          checkable
+          className={BROWSE_CLASS.GALLERY}
+          onopen={(file) => {
+            const entry = entries().find((each) => each.path === file.path);
+            if (entry) openEntry(entry);
+          }}
+        />
+        <Show when={() => !browse.previewHidden}>{preview}</Show>
       </div>
     ) : (
       <EmptyState title="No motions yet" description="Ask Wedyan for one, and it starts here.">
@@ -258,67 +273,6 @@ export const motions = defineWindow({
         </EmptyState.Snippet>
       </EmptyState>
     );
-
-  /**
-   * An album: its picture, what it is and its facts, then its projects under a heading with how
-   * they're ordered and narrowed beside it — or why there's none to show.
-   */
-  const shelfView = (): ReactNode => {
-    const album = albumOf(route.place);
-    if (!album) return null;
-    const all = album.projects();
-    const narrowed = shelf.status !== 'all';
-    const updated = all.map((item) => item.document.updated).sort().at(-1);
-    return (
-      <div className={CLASS.ALBUM_PAGE}>
-        <header className={`${CLASS.ALBUM_PAGE}-overview`}>
-          {album.cover && <img src={album.cover} alt="" />}
-          <div>
-            <h2>{album.name}</h2>
-            <p>{album.description}</p>
-            <DescriptionList
-              size="sm"
-              items={[
-                { label: 'Projects', value: String(all.length) },
-                { label: 'Length', value: duration(all.reduce((total, item) => total + length(item), 0)) },
-                ...(updated ? [{ label: 'Updated', value: shortDate(updated) }] : []),
-              ]}
-            />
-          </div>
-        </header>
-        <section aria-labelledby="wedyan-motions-album-projects">
-          <div className={`${CLASS.ALBUM_PAGE}-heading`}>
-            <h3 id="wedyan-motions-album-projects">Projects</h3>
-            <Select size="sm" variant="text" label="Sort by" options={SORTS} value={$bind(shelf, 'sort')}>
-              <Select.Snippet for="trigger">
-                {(value) => (
-                  <>
-                    <SortIcon /> <span>{SORTS[value as keyof typeof SORTS]}</span>
-                  </>
-                )}
-              </Select.Snippet>
-            </Select>
-            <Select size="sm" variant="text" label="Show" options={STATUSES} value={$bind(shelf, 'status')}>
-              <Select.Snippet for="trigger">
-                {(value) => (
-                  <>
-                    <FilterIcon /> <span>{STATUSES[value as keyof typeof STATUSES]}</span>
-                  </>
-                )}
-              </Select.Snippet>
-            </Select>
-          </div>
-          {shelved().length ? (
-            gallery(album.name, shelved, CLASS.SHELF)
-          ) : (
-            <EmptyState title="Nothing to show" description={narrowed ? NONE_SHOWN[shelf.status] : 'This album is empty.'}>
-              <EmptyState.Snippet for="icon">{() => (narrowed ? <FilterIcon /> : <ProjectsIcon />)}</EmptyState.Snippet>
-            </EmptyState>
-          )}
-        </section>
-      </div>
-    );
-  };
 
   // The editor's two modes, as tabs: Direct, the project's writing, and Compose, a stage put together.
   const tabs = mutable({ mode: 'direct' });
@@ -348,18 +302,48 @@ export const motions = defineWindow({
     if (route.view === 'still' && document?.type === 'still') return <StillView key={route.path} document={document} open={open} />;
     if (route.view === 'chat' && document?.type === 'chat') return <ChatView key={route.path} document={document} open={open} />;
     if (route.view === 'memo' && document?.type === 'memo') return <MemoView key={route.path} document={document} open={open} />;
-    return route.view === 'album' ? shelfView() : sheet();
+    return sheet();
   };
 
-  // Going up says where it goes: the library from an album, the album a project was opened from, or the project.
+  // Going back says where it goes: in the library, to the folder before; in a project, to the library; in a document, to its project.
   const upLabel = () => {
-    if (route.view === 'album') return 'Back to the library';
-    if (isEditing(route)) return route.place ? 'Back to the album' : 'All projects';
-    return 'Back to the project';
+    if (route.view === 'library') return 'folder' in browse.place ? 'Up a folder' : 'Back to the folder';
+    return isEditing(route) ? 'All projects' : 'Back to the project';
   };
+
+  /** One place down the side: Motions itself, Recents, or a tag. */
+  const place = (label: string, icon: ReactNode, current: () => boolean, request: ListingRequest) => (
+    <Button key={label} variant="text" size="sm" aria-current={$use(() => (current() ? 'true' : undefined))} onClick={() => go(request)}>
+      {icon}
+      <span>{label}</span>
+    </Button>
+  );
 
   return () => (
     <Window>
+      {/* The library's places down the side, as Photos has its own; a project in Direct or Compose has panels of its own instead. */}
+      <Window.Snippet for="sidebar">
+        {() =>
+          route.view === 'library' &&
+          !browse.sidebarHidden && (
+            <WindowSidebar>
+              <WindowSidebarPanel>
+                <WindowSidebarLabel>Library</WindowSidebarLabel>
+                {place(manifest.label, <ProjectsIcon />, () => 'folder' in browse.place && browse.place.folder === ROOT, { folder: ROOT })}
+                {place('Recents', <ClockIcon />, () => 'recent' in browse.place, { recent: true })}
+                {place(TAG_LABELS[FAVORITE], <FavoritesIcon />, () => 'tag' in browse.place && browse.place.tag === FAVORITE, { tag: FAVORITE })}
+                {place(TAG_LABELS[GENERATIVE], <GenerativeIcon />, () => 'tag' in browse.place && browse.place.tag === GENERATIVE, { tag: GENERATIVE })}
+              </WindowSidebarPanel>
+              <WindowSidebarPanel>
+                <WindowSidebarLabel>Albums</WindowSidebarLabel>
+                {ALBUMS.map((album) =>
+                  place(album.label, <AlbumIcon />, () => 'tag' in browse.place && browse.place.tag === album.tag, { tag: album.tag })
+                )}
+              </WindowSidebarPanel>
+            </WindowSidebar>
+          )
+        }
+      </Window.Snippet>
       {/*
        * In the editor the toolbar rests on the window's glass and the views sit on it directly, as
        * panels of their own; elsewhere the content is the window's one panel, under the toolbar.
@@ -368,7 +352,7 @@ export const motions = defineWindow({
         {() => (
           <WindowBody className={isEditing(route) ? 'wedyan-editor' : undefined}>
             <WindowToolbar className={isEditing(route) ? 'wedyan-editor-toolbar' : undefined}>
-              <Show when={() => route.view !== 'library'}>
+              <Show when={() => route.view !== 'library' || canGoBack()}>
                 {() => (
                   <>
                     <Button
@@ -376,7 +360,7 @@ export const motions = defineWindow({
                       size="sm"
                       variant="text"
                       className={AUI_CLASS.CONTROL_ICON}
-                      onClick={() => goUp(route)}
+                      onClick={() => (route.view === 'library' ? back() : goUp(route))}
                     >
                       <ArrowLeft />
                     </Button>
@@ -396,6 +380,20 @@ export const motions = defineWindow({
                     </Show>
                     <Divider orientation="vertical" variant="ghost" size="sm" />
                   </>
+                )}
+              </Show>
+              <Show when={() => route.view === 'library'}>
+                {() => (
+                  <Toggle
+                    aria-label="Hide sidebar"
+                    size="sm"
+                    variant="text"
+                    className={AUI_CLASS.CONTROL_ICON}
+                    pressed={$bind(browse, 'sidebarHidden')}
+                  >
+                    <Snippet>{() => (browse.sidebarHidden ? <SidebarOpenIcon /> : <SidebarCloseIcon />)}</Snippet>
+                    <Tooltip>Hide sidebar</Tooltip>
+                  </Toggle>
                 )}
               </Show>
               <Show when={() => isEditing(route)}>
@@ -426,7 +424,7 @@ export const motions = defineWindow({
                 <Snippet>{title}</Snippet>
               </WindowTitle>
               {/* While projects are picked, what can be done with them sits beside the title. */}
-              <Show when={() => (route.view === 'library' || route.view === 'album') && pickedPaths().length > 0}>
+              <Show when={() => route.view === 'library' && pickedPaths().length > 0}>
                 {() => (
                   <SelectionActions
                     label="Picked projects"
@@ -437,6 +435,33 @@ export const motions = defineWindow({
               </Show>
               <WindowControls>
                 <Show when={() => route.view === 'stage'}>{() => <ComposeActions />}</Show>
+                <Show when={() => route.view === 'library'}>
+                  {() => (
+                    <>
+                      <WedyanGallerySearch query={$bind(browse, 'query')} />
+                      <Divider orientation="vertical" variant="ghost" size="sm" />
+                      {/* Starting a motion is asking Wedyan for one, so it puts the caret in the prompt, the dock's tools for it beside. */}
+                      <Button aria-label="New motion" size="sm" variant="text" className={AUI_CLASS.CONTROL_ICON} onClick={focusPrompt}>
+                        <AddIcon />
+                        <Tooltip>New motion</Tooltip>
+                      </Button>
+                      <Divider orientation="vertical" variant="ghost" size="sm" />
+                      <WedyanGalleryLayoutToggle layout={$bind(browse, 'layout')} />
+                      <Toggle
+                        aria-label="Hide preview"
+                        size="sm"
+                        variant="text"
+                        className={AUI_CLASS.CONTROL_ICON}
+                        pressed={$bind(browse, 'previewHidden')}
+                      >
+                        <PreviewPanelIcon />
+                        <Tooltip>Hide preview</Tooltip>
+                      </Toggle>
+                      {/* Sets the app's own buttons apart from the window's. */}
+                      <Divider orientation="vertical" variant="ghost" size="sm" />
+                    </>
+                  )}
+                </Show>
               </WindowControls>
             </WindowToolbar>
             <Snippet>
@@ -462,6 +487,36 @@ export const motions = defineWindow({
     </Window>
   );
 });
+
+/**
+ * Opens a project in a Motions window of its own, so the window it was picked in keeps its place —
+ * or brings forward the window already showing it.
+ *
+ * @param motion - The project's path.
+ * @param direct - Whether it opens in Direct rather than Compose.
+ * @returns The window showing the project.
+ */
+export function openMotions(motion: string, direct = false) {
+  const showing = motions.instances.find((instance) => sessionOf(instance.id).route?.motion === motion);
+  if (showing) {
+    showing.focus();
+    return showing;
+  }
+
+  const route = mutable<MotionsRoute>(direct ? { view: 'motion', motion } : { view: 'library' });
+  if (!direct) openIn(route, motion);
+  return motions.open(route, {
+    name: 'project',
+    commands: COMMANDS,
+    contexts: CONTEXTS,
+    get title() {
+      return titleOf(route);
+    },
+    get thumbnail() {
+      return route.motion ? documentAt<'motion'>(route.motion)?.cover : undefined;
+    },
+  });
+}
 
 /**
  * What can be done with the stage in Compose, in the toolbar: what its render says, who it's
@@ -498,21 +553,70 @@ const ComposeActions = setup(() => {
 }, 'ComposeActions');
 
 /**
- * A project as a gallery tile: its cover, captioned with its name, then how long it runs, where it
- * stands and who made it, and when it last changed.
+ * What a Motions window shows, as its title: the app in the library, or the open document, else its
+ * project.
  *
- * @param item - The project to show.
- * @returns The tile.
+ * @param route - The window's route.
+ * @returns The title.
  */
-function toTile(item: Project): GalleryEntry {
-  const { document } = item;
+function titleOf(route: MotionsRoute): string {
+  if (route.view === 'library') return manifest.label;
+  const opened = route.path ? documentAt(route.path) : undefined;
+  const project = route.motion ? documentAt<'motion'>(route.motion) : undefined;
+  return opened?.name ?? project?.name ?? '';
+}
+
+/**
+ * What a listing holds, as the files every Wedyan gallery shows: a folder by how many projects it
+ * holds; a project by its length, where it stands and who made it, and when it last changed.
+ *
+ * @param entry - What the listing holds.
+ * @returns The file, for the gallery.
+ */
+function galleryEntryOf(entry: Entry): WedyanGalleryEntry {
+  if (entry.kind === 'folder') {
+    return { path: entry.path, name: entry.name, kind: 'folder', detail: entry.count === 1 ? '1 project' : `${entry.count} projects` };
+  }
+  const { project } = entry;
+  const { document } = project;
   return {
-    value: item.path,
-    src: document.cover,
-    alt: document.name,
-    title: document.name,
-    description: [duration(length(item)), document.status === 'rendered' ? 'Rendered' : 'Draft', document.author.kind === 'agent' ? 'Wedyan' : 'You'].join(' · '),
-    meta: shortDate(document.updated),
+    path: entry.path,
+    name: entry.name,
+    kind: 'motion',
+    detail: [duration(length(project)), statusOf(project), document.author.kind === 'agent' ? 'Wedyan' : 'You'].join(' · '),
+    modified: shortDate(document.updated),
   };
+}
+
+/**
+ * What the preview says about what's picked: a project's cover, read from the project itself, its
+ * facts, and what it was asked to be; a folder's count.
+ *
+ * @param entry - What's picked.
+ * @returns Its picture, facts and ask.
+ */
+function entryFacts(entry: Entry): { picture?: string; items: { label: string; value: string }[]; ask?: string } {
+  if (entry.kind === 'folder') return { items: [{ label: 'Holds', value: entry.count === 1 ? '1 project' : `${entry.count} projects` }] };
+  const { project } = entry;
+  const { document } = project;
+  return {
+    picture: document.cover,
+    items: [
+      { label: 'Length', value: duration(length(project)) },
+      { label: 'Status', value: statusOf(project) },
+      { label: 'Updated', value: shortDate(document.updated) },
+    ],
+    ask: document.author.kind === 'agent' ? document.author.ask : undefined,
+  };
+}
+
+/**
+ * Where a project stands, in a word.
+ *
+ * @param project - The project.
+ * @returns `Rendered` or `Draft`.
+ */
+function statusOf(project: Project): string {
+  return project.document.status === 'rendered' ? 'Rendered' : 'Draft';
 }
 

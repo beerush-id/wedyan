@@ -26,7 +26,7 @@ import {
   ToEndIcon,
   ToStartIcon,
 } from './icons.js';
-import { ASPECTS, chosenAttempt, MODELS, settingsOf } from './generation.js';
+import { ASPECTS, chosenAttempt, MODELS, settingsOf } from '@/lib/documents/generation.js';
 import {
   type GenerativeSource,
   generate,
@@ -70,7 +70,7 @@ export const MotionsDockOptions = setup<WindowRenderProps>((props) => {
     const timeline = session.timeline;
     const generated = timeline ? generativeClip(session) : generativePick(session);
     const written = !timeline && writingPicked(session);
-    const shelf = view === 'library' || view === 'album';
+    const shelf = view === 'library';
     if (!shelf && !timeline && !generated && !written) return null;
 
     return (

@@ -7,7 +7,7 @@
   "created": "2026-10-28T08:00:00Z",
   "updated": "2026-10-28T08:10:00Z",
   "author": { "kind": "user" },
-  "tags": ["short"],
+  "tags": ["short", "lanterns", "favorite"],
   "aspect": "9:16",
   "cover": "https://picsum.photos/seed/wedyan-motion-lantern/270/480",
   "length": 6,

@@ -6,7 +6,7 @@
   "created": "2026-10-27T09:12:00Z",
   "updated": "2026-10-27T10:40:00Z",
   "author": { "kind": "agent", "ask": "Hey, let's create a presentation video for Wedyan. 30s video to promote it for the hack." },
-  "tags": ["promo", "hackathon"],
+  "tags": ["promo", "hackathon", "generative"],
   "description": "A 30s promo for Wedyan, for the hack.",
   "aspect": "16:9",
   "cover": "https://picsum.photos/seed/wedyan-promo-desk/480/270",

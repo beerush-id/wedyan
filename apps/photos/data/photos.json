@@ -1,0 +1,19 @@
+{
+  "albums": [
+    { "tag": "lanterns", "label": "Lanterns" },
+    { "tag": "weekend", "label": "Weekend" }
+  ],
+  "photos": [
+    { "path": "/Photos/Morning hike.jpg", "size": "3.2 MB", "modified": "Oct 25", "src": "https://picsum.photos/seed/wedyan-hike/480/360", "tags": ["weekend"] },
+    { "path": "/Photos/City lights.jpg", "size": "3.6 MB", "modified": "Oct 19", "src": "https://picsum.photos/seed/wedyan-city/480/360", "tags": [] },
+    { "path": "/Photos/Trips/Lake at noon.jpg", "size": "2.8 MB", "modified": "Oct 25", "src": "https://picsum.photos/seed/wedyan-lake/480/360", "tags": ["favorite", "weekend"] },
+    { "path": "/Photos/Trips/Market stall.jpg", "size": "4.1 MB", "modified": "Oct 22", "src": "https://picsum.photos/seed/wedyan-market/480/360", "tags": [] },
+    { "path": "/Photos/Trips/Hills/Garden bench.jpg", "size": "2.2 MB", "modified": "Oct 14", "src": "https://picsum.photos/seed/wedyan-garden/480/360", "tags": ["weekend"] },
+    { "path": "/Photos/Trips/Hills/Rooftop dinner.jpg", "size": "3.9 MB", "modified": "Oct 11", "src": "https://picsum.photos/seed/wedyan-rooftop/480/360", "tags": [] },
+    { "path": "/Photos/Trips/Hills/Ridge at dawn.jpg", "size": "3.4 MB", "modified": "Oct 10", "src": "https://picsum.photos/seed/wedyan-ridge/480/360", "tags": ["favorite"] },
+    { "path": "/Photos/Wedyan/Lantern festival.png", "size": "2.1 MB", "modified": "Oct 27", "src": "https://picsum.photos/seed/wedyan-gen-lantern/480/360", "prompt": "Paper lanterns over a river at dusk, warm light on the water", "tags": ["generative", "favorite", "lanterns"] },
+    { "path": "/Photos/Wedyan/Desert bloom.png", "size": "1.8 MB", "modified": "Oct 27", "src": "https://picsum.photos/seed/wedyan-gen-bloom/480/360", "prompt": "Wildflowers across red dunes after the first rain", "tags": ["generative"] },
+    { "path": "/Photos/Wedyan/Glass city.png", "size": "2.4 MB", "modified": "Oct 26", "src": "https://picsum.photos/seed/wedyan-gen-glass/480/360", "prompt": "A city of frosted glass towers in morning fog", "tags": ["generative", "lanterns"] },
+    { "path": "/Photos/Screenshots/Shared desktop.png", "size": "1.2 MB", "modified": "Oct 24", "src": "https://picsum.photos/seed/wedyan-shot-desktop/480/360", "tags": [] }
+  ]
+}

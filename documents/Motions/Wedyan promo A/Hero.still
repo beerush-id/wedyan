@@ -10,9 +10,9 @@
   "prompt": "A calm, airy browser desktop shared by a person and an AI agent, soft morning light, minimal",
   "references": ["https://picsum.photos/seed/wedyan-promo-desk/640/360"],
   "attempts": [
-    { "id": "t1", "src": "https://picsum.photos/seed/wedyan-hero-1/1920/1080", "created": "2026-10-27T09:31:00Z" },
-    { "id": "t2", "src": "https://picsum.photos/seed/wedyan-hero-2/1920/1080", "created": "2026-10-27T09:33:00Z" },
-    { "id": "t3", "src": "https://picsum.photos/seed/wedyan-hero-3/1920/1080", "prompt": "Same, warmer light, fewer windows", "created": "2026-10-27T09:40:00Z" }
+    { "id": "t1", "src": "https://picsum.photos/seed/wedyan-hero-1/1920/1080", "prompt": "A calm, airy browser desktop shared by a person and an AI agent, soft morning light, minimal", "settings": { "model": "standard", "aspect": "16:9" }, "created": "2026-10-27T09:31:00Z" },
+    { "id": "t2", "src": "https://picsum.photos/seed/wedyan-hero-2/1920/1080", "prompt": "A calm, airy browser desktop shared by a person and an AI agent, soft morning light, minimal", "settings": { "model": "standard", "aspect": "16:9" }, "created": "2026-10-27T09:33:00Z" },
+    { "id": "t3", "src": "https://picsum.photos/seed/wedyan-hero-3/1920/1080", "prompt": "Same, warmer light, fewer windows", "settings": { "model": "standard", "aspect": "16:9" }, "created": "2026-10-27T09:40:00Z" }
   ],
   "edits": [
     { "id": "e1", "kind": "mask", "mask": "https://picsum.photos/seed/wedyan-hero-mask/1920/1080", "result": "https://picsum.photos/seed/wedyan-hero-3/1920/1080", "created": "2026-10-27T09:45:00Z" },

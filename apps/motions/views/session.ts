@@ -2,8 +2,8 @@ import { splitSegment } from '@airlib/aria';
 import { createContext, mutable } from '@airlib/react';
 import type { Timeline, TimelineSegment } from '@airlib/react/timeline';
 import { documentAt, follow } from '@/lib/documents/store.js';
+import { isGenerative } from '@/lib/documents/generation.js';
 import type { GenerativeDocument, MotionAsset } from '@/lib/documents/types.js';
-import { isGenerative } from './generation.js';
 import type { Placement } from './placement.js';
 import type { MotionsRoute } from './route.js';
 

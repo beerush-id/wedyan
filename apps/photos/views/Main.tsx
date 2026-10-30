@@ -5,11 +5,10 @@ import {
   DescriptionList,
   Divider,
   EmptyState,
-  Gallery,
-  type GalleryEntry,
   ImageViewer,
   type ImageViewerEntry,
   Toggle,
+  Tooltip,
 } from '@airlib/react-aui';
 import {
   defineWindow,
@@ -19,63 +18,65 @@ import {
   WindowSidebarPanel,
   WindowTitle,
 } from '@airlib/react-aui/desktop';
-import { ArrowLeft } from '@airlib/react-aui/icons';
-import type { FC, KeyboardEvent, MouseEvent } from 'react';
-import { DeleteIcon, DownloadIcon, ShareIcon } from '@/components/icons.js';
+import { AddIcon, ArrowLeft, FolderIcon } from '@airlib/react-aui/icons';
+import type { ReactNode } from 'react';
+import { DeleteIcon, DownloadIcon, ShareIcon, SidebarCloseIcon, SidebarOpenIcon } from '@/components/icons.js';
 import { type SelectionAction, SelectionActions } from '@/components/SelectionActions.js';
-import LIBRARY from '../data/library.json';
-import manifest from '../manifest.json';
-import { byId, kept, library, PHOTOS, type Photo } from './library.js';
 import {
-  AlbumIcon,
-  FavoritedIcon,
-  FavoritesIcon,
-  GenerativeIcon,
-  LibraryIcon,
-  PreviewIcon,
-  ReferenceIcon,
-} from './icons.js';
+  BROWSE_CLASS,
+  WedyanGallery,
+  type WedyanGalleryEntry,
+  type WedyanGalleryLayout,
+  WedyanGalleryLayoutToggle,
+  WedyanGallerySearch,
+} from '@/components/WedyanGallery.js';
+import { documentAt, drive, nameOf, parentOf, supply } from '@/lib/documents/store.js';
+import manifest from '../manifest.json';
+import { AlbumIcon, FavoritedIcon, FavoritesIcon, GenerativeIcon, LibraryIcon, PreviewIcon, ReferenceIcon } from './icons.js';
+import {
+  ALBUMS,
+  allTagged,
+  chosenPicture,
+  type Entry,
+  FAVORITE,
+  freeStillPath,
+  GENERATIVE,
+  type ListingRequest,
+  library,
+  listing,
+  type Photo,
+  ROOT,
+  toggleTag,
+} from './library.js';
 import { generation, PhotosDockOptions } from './options.js';
+import { COMMANDS, CONTEXTS } from './prompt.js';
+import { StillProject, VIEWER_LABELS } from './Still.js';
 
-/** A set of photos down the side: the whole library, a view of it, or an album; its photos as they are now. */
-type Collection = { name: string; label: string; icon: FC; photos: () => Photo[] };
+/** What a Photos window can be opened with: a still project to show, by path; the browser otherwise. */
+export type PhotosData = { still?: string } | undefined;
 
-/** The library's own views, in the order people reach for them. */
-const VIEWS: Collection[] = [
-  { name: 'all', label: 'Photos', icon: LibraryIcon, photos: () => kept(PHOTOS) },
-  { name: 'generative', label: 'Generative', icon: GenerativeIcon, photos: () => kept(PHOTOS).filter((photo) => photo.prompt) },
-  { name: 'favorites', label: 'Favorites', icon: FavoritesIcon, photos: () => byId(library.favorites) },
-];
-
-/** The albums, by name. */
-const ALBUMS: Collection[] = LIBRARY.albums
-  .map((album) => ({ name: album.name, label: album.label, icon: AlbumIcon, photos: () => byId(album.photos) }))
-  .sort((a, b) => a.label.localeCompare(b.label));
-
-const COLLECTIONS = [...VIEWS, ...ALBUMS];
-
-const CLASS = {
-  BROWSE: 'wedyan-photos-browse',
-  GALLERY: 'wedyan-photos-gallery',
-  PREVIEW: 'wedyan-photos-preview',
-  PREVIEW_OPEN: 'wedyan-photos-preview-open',
-  PREVIEW_NAME: 'wedyan-photos-preview-name',
+/** The tags Photos lists down its side, by tag, with their names. */
+const TAG_LABELS: Record<string, string> = {
+  [FAVORITE]: 'Favorites',
+  [GENERATIVE]: 'Generative',
+  ...Object.fromEntries(ALBUMS.map((album) => [album.tag, album.label])),
 };
 
-const VIEWER_LABELS = {
-  previous: 'Previous photo',
-  next: 'Next photo',
-  zoomIn: 'Zoom in',
-  zoomOut: 'Zoom out',
-  fullscreen: 'Full screen',
+const CLASS = {
+  BROWSE: BROWSE_CLASS.ROOT,
+  GALLERY: BROWSE_CLASS.GALLERY,
+  PREVIEW: BROWSE_CLASS.PREVIEW,
+  PREVIEW_OPEN: BROWSE_CLASS.PREVIEW_OPEN,
+  PREVIEW_NAME: BROWSE_CLASS.PREVIEW_NAME,
 };
 
 /**
- * The photo library: its views and albums down the side, the chosen one's photos as tiles, and
- * beside them a preview of the picked photo, which can be turned off. A click picks a photo; a
- * double click, Enter, or pressing the preview's picture opens it in the viewer, which steps
- * through the rest. While Photos is in front, the dock holds how new
- * images are made.
+ * Photos: a browser of the Photos folder, like a file explorer. Down the side: Photos itself, and
+ * the tags — Favorites, Generative, and each album — which list every file carrying them. As tiles: the open folder's folders, still projects and images, or the tag's files, and
+ * beside them a preview of the picked one, which can be turned off. A double click, Enter, or pressing the preview's picture
+ * opens what's picked: a folder, a still project in a window of its own, or an image in the
+ * viewer, which steps through the rest. While Photos is in front, the dock holds how new images
+ * are made.
  */
 export const photos = defineWindow({
   name: manifest.name,
@@ -84,72 +85,33 @@ export const photos = defineWindow({
   image: manifest.icon,
   rect: { width: 900, height: 560 },
   window: { snap: '.aui-window', minWidth: 520, minHeight: 360 },
+  multiple: true,
   dockExtensions: PhotosDockOptions,
-}).render(() => {
-  // `picked` is one photo's id while picking one, and the checked ids while picking several.
+}).render((props) => {
+  // A window opened on a still project shows that project for its whole life.
+  const still = (props.instance.data as PhotosData)?.still;
+  if (still) return () => <StillProject path={still} />;
+
+  // `picked` is one path while picking one, and the checked paths while picking several. While a
+  // tag is listed, `folder` is still the one it was opened from, to go back to.
   const view = mutable({
-    place: 'all',
+    folder: ROOT,
+    tag: null as string | null,
     picked: null as string | string[] | null,
     several: false,
     viewing: false,
-    preview: true,
+    previewHidden: false,
+    layout: 'grid' as WedyanGalleryLayout,
+    query: '',
+    sidebarHidden: false,
     index: 0,
   });
 
-  const collection = () => COLLECTIONS.find((item) => item.name === view.place) ?? COLLECTIONS[0];
-  const picked = () => PHOTOS.find((photo) => photo.id === view.picked);
+  const entries = (): Entry[] => listing(view.tag ? { tag: view.tag } : { folder: view.folder });
+  const images = (): Photo[] => entries().flatMap((entry) => (entry.kind === 'photo' ? [entry.photo] : []));
+  const picked = () => entries().find((entry) => entry.path === view.picked);
   const checked = () => (Array.isArray(view.picked) ? view.picked.length : 0);
-  const tiles = () => collection().photos().map(toTile);
-  const slides = () => collection().photos().map(toSlide);
-
-  /**
-   * Opens the viewer at a photo.
-   *
-   * @param id - The photo to start from.
-   */
-  const openViewer = (id: string) => {
-    view.index = Math.max(
-      collection()
-        .photos()
-        .findIndex((photo) => photo.id === id),
-      0
-    );
-    view.viewing = true;
-  };
-
-  // A double click opens the tile. While picking one, its second click unpicks the tile again, so the
-  // tile is found by its place among the tiles and picked; while picking several, its two clicks cancel out.
-  const openTile = (event: MouseEvent<HTMLElement>) => {
-    const tile = (event.target as Element).closest('[role="option"]');
-    if (!tile) return;
-    const at = [...event.currentTarget.querySelectorAll('[role="option"]')].indexOf(tile);
-    const photo = collection().photos()[at];
-    if (!photo) return;
-    if (!view.several) view.picked = photo.id;
-    openViewer(photo.id);
-  };
-
-  // While picking one, Enter on the picked tile opens it, caught before the gallery would take it as
-  // unpicking; on any other tile, or while picking several, Enter picks or checks as usual.
-  const openOnEnter = (event: KeyboardEvent<HTMLElement>) => {
-    const tile = (event.target as Element).closest('[role="option"]');
-    if (event.key !== 'Enter' || view.several || tile?.getAttribute('aria-selected') !== 'true') return;
-    event.preventDefault();
-    event.stopPropagation();
-    openViewer(view.picked as string);
-  };
-
-  const back = () => {
-    view.viewing = false;
-  };
-
-  // Stepping through the viewer moves the pick along, so going back lands on the last one seen.
-  const step = (event: CustomEvent<number>) => {
-    if (!view.several) view.picked = collection().photos()[event.detail]?.id ?? null;
-  };
-
-  /** The ids picked: the one photo, or every checked one. */
-  const pickedIds = (): string[] => (Array.isArray(view.picked) ? view.picked : view.picked ? [view.picked] : []);
+  const title = () => (view.tag ? TAG_LABELS[view.tag] : view.folder === ROOT ? manifest.label : nameOf(view.folder));
 
   // Lets go of the pick: the mode first, while the value is still a list, then the value.
   const release = () => {
@@ -157,39 +119,107 @@ export const photos = defineWindow({
     view.picked = null;
   };
 
-  // Adds the picked photos to Favorites, or takes them out when every one is there already.
-  const toggleFavorite = () => {
-    const ids = pickedIds();
-    const all = ids.every((id) => library.favorites.includes(id));
-    library.favorites = all
-      ? library.favorites.filter((id) => !ids.includes(id))
-      : [...library.favorites, ...ids.filter((id) => !library.favorites.includes(id))];
-  };
-
-  // Takes the picked photos out of the library for this session.
-  const remove = () => {
-    const ids = pickedIds();
+  /**
+   * Lists a folder, or every file carrying a tag, in place of what's shown, with nothing picked and
+   * nothing searched, as a new place starts.
+   *
+   * @param request - The folder, or the tag.
+   */
+  const go = (request: ListingRequest) => {
     release();
-    library.deleted.push(...ids);
+    Object.assign(view, 'tag' in request ? { tag: request.tag } : { folder: request.folder, tag: null }, { viewing: false, query: '' });
   };
 
-  // Hands the picked photos to the next generation as references, after any already there.
+  /**
+   * Opens the viewer at an image.
+   *
+   * @param path - The image to start from.
+   */
+  const openViewer = (path: string) => {
+    view.index = Math.max(
+      images().findIndex((photo) => photo.path === path),
+      0
+    );
+    view.viewing = true;
+  };
+
+  /**
+   * Opens what a tile is: a folder, here; a still project, in a window of its own; an image, in the viewer.
+   *
+   * @param entry - What the tile is.
+   */
+  const open = (entry: Entry) => {
+    if (entry.kind === 'folder') go({ folder: entry.path });
+    else if (entry.kind === 'still') openStill(entry.path);
+    else openViewer(entry.path);
+  };
+
+  // Back from the viewer to the tiles, from a tag to the folder it was opened from, or up from a folder to the one it's in.
+  const back = () => {
+    if (view.viewing) view.viewing = false;
+    else go({ folder: view.tag ? view.folder : parentOf(view.folder) });
+  };
+
+  // Stepping through the viewer moves the pick along, so going back lands on the last one seen.
+  const step = (event: CustomEvent<number>) => {
+    if (!view.several) view.picked = images()[event.detail]?.path ?? null;
+  };
+
+  // Starts a still project in the open folder — from a tag, the folder it was opened from — and opens it.
+  const newStill = () => {
+    const path = freeStillPath(view.folder);
+    const now = new Date().toISOString();
+    supply([
+      [
+        path,
+        {
+          type: 'still',
+          version: 1,
+          id: crypto.randomUUID(),
+          name: nameOf(path).replace(/\.still$/, ''),
+          created: now,
+          updated: now,
+          author: { kind: 'user' },
+          tags: [GENERATIVE],
+          prompt: '',
+          references: [],
+          attempts: [],
+          edits: [],
+          chosen: '',
+        },
+      ],
+    ]);
+    openStill(path);
+  };
+
+  /** The paths picked: the one, or every checked one. */
+  const pickedPaths = (): string[] => (Array.isArray(view.picked) ? view.picked : view.picked ? [view.picked] : []);
+
+  // Takes the picked images and still projects out of Photos for this session.
+  const remove = () => {
+    const paths = pickedPaths();
+    release();
+    library.deleted.push(...paths.filter((path) => !path.endsWith('.still')));
+    drive.deleted.push(...paths.filter((path) => path.endsWith('.still')));
+  };
+
+  // Hands the picked images to the next generation as references, after any already there.
   const reference = () => {
-    const ids = pickedIds().filter((id) => !generation.references.includes(id));
-    generation.references.push(...ids);
+    const paths = pickedPaths().filter((path) => !generation.references.includes(path));
+    generation.references.push(...paths);
   };
 
   /** The actions for what's picked, in their groups: make with; keep; send; remove. */
   const selection = (): SelectionAction[][] => {
-    const ids = pickedIds();
-    const favorite = ids.every((id) => library.favorites.includes(id));
+    const paths = pickedPaths();
+    const favorite = allTagged(paths, FAVORITE);
     return [
       [{ label: 'Use as reference', icon: <ReferenceIcon />, run: reference }],
       [
         {
           label: favorite ? 'Remove from Favorites' : 'Add to Favorites',
           icon: favorite ? <FavoritedIcon /> : <FavoritesIcon />,
-          run: toggleFavorite,
+          run: () => toggleTag(paths, FAVORITE),
         },
       ],
       [
@@ -200,26 +230,13 @@ export const photos = defineWindow({
     ];
   };
 
-  const place = (item: Collection) => {
-    const Icon = item.icon;
-    return (
-      <Button
-        key={item.name}
-        variant="text"
-        size="sm"
-        aria-current={$use(() => (view.place === item.name ? 'true' : undefined))}
-        onClick={() => {
-          view.place = item.name;
-          view.picked = null;
-          view.several = false;
-          view.viewing = false;
-        }}
-      >
-        <Icon />
-        <span>{item.label}</span>
-      </Button>
-    );
-  };
+  /** One place down the side: Photos itself, or a tag. */
+  const place = (label: string, icon: ReactNode, current: () => boolean, run: () => void) => (
+    <Button key={label} variant="text" size="sm" aria-current={$use(() => (current() ? 'true' : undefined))} onClick={run}>
+      {icon}
+      <span>{label}</span>
+    </Button>
+  );
 
   const preview = () => (
     <aside className={`${CLASS.PREVIEW} ${AUI_CLASS.GLASS_PANEL}`} aria-label="Preview">
@@ -235,40 +252,26 @@ export const photos = defineWindow({
             )}
           >
             {(count) => (
-              <EmptyState
-                title={count === 1 ? '1 photo checked' : `${count} photos checked`}
-                description="Press Escape to pick one again."
-                level={3}
-              >
+              <EmptyState title={count === 1 ? '1 item checked' : `${count} items checked`} description="Press Escape to pick one again." level={3}>
                 <EmptyState.Snippet for="icon">{() => <LibraryIcon />}</EmptyState.Snippet>
               </EmptyState>
             )}
           </Show>
         )}
       >
-        {(photo) => (
-          <>
-            <button
-              type="button"
-              className={CLASS.PREVIEW_OPEN}
-              aria-label={`Open ${photo.name}`}
-              onClick={() => openViewer(photo.id)}
-            >
-              <img src={photo.src} alt="" />
-            </button>
-            <h3 className={CLASS.PREVIEW_NAME}>{photo.name}</h3>
-            <DescriptionList
-              size="sm"
-              items={[
-                { label: 'Size', value: photo.size },
-                { label: 'Date', value: photo.modified },
-              ]}
-            />
-            {photo.prompt && (
-              <DescriptionList size="sm" layout="stacked" items={[{ label: 'Prompt', value: photo.prompt }]} />
-            )}
-          </>
-        )}
+        {(entry) => {
+          const facts = entryFacts(entry);
+          return (
+            <>
+              <button type="button" className={CLASS.PREVIEW_OPEN} aria-label={`Open ${entry.name}`} onClick={() => open(entry)}>
+                {facts.picture ? <img src={facts.picture} alt="" /> : <FolderIcon />}
+              </button>
+              <h3 className={CLASS.PREVIEW_NAME}>{entry.name}</h3>
+              <DescriptionList size="sm" items={facts.items} />
+              {facts.prompt && <DescriptionList size="sm" layout="stacked" items={[{ label: 'Prompt', value: facts.prompt }]} />}
+            </>
+          );
+        }}
       </Show>
     </aside>
   );
@@ -278,15 +281,36 @@ export const photos = defineWindow({
       <Window.Snippet for="title">
         {() => (
           <>
+            {/* Going back leads, set apart from the view it leaves: its sidebar and where it is. */}
+            <Show when={() => view.viewing || !!view.tag || view.folder !== ROOT}>
+              {() => (
+                <>
+                  <Button
+                    aria-label={view.viewing ? 'Back to the tiles' : view.tag ? 'Back to the folder' : 'Up a folder'}
+                    size="sm"
+                    variant="text"
+                    className={AUI_CLASS.CONTROL_ICON}
+                    onClick={back}
+                  >
+                    <ArrowLeft />
+                  </Button>
+                  <Divider orientation="vertical" variant="ghost" size="sm" />
+                </>
+              )}
+            </Show>
+            <Toggle aria-label="Hide sidebar" size="sm" variant="text" className={AUI_CLASS.CONTROL_ICON} pressed={$bind(view, 'sidebarHidden')}>
+              <Snippet>{() => (view.sidebarHidden ? <SidebarOpenIcon /> : <SidebarCloseIcon />)}</Snippet>
+              <Tooltip>Hide sidebar</Tooltip>
+            </Toggle>
             <WindowTitle>
-              <Snippet>{() => collection().label}</Snippet>
+              <Snippet>{title}</Snippet>
             </WindowTitle>
-            {/* While photos are picked, what can be done with them sits beside the title. */}
-            <Show when={() => !view.viewing && pickedIds().length > 0}>
+            {/* While things are picked, what can be done with them sits beside the title. */}
+            <Show when={() => !view.viewing && pickedPaths().length > 0}>
               {() => (
                 <SelectionActions
                   label="Picked photos"
-                  count={view.several ? `${pickedIds().length} selected` : undefined}
+                  count={view.several ? `${pickedPaths().length} selected` : undefined}
                   groups={selection()}
                 />
               )}
@@ -295,43 +319,44 @@ export const photos = defineWindow({
         )}
       </Window.Snippet>
       <Window.Snippet for="sidebar">
-        {() => (
-          <WindowSidebar>
-            <WindowSidebarPanel>
-              <WindowSidebarLabel>Library</WindowSidebarLabel>
-              {VIEWS.map(place)}
-            </WindowSidebarPanel>
-            <WindowSidebarPanel>
-              <WindowSidebarLabel>Albums</WindowSidebarLabel>
-              {ALBUMS.map(place)}
-            </WindowSidebarPanel>
-          </WindowSidebar>
-        )}
+        {() =>
+          !view.sidebarHidden && (
+            <WindowSidebar>
+              <WindowSidebarPanel>
+                <WindowSidebarLabel>Library</WindowSidebarLabel>
+                {place(manifest.label, <LibraryIcon />, () => !view.tag && view.folder === ROOT, () => go({ folder: ROOT }))}
+                {place(TAG_LABELS[FAVORITE], <FavoritesIcon />, () => view.tag === FAVORITE, () => go({ tag: FAVORITE }))}
+                {place(TAG_LABELS[GENERATIVE], <GenerativeIcon />, () => view.tag === GENERATIVE, () => go({ tag: GENERATIVE }))}
+              </WindowSidebarPanel>
+              <WindowSidebarPanel>
+                <WindowSidebarLabel>Albums</WindowSidebarLabel>
+                {ALBUMS.map((album) => place(album.label, <AlbumIcon />, () => view.tag === album.tag, () => go({ tag: album.tag })))}
+              </WindowSidebarPanel>
+            </WindowSidebar>
+          )
+        }
       </Window.Snippet>
       <Window.Snippet for="actions">
         {() => (
-          <Show
-            when={() => view.viewing}
-            fallback={() => (
+          <Show when={() => !view.viewing}>
+            {() => (
               <>
-                <Toggle
-                  aria-label="Preview"
-                  size="sm"
-                  variant="text"
-                  pressed={$bind(view, 'preview')}
-                  className={AUI_CLASS.CONTROL_ICON}
-                >
+                <WedyanGallerySearch query={$bind(view, 'query')} />
+                <Divider orientation="vertical" variant="ghost" size="sm" />
+                <Button aria-label="New still project" size="sm" variant="text" className={AUI_CLASS.CONTROL_ICON} onClick={newStill}>
+                  <AddIcon />
+                  <Tooltip>New still project</Tooltip>
+                </Button>
+                {/* Making something apart from how the files show. */}
+                <Divider orientation="vertical" variant="ghost" size="sm" />
+                <WedyanGalleryLayoutToggle layout={$bind(view, 'layout')} />
+                <Toggle aria-label="Hide preview" size="sm" variant="text" pressed={$bind(view, 'previewHidden')} className={AUI_CLASS.CONTROL_ICON}>
                   <PreviewIcon />
+                  <Tooltip>Hide preview</Tooltip>
                 </Toggle>
-                {/* Sets the app's own button apart from the window's. */}
+                {/* Sets the app's own buttons apart from the window's. */}
                 <Divider orientation="vertical" variant="ghost" size="sm" />
               </>
-            )}
-          >
-            {() => (
-              <Button aria-label="All photos" size="sm" variant="text" className={AUI_CLASS.CONTROL_ICON} onClick={back}>
-                <ArrowLeft />
-              </Button>
             )}
           </Show>
         )}
@@ -340,27 +365,26 @@ export const photos = defineWindow({
         when={() => view.viewing}
         fallback={() => (
           <div className={CLASS.BROWSE}>
-            <div className={CLASS.GALLERY} onDoubleClick={openTile} onKeyDownCapture={openOnEnter}>
-              <Gallery
-                label={$use(() => collection().label)}
-                items={$use(tiles)}
-                value={$bind(view, 'picked')}
-                multiple={$bind(view, 'several')}
-                checkable
-              />
-            </div>
-            <Show when={() => view.preview}>{preview}</Show>
+            <WedyanGallery
+              label={$use(title)}
+              entries={$use(() => entries().map(galleryEntryOf))}
+              value={$bind(view, 'picked')}
+              multiple={$bind(view, 'several')}
+              layout={$use(() => view.layout)}
+              query={$use(() => view.query)}
+              checkable
+              className={CLASS.GALLERY}
+              onopen={(file) => {
+                const entry = entries().find((each) => each.path === file.path);
+                if (entry) open(entry);
+              }}
+            />
+            <Show when={() => !view.previewHidden}>{preview}</Show>
           </div>
         )}
       >
         {() => (
-          <ImageViewer
-            label={collection().label}
-            items={$use(slides)}
-            index={$bind(view, 'index')}
-            labels={VIEWER_LABELS}
-            onchange={step}
-          />
+          <ImageViewer label={title()} items={$use(() => images().map(toSlide))} index={$bind(view, 'index')} labels={VIEWER_LABELS} onchange={step} />
         )}
       </Show>
     </Window>
@@ -368,26 +392,104 @@ export const photos = defineWindow({
 });
 
 /**
- * A photo as a gallery tile: the picture, captioned with its name, size, and date.
+ * Opens a still project in a Photos window of its own, or brings forward the one already showing it.
  *
- * @param photo - The photo to show.
- * @returns The tile.
+ * @param path - The still's path.
+ * @returns The window showing it.
  */
-function toTile(photo: Photo): GalleryEntry {
+export function openStill(path: string) {
+  const showing = photos.instances.find((instance) => (instance.data as PhotosData)?.still === path);
+  if (showing) {
+    showing.focus();
+    return showing;
+  }
+
+  return photos.open(
+    { still: path },
+    {
+      name: 'still',
+      commands: COMMANDS,
+      contexts: CONTEXTS,
+      get title() {
+        return documentAt<'still'>(path)?.name ?? nameOf(path);
+      },
+      get thumbnail() {
+        const document = documentAt<'still'>(path);
+        return document && chosenPicture(document);
+      },
+    }
+  );
+}
+
+/**
+ * What the preview says about a tile: its picture, its facts, and the prompt it was made from.
+ *
+ * @param entry - What the tile is.
+ * @returns Its picture, facts and prompt.
+ */
+function entryFacts(entry: Entry): { picture?: string; items: { label: string; value: string }[]; prompt?: string } {
+  if (entry.kind === 'folder') return { items: [{ label: 'Holds', value: countOf(entry.count) }] };
+  if (entry.kind === 'still') {
+    const { document } = entry;
+    return {
+      picture: chosenPicture(document),
+      items: [
+        { label: 'Attempts', value: String(document.attempts.length) },
+        { label: 'Updated', value: new Date(document.updated).toLocaleDateString(undefined, { dateStyle: 'medium' }) },
+      ],
+      prompt: document.prompt || undefined,
+    };
+  }
+  const { photo } = entry;
   return {
-    value: photo.id,
-    src: photo.src,
-    alt: photo.name,
-    title: photo.name,
-    description: photo.size,
-    meta: photo.modified,
+    picture: photo.src,
+    items: [
+      { label: 'Size', value: photo.size },
+      { label: 'Date', value: photo.modified },
+    ],
+    prompt: photo.prompt,
   };
 }
 
 /**
- * A photo as one of the viewer's images, captioned with its name and date.
+ * What a folder holds, as the files every Wedyan gallery shows: a folder by how much it holds, a
+ * still project by when it changed, an image by its picture, size and date.
  *
- * @param photo - The photo to show.
+ * @param entry - What the folder holds.
+ * @returns The file, for the gallery.
+ */
+function galleryEntryOf(entry: Entry): WedyanGalleryEntry {
+  if (entry.kind === 'folder') {
+    return { path: entry.path, name: entry.name, kind: 'folder', detail: countOf(entry.count) };
+  }
+  if (entry.kind === 'still') {
+    const { document } = entry;
+    return {
+      path: entry.path,
+      name: entry.name,
+      kind: 'still',
+      detail: 'Still project',
+      modified: new Date(document.updated).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+    };
+  }
+  const { photo } = entry;
+  return { path: entry.path, name: entry.name, kind: 'image', picture: photo.src, detail: photo.size, modified: photo.modified };
+}
+
+/**
+ * How much a folder holds, in words.
+ *
+ * @param count - How many items.
+ * @returns E.g. `1 item` or `3 items`.
+ */
+function countOf(count: number): string {
+  return count === 1 ? '1 item' : `${count} items`;
+}
+
+/**
+ * An image as one of the viewer's, captioned with its name and date.
+ *
+ * @param photo - The image to show.
  * @returns The viewer's entry.
  */
 function toSlide(photo: Photo): ImageViewerEntry {

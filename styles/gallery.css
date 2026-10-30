@@ -1,0 +1,111 @@
+/* A browser's page: the tiles and, beside them, the preview of the picked one, which stays in view as the tiles scroll. */
+.wedyan-browse {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+}
+
+.wedyan-browse-gallery {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+
+  /* The tiles or rows fill the window's visible area, so pressing below the last one lets go of the pick. */
+  & > :is(.aui-gallery, .wedyan-gallery-list) {
+    min-block-size: 100cqb;
+    align-content: start;
+  }
+}
+
+.wedyan-browse-preview {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  inline-size: calc(var(--spacing) * 88);
+  /* As tall as the window shows, so it stays put beside the scrolling tiles. */
+  box-sizing: border-box;
+  block-size: 100cqb;
+  overflow-y: auto;
+  /* A frosted glass panel, as the sidebar is, padded the same on every side, corners concentric with the content panel's. */
+  --wedyan-browse-preview-radius: max(calc(var(--aui-window-panel-radius) - var(--spacing-md)), var(--radius-sm));
+  padding: var(--spacing-md);
+  border-radius: var(--wedyan-browse-preview-radius);
+
+  /* With nothing picked, the empty state sits in the middle of the pane. */
+  & > .aui-empty-state {
+    margin-block: auto;
+  }
+}
+
+/* The preview's picture opens what's picked; its corners are concentric with the pane's. Without a picture, its kind's glyph sits in the middle. */
+.wedyan-browse-preview-open {
+  --aui-icon-size: calc(var(--spacing) * 12);
+  display: grid;
+  flex: none;
+  place-items: center;
+  inline-size: 100%;
+  aspect-ratio: 4 / 3;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: max(calc(var(--wedyan-browse-preview-radius) - var(--spacing-md)), var(--radius-xs));
+  background: color-mix(in oklch, var(--color-on-surface) 6%, transparent);
+  color: var(--color-on-surface-variant);
+  cursor: zoom-in;
+
+  & img {
+    display: block;
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+  }
+
+  &:focus-visible {
+    outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+  }
+}
+
+.wedyan-browse-preview-name {
+  font-size: var(--font-title-sm-size);
+  font-weight: 500;
+  line-height: var(--font-title-sm-line-height);
+  overflow-wrap: anywhere;
+}
+
+/* Searching a gallery, in a window's toolbar: wide enough for a name, without crowding the title. */
+.wedyan-gallery-search {
+  inline-size: calc(var(--spacing) * 44);
+}
+
+/* A gallery as a list: one row per file, a small picture, the name, then what matters and when it changed, in columns at the end. */
+.wedyan-gallery-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.wedyan-gallery-list-thumb {
+  flex: none;
+  inline-size: calc(var(--spacing) * 9);
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: var(--radius-xs);
+}
+
+.wedyan-gallery-list-name {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.wedyan-gallery-list-detail {
+  flex: none;
+  inline-size: calc(var(--spacing) * 16);
+  color: color-mix(in oklch, currentColor 70%, transparent);
+  font-size: var(--font-label-sm-size);
+  text-align: end;
+}

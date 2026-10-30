@@ -128,6 +128,26 @@ export function resolvePath(from: string, path: string): string {
 }
 
 /**
+ * The last part of a path: a file's or a folder's name.
+ *
+ * @param path - The path.
+ * @returns Its name.
+ */
+export function nameOf(path: string): string {
+  return path.slice(path.lastIndexOf('/') + 1);
+}
+
+/**
+ * The folder a path is in.
+ *
+ * @param path - The path.
+ * @returns Its folder's path.
+ */
+export function parentOf(path: string): string {
+  return path.slice(0, path.lastIndexOf('/'));
+}
+
+/**
  * The document a path written in another document leads to.
  *
  * @param from - The path of the document it is written in.

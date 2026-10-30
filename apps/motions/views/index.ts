@@ -6,5 +6,5 @@ export { motions };
 
 /** Motions' entry: launching it opens the projects, with its command and projects for the prompt. */
 export default (({ open }) => {
-  open(motions, { commands: COMMANDS, contexts: CONTEXTS });
+  open(motions, { name: 'library', commands: COMMANDS, contexts: CONTEXTS });
 }) satisfies AUIBoot;

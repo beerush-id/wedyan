@@ -1,7 +1,0 @@
-{
-  "favorites": ["f01", "f05", "g02"],
-  "albums": [
-    { "name": "trips", "label": "Trips", "photos": ["f01", "f02", "f05", "g02"] },
-    { "name": "city", "label": "City", "photos": ["f03", "f04", "f06", "g03"] }
-  ]
-}

@@ -33,76 +33,89 @@
   block-size: calc(var(--spacing) * 5);
 }
 
-/* Photos: the tiles and, beside them, the preview of the picked one, which stays in view as the tiles scroll. */
-.wedyan-photos-browse {
-  display: flex;
-  align-items: flex-start;
+
+/* A still project: the attempt it shows over a row of every attempt, and how it's asked for beside, as tall as the window shows. */
+.wedyan-still {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) calc(var(--spacing) * 80);
   gap: var(--spacing-md);
-}
-
-.wedyan-photos-gallery {
-  flex: 1 1 auto;
-  min-inline-size: 0;
-
-  /* The tiles fill the window's visible area, so pressing below the last one lets go of the pick. */
-  & > .aui-gallery {
-    min-block-size: 100cqb;
-    align-content: start;
-  }
-}
-
-.wedyan-photos-preview {
-  position: sticky;
-  top: 0;
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  gap: var(--spacing-md);
-  inline-size: calc(var(--spacing) * 88);
-  /* As tall as the window shows, so it stays put beside the scrolling tiles. */
   box-sizing: border-box;
   block-size: 100cqb;
-  overflow-y: auto;
-  /* A frosted glass panel, as the sidebar is, padded the same on every side, corners concentric with the content panel's. */
-  --wedyan-photos-preview-radius: max(calc(var(--aui-window-panel-radius) - var(--spacing-md)), var(--radius-sm));
-  padding: var(--spacing-md);
-  border-radius: var(--wedyan-photos-preview-radius);
+}
 
-  /* With nothing picked, the empty state sits in the middle of the pane. */
+.wedyan-still-preview {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  min-block-size: 0;
+
+  /* The viewer takes the preview's height, its stage filling it as in full screen, so the toolbar stays over the picture. */
+  & > .aui-image-viewer {
+    flex: 1 1 auto;
+    min-block-size: 0;
+
+    & > .aui-image-viewer-stage {
+      flex: 1 1 auto;
+      min-block-size: 0;
+      aspect-ratio: auto;
+    }
+  }
+
+  /* With nothing made yet, the empty state sits in the middle. */
   & > .aui-empty-state {
     margin-block: auto;
   }
 }
 
-/* The preview's picture opens it in the viewer; its corners are concentric with the pane's. */
-.wedyan-photos-preview-open {
-  display: block;
-  flex: none;
-  inline-size: 100%;
-  aspect-ratio: 4 / 3;
-  padding: 0;
-  overflow: hidden;
-  border: 0;
-  border-radius: max(calc(var(--wedyan-photos-preview-radius) - var(--spacing-md)), var(--radius-xs));
-  background: none;
-  cursor: zoom-in;
+/* Reusing the shown attempt's prompt, on the same dark glass, in the picture's top corner. */
+.wedyan-still-reuse {
+  --aui-glass-radius: var(--radius-full);
+  color-scheme: only dark;
+  position: absolute;
+  inset-block-start: var(--spacing-md);
+  inset-inline-end: var(--spacing-md);
+  padding: var(--spacing-xs);
 
-  & img {
-    display: block;
-    inline-size: 100%;
-    block-size: 100%;
-    object-fit: cover;
-  }
-
-  &:focus-visible {
-    outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
-    outline-offset: var(--focus-ring-offset);
+  & > .aui-button {
+    color: var(--color-on-surface);
   }
 }
 
-.wedyan-photos-preview-name {
-  font-size: var(--font-title-sm-size);
-  font-weight: 500;
-  line-height: var(--font-title-sm-line-height);
-  overflow-wrap: anywhere;
+/*
+ * Every attempt as a small picture, in one row on glass floating over the picture's top edge, clear
+ * of the viewer's toolbar at its foot. On the dark side, as that toolbar is, to read on any picture;
+ * it scrolls along when there are more than fit.
+ */
+.wedyan-still-attempts {
+  --aui-gallery-tile: calc(var(--spacing) * 12);
+  --aui-gallery-padding: 2px;
+  --aui-gallery-radius: var(--radius-sm);
+  --aui-glass-radius: var(--radius-md);
+  color-scheme: only dark;
+  position: absolute;
+  inset-block-start: var(--spacing-md);
+  inset-inline-start: 50%;
+  translate: -50% 0;
+  box-sizing: border-box;
+  inline-size: max-content;
+  max-inline-size: calc(100% - var(--spacing-md) * 2);
+  padding: var(--spacing-xs);
+  overflow-x: auto;
+
+  & > .aui-gallery {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: var(--aui-gallery-tile);
+    gap: var(--spacing-xs);
+  }
+}
+
+/* How it's asked for, on frosted glass as the browser's preview is, scrolling on its own. */
+.wedyan-still-prompt {
+  box-sizing: border-box;
+  min-block-size: 0;
+  overflow-y: auto;
+  padding: var(--spacing-md);
+  border-radius: max(calc(var(--aui-window-panel-radius) - var(--spacing-md)), var(--radius-sm));
 }

@@ -1,5 +1,6 @@
-import { documentsOf, follow, resolvePath } from '@/lib/documents/store.js';
+import { documentsOf, follow, nameOf, parentOf } from '@/lib/documents/store.js';
 import type { MotionDocument, PersonaDocument, StageDocument } from '@/lib/documents/types.js';
+import ALBUM_TAGS from '../data/albums.json';
 import { runtime } from './composition.js';
 
 /** A project as Motions lists it: the `.motion` and where it is. */
@@ -13,58 +14,80 @@ export type Project = { path: string; document: MotionDocument };
 export const projects = (): Project[] =>
   documentsOf('motion').sort((a, b) => b.document.updated.localeCompare(a.document.updated));
 
-/** A set of projects kept together: an `.album`, or one gathered by what its projects share. */
-export type Album = {
-  /** How a route names it: an `.album`'s path, or a gathered album's own key. */
-  key: string;
-  name: string;
-  description: string;
-  /** Its picture: the album's own, or its newest project's cover. */
-  cover?: string;
-  /** Its projects, newest first. */
-  projects: () => Project[];
-};
+/** Where Motions browses from: the Motions folder at the drive's root. */
+export const ROOT = '/Motions';
+
+/** The tag of what's kept as a favorite. */
+export const FAVORITE = 'favorite';
+
+/** The tag of what Wedyan made. */
+export const GENERATIVE = 'generative';
+
+/** How many of the newest projects Recents lists. */
+const RECENT_COUNT = 8;
+
+/** The albums: each a tag that the projects in it carry, and its name. */
+export const ALBUMS: { tag: string; label: string }[] = ALBUM_TAGS;
+
+/** What a listing is asked for: one folder's contents, every project carrying a tag, or the newest projects. */
+export type ListingRequest = { folder: string } | { tag: string } | { recent: true };
+
+/** One thing a listing holds: a folder, with how much it holds; or a project, its folder shown as the project. */
+export type Entry = { kind: 'folder'; path: string; name: string; count: number } | { kind: 'motion'; path: string; name: string; project: Project };
 
 /**
- * The albums, as the library shows them: each `.album`, by name, then what Wedyan made, then the
- * projects in no album. The last two show only while they hold something.
+ * Lists Motions as asked: a folder's contents, every project carrying a tag, or the newest projects.
+ * A mock of the drive's listing request, answered from the projects at hand.
  *
- * @returns Each album.
+ * @param request - A folder, a tag, or the newest.
+ * @returns What the folder holds, the projects with the tag, or the newest projects.
  */
-export const albums = (): Album[] => {
-  const kept = documentsOf('album')
-    .sort((a, b) => a.document.name.localeCompare(b.document.name))
-    .map(({ path, document }) => {
-      const inside = () => projects().filter((project) => project.document.album && resolvePath(project.path, project.document.album) === path);
-      return { key: path, name: document.name, description: document.description ?? '', cover: document.cover ?? inside()[0]?.document.cover, projects: inside };
-    });
-  const gathered = [
-    gather('made-by-wedyan', 'Made by Wedyan', 'Everything Wedyan made from what you asked.', (project) => project.document.author.kind === 'agent'),
-    gather('unsorted', 'Unsorted', 'Projects not kept in an album yet.', (project) => !project.document.album),
-  ].filter((album) => album.projects().length > 0);
-  return [...kept, ...gathered];
-};
+export function listing(request: ListingRequest): Entry[] {
+  if ('recent' in request) return projects().slice(0, RECENT_COUNT).map(entryOf);
+  if ('tag' in request) return byName(projects().filter((project) => project.document.tags?.includes(request.tag)).map(entryOf));
+  return folderOf(request.folder);
+}
 
 /**
- * One album, by its key.
+ * What a folder holds: its folders, then its projects, each in name order. A project's folder — the
+ * one holding its `.motion` — lists as the project; other folders show how many projects they hold.
  *
- * @param key - How a route names it.
- * @returns The album, if there is one by that key.
+ * @param folder - The folder's path, e.g. `/Motions`.
+ * @returns What it holds.
  */
-export const albumOf = (key?: string): Album | undefined => albums().find((album) => album.key === key);
+function folderOf(folder: string): Entry[] {
+  const folders = new Map<string, number>();
+  const entries: Entry[] = [];
+  for (const project of projects()) {
+    const home = parentOf(project.path);
+    if (parentOf(home) === folder) entries.push(entryOf(project));
+    else if (home.startsWith(`${folder}/`)) {
+      const child = `${folder}/${home.slice(folder.length + 1).split('/')[0]}`;
+      folders.set(child, (folders.get(child) ?? 0) + 1);
+    }
+  }
+  const subfolders: Entry[] = [...folders].map(([path, count]) => ({ kind: 'folder', path, name: nameOf(path), count }));
+  return [...byName(subfolders), ...byName(entries)];
+}
 
 /**
- * An album gathered by what its projects share, rather than kept as a file.
+ * A project as a listing holds it, by its `.motion`'s path.
  *
- * @param key - How a route names it.
- * @param name - Its name.
- * @param description - What it gathers, in a line.
- * @param holds - Whether a project belongs in it.
- * @returns The album.
+ * @param project - The project.
+ * @returns Its entry.
  */
-function gather(key: string, name: string, description: string, holds: (project: Project) => boolean): Album {
-  const inside = () => projects().filter(holds);
-  return { key, name, description, cover: inside()[0]?.document.cover, projects: inside };
+function entryOf(project: Project): Entry {
+  return { kind: 'motion', path: project.path, name: project.document.name, project };
+}
+
+/**
+ * Entries in name order.
+ *
+ * @param entries - The entries.
+ * @returns The same entries, ordered by name.
+ */
+function byName(entries: Entry[]): Entry[] {
+  return entries.sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /**

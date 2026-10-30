@@ -1,0 +1,38 @@
+{
+  "type": "still",
+  "version": 1,
+  "id": "p01-calm-desk",
+  "name": "Calm desk",
+  "created": "2026-10-28T08:10:00Z",
+  "updated": "2026-10-28T08:24:00Z",
+  "author": { "kind": "user" },
+  "tags": ["generative", "favorite"],
+  "prompt": "A calm wooden desk by a window, morning light, a plant and a notebook, minimal",
+  "settings": { "model": "standard", "aspect": "16:9", "batch": 2 },
+  "references": ["https://picsum.photos/seed/wedyan-garden/480/360"],
+  "attempts": [
+    {
+      "id": "t1",
+      "src": "https://picsum.photos/seed/wedyan-desk-1/1920/1080",
+      "prompt": "A calm wooden desk by a window, morning light, a plant and a notebook, minimal",
+      "settings": { "model": "standard", "aspect": "16:9" },
+      "created": "2026-10-28T08:11:00Z"
+    },
+    {
+      "id": "t2",
+      "src": "https://picsum.photos/seed/wedyan-desk-2/1920/1080",
+      "prompt": "A calm wooden desk by a window, morning light, a plant and a notebook, minimal",
+      "settings": { "model": "standard", "aspect": "16:9" },
+      "created": "2026-10-28T08:11:00Z"
+    },
+    {
+      "id": "t3",
+      "src": "https://picsum.photos/seed/wedyan-desk-3/1920/1080",
+      "prompt": "Same, warmer light, no notebook",
+      "settings": { "model": "detailed", "aspect": "16:9" },
+      "created": "2026-10-28T08:20:00Z"
+    }
+  ],
+  "edits": [],
+  "chosen": "t3"
+}
