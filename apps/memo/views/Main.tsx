@@ -1,62 +1,29 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
-import { $bind, $use, mutable, Show, Snippet } from '@airlib/react';
+import { $bind, mutable, Show, Snippet } from '@airlib/react';
 import { Button, Divider, EmptyState, Toggle, ToggleGroup, Tooltip } from '@airlib/react-aui';
-import {
-  defineWindow,
-  Window,
-  WindowSidebar,
-  WindowSidebarLabel,
-  WindowSidebarPanel,
-  WindowTitle,
-} from '@airlib/react-aui/desktop';
-import { AddIcon, ArrowLeft } from '@airlib/react-aui/icons';
-import type { ReactNode } from 'react';
-import { deleteConfirm } from '@/components/confirm.js';
+import { defineWindow, Window, WindowBody, WindowControls, WindowPanel, WindowToolbar } from '@airlib/react-aui/desktop';
+import { AddIcon } from '@airlib/react-aui/icons';
+import type { FC } from 'react';
+import { type DirectItem, DirectList } from '@/components/Direct.js';
 import { SaveButton } from '@/components/SaveButton.js';
-import { type SelectionAction, SelectionActions } from '@/components/SelectionActions.js';
-import { WedyanGallery, type WedyanGalleryEntry, WedyanGallerySearch } from '@/components/WedyanGallery.js';
-import { drive, nameOf, parentOf, supply } from '@/lib/documents/store.js';
-import type { MemoDocument } from '@/lib/documents/types.js';
 import { fullRect } from '@/lib/systems/window.js';
 import manifest from '../manifest.json';
-import {
-  AlbumIcon,
-  DeleteIcon,
-  MemosIcon,
-  PinIcon,
-  PinnedIcon,
-  ReadIcon,
-  RemindersIcon,
-  SidebarCloseIcon,
-  SidebarOpenIcon,
-  WriteIcon,
-} from './icons.js';
-import {
-  allPinned,
-  type Entry,
-  freeMemoPath,
-  KINDS,
-  type ListingRequest,
-  listing,
-  ROOT,
-  shortDate,
-  tagLabel,
-  tags,
-  togglePinned,
-} from './library.js';
-import { MemoEditor, type MemoMode, memoCtx } from './Memo.js';
+import { MemosIcon, MemoryIcon, SidebarCloseIcon, SidebarOpenIcon } from './icons.js';
+import { type MemoGroup, memosOf, newMemo, PRIORITIES, priorityOf, remove, shortDate } from './library.js';
+import { MemoEditor } from './Memo.js';
+import { memoCtx } from './session.js';
 
-const CLASS = {
-  PAGE: 'wedyan-memo-page',
-  LIST: 'wedyan-memo-list',
+/** Each tab's name and glyph, and what it says while it holds nothing. */
+const GROUPS: Record<MemoGroup, { label: string; Icon: FC; empty: string }> = {
+  personal: { label: 'Personal', Icon: MemosIcon, empty: 'Add one with + in the toolbar.' },
+  memory: { label: 'Memory', Icon: MemoryIcon, empty: 'What Wedyan remembers about you shows here.' },
 };
 
 /**
- * Memo: the memories Wedyan kept and the user can read and change, worked through one at a time in
- * one window. Down the side: Memos itself, the pinned memos, those with a reminder, and each tag the
- * memos carry. Beside it, the list of the open folder's folders and memos, or the view's memos; and
- * beside the list, the picked memo, edited in place — its name, kind, tags, pin, reminder and words.
- * Opening a folder lists it here; a new memo opens beside the list as it's made.
+ * Memo: what the user keeps, and what Wedyan remembers, in one window laid out as Lounge is. The
+ * toolbar switches between Personal — the user's own memos — and Memory — the memos Wedyan saved.
+ * Down the side, the tab's memos to search, high priority first; beside them, the one open, its
+ * words in Markdown, read or edited in place.
  */
 export const memo = defineWindow({
   name: manifest.name,
@@ -64,284 +31,143 @@ export const memo = defineWindow({
   title: manifest.label,
   image: manifest.icon,
   rect: fullRect(),
-  window: { snap: '.aui-window', minWidth: 640, minHeight: 400 },
+  window: { snap: '.aui-window', minWidth: 720, minHeight: 400 },
 }).render(() => {
-  // `picked` is one path while picking one, and the checked paths while picking several. While a
-  // view other than a folder is listed, `folder` is still the one it was opened from, to go back to.
+  // Each tab keeps its own pick; until the user picks, its first memo is open.
   const view = mutable({
-    place: { folder: ROOT } as ListingRequest,
-    folder: ROOT,
-    picked: null as string | string[] | null,
-    several: false,
-    mode: 'write' as MemoMode,
+    group: 'personal' as MemoGroup,
+    picked: { personal: null, memory: null } as Record<MemoGroup, string | null>,
     query: '',
-    sidebarHidden: false,
+    sidebar: true,
   });
 
-  // The memo picked is the one open beside the list, shared with its editor.
-  const opened = () => (typeof view.picked === 'string' && view.picked.endsWith('.memo') ? view.picked : null);
+  const opened = () => view.picked[view.group] ?? memosOf(view.group)[0]?.path ?? null;
   memoCtx.set({
     get path() {
       return opened();
     },
-    get mode() {
-      return view.mode;
-    },
-    set mode(mode: MemoMode) {
-      view.mode = mode;
+    remove() {
+      const path = opened();
+      if (!path) return;
+      view.picked[view.group] = null;
+      remove(path);
     },
   });
 
-  const entries = (): Entry[] => listing(view.place);
-  const checked = () => (Array.isArray(view.picked) ? view.picked.length : 0);
-  const inFolder = () => 'folder' in view.place;
-  const title = () => {
-    const { place } = view;
-    if ('pinned' in place) return 'Pinned';
-    if ('reminders' in place) return 'Reminders';
-    if ('tag' in place) return tagLabel(place.tag);
-    return place.folder === ROOT ? manifest.label : nameOf(place.folder);
+  // What the toolbar's tabs pick: the tab, which starts its search afresh.
+  const tabs = {
+    get value() {
+      return view.group;
+    },
+    set value(group: string) {
+      view.group = group as MemoGroup;
+      view.query = '';
+    },
   };
 
-  // Lets go of the pick: the mode first, while the value is still a list, then the value.
-  const release = () => {
-    view.several = false;
-    view.picked = null;
+  // What the side's list picks: the open memo, written back as the tab's pick.
+  const pick = {
+    get value() {
+      return opened() ?? '';
+    },
+    set value(path: string) {
+      view.picked[view.group] = path;
+    },
   };
 
-  /**
-   * Lists a folder, or a view of the memos, in place of what's shown, with nothing picked and nothing
-   * searched, as a new place starts.
-   *
-   * @param request - The folder, the tag, the pinned or the reminders.
-   */
-  const go = (request: ListingRequest) => {
-    release();
-    view.place = request;
-    if ('folder' in request) view.folder = request.folder;
+  // The side's rows, narrowed by the search through names and words, each saying how much it weighs, when it isn't normal, and when it changed.
+  const rows = (): DirectItem[] => {
+    const query = view.query.trim().toLowerCase();
+    return memosOf(view.group)
+      .filter(({ document }) => !query || `${document.name} ${document.body}`.toLowerCase().includes(query))
+      .map(({ path, document }) => {
+        const priority = priorityOf(document);
+        return {
+          key: path,
+          title: document.name || 'Untitled',
+          description: [priority !== 'normal' && `${PRIORITIES[priority]} priority`, shortDate(document.updated)].filter(Boolean).join(' · '),
+          icon: GROUPS[view.group].Icon,
+        };
+      });
+  };
+
+  // A new memo is the user's own, so it opens in Personal.
+  const create = () => {
+    view.group = 'personal';
     view.query = '';
+    view.picked.personal = newMemo();
   };
-
-  // Back from a view to the folder it was opened from, or up from a folder to the one it's in.
-  const back = () => go({ folder: inFolder() ? parentOf(view.folder) : view.folder });
-
-  // Starts a memo in the open folder — from a view, the folder it was opened from — carrying the
-  // view's tag or pin, so it lists where it was started; then opens it beside the list, to write.
-  const newMemo = () => {
-    const { place } = view;
-    const path = freeMemoPath(view.folder);
-    const now = new Date().toISOString();
-    const draft: MemoDocument = {
-      type: 'memo',
-      version: 1,
-      id: crypto.randomUUID(),
-      name: nameOf(path).replace(/\.memo$/, ''),
-      created: now,
-      updated: now,
-      author: { kind: 'user' },
-      tags: 'tag' in place ? [place.tag] : [],
-      kind: 'note',
-      body: '',
-    };
-    if ('pinned' in place) draft.pinned = true;
-    supply([[path, draft]]);
-    // Reminders lists only memos with one, so a new memo is shown in its folder instead.
-    if ('reminders' in place) go({ folder: view.folder });
-    release();
-    view.query = '';
-    view.picked = path;
-    view.mode = 'write';
-  };
-
-  /** The memos picked: the one, or every checked one, leaving folders out. */
-  const pickedPaths = (): string[] =>
-    (Array.isArray(view.picked) ? view.picked : view.picked ? [view.picked] : []).filter((path) => path.endsWith('.memo'));
-
-  // Takes the picked memos off the drive for this session.
-  const remove = () => {
-    const paths = pickedPaths();
-    release();
-    drive.deleted.push(...paths);
-  };
-
-  /** The actions for what's picked, in their groups: keep; remove. */
-  const selection = (): SelectionAction[][] => {
-    const paths = pickedPaths();
-    const pinned = allPinned(paths);
-    return [
-      [{ label: pinned ? 'Unpin' : 'Pin', icon: pinned ? <PinnedIcon /> : <PinIcon />, run: () => togglePinned(paths) }],
-      [{ label: 'Delete', icon: <DeleteIcon />, run: remove, confirm: deleteConfirm(paths.length, 'memo', 'memos', 'your memos') }],
-    ];
-  };
-
-  /** One place down the side: Memos itself, a view, or a tag. */
-  const place = (label: string, icon: ReactNode, current: () => boolean, run: () => void) => (
-    <Button key={label} variant="text" size="sm" aria-current={$use(() => (current() ? 'true' : undefined))} onClick={run}>
-      {icon}
-      <span>{label}</span>
-    </Button>
-  );
-
-  // Beside the list while no memo is open: what's checked, or how to open one.
-  const nothingOpen = () => (
-    <Show
-      when={checked}
-      fallback={() => (
-        <EmptyState title="Nothing open" description="Pick a memo to work on it here." level={3}>
-          <EmptyState.Snippet for="icon">{() => <MemosIcon />}</EmptyState.Snippet>
-        </EmptyState>
-      )}
-    >
-      {(count) => (
-        <EmptyState title={count === 1 ? '1 item checked' : `${count} items checked`} description="Press Escape to pick one again." level={3}>
-          <EmptyState.Snippet for="icon">{() => <MemosIcon />}</EmptyState.Snippet>
-        </EmptyState>
-      )}
-    </Show>
-  );
 
   return () => (
-    <Window sidebarResizeLabel="Resize sidebar">
-      <Window.Snippet for="title">
+    <Window>
+      {/* As in Lounge, the toolbar rests on the window's glass and the list and the memo are panels on it. */}
+      <Window.Snippet for="body">
         {() => (
-          <>
-            {/* Going back leads, set apart from the view it leaves: its sidebar and where it is. */}
-            <Show when={() => !inFolder() || view.folder !== ROOT}>
-              {() => (
-                <>
-                  <Button
-                    aria-label={inFolder() ? 'Up a folder' : 'Back to the folder'}
-                    size="sm"
-                    variant="text"
-                    className={AUI_CLASS.CONTROL_ICON}
-                    onClick={back}
-                  >
-                    <ArrowLeft />
-                    <Tooltip>{inFolder() ? 'Up a folder' : 'Back to the folder'}</Tooltip>
-                  </Button>
-                  <Divider orientation="vertical" variant="ghost" size="sm" />
-                </>
-              )}
-            </Show>
-            <Toggle aria-label="Hide sidebar" size="sm" variant="text" className={AUI_CLASS.CONTROL_ICON} pressed={$bind(view, 'sidebarHidden')}>
-              <Snippet>{() => (view.sidebarHidden ? <SidebarOpenIcon /> : <SidebarCloseIcon />)}</Snippet>
-              <Tooltip>Hide sidebar</Tooltip>
-            </Toggle>
-            <WindowTitle>
-              <Snippet>{title}</Snippet>
-            </WindowTitle>
-            {/* While memos are picked, what can be done with them sits beside the title. */}
-            <Show when={() => pickedPaths().length > 0}>
-              {() => (
-                <SelectionActions
-                  label="Picked memos"
-                  count={view.several ? `${pickedPaths().length} selected` : undefined}
-                  groups={selection()}
-                />
-              )}
-            </Show>
-          </>
+          <WindowBody className="wedyan-editor">
+            <WindowToolbar className="wedyan-editor-toolbar">
+              <Toggle aria-label="Sidebar" size="sm" variant="text" className={AUI_CLASS.CONTROL_ICON} pressed={$bind(view, 'sidebar')}>
+                <Snippet>{() => (view.sidebar ? <SidebarCloseIcon /> : <SidebarOpenIcon />)}</Snippet>
+                <Tooltip>Sidebar</Tooltip>
+              </Toggle>
+              <Divider orientation="vertical" variant="ghost" size="sm" />
+              <ToggleGroup aria-label="Show" size="sm" variant="glass" value={$bind(tabs, 'value')} required>
+                {(Object.keys(GROUPS) as MemoGroup[]).map((group) => {
+                  const { label, Icon } = GROUPS[group];
+                  return (
+                    <Toggle key={group} value={group} variant="text" size="sm">
+                      <Icon />
+                      <span>{label}</span>
+                    </Toggle>
+                  );
+                })}
+              </ToggleGroup>
+              <WindowControls>
+                <Button aria-label="New memo" size="sm" variant="text" className={AUI_CLASS.CONTROL_ICON} onClick={create}>
+                  <AddIcon />
+                  <Tooltip>New memo</Tooltip>
+                </Button>
+                <Show when={opened}>{() => <SaveButton />}</Show>
+                {/* Sets the app's own buttons apart from the window's. */}
+                <Divider orientation="vertical" variant="ghost" size="sm" />
+              </WindowControls>
+            </WindowToolbar>
+            <div className="wedyan-memo">
+              <Snippet>
+                {() =>
+                  view.sidebar && (
+                    <DirectList
+                      label={GROUPS[view.group].label}
+                      listLabel={`${GROUPS[view.group].label} memos`}
+                      groups={() => [{ items: rows() }]}
+                      value={$bind(pick, 'value')}
+                      query={$bind(view, 'query')}
+                    />
+                  )
+                }
+              </Snippet>
+              {/* A memo picked anew starts its editor afresh, so its fields hold it from the start. */}
+              <Snippet data={opened}>
+                {(path) =>
+                  path ? (
+                    <MemoEditor key={path} />
+                  ) : (
+                    <WindowPanel surface="solid" role="region" aria-label="Memo" className="wedyan-memo-open">
+                      <EmptyState title="No memos yet" description={GROUPS[view.group].empty} level={3}>
+                        <EmptyState.Snippet for="icon">
+                          {() => {
+                            const { Icon } = GROUPS[view.group];
+                            return <Icon />;
+                          }}
+                        </EmptyState.Snippet>
+                      </EmptyState>
+                    </WindowPanel>
+                  )
+                }
+              </Snippet>
+            </div>
+          </WindowBody>
         )}
       </Window.Snippet>
-      <Window.Snippet for="sidebar">
-        {() =>
-          !view.sidebarHidden && (
-            <WindowSidebar>
-              <WindowSidebarPanel>
-                <WindowSidebarLabel>Library</WindowSidebarLabel>
-                {place(manifest.label, <MemosIcon />, () => inFolder() && view.folder === ROOT, () => go({ folder: ROOT }))}
-                {place('Pinned', <PinIcon />, () => 'pinned' in view.place, () => go({ pinned: true }))}
-                {place('Reminders', <RemindersIcon />, () => 'reminders' in view.place, () => go({ reminders: true }))}
-              </WindowSidebarPanel>
-              <WindowSidebarPanel>
-                <WindowSidebarLabel>Albums</WindowSidebarLabel>
-                {tags().map((tag) =>
-                  place(tagLabel(tag), <AlbumIcon />, () => 'tag' in view.place && view.place.tag === tag, () => go({ tag }))
-                )}
-              </WindowSidebarPanel>
-            </WindowSidebar>
-          )
-        }
-      </Window.Snippet>
-      <Window.Snippet for="actions">
-        {() => (
-          <>
-            <WedyanGallerySearch query={$bind(view, 'query')} />
-            <Divider orientation="vertical" variant="ghost" size="sm" />
-            <Button aria-label="New memo" size="sm" variant="text" className={AUI_CLASS.CONTROL_ICON} onClick={newMemo}>
-              <AddIcon />
-              <Tooltip>New memo</Tooltip>
-            </Button>
-            {/* How the open memo's words show, and saving it, apart from making one. */}
-            <Show when={opened}>
-              {() => (
-                <>
-                  <Divider orientation="vertical" variant="ghost" size="sm" />
-                  <ToggleGroup aria-label="Show the memo" value={$bind(view, 'mode')} required size="xs">
-                    <Toggle value="write" aria-label="Write" size="xs" className={AUI_CLASS.CONTROL_ICON}>
-                      <WriteIcon />
-                      <Tooltip>Write</Tooltip>
-                    </Toggle>
-                    <Toggle value="read" aria-label="Read" size="xs" className={AUI_CLASS.CONTROL_ICON}>
-                      <ReadIcon />
-                      <Tooltip>Read</Tooltip>
-                    </Toggle>
-                  </ToggleGroup>
-                  <SaveButton />
-                </>
-              )}
-            </Show>
-            {/* Sets the app's own buttons apart from the window's. */}
-            <Divider orientation="vertical" variant="ghost" size="sm" />
-          </>
-        )}
-      </Window.Snippet>
-      <div className={CLASS.PAGE}>
-        <WedyanGallery
-          label={$use(title)}
-          entries={$use(() => entries().map(galleryEntryOf))}
-          value={$bind(view, 'picked')}
-          multiple={$bind(view, 'several')}
-          layout="list"
-          query={$use(() => view.query)}
-          checkable
-          className={CLASS.LIST}
-          onopen={(file) => {
-            if (file.kind === 'folder') go({ folder: file.path });
-          }}
-        />
-        {/* A memo picked anew starts its editor afresh, so its fields hold that memo from the start. */}
-        <Snippet data={opened}>{(path) => (path ? <MemoEditor key={path} /> : nothingOpen())}</Snippet>
-      </div>
     </Window>
   );
 });
-
-/**
- * What a listing holds, as the rows every Wedyan gallery shows: a folder by how much it holds, a
- * memo by its kind, whether it's pinned, and when it changed.
- *
- * @param entry - What the listing holds.
- * @returns The file, for the gallery.
- */
-function galleryEntryOf(entry: Entry): WedyanGalleryEntry {
-  if (entry.kind === 'folder') return { path: entry.path, name: entry.name, kind: 'folder', detail: countOf(entry.count) };
-  const { document } = entry.memo;
-  return {
-    path: entry.path,
-    name: entry.name,
-    kind: 'document',
-    detail: document.pinned ? `${KINDS[document.kind]} · Pinned` : KINDS[document.kind],
-    modified: shortDate(document.updated),
-  };
-}
-
-/**
- * How much a folder holds, in words.
- *
- * @param count - How many memos.
- * @returns E.g. `1 memo` or `3 memos`.
- */
-function countOf(count: number): string {
-  return count === 1 ? '1 memo' : `${count} memos`;
-}

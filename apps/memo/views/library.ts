@@ -1,106 +1,67 @@
-import { documentsOf, drive, nameOf, supply } from '@/lib/documents/store.js';
+import { documentAt, documentsOf, drive, supply } from '@/lib/documents/store.js';
 import type { MemoDocument } from '@/lib/documents/types.js';
 import SAMPLES from '../data/memos.json';
 
 // More memos than the seed holds, on the drive at their paths, until the drive serves the user's own.
 supply(Object.entries(SAMPLES) as [string, MemoDocument][]);
 
-/** Where Memo browses from: the Memos folder at the drive's root. */
+/** Where the memos live: the Memos folder at the drive's root. */
 export const ROOT = '/Memos';
 
-/** Each kind a memo can be, with its name. */
-export const KINDS: Record<MemoDocument['kind'], string> = {
-  note: 'Note',
-  preference: 'Preference',
-  person: 'Person',
-  project: 'Project',
-  fact: 'Fact',
-};
+/** Whose memos a tab shows: the user's own notes, or what Wedyan remembers. */
+export type MemoGroup = 'personal' | 'memory';
 
 /** A memo as Memo lists it: the `.memo` and where it is. */
 export type Memo = { path: string; document: MemoDocument };
 
-/**
- * What a listing is asked for: one folder's contents, every memo carrying a tag, the pinned memos,
- * or the memos with a reminder.
- */
-export type ListingRequest = { folder: string } | { tag: string } | { pinned: true } | { reminders: true };
+/** How much a memo weighs, normal when it says nothing. */
+export type MemoPriority = NonNullable<MemoDocument['priority']> | 'normal';
 
-/** One thing a listing holds: a folder, with how much it holds; or a memo. */
-export type Entry = { kind: 'folder'; path: string; name: string; count: number } | { kind: 'memo'; path: string; name: string; memo: Memo };
+/** Each priority, with its name, in the order lists lead with them. */
+export const PRIORITIES: Record<MemoPriority, string> = { high: 'High', normal: 'Normal', low: 'Low' };
 
 /**
- * Every memo kept in Memos, in every folder.
+ * Every memo kept in Memos.
  *
  * @returns Each `.memo` under the Memos folder still on the drive.
  */
 export const memos = (): Memo[] => documentsOf('memo').filter(({ path }) => path.startsWith(`${ROOT}/`));
 
 /**
- * Lists Memo as asked: a folder's contents, every memo carrying a tag, the pinned ones, or those with
- * a reminder, soonest first. A mock of the drive's listing request, answered from the memos at hand.
+ * The memos of one tab — the user's, or Wedyan's — high priority first, low last, the latest
+ * changed first within each.
  *
- * @param request - A folder, a tag, the pinned, or the reminders.
- * @returns What the folder holds, or the memos asked for.
+ * @param group - Personal or Memory.
+ * @returns Its memos, in that order.
  */
-export function listing(request: ListingRequest): Entry[] {
-  if ('folder' in request) return folderOf(request.folder);
-  if ('tag' in request) return byName(memos().filter(({ document }) => document.tags?.includes(request.tag)).map(entryOf));
-  if ('pinned' in request) return byName(memos().filter(({ document }) => document.pinned).map(entryOf));
+export function memosOf(group: MemoGroup): Memo[] {
+  const rank = Object.keys(PRIORITIES) as MemoPriority[];
   return memos()
-    .filter(({ document }) => document.remind)
-    .sort((a, b) => (a.document.remind as string).localeCompare(b.document.remind as string))
-    .map(entryOf);
+    .filter(({ document }) => (document.author.kind === 'agent' ? 'memory' : 'personal') === group)
+    .sort(
+      (a, b) =>
+        rank.indexOf(priorityOf(a.document)) - rank.indexOf(priorityOf(b.document)) || b.document.updated.localeCompare(a.document.updated)
+    );
 }
 
 /**
- * Every tag the memos carry, each once, in name order: Memo's albums.
+ * The memo at a path.
  *
- * @returns The tags.
+ * @param path - Its path.
+ * @returns Its document, unless there's no memo there.
  */
-export const tags = (): string[] => [...new Set(memos().flatMap(({ document }) => document.tags ?? []))].sort();
-
-/**
- * A tag as the side and the title name it, e.g. `Hackathon` for `hackathon`.
- *
- * @param tag - The tag.
- * @returns Its name.
- */
-export const tagLabel = (tag: string): string => `${tag[0].toUpperCase()}${tag.slice(1)}`;
-
-/**
- * Whether every one of these memos is pinned.
- *
- * @param paths - The memos.
- * @returns Whether all of them are.
- */
-export function allPinned(paths: string[]): boolean {
-  return paths.every((path) => memoAt(path)?.pinned);
+export function memoAt(path: string): MemoDocument | undefined {
+  const document = documentAt(path);
+  return document?.type === 'memo' ? document : undefined;
 }
 
 /**
- * Pins these memos, or unpins them when every one is pinned already.
- *
- * @param paths - The memos.
- */
-export function togglePinned(paths: string[]): void {
-  const pinned = !allPinned(paths);
-  for (const path of paths) {
-    const document = memoAt(path);
-    if (document) edit(document, () => setPinned(document, pinned));
-  }
-}
-
-/**
- * Pins a memo or unpins it; an unpinned memo leaves the field out, as the format keeps it optional.
+ * How much a memo weighs.
  *
  * @param document - The memo.
- * @param pinned - Whether it's pinned.
+ * @returns Its priority, normal when it has none.
  */
-export function setPinned(document: MemoDocument, pinned: boolean): void {
-  if (pinned) document.pinned = true;
-  else delete document.pinned;
-}
+export const priorityOf = (document: MemoDocument): MemoPriority => document.priority ?? 'normal';
 
 /**
  * Changes a memo in place and marks when it changed.
@@ -114,17 +75,38 @@ export function edit(document: MemoDocument, change: () => void): void {
 }
 
 /**
- * A free path for a new memo in a folder: `Untitled.memo`, or the first `Untitled N.memo` not taken.
+ * Makes a new, empty memo of the user's own in Memos.
  *
- * @param folder - The folder it goes in.
- * @returns The path.
+ * @returns Where it was put.
  */
-export function freeMemoPath(folder: string): string {
+export function newMemo(): string {
   // A deleted memo's path stays taken: the drive keeps hiding whatever is put back there.
-  const taken = new Set([...memos().map((memo) => memo.path), ...drive.deleted]);
-  let path = `${folder}/Untitled.memo`;
-  for (let n = 2; taken.has(path); n++) path = `${folder}/Untitled ${n}.memo`;
+  const taken = (path: string) => !!documentAt(path) || drive.deleted.includes(path);
+  let path = `${ROOT}/Untitled.memo`;
+  for (let n = 2; taken(path); n++) path = `${ROOT}/Untitled ${n}.memo`;
+  const now = new Date().toISOString();
+  const memo: MemoDocument = {
+    type: 'memo',
+    version: 1,
+    id: crypto.randomUUID(),
+    name: 'Untitled',
+    created: now,
+    updated: now,
+    author: { kind: 'user' },
+    kind: 'note',
+    body: '',
+  };
+  supply([[path, memo]]);
   return path;
+}
+
+/**
+ * Takes a memo off the drive, for this session.
+ *
+ * @param path - Where it is.
+ */
+export function remove(path: string): void {
+  drive.deleted.push(path);
 }
 
 /**
@@ -136,7 +118,7 @@ export function freeMemoPath(folder: string): string {
 export const shortDate = (iso: string): string => new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
 /**
- * A date and time as the preview and the memo show it, e.g. `Oct 30, 2026, 9:00 AM`.
+ * A date and time as the open memo shows it, e.g. `Oct 30, 2026, 9:00 AM`.
  *
  * @param iso - The date, as an ISO string.
  * @returns Its date and time.
@@ -144,63 +126,10 @@ export const shortDate = (iso: string): string => new Date(iso).toLocaleDateStri
 export const longDate = (iso: string): string => new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 
 /**
- * Who wrote a memo, in words.
+ * Who wrote a memo and when it last changed, in a line.
  *
  * @param document - The memo.
- * @returns `You`, or `Wedyan` for an agent's.
+ * @returns E.g. `By Wedyan · Updated Oct 30, 2026, 9:00 AM`.
  */
-export const authorOf = (document: MemoDocument): string => (document.author.kind === 'agent' ? 'Wedyan' : 'You');
-
-/**
- * What a folder holds: its folders, then its memos, each in name order. A folder shows how many
- * memos it holds, all the way down.
- *
- * @param folder - The folder's path, e.g. `/Memos`.
- * @returns What it holds.
- */
-function folderOf(folder: string): Entry[] {
-  const folders = new Map<string, number>();
-  const entries: Entry[] = [];
-  for (const memo of memos()) {
-    if (!memo.path.startsWith(`${folder}/`)) continue;
-    const rest = memo.path.slice(folder.length + 1);
-    const slash = rest.indexOf('/');
-    if (slash < 0) entries.push(entryOf(memo));
-    else {
-      const child = `${folder}/${rest.slice(0, slash)}`;
-      folders.set(child, (folders.get(child) ?? 0) + 1);
-    }
-  }
-  const subfolders: Entry[] = [...folders].map(([path, count]) => ({ kind: 'folder', path, name: nameOf(path), count }));
-  return [...byName(subfolders), ...byName(entries)];
-}
-
-/**
- * The memo at a path in Memos.
- *
- * @param path - The memo's path.
- * @returns Its document, unless there's none there.
- */
-function memoAt(path: string): MemoDocument | undefined {
-  return memos().find((memo) => memo.path === path)?.document;
-}
-
-/**
- * A memo as a listing holds it, by its path.
- *
- * @param memo - The memo.
- * @returns Its entry.
- */
-function entryOf(memo: Memo): Entry {
-  return { kind: 'memo', path: memo.path, name: memo.document.name, memo };
-}
-
-/**
- * Entries in name order.
- *
- * @param entries - The entries.
- * @returns The same entries, ordered by name.
- */
-function byName(entries: Entry[]): Entry[] {
-  return entries.sort((a, b) => a.name.localeCompare(b.name));
-}
+export const factsOf = (document: MemoDocument): string =>
+  `By ${document.author.kind === 'agent' ? 'Wedyan' : 'you'} · Updated ${longDate(document.updated)}`;

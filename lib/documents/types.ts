@@ -221,6 +221,8 @@ export type ChatMessage = {
 export type MemoDocument = DocumentHeader<'memo'> & {
   kind: 'note' | 'preference' | 'person' | 'project' | 'fact';
   body: string;
+  /** How much it weighs beside the others: high ones lead, low ones trail; without one, it's normal. */
+  priority?: 'high' | 'low';
   pinned?: boolean;
   /** When to bring it back up, as an ISO date. */
   remind?: string;

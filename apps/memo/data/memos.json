@@ -35,7 +35,31 @@
     "tags": ["promo"],
     "kind": "note",
     "remind": "2026-11-02T10:00:00Z",
+    "priority": "high",
     "body": "Record the voice-over again once the script is final.\n\n1. Read the hook slower.\n2. Drop the second line of the outro.\n3. Leave a beat before the name."
+  },
+  "/Memos/Music ideas.memo": {
+    "type": "memo",
+    "version": 1,
+    "id": "n07",
+    "name": "Music ideas",
+    "created": "2026-10-29T21:10:00Z",
+    "updated": "2026-10-29T21:10:00Z",
+    "author": { "kind": "user" },
+    "kind": "note",
+    "body": "Something warm under the intro: a soft piano, or a plucked guitar.\n\n> Keep it quiet enough that the voice-over leads."
+  },
+  "/Memos/Reading.memo": {
+    "type": "memo",
+    "version": 1,
+    "id": "n08",
+    "name": "Reading",
+    "created": "2026-10-18T19:00:00Z",
+    "updated": "2026-10-22T08:15:00Z",
+    "author": { "kind": "user" },
+    "kind": "note",
+    "priority": "low",
+    "body": "- *The Animator's Survival Kit*\n- Notes on pacing short cuts"
   },
   "/Memos/Mornings.memo": {
     "type": "memo",

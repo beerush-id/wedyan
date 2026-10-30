@@ -1,53 +1,37 @@
-import { AUI_CLASS } from '@airlib/aui/utils';
-import { $bind, $use, createContext, Show, Snippet, setup } from '@airlib/react';
-import { Button, DatePicker, EmptyState, Select, Switch, TagInput, TextInput, Tooltip } from '@airlib/react-aui';
+import { $bind, $static, mutable, Show, Snippet, setup } from '@airlib/react';
+import { EmptyState, Select, TextInput, Toggle, ToggleGroup } from '@airlib/react-aui';
+import { WindowPanel } from '@airlib/react-aui/desktop';
 import { MarkdownRenderer } from '@airlib/react-aui/markdown';
-import { shortId } from '@airlib/react/utils';
-import { documentAt } from '@/lib/documents/store.js';
+import { ConfirmButton } from '@/components/ConfirmButton.js';
 import type { MemoDocument } from '@/lib/documents/types.js';
-import { CloseIcon, MemosIcon } from './icons.js';
-import { authorOf, edit, KINDS, longDate, setPinned, tagLabel, tags } from './library.js';
-
-/** How the open memo's words show: as Markdown to change, or as they read. */
-export type MemoMode = 'write' | 'read';
-
-/** The memo open beside the list, and how its words show: what Memo's window shares with its editor. */
-export type MemoSession = {
-  /** The open memo's path; none while nothing, a folder, or several are picked. */
-  readonly path: string | null;
-  mode: MemoMode;
-};
-
-/** The memo open in a Memo window, which its editor works on. */
-export const memoCtx = createContext<MemoSession>();
-
-/** The time a reminder picked by its date alone is set for, in UTC. */
-const REMIND_TIME = '09:00:00Z';
+import { DeleteIcon, EditIcon, MemoryIcon, MemosIcon, PreviewIcon } from './icons.js';
+import { edit, factsOf, memoAt, PRIORITIES, type MemoPriority, priorityOf } from './library.js';
+import { memoCtx, type MemoSession } from './session.js';
 
 const CLASS = {
-  EDITOR: 'wedyan-memo-editor',
-  NAME: 'wedyan-memo-editor-name',
-  META: 'wedyan-memo-editor-meta',
-  FIELD: 'wedyan-memo-editor-field',
-  FIELD_LABEL: 'wedyan-memo-editor-field-label',
-  REMIND: 'wedyan-memo-editor-remind',
-  PIN: 'wedyan-memo-editor-pin',
-  BODY: 'wedyan-memo-editor-body',
-  WRITE: 'wedyan-memo-editor-write',
-  READ: 'wedyan-memo-editor-read',
-  FACTS: 'wedyan-memo-editor-facts',
+  PANEL: 'wedyan-memo-open',
+  MEMO: 'wedyan-memo-page',
+  HEAD: 'wedyan-memo-head',
+  GLYPH: 'wedyan-memo-glyph',
+  NAME: 'wedyan-memo-name',
+  META: 'wedyan-memo-meta',
+  FIELD: 'wedyan-memo-field',
+  FIELD_HEAD: 'wedyan-memo-field-head',
+  FIELD_LABEL: 'wedyan-memo-field-label',
+  SOURCE: 'wedyan-memo-source',
+  EMPTY: 'wedyan-memo-empty',
+  FOOT: 'wedyan-memo-foot',
+  FACTS: 'wedyan-memo-facts',
 };
 
 /**
- * The open memo, edited where it's listed: its name, what it is — kind, tags, reminder, pin — its
- * words, written in Markdown or shown as they read, and who wrote it. Every change is made to the
- * memo itself, so the list beside it sees it at once.
+ * The open memo, edited in place: its name, how much it weighs, and its words in Markdown, drawn
+ * or as their source as Motions shows a script; then who wrote it and when, and deleting it, once
+ * confirmed. Every change is made to the memo itself, so the list beside it sees it at once.
  */
 export const MemoEditor = setup(() => {
   const session = memoCtx.get() as MemoSession;
-  const memo = () => (session.path ? documentAt<'memo'>(session.path) : undefined);
-  // Names the pin's switch by the words beside it, as the switch carries none of its own.
-  const pinLabel = `wedyan-memo-pin-${shortId()}`;
+  const memo = () => (session.path ? memoAt(session.path) : undefined);
 
   /**
    * Changes the open memo, while it's still on the drive, and marks when it changed.
@@ -59,7 +43,8 @@ export const MemoEditor = setup(() => {
     if (document) edit(document, () => apply(document));
   };
 
-  // What the fields edit: the memo's own values, read live and written straight back to it.
+  // What the fields edit: the memo's own values, read live and written straight back to it. A
+  // normal priority is the memo saying nothing about it.
   const fields = {
     get name() {
       return memo()?.name ?? '';
@@ -73,155 +58,101 @@ export const MemoEditor = setup(() => {
     set body(body: string) {
       change((document) => (document.body = body));
     },
-    get kind() {
-      return memo()?.kind ?? 'note';
+    get priority(): string {
+      const document = memo();
+      return document ? priorityOf(document) : 'normal';
     },
-    set kind(kind: string) {
-      if (kind in KINDS) change((document) => (document.kind = kind as MemoDocument['kind']));
-    },
-    get tags() {
-      return memo()?.tags ?? [];
-    },
-    set tags(chosen: string[]) {
-      change((document) => (document.tags = chosen));
-    },
-    get pinned() {
-      return !!memo()?.pinned;
-    },
-    set pinned(pinned: boolean) {
-      change((document) => setPinned(document, pinned));
-    },
-    // The picker holds a date; the memo keeps its reminder's time when one is set, the morning otherwise.
-    get remind() {
-      return memo()?.remind?.slice(0, 10) ?? '';
-    },
-    set remind(date: string) {
+    set priority(priority: string) {
       change((document) => {
-        if (!date) return void delete document.remind;
-        document.remind = `${date}T${document.remind?.slice(11) || REMIND_TIME}`;
+        if (priority === 'high' || priority === 'low') document.priority = priority;
+        else delete document.priority;
       });
     },
   };
 
-  // Every tag the memos carry, and this memo's own, to choose from.
-  const tagOptions = (): Record<string, string> =>
-    Object.fromEntries([...new Set([...tags(), ...fields.tags])].map((tag) => [tag, tagLabel(tag)]));
+  // The words open drawn when there's something to read, and as their source when there's nothing yet.
+  const view = mutable({ mode: $static(() => (memo()?.body ? 'preview' : 'edit')) });
 
   return () => (
-    <Show
-      when={memo}
-      fallback={() => (
-        <EmptyState title="This memo is gone" description="It was deleted from Memos." level={3}>
-          <EmptyState.Snippet for="icon">{() => <MemosIcon />}</EmptyState.Snippet>
-        </EmptyState>
-      )}
-    >
-      {() => (
-        <article className={`${CLASS.EDITOR} ${AUI_CLASS.GLASS_PANEL}`} aria-label="Memo">
-          <TextInput label="Name" placeholder="Name" value={$bind(fields, 'name')} className={CLASS.NAME} />
-          <div className={CLASS.META}>
-            <div className={CLASS.FIELD}>
-              <span className={CLASS.FIELD_LABEL} aria-hidden="true">
-                Kind
+    <WindowPanel surface="solid" role="region" aria-label="Memo" className={CLASS.PANEL}>
+      <Show
+        when={memo}
+        fallback={() => (
+          <EmptyState title="This memo is gone" description="It was deleted." level={3}>
+            <EmptyState.Snippet for="icon">{() => <MemosIcon />}</EmptyState.Snippet>
+          </EmptyState>
+        )}
+      >
+        {() => (
+          <article className={CLASS.MEMO}>
+            <header className={CLASS.HEAD}>
+              <span className={CLASS.GLYPH} aria-hidden="true">
+                <Snippet data={memo}>{(document) => (document?.author.kind === 'agent' ? <MemoryIcon /> : <MemosIcon />)}</Snippet>
               </span>
-              {/* The trigger shows the kind alone; "Kind" stays only as its name. */}
-              <Select size="sm" label="Kind" options={KINDS} value={$bind(fields, 'kind')}>
-                <Select.Snippet for="trigger">{(kind) => KINDS[kind as MemoDocument['kind']]}</Select.Snippet>
-              </Select>
-            </div>
-            <div className={CLASS.FIELD}>
-              <span className={CLASS.FIELD_LABEL} aria-hidden="true">
-                Remind on
-              </span>
-              <div className={CLASS.REMIND}>
-                <DatePicker size="sm" label="Remind on" placeholder="No reminder" value={$bind(fields, 'remind')} labels={DATE_LABELS} />
-                <Show when={() => fields.remind}>
-                  {() => (
-                    <Button
-                      aria-label="Clear reminder"
-                      size="sm"
-                      variant="text"
-                      className={AUI_CLASS.CONTROL_ICON}
-                      onClick={() => (fields.remind = '')}
-                    >
-                      <CloseIcon />
-                      <Tooltip>Clear reminder</Tooltip>
-                    </Button>
-                  )}
-                </Show>
+              <TextInput label="Name" placeholder="What it's about" value={$bind(fields, 'name')} className={CLASS.NAME} />
+            </header>
+            <div className={CLASS.META}>
+              <div className={CLASS.FIELD}>
+                <span className={CLASS.FIELD_LABEL} aria-hidden="true">
+                  Priority
+                </span>
+                <Select size="sm" label="Priority" options={PRIORITIES} value={$bind(fields, 'priority')}>
+                  <Select.Snippet for="trigger">{(value) => PRIORITIES[value as MemoPriority]}</Select.Snippet>
+                </Select>
               </div>
             </div>
             <div className={CLASS.FIELD}>
-              <span className={CLASS.FIELD_LABEL} aria-hidden="true">
-                Tags
-              </span>
-              <TagInput
+              <div className={CLASS.FIELD_HEAD}>
+                <span className={CLASS.FIELD_LABEL} aria-hidden="true">
+                  Memo
+                </span>
+                <ToggleGroup aria-label="Show the memo" size="sm" value={$bind(view, 'mode')} required>
+                  <Toggle value="preview" variant="text" size="sm">
+                    <PreviewIcon />
+                    <span>Preview</span>
+                  </Toggle>
+                  <Toggle value="edit" variant="text" size="sm">
+                    <EditIcon />
+                    <span>Edit</span>
+                  </Toggle>
+                </ToggleGroup>
+              </div>
+              <Snippet data={() => view.mode}>
+                {(mode) =>
+                  mode === 'edit' ? (
+                    <TextInput
+                      multiline
+                      rows={12}
+                      label="Memo, in Markdown"
+                      placeholder="Write it down, in Markdown."
+                      value={$bind(fields, 'body')}
+                      className={CLASS.SOURCE}
+                    />
+                  ) : (
+                    <Show when={() => fields.body} fallback={() => <p className={CLASS.EMPTY}>Nothing written yet.</p>}>
+                      {(text) => <MarkdownRenderer text={text} />}
+                    </Show>
+                  )
+                }
+              </Snippet>
+            </div>
+            <footer className={CLASS.FOOT}>
+              <Snippet data={memo}>{(document) => document && <p className={CLASS.FACTS}>{factsOf(document)}</p>}</Snippet>
+              <ConfirmButton
                 size="sm"
-                label="Tags"
-                placeholder="Add a tag"
-                options={$use(tagOptions)}
-                value={$bind(fields, 'tags')}
-                removeLabel={(text) => `Remove ${text}`}
-              />
-            </div>
-            <div className={CLASS.PIN}>
-              <span id={pinLabel}>Pinned</span>
-              <Switch aria-labelledby={pinLabel} checked={$bind(fields, 'pinned')} />
-            </div>
-          </div>
-          <section className={CLASS.BODY} aria-label="Words">
-            <Show
-              when={() => session.mode === 'write'}
-              fallback={() => (
-                <Show
-                  when={() => fields.body.trim()}
-                  fallback={() => (
-                    <EmptyState title="Nothing written yet" description="Switch to Write to put down what to remember." level={3}>
-                      <EmptyState.Snippet for="icon">{() => <MemosIcon />}</EmptyState.Snippet>
-                    </EmptyState>
-                  )}
-                >
-                  {() => (
-                    <div className={CLASS.READ}>
-                      <MarkdownRenderer text={$use(() => fields.body)} />
-                    </div>
-                  )}
-                </Show>
-              )}
-            >
-              {() => (
-                <TextInput
-                  multiline
-                  label="Words"
-                  placeholder="Write what to remember, in Markdown."
-                  value={$bind(fields, 'body')}
-                  className={CLASS.WRITE}
-                />
-              )}
-            </Show>
-          </section>
-          <Snippet data={memo}>{(document) => document && <p className={CLASS.FACTS}>{factsOf(document)}</p>}</Snippet>
-        </article>
-      )}
-    </Show>
+                variant="tonal"
+                title={() => `Delete ${fields.name || 'this memo'}?`}
+                description="It's taken off your memos."
+                action="Delete"
+                onconfirm={() => session.remove()}
+              >
+                <DeleteIcon />
+                <span>Delete memo</span>
+              </ConfirmButton>
+            </footer>
+          </article>
+        )}
+      </Show>
+    </WindowPanel>
   );
 }, 'MemoEditor');
-
-/** What the reminder's date picker says. */
-const DATE_LABELS = {
-  open: 'Pick a date',
-  previous: 'Previous month',
-  next: 'Next month',
-  year: 'Year',
-};
-
-/**
- * Who wrote a memo and when, in a line: an agent's with the ask it came from.
- *
- * @param document - The memo.
- * @returns E.g. `By Wedyan, asked "Keep it calm" · Created … · Updated …`.
- */
-function factsOf(document: MemoDocument): string {
-  const ask = document.author.kind === 'agent' && document.author.ask ? `, asked “${document.author.ask}”` : '';
-  return `By ${authorOf(document)}${ask} · Created ${longDate(document.created)} · Updated ${longDate(document.updated)}`;
-}
