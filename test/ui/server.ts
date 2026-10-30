@@ -68,6 +68,16 @@ async function startResizer(): Promise<() => void> {
   const health = new URL('/health', resizer).href;
   if (await answers(health)) return () => undefined;
 
+  // Without Docker there's no resizer: everything else still runs, and only the picture tests fail.
+  try {
+    execFileSync('docker', ['info'], { stdio: 'ignore' });
+  } catch {
+    process.stderr.write(
+      `No resizer: Docker isn't running, so ${RESIZER_IMAGE} can't start; picture tests will fail.\n`,
+    );
+    return () => undefined;
+  }
+
   execFileSync('docker', [
     'run',
     '--detach',

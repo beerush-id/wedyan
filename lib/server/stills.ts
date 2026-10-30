@@ -59,6 +59,8 @@ async function generateForAgent(adapter: AIAdapter, args: IRPCData, { agent, des
 
   const request = requestOf(still);
   const attempts = await makeAttempts(adapter, path, request);
+  // Nothing made: the still stays as it was, what was asked included.
+  if (!attempts.length) return { error: 'No image came back from the model; the still is unchanged' };
   const taken = (await desktop({
     name: DOC_ATTEMPTS,
     args: { path, request, attempts },

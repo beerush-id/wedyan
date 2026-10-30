@@ -200,6 +200,37 @@ describe('sys.still.generate', () => {
     });
   });
 
+  it('leaves the still as it was when no image came back, and tells the agent', async () => {
+    museDraws();
+    const generate = setupStills(adapter);
+    const asked: unknown[] = [];
+
+    await inHome(async () => {
+      await generate(
+        { path: '~/People/Ayla/Head.still', prompt: 'Ayla, face' },
+        { agent: KAI, desktop: async () => undefined },
+      );
+      const before = (await read('~/People/Ayla/Head.still', { encoding: 'json' })) as StillDocument;
+
+      // No model serves this one: nothing comes back.
+      const nothing = setupStills(new AIAdapter().use(new DriveDriver()));
+      const result = await nothing(
+        { path: '~/People/Ayla/Head.still', prompt: 'Ayla, angry' },
+        {
+          agent: KAI,
+          desktop: async (action) => {
+            asked.push(action);
+            return { added: true };
+          },
+        },
+      );
+
+      expect(result).toMatchObject({ error: expect.stringContaining('No image came back') });
+      expect(asked).toEqual([]);
+      expect(await read('~/People/Ayla/Head.still', { encoding: 'json' })).toEqual(before);
+    });
+  });
+
   it('hands the attempts to a desktop editing the still, writing nothing over its copy', async () => {
     museDraws();
     const generate = setupStills(adapter);
