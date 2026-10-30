@@ -293,14 +293,23 @@ div.wedyan-lounge-slot-picture {
   gap: var(--spacing-sm);
 }
 
-.wedyan-lounge-skill {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--spacing-xs) var(--spacing-md);
+/* Something to tick: the box, then its name over what it does, both in one column so they line up. */
+.wedyan-lounge-choice {
+  align-items: flex-start;
 }
 
-.wedyan-lounge-skill-hint {
+.wedyan-lounge-choice-text {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+}
+
+/* The name's line is kept close, so what it does reads as its caption. */
+.wedyan-lounge-choice-title {
+  line-height: 1.25;
+}
+
+.wedyan-lounge-choice-hint {
   color: var(--color-on-surface-variant);
   font-size: var(--font-label-sm-size);
 }
@@ -346,6 +355,60 @@ div.wedyan-lounge-slot-picture {
   }
 }
 
+/*
+ * A skill's instructions, drawn: headings read as headings, each section set apart from the one
+ * before, lists marked again after the reset took their markers, and quotes softly set off.
+ */
+.wedyan-lounge-skill-page .aui-markdown {
+  --aui-markdown-gap: var(--spacing-sm);
+  line-height: 1.6;
+
+  & > :is(h3, h4) {
+    color: var(--color-on-surface);
+    font-weight: 600;
+    line-height: 1.3;
+
+    &:not(:first-child) {
+      margin-block-start: var(--spacing-md);
+    }
+  }
+
+  & > h3 {
+    font-size: var(--font-title-lg-size);
+  }
+
+  & > h4 {
+    font-size: var(--font-title-md-size);
+  }
+
+  & :is(ul, ol) {
+    padding-inline-start: 1.5em;
+  }
+
+  & ul {
+    list-style: disc;
+  }
+
+  & ol {
+    list-style: decimal;
+  }
+
+  & li::marker {
+    color: var(--color-on-surface-variant);
+  }
+
+  & strong {
+    font-weight: 600;
+  }
+
+  & > blockquote {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-inline-start: 2px solid color-mix(in oklch, var(--color-primary) 28%, transparent);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    background-color: color-mix(in oklch, var(--color-primary) 5%, transparent);
+  }
+}
+
 /* A skill's instructions, drawn, before any are written. */
 .wedyan-lounge-instructions-empty {
   margin: 0;
@@ -353,25 +416,12 @@ div.wedyan-lounge-slot-picture {
   font-size: var(--font-label-md-size);
 }
 
-/* What a skill may call, one under another, each its name over what it does. */
+/* What a skill may call, one under another. */
 .wedyan-lounge-callables {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
   padding: var(--spacing-xs) var(--spacing-sm);
-}
-
-.wedyan-lounge-callable {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-inline-size: 0;
-}
-
-.wedyan-lounge-callable-hint {
-  padding-inline-start: calc(var(--spacing) * 7);
-  color: var(--color-on-surface-variant);
-  font-size: var(--font-label-sm-size);
 }
 
 /* Who made them and when, if it shows, then deleting them at the end of the line. */

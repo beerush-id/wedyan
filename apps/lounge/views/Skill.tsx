@@ -1,8 +1,9 @@
 import { $bind, $static, mutable, Show, Snippet, setup } from '@airlib/react';
-import { Checkbox, CheckboxGroup, EmptyState, Label, TextInput, Toggle, ToggleGroup } from '@airlib/react-aui';
+import { CheckboxGroup, EmptyState, TextInput, Toggle, ToggleGroup } from '@airlib/react-aui';
 import { WindowPanel } from '@airlib/react-aui/desktop';
 import { MarkdownRenderer } from '@airlib/react-aui/markdown';
 import { GenerationGroup } from '@/components/GenerationForm.js';
+import { Choice } from './Choice.js';
 import { ConfirmButton } from './ConfirmButton.js';
 import { DeleteIcon, EditIcon, PreviewIcon, SkillIcon } from './icons.js';
 import { type Callable, CALLABLES, edit, type SkillFile, skillAt } from './library.js';
@@ -22,8 +23,6 @@ const CLASS = {
   FOOT: 'wedyan-lounge-editor-foot',
   SIDE: 'wedyan-lounge-side',
   CALLABLES: 'wedyan-lounge-callables',
-  CALLABLE: 'wedyan-lounge-callable',
-  CALLABLE_HINT: 'wedyan-lounge-callable-hint',
 };
 
 /**
@@ -196,12 +195,7 @@ function callables(label: string, list: Callable[], fields: { tools: string[]; a
   return (
     <CheckboxGroup label={label} value={$bind(fields, key)} className={CLASS.CALLABLES}>
       {list.map(({ name, hint }) => (
-        <div key={name} className={CLASS.CALLABLE}>
-          <Label label={name}>
-            <Checkbox value={name} />
-          </Label>
-          <span className={CLASS.CALLABLE_HINT}>{hint}</span>
-        </div>
+        <Choice key={name} value={name} title={name} hint={hint} />
       ))}
     </CheckboxGroup>
   );

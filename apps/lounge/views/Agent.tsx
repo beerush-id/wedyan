@@ -1,7 +1,8 @@
 import { $bind, $use, Show, Snippet, setup } from '@airlib/react';
-import { Avatar, Checkbox, CheckboxGroup, EmptyState, Label, TextInput } from '@airlib/react-aui';
+import { Avatar, CheckboxGroup, EmptyState, TextInput } from '@airlib/react-aui';
 import { WindowPanel } from '@airlib/react-aui/desktop';
 import type { AgentFile } from '@/lib/share/agents.js';
+import { Choice } from './Choice.js';
 import { ConfirmButton } from './ConfirmButton.js';
 import { AgentsIcon, DeleteIcon } from './icons.js';
 import { agentAt, byName, edit, factsOf, SKILLS, skillRef, skills } from './library.js';
@@ -17,8 +18,6 @@ const CLASS = {
   SECTION: 'wedyan-lounge-editor-section',
   SKILLS: 'wedyan-lounge-skills',
   SKILLS_LABEL: 'wedyan-lounge-skills-label',
-  SKILL: 'wedyan-lounge-skill',
-  SKILL_HINT: 'wedyan-lounge-skill-hint',
   FACTS: 'wedyan-lounge-editor-facts',
   FOOT: 'wedyan-lounge-editor-foot',
 };
@@ -137,7 +136,9 @@ export const AgentEditor = setup(() => {
               <span className={CLASS.SKILLS_LABEL} aria-hidden="true">
                 From apps
               </span>
-              {Object.entries(SKILLS).map(([skill, { label, hint }]) => skillChoice(skill, label, hint))}
+              {Object.entries(SKILLS).map(([skill, { label, hint }]) => (
+                <Choice key={skill} value={skill} title={label} hint={hint} />
+              ))}
               <Snippet>
                 {() =>
                   skills().length ? (
@@ -145,7 +146,9 @@ export const AgentEditor = setup(() => {
                       <span className={CLASS.SKILLS_LABEL} aria-hidden="true">
                         Your skills
                       </span>
-                      {byName(skills()).map(({ path, document }) => skillChoice(skillRef(path), document.name || 'Unnamed', document.description))}
+                      {byName(skills()).map(({ path, document }) => (
+                        <Choice key={path} value={skillRef(path)} title={document.name || 'Unnamed'} hint={document.description} />
+                      ))}
                     </>
                   ) : null
                 }
@@ -172,22 +175,3 @@ export const AgentEditor = setup(() => {
     </WindowPanel>
   );
 }, 'AgentEditor');
-
-/**
- * One skill an agent can be given: its name to tick, and what it lets the agent do beside it.
- *
- * @param value - How the agent writes it: an app skill's name, or a user skill's path from the agent's file.
- * @param label - Its name.
- * @param hint - What it lets the agent do.
- * @returns The choice.
- */
-function skillChoice(value: string, label: string, hint: string) {
-  return (
-    <div key={value} className={CLASS.SKILL}>
-      <Label label={label}>
-        <Checkbox value={value} />
-      </Label>
-      <span className={CLASS.SKILL_HINT}>{hint}</span>
-    </div>
-  );
-}
