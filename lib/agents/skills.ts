@@ -1,6 +1,7 @@
 import motionsSkill from '@/apps/motions/SKILL.md?raw';
 import photosSkill from '@/apps/photos/SKILL.md?raw';
 import type { AgentSkill } from '../kernel/agent.js';
+import type { Callable, SkillFile } from '../share/skills.js';
 import { capabilities } from './format.js';
 import { ACTIONS_BY_NAME, TOOLS_BY_NAME } from './tools.js';
 
@@ -35,16 +36,44 @@ export function parseSkill(text: string): AgentSkill {
   const { name, description } = meta;
   if (!name || !description) throw new Error('A skill needs a name and a description');
 
-  const tools = names(meta.tools).map((tool) => {
-    if (!TOOLS_BY_NAME[tool]) throw new Error(`Skill ${name} names an unknown tool: ${tool}`);
-    return TOOLS_BY_NAME[tool];
-  });
-  const actions = names(meta.actions).map((action) => {
-    if (!ACTIONS_BY_NAME[action]) throw new Error(`Skill ${name} names an unknown action: ${action}`);
-    return ACTIONS_BY_NAME[action];
-  });
+  const tools = names(meta.tools);
+  const actions = names(meta.actions);
+  const tool = tools.find((each) => !TOOLS_BY_NAME[each]);
+  if (tool) throw new Error(`Skill ${name} names an unknown tool: ${tool}`);
+  const action = actions.find((each) => !ACTIONS_BY_NAME[each]);
+  if (action) throw new Error(`Skill ${name} names an unknown action: ${action}`);
+  return skillOf(name, description, match?.[2] ?? '', tools, actions);
+}
 
-  return { name, description, tools, system: `${(match?.[2] ?? '').trim()}\n\n${capabilities(actions)}` };
+/**
+ * Reads one of the user's own skills (`~/Skills/<Name>.skill`), as an app's skill reads. A tool or
+ * action it names that doesn't exist, or no longer does, grants nothing, rather than failing the ask.
+ *
+ * @param file - The skill's file.
+ * @returns The skill, its instructions followed by the actions it may write.
+ */
+export function userSkill(file: SkillFile): AgentSkill {
+  return skillOf(file.name, file.description, file.instructions ?? '', file.tools ?? [], file.actions ?? []);
+}
+
+/**
+ * Everything a skill may be granted, for the desktop to offer when the user makes one: every
+ * server tool and desktop action there is, by name, with what it does.
+ */
+export const CALLABLES: { tools: Callable[]; actions: Callable[] } = {
+  tools: Object.values(TOOLS_BY_NAME).map(({ name, description }) => ({ name, hint: description ?? '' })),
+  actions: Object.values(ACTIONS_BY_NAME).map(({ name, does }) => ({ name, hint: does })),
+};
+
+/** A skill from its parts: its prompt followed by the actions it may write, with the tools there are. */
+function skillOf(name: string, description: string, body: string, tools: string[], actions: string[]): AgentSkill {
+  const granted = actions.flatMap((action) => (ACTIONS_BY_NAME[action] ? [ACTIONS_BY_NAME[action]] : []));
+  return {
+    name,
+    description,
+    tools: tools.flatMap((tool) => (TOOLS_BY_NAME[tool] ? [TOOLS_BY_NAME[tool]] : [])),
+    system: `${body.trim()}\n\n${capabilities(granted)}`,
+  };
 }
 
 /** The names in a comma-separated frontmatter value. */

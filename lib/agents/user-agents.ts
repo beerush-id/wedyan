@@ -2,6 +2,7 @@ import type { ChatTool } from '@irpclib/ai-kit';
 import type { AgentProfile, AgentSkill } from '../kernel/agent.js';
 import type { AgentFile } from '../share/agents.js';
 import type { UserProfile } from '../share/profile.js';
+import { SKILL_EXTENSION, userSkillPath } from '../share/skills.js';
 import { ENTRY, SPECIALIST } from './index.js';
 import { personaPrompt } from './persona.js';
 import { rita } from './rita.js';
@@ -16,7 +17,7 @@ export type UserAgent = { path: string; file: AgentFile };
  * to one. Skills it names that don't exist grant nothing.
  *
  * @param agents - Wedyan's agents.
- * @param skills - The skills there are, by name.
+ * @param skills - The skills there are: the apps' by name, the user's own by their path in the home.
  * @param own - The user's own agents.
  * @param profile - The user's profile, for how every agent speaks to them.
  * @returns The agents the ask runs with.
@@ -35,7 +36,15 @@ export function withUserAgents(
   return {
     ...agents,
     ...Object.fromEntries(own.map((agent) => [agent.path, userAgentProfile(agent, engine, skills, own, profile)])),
-    [ENTRY]: { ...router, ...rita(router.model, Object.values(skills), listed) },
+    // Lita is handed the apps' skills only; the user's own are their agents'.
+    [ENTRY]: {
+      ...router,
+      ...rita(
+        router.model,
+        Object.entries(skills).flatMap(([key, skill]) => (key.endsWith(SKILL_EXTENSION) ? [] : [skill])),
+        listed,
+      ),
+    },
   };
 }
 
@@ -55,7 +64,11 @@ function userAgentProfile(
   own: UserAgent[],
   profile?: UserProfile,
 ): AgentProfile {
-  const granted = file.skills.flatMap((name) => (skills[name] ? [skills[name]] : []));
+  // The apps' skills by name; the user's own by their path, as the agent's file names them.
+  const granted = file.skills.flatMap((name) => {
+    const skill = skills[userSkillPath(path, name) ?? name];
+    return skill ? [skill] : [];
+  });
   // Skills may share a tool; a model is offered each once.
   const tools = new Map<string, ChatTool>(
     [...engine.tools, ...granted.flatMap((skill) => skill.tools)].map((tool) => [tool.name, tool]),

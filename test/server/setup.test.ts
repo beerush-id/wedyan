@@ -64,6 +64,45 @@ describe('server setup', () => {
     expect(agents.rita.handoffs).toContain('~/Agents/Animation.agent');
   });
 
+  it('gives an agent the user’s own skills its file names, with only the tools and actions that exist', async () => {
+    const agents = await asSession(async () => {
+      await write('~/Skills/Teacher.skill', {
+        type: 'skill',
+        version: 1,
+        id: 'teacher',
+        name: 'Teacher',
+        description: 'Explains a topic step by step.',
+        created: '…',
+        updated: '…',
+        author: { kind: 'user' },
+        instructions: '## How to teach\n\nOne idea at a time.',
+        tools: ['r2-file.read', 'no.such.tool'],
+        actions: ['app.open'],
+      });
+      await write('~/Agents/Editor.agent', {
+        type: 'agent',
+        version: 1,
+        id: 'editor',
+        name: 'Ivo',
+        description: 'Edits each stage.',
+        created: '…',
+        updated: '…',
+        author: { kind: 'user' },
+        skills: ['motions', '../Skills/Teacher.skill', '../Skills/Missing.skill'],
+      });
+      return loadUserAgents(AGENTS);
+    });
+
+    const ivo = agents['~/Agents/Editor.agent'];
+    expect(ivo.system).toContain('One idea at a time.');
+    expect(ivo.system).toContain('app.open');
+    const tools = ivo.tools.map((tool) => tool.name);
+    expect(tools).toContain('r2-file.read');
+    expect(tools).not.toContain('no.such.tool');
+    // The user's own skills are their agents', never offered to Lita.
+    expect(agents.rita.system).not.toContain('Explains a topic step by step.');
+  });
+
   it('runs with Wedyan’s agents alone when there is no ~/Agents', async () => {
     expect(await asSession(() => loadUserAgents(AGENTS))).toBe(AGENTS);
   });

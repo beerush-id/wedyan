@@ -5,7 +5,7 @@ import type { FileWorkerEnv } from '@irpclib/r2-file/constructor';
 import type { ImageWorkerEnv } from '@irpclib/r2-image/worker';
 import { BRIEFER, COMPOSER, createAgents, DEFAULT_MODELS, ENTRY, OPEN_MODELS, SPARK_OPEN } from '@/lib/agents/index.js';
 import { personaPrompt } from '@/lib/agents/persona.js';
-import { SKILLS } from '@/lib/agents/skills.js';
+import { SKILLS, userSkill } from '@/lib/agents/skills.js';
 import { TOOLS } from '@/lib/agents/tools.js';
 import { withUserAgents } from '@/lib/agents/user-agents.js';
 import { type AgentProfile, setupKernel } from '@/lib/kernel/agent.js';
@@ -16,6 +16,7 @@ import '@/lib/kernel/document.js';
 import { embedWith, setupMemory, type VectorStore } from '@/lib/memory/memory.js';
 import { AGENT_EXTENSION, type AgentFile } from '@/lib/share/agents.js';
 import { PROFILE_PATH, type UserProfile } from '@/lib/share/profile.js';
+import { type SkillFile, userSkillPath } from '@/lib/share/skills.js';
 import { AGENTS_PATH } from '@/lib/share/system.js';
 import { type SpeechModel, setupSpeech } from '@/lib/speech/speech.js';
 import { wsTransport } from '@/src/api.js';
@@ -102,7 +103,21 @@ export async function loadUserAgents(agents: Record<string, AgentProfile>): Prom
     const file = files[index] as AgentFile | null;
     return file?.type === 'agent' && Array.isArray(file.skills) ? [{ path, file }] : [];
   });
-  return withUserAgents(agents, SKILLS, own, (profile as UserProfile | null) ?? undefined);
+
+  // The user's own skills the agents are given, each read once, by its path; one that can't be
+  // read grants nothing.
+  const wanted = new Set(
+    own.flatMap(({ path, file }) => file.skills.flatMap((name) => userSkillPath(path, name) ?? [])),
+  );
+  const skillFiles = await Promise.all(
+    [...wanted].map(
+      async (path) => [path, await read<SkillFile>(path, { encoding: 'json' }).catch(() => null)] as const,
+    ),
+  );
+  const theirs = Object.fromEntries(
+    skillFiles.flatMap(([path, file]) => (file?.type === 'skill' ? [[path, userSkill(file)]] : [])),
+  );
+  return withUserAgents(agents, { ...SKILLS, ...theirs }, own, (profile as UserProfile | null) ?? undefined);
 }
 
 /**
