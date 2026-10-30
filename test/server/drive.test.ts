@@ -7,6 +7,7 @@ import { implement } from '@irpclib/r2-file/constructor';
 import { fsContext } from '@irpclib/r2-file/context';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { DriveDriver } from '../../lib/server/drive-driver.js';
+import { generateImage, IMAGE_MODEL } from '../../lib/server/images.js';
 
 // r2-file runs for real on local R2 and D1; only the providers' hosts are mocked.
 
@@ -127,5 +128,48 @@ describe('drive driver', () => {
       expect(state.data?.url).toBe(`~/Pictures/${state.data?.id}.webp`);
       expect(await exists(state.data?.url ?? '')).toBe(true);
     });
+  });
+});
+
+describe('sys.image.generate', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('draws one image with Wedyan’s image model and gives the agent its path in the drive', async () => {
+    mockHosts({
+      'https://api.meta.test/v1/images/generations': () =>
+        new Response(JSON.stringify({ created: 1, data: [{ url: 'https://cdn.test/3.webp' }] })),
+      'https://cdn.test/': webp,
+    });
+    const spied = vi.mocked(globalThis.fetch);
+    const adapter = new AIAdapter()
+      .use(new MuseDriver({ apiKey: 'k', baseUrl: 'https://api.meta.test/v1' }))
+      .use(new DriveDriver());
+
+    await inHome(async () => {
+      const result = (await generateImage(adapter)({
+        prompt: 'Mira, an old lantern maker, face',
+        saveTo: '~/Motions/Lantern River/People',
+        aspect: '1:1',
+      })) as { path: string };
+
+      expect(result.path).toMatch(/^~\/Motions\/Lantern River\/People\/.+\.webp$/);
+      expect(await exists(result.path)).toBe(true);
+      const [, init] = spied.mock.calls.find(([input]) => String(input).endsWith('/images/generations')) ?? [];
+      expect(JSON.parse(String(init?.body))).toMatchObject({
+        model: IMAGE_MODEL,
+        prompt: 'Mira, an old lantern maker, face',
+      });
+    });
+  });
+
+  it('refuses without a folder in the home to keep it in, drawing nothing', async () => {
+    const fetched = mockHosts({});
+    const generate = generateImage(new AIAdapter().use(new DriveDriver()));
+
+    expect(await generate({ prompt: 'A lantern', saveTo: '/elsewhere' })).toMatchObject({ error: expect.any(String) });
+    expect(await generate({ prompt: 'A lantern' })).toMatchObject({ error: expect.any(String) });
+    expect(fetched).toEqual([]);
   });
 });

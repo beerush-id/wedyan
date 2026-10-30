@@ -6,6 +6,7 @@ import type { ImageWorkerEnv } from '@irpclib/r2-image/worker';
 import { BRIEFER, COMPOSER, createAgents, DEFAULT_MODELS, ENTRY, OPEN_MODELS, SPARK_OPEN } from '@/lib/agents/index.js';
 import { personaPrompt } from '@/lib/agents/persona.js';
 import { SKILLS } from '@/lib/agents/skills.js';
+import { TOOLS } from '@/lib/agents/tools.js';
 import { withUserAgents } from '@/lib/agents/user-agents.js';
 import { type AgentProfile, setupKernel } from '@/lib/kernel/agent.js';
 // The conversation's handler: the desktop's one live call to Wedyan.
@@ -19,6 +20,7 @@ import { AGENTS_PATH } from '@/lib/share/system.js';
 import { type SpeechModel, setupSpeech } from '@/lib/speech/speech.js';
 import { wsTransport } from '@/src/api.js';
 import { DriveDriver } from './drive-driver.js';
+import { generateImage } from './images.js';
 
 /** The bindings and secrets the server runs with (see `wrangler.json`). */
 export type ServerEnv = FileWorkerEnv & {
@@ -50,8 +52,9 @@ export function setupServer(env: ServerEnv): void {
     meta: env.MUSE_API_KEY ?? globalThis.process?.env?.MUSE_API_KEY ?? '',
     baseten: env.BASETEN_API_KEY ?? globalThis.process?.env?.BASETEN_API_KEY,
   };
+  const adapter = withModels(MODELS, keys);
   setupKernel({
-    adapter: withModels(MODELS, keys),
+    adapter,
     agents: createAgents(keys.baseten ? OPEN_MODELS : DEFAULT_MODELS),
     entry: ENTRY,
     composer: COMPOSER,
@@ -59,6 +62,7 @@ export function setupServer(env: ServerEnv): void {
     routers: [new IRPCRouter(fileTransport), new IRPCRouter(wsTransport)],
     persona: loadPersona,
     userAgents: loadUserAgents,
+    sys: { [TOOLS.imageGenerate.name]: generateImage(adapter) },
   });
   setupConversation({ briefer: BRIEFER });
   setupMemory({ vectors: env.VECTORIZE, embed: embedWith(env.AI) });

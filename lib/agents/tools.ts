@@ -77,14 +77,15 @@ export const TOOLS = {
   },
   imageGenerate: {
     name: 'sys.image.generate',
-    description: 'Generates images from a description into ~/pictures.',
+    description:
+      'Generates one image from a description and keeps it in the user’s drive, in the folder you name. Returns its path.',
     parameters: object(
       {
         prompt: text('What to draw.'),
+        saveTo: text('The folder to keep it in, in the home: e.g. "~/Motions/Lantern River/People".'),
         aspect: { type: 'string', enum: ['1:1', '16:9', '9:16', '4:3', '3:4'] },
-        count: { type: 'integer', minimum: 1, maximum: 4 },
       },
-      ['prompt'],
+      ['prompt', 'saveTo'],
     ),
   },
 } satisfies Record<string, ChatTool>;
