@@ -359,19 +359,24 @@ const ProfileTab = setup(() => {
           <Snippet>{() => `${fields.description.length} / ${DESCRIPTION_MAX}`}</Snippet>
         </span>
       </div>
-      <footer className={CLASS.FOOT}>
-        <ConfirmButton
-          size="sm"
-          variant="tonal"
-          title={() => `Delete ${fields.name || 'this person'}?`}
-          description="They're taken off People. Their pictures stay in their folder."
-          action="Delete"
-          onconfirm={() => session.remove()}
-        >
-          <DeleteIcon />
-          <span>Delete person</span>
-        </ConfirmButton>
-      </footer>
+      {/* Deleting them is Lounge's; where they're only used, as a cast in Motions, it isn't offered. */}
+      <Show when={() => Boolean(session.remove)}>
+        {() => (
+          <footer className={CLASS.FOOT}>
+            <ConfirmButton
+              size="sm"
+              variant="tonal"
+              title={() => `Delete ${fields.name || 'this person'}?`}
+              description="They're taken off People. Their pictures stay in their folder."
+              action="Delete"
+              onconfirm={() => session.remove?.()}
+            >
+              <DeleteIcon />
+              <span>Delete person</span>
+            </ConfirmButton>
+          </footer>
+        )}
+      </Show>
     </div>
   );
 }, 'ProfileTab');

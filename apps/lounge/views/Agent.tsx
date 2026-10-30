@@ -163,7 +163,7 @@ export const AgentEditor = setup(() => {
               title={() => `Delete ${fields.name || 'this agent'}?`}
               description="It's taken off Agents."
               action="Delete"
-              onconfirm={() => session.remove()}
+              onconfirm={() => session.remove?.()}
             >
               <DeleteIcon />
               <span>Delete agent</span>

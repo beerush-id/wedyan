@@ -158,7 +158,7 @@ export const SkillEditor = setup(() => {
                   title={() => `Delete ${fields.name || 'this skill'}?`}
                   description="It's taken off Skills."
                   action="Delete"
-                  onconfirm={() => session.remove()}
+                  onconfirm={() => session.remove?.()}
                 >
                   <DeleteIcon />
                   <span>Delete skill</span>

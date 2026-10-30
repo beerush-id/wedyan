@@ -1,9 +1,10 @@
-import { aria, canCaptureVideo, type VideoStageAria } from '@airlib/aria';
-import { $bind, $static, $use, For, onCleanup, onMount, Show, Snippet, setup, snapshot, template } from '@airlib/react';
+import { canCaptureVideo, type VideoStageAria } from '@airlib/aria';
+import { $bind, $static, $use, For, mutable, onCleanup, onMount, Show, Snippet, setup, snapshot } from '@airlib/react';
 import {
   Button,
   ContextMenu,
   EmptyState,
+  type GalleryValue,
   Menu,
   Stage,
   TabButton,
@@ -17,15 +18,17 @@ import {
 import { WindowPanel } from '@airlib/react-aui/desktop';
 import { createTimeline, type Timeline, type TimelineSegment } from '@airlib/react/timeline';
 import type { DragEvent } from 'react';
-import { documentAt, follow } from '@/lib/documents/store.js';
-import type { MotionAsset, StageDocument, StillDocument } from '@/lib/documents/types.js';
+import { WedyanGallery, type WedyanGalleryEntry } from '@/components/WedyanGallery.js';
+import { pictureAt } from '@/lib/documents/generation.js';
+import { follow } from '@/lib/documents/store.js';
+import type { MotionAsset, StageDocument } from '@/lib/documents/types.js';
 import { Clips } from './Clips.js';
 import { download } from '@/lib/systems/download.js';
 import { type RenderedVideo, renderMp4 } from './export.js';
 import { buffers, mediaLoader } from './media.js';
 import { AddIcon } from './icons.js';
 import { AssigneeAvatar, clipAssignee } from './assignment.js';
-import { castsOf, type Project } from './library.js';
+import { castsOf, pictureOf, type Project } from './library.js';
 import {
   addTrack,
   type Placement,
@@ -267,142 +270,103 @@ export const ComposeView = setup<ComposeViewProps>((props) => {
 /** The asset kinds drawn on the stage, as against sound. */
 const PICTURE_KINDS = new Set<MotionAsset['kind']>(['image', 'still', 'video', 'take']);
 
-/**
- * What a stage can be made from, on one panel, narrowed by kind: everything — the project's assets
- * and its casts — or only its pictures and footage, its sound, or its casts, the personas its
- * stages name. A generated asset opens in its own view.
- */
-const Sources = template<{ project: Project; open: (path: string) => void }>((props) => {
-  const { project, open } = props;
-  const assets = project.document.assets;
-  const pictures = assets.filter((asset) => PICTURE_KINDS.has(asset.kind));
-  const sounds = assets.filter((asset) => !PICTURE_KINDS.has(asset.kind));
-  const casts = castsOf(project);
-  return (
-    <WindowPanel role="region" aria-label="Sources" className="wedyan-compose-group wedyan-compose-sources">
-      <Tabs size="xs" value="all">
-        <TabList label="Show">
-          <TabButton name="all">All</TabButton>
-          <TabButton name="video">Video</TabButton>
-          <TabButton name="audio">Audio</TabButton>
-          <TabButton name="cast">Cast</TabButton>
-        </TabList>
-        <TabPanel name="all">
-          {assets.length || casts.length ? (
-            <ul className="wedyan-compose-tiles">
-              <AssetTiles project={project} open={open} assets={assets} />
-              <CastTiles casts={casts} />
-            </ul>
-          ) : (
-            <EmptyState size="sm" title="Nothing yet" description="This project's assets and casts show here." />
-          )}
-        </TabPanel>
-        <TabPanel name="video">
-          {pictures.length ? (
-            <ul className="wedyan-compose-tiles">
-              <AssetTiles project={project} open={open} assets={pictures} />
-            </ul>
-          ) : (
-            <EmptyState size="sm" title="No video yet" description="The pictures and footage this project has show here." />
-          )}
-        </TabPanel>
-        <TabPanel name="audio">
-          {sounds.length ? (
-            <ul className="wedyan-compose-tiles">
-              <AssetTiles project={project} open={open} assets={sounds} />
-            </ul>
-          ) : (
-            <EmptyState size="sm" title="No audio yet" description="The music and sound this project has show here." />
-          )}
-        </TabPanel>
-        <TabPanel name="cast">
-          {casts.length ? (
-            <ul className="wedyan-compose-tiles">
-              <CastTiles casts={casts} />
-            </ul>
-          ) : (
-            <EmptyState size="sm" title="No casts yet" description="The people and characters this project's stages name show here." />
-          )}
-        </TabPanel>
-      </Tabs>
-    </WindowPanel>
-  );
-}, 'Sources');
-
-/** Assets as tiles of a tile list. */
-const AssetTiles = template<{ project: Project; open: (path: string) => void; assets: MotionAsset[] }>((props) => {
-  const { project, open, assets } = props;
-  return (
-    <>
-      {assets.map((asset) => (
-        <li key={asset.id}>
-          <AssetTile project={project} open={open} asset={asset} />
-        </li>
-      ))}
-    </>
-  );
-}, 'AssetTiles');
-
 /** What a tile's menu does with its asset. */
 const TILE_COMMANDS = [{ name: 'place', label: 'Add to timeline' }];
 
 /**
- * An asset as a tile: its picture and name. It drags onto a track of the timeline, its menu puts it
- * at the playhead, and a generated one opens in its own view on a double click.
+ * What a stage can be made from, on one panel, narrowed by kind: everything — the project's assets
+ * and its casts — or only its pictures and footage, its sound, or its casts, the personas its
+ * stages name. They show in the gallery every Wedyan app shows files in. An asset drags onto a track
+ * of the timeline, its menu puts it at the playhead, and a generated one opens in its own view on a
+ * double click.
  */
-const AssetTile = setup<{ project: Project; open: (path: string) => void; asset: MotionAsset }>((props) => {
+const Sources = setup<{ project: Project; open: (path: string) => void }>((props) => {
   const session = sessionCtx.get() as MotionsSession;
-  const asset = $static(() => props.asset);
-  const from = $static(() => props.project.path);
-  const button = aria('button', {});
-  const drag = (event: DragEvent<HTMLButtonElement>) => {
+  const project = $static(() => props.project);
+  // One pick across the tabs, so the menu acts on the tile last picked or pressed with a secondary click.
+  const view = mutable({ picked: null as GalleryValue });
+
+  const assets = () => project.document.assets;
+  const assetOf = (id: unknown) => assets().find((asset) => asset.id === id);
+  const assetEntry = (asset: MotionAsset): WedyanGalleryEntry => ({
+    path: asset.id,
+    name: asset.name,
+    kind: asset.kind,
+    picture: pictureOf(project.path, asset),
+  });
+  const castEntries = () =>
+    castsOf(project).map(({ path, document }): WedyanGalleryEntry => ({ path, name: document.name, kind: 'image', picture: pictureAt(path, path) }));
+
+  // A dragged asset names itself to the timeline; a cast isn't something a track holds, so it doesn't drag.
+  const drag = (entry: WedyanGalleryEntry, event: DragEvent<HTMLElement>) => {
+    const asset = assetOf(entry.path);
+    if (!asset) return event.preventDefault();
     event.dataTransfer.setData(ASSET_DRAG, asset.id);
     event.dataTransfer.effectAllowed = 'copy';
   };
-  const openGenerated = () => (asset.kind === 'still' || asset.kind === 'take') && props.open(follow(from, asset.src).path);
+  const openGenerated = (entry: WedyanGalleryEntry) => {
+    const asset = assetOf(entry.path);
+    if (asset && (asset.kind === 'still' || asset.kind === 'take')) props.open(follow(project.path, asset.src).path);
+  };
+  const place = () => {
+    const asset = assetOf(view.picked);
+    if (asset) session.place?.(asset);
+  };
 
-  return () => (
-    <button
-      ref={button.ref}
-      {...button.restProps()}
-      type="button"
-      className="wedyan-compose-tile"
-      title={asset.name}
-      draggable
-      onDragStart={drag}
-      onDoubleClick={openGenerated}
-    >
-      <ContextMenu label={`${asset.name} asset`} size="xs" items={TILE_COMMANDS} oncommand={() => session.place?.(asset)} />
-      <AssetPicture from={from} asset={asset} />
-      <span>{asset.name}</span>
-    </button>
-  );
-}, 'AssetTile');
+  /**
+   * One tab's sources in the gallery, or what it says while it holds nothing.
+   *
+   * @param label - Names the gallery for screen readers.
+   * @param entries - The tab's sources.
+   * @param empty - The empty state's title and description.
+   * @returns The tab's content.
+   */
+  const gallery = (label: string, entries: WedyanGalleryEntry[], empty: [string, string]) =>
+    entries.length ? (
+      <WedyanGallery
+        label={label}
+        entries={entries}
+        value={$bind(view, 'picked')}
+        onopen={openGenerated}
+        ondragstart={drag}
+        className="wedyan-compose-gallery"
+      >
+        {entries.some((entry) => assetOf(entry.path)) && <ContextMenu label="Source" size="xs" items={TILE_COMMANDS} oncommand={place} />}
+      </WedyanGallery>
+    ) : (
+      <EmptyState size="sm" title={empty[0]} description={empty[1]} />
+    );
 
-/** Casts as tiles of a tile list, each its head and name. */
-const CastTiles = template<{ casts: ReturnType<typeof castsOf> }>(({ casts }) => (
-  <>
-    {casts.map(({ path, document }) => (
-      <li key={path}>
-        <button type="button" className="wedyan-compose-tile" title={document.description ?? document.name}>
-          {document.head?.main ? <img src={document.head.main} alt="" /> : <span className="wedyan-compose-tile-blank" />}
-          <span>{document.name}</span>
-        </button>
-      </li>
-    ))}
-  </>
-), 'CastTiles');
-
-/** An asset's picture: an image itself, a still's chosen attempt, or nothing for sound. */
-const AssetPicture = template<{ from: string; asset: MotionAsset }>((props) => {
-  const { asset, from } = props;
-  let src = asset.kind === 'image' ? asset.src : undefined;
-  if (asset.kind === 'still') {
-    const still = documentAt<'still'>(follow(from, asset.src).path) as StillDocument | undefined;
-    src = still?.attempts.find((attempt) => attempt.id === still.chosen)?.src;
-  }
-  return src ? <img src={src} alt="" /> : <span className="wedyan-compose-tile-blank" data-kind={asset.kind} />;
-}, 'AssetPicture');
+  return () => {
+    const pictures = assets().filter((asset) => PICTURE_KINDS.has(asset.kind)).map(assetEntry);
+    const sounds = assets().filter((asset) => !PICTURE_KINDS.has(asset.kind)).map(assetEntry);
+    const casts = castEntries();
+    return (
+      <WindowPanel role="region" aria-label="Sources" className="wedyan-compose-group wedyan-compose-sources">
+        <Tabs size="xs" value="all">
+          <TabList label="Show">
+            <TabButton name="all">All</TabButton>
+            <TabButton name="video">Video</TabButton>
+            <TabButton name="audio">Audio</TabButton>
+            <TabButton name="cast">Cast</TabButton>
+          </TabList>
+          <TabPanel name="all">
+            {gallery('Sources', [...assets().map(assetEntry), ...casts], ['Nothing yet', "This project's assets and casts show here."])}
+          </TabPanel>
+          <TabPanel name="video">
+            {gallery('Video', pictures, ['No video yet', 'The pictures and footage this project has show here.'])}
+          </TabPanel>
+          <TabPanel name="audio">
+            {gallery('Audio', sounds, ['No audio yet', 'The music and sound this project has show here.'])}
+          </TabPanel>
+          <TabPanel name="cast">
+            {gallery('Cast', casts, ['No casts yet', "The people and characters this project's stages name show here."])}
+          </TabPanel>
+        </Tabs>
+      </WindowPanel>
+    );
+  };
+}, 'Sources');
 
 type MotionRenderProps = {
   source: StageDocument;

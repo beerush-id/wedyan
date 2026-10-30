@@ -25,6 +25,15 @@
   }
 }
 
+/* A person's editor embedded in a Direct view, as a cast in Motions: how they're made takes Lounge's side column. */
+.wedyan-direct:has(> .wedyan-lounge-side) {
+  grid-template-columns: minmax(14rem, 18rem) minmax(0, 1fr) 20rem;
+
+  &:not(:has(> .wedyan-direct-list)) {
+    grid-template-columns: minmax(0, 1fr) 20rem;
+  }
+}
+
 /* The open person, agent or skill on a solid surface, kept narrow enough to read in a wide window, centred. */
 .wedyan-lounge-open {
   padding: var(--spacing-lg);

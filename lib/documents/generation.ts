@@ -1,3 +1,4 @@
+import { follow } from './store.js';
 import type { DocumentType, GeneratedAttempt, GenerationSettings, GenerativeDocument, WedyanDocument } from './types.js';
 
 /** The models a generation can be asked of, by what it makes. Placeholders until the kernel names its own. */
@@ -86,4 +87,32 @@ export function reuseAttempt(source: GenerativeDocument, attempt: GeneratedAttem
  */
 export function chosenAttempt<T extends GenerativeDocument>(source: T): T['attempts'][number] | undefined {
   return source.attempts.find((attempt) => attempt.id === source.chosen) ?? source.attempts[0];
+}
+
+/**
+ * An attempt's picture: a still's own, a take's poster; a sound has none.
+ *
+ * @param source - The generated document.
+ * @param attempt - One of its attempts.
+ * @returns Its picture's address, if it has one.
+ */
+export function attemptPicture(source: GenerativeDocument, attempt?: GenerativeDocument['attempts'][number]): string | undefined {
+  if (!attempt || source.type === 'sound') return;
+  return source.type === 'still' ? attempt.src : (attempt as { poster?: string }).poster;
+}
+
+/**
+ * The picture a written path or address shows: a still's chosen attempt, a take's poster, a
+ * persona's face, or the address itself when it's no document.
+ *
+ * @param from - The path of the document it's written in.
+ * @param reference - The path or address, as written.
+ * @returns Its picture's address, if it has one.
+ */
+export function pictureAt(from: string, reference: string): string | undefined {
+  const found = follow(from, reference);
+  const document = found.document;
+  if (!document) return reference;
+  if (isGenerative(document)) return attemptPicture(document, chosenAttempt(document));
+  if (document.type === 'persona') return document.head?.main && pictureAt(found.path, document.head.main);
 }

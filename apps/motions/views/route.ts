@@ -1,3 +1,4 @@
+import type { PersonTab } from '@/apps/lounge/views/session.js';
 import { documentAt } from '@/lib/documents/store.js';
 import type { DocumentType } from '@/lib/documents/types.js';
 import { stagesOf } from './library.js';
@@ -17,6 +18,8 @@ export type MotionsRoute = {
   stage?: string;
   /** What Direct shows of the open project, by the key of its row; the overview when unset. */
   item?: string;
+  /** What a cast open in Direct shows, picked in the toolbar as in Lounge; their profile when unset. */
+  person?: PersonTab;
 };
 
 /** What Direct shows for a document of a project, rather than a view of its own. */

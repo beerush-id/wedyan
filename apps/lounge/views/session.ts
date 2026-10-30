@@ -12,8 +12,8 @@ export type LoungeSession = {
   readonly path: string | null;
   /** What an open person shows, picked in the toolbar. */
   readonly tab: PersonTab;
-  /** Takes the open one off the drive; the group's first opens in its place. */
-  remove(): void;
+  /** Takes the open one off the drive; the group's first opens in its place. None where it isn't deleted from, as a cast in Motions. */
+  remove?(): void;
 };
 
 /** The persona or agent open in Lounge's window, which its editor works on. */

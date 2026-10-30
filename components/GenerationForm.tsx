@@ -2,7 +2,7 @@ import { $bind, Snippet, setup, template } from '@airlib/react';
 import { Button, Listbox, ListboxOption, Select, Stepper, TextInput, Tooltip } from '@airlib/react-aui';
 import { AddIcon, CloseIcon } from '@airlib/react-aui/icons';
 import type { ReactNode } from 'react';
-import { ASPECTS, chosenAttempt, isGenerative, MODELS, reuseAttempt, settingsOf } from '@/lib/documents/generation.js';
+import { ASPECTS, attemptPicture, chosenAttempt, MODELS, pictureAt, reuseAttempt, settingsOf } from '@/lib/documents/generation.js';
 import { follow } from '@/lib/documents/store.js';
 import type { GeneratedAttempt, GenerativeDocument, PersonaDocument, SoundDocument } from '@/lib/documents/types.js';
 import { ConfirmButton } from './ConfirmButton.js';
@@ -161,7 +161,7 @@ const referencesGroup = (source: GenerativeDocument, subject: GenerationSubject)
         {() =>
           (source.references ?? []).map((reference) => (
             <li key={reference} title={reference} className="wedyan-compose-reference">
-              <Thumb src={pictureOf(subject.path ?? '', reference)} />
+              <Thumb src={pictureAt(subject.path ?? '', reference)} />
               {/* Taking it off, once confirmed: small, over the picture's middle, while it's hovered or focused. */}
               <span className="wedyan-compose-reference-remove">
                 <ConfirmButton
@@ -239,7 +239,7 @@ const castsGroup = (source: GenerativeDocument, subject: GenerationSubject) => {
     .map((cast) => follow<'persona'>(path, cast))
     .filter((found): found is { path: string; document: PersonaDocument } => !!found.document);
   const portraitOf = (cast: { path: string; document: PersonaDocument }) =>
-    cast.document.head?.main && pictureOf(cast.path, cast.document.head.main);
+    cast.document.head?.main && pictureAt(cast.path, cast.document.head.main);
   if (!casts.length) {
     return group(
       speech ? 'Voice' : 'Casts',
@@ -263,7 +263,7 @@ const castsGroup = (source: GenerativeDocument, subject: GenerationSubject) => {
       <ul className="wedyan-people-tiles">
         {casts.map((cast) => (
           <li key={cast.path}>
-            <PeopleTile persona={cast.document} pictureOf={(source) => pictureOf(cast.path, source)} />
+            <PeopleTile persona={cast.document} pictureOf={(source) => pictureAt(cast.path, source)} />
           </li>
         ))}
       </ul>
@@ -350,34 +350,6 @@ const Thumb = template<{ src?: string; sound?: boolean }>(
     ),
   'Thumb'
 );
-
-/**
- * The picture a written path or address shows: a still's chosen attempt, a take's poster, a
- * persona's first look, or the address itself when it's no document.
- *
- * @param from - The path of the document it's written in.
- * @param reference - The path or address, as written.
- * @returns Its picture's address, if it has one.
- */
-function pictureOf(from: string, reference: string): string | undefined {
-  const found = follow(from, reference);
-  const document = found.document;
-  if (!document) return reference;
-  if (isGenerative(document)) return attemptPicture(document, chosenAttempt(document));
-  if (document.type === 'persona') return document.head?.main && pictureOf(found.path, document.head.main);
-}
-
-/**
- * An attempt's picture: a still's own, a take's poster; a sound has none.
- *
- * @param source - The generated document.
- * @param attempt - One of its attempts.
- * @returns Its picture's address, if it has one.
- */
-function attemptPicture(source: GenerativeDocument, attempt?: GenerativeDocument['attempts'][number]): string | undefined {
-  if (!attempt || source.type === 'sound') return;
-  return source.type === 'still' ? attempt.src : (attempt as { poster?: string }).poster;
-}
 
 /**
  * The settings an attempt was made with, in a line: its model by name, then its aspect ratio or how long it runs.

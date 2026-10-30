@@ -1,4 +1,4 @@
-import { documentAt, documentsOf, drive, supply } from '@/lib/documents/store.js';
+import { documentAt, documentsOf, drive, freePath, newHeader, supply } from '@/lib/documents/store.js';
 import type { MemoDocument } from '@/lib/documents/types.js';
 import SAMPLES from '../data/memos.json';
 
@@ -80,22 +80,8 @@ export function edit(document: MemoDocument, change: () => void): void {
  * @returns Where it was put.
  */
 export function newMemo(): string {
-  // A deleted memo's path stays taken: the drive keeps hiding whatever is put back there.
-  const taken = (path: string) => !!documentAt(path) || drive.deleted.includes(path);
-  let path = `${ROOT}/Untitled.memo`;
-  for (let n = 2; taken(path); n++) path = `${ROOT}/Untitled ${n}.memo`;
-  const now = new Date().toISOString();
-  const memo: MemoDocument = {
-    type: 'memo',
-    version: 1,
-    id: crypto.randomUUID(),
-    name: 'Untitled',
-    created: now,
-    updated: now,
-    author: { kind: 'user' },
-    kind: 'note',
-    body: '',
-  };
+  const path = freePath(ROOT, 'Untitled', '.memo');
+  const memo: MemoDocument = { ...newHeader(path, '.memo'), type: 'memo', kind: 'note', body: '' };
   supply([[path, memo]]);
   return path;
 }

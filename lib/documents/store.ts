@@ -148,6 +148,42 @@ export function parentOf(path: string): string {
 }
 
 /**
+ * A free path for a new file in a folder: `<base><extension>`, or the first `<base> N<extension>`
+ * not taken.
+ *
+ * @param folder - The folder it goes in.
+ * @param base - Its name before a number.
+ * @param extension - Its extension, e.g. `.persona`.
+ * @returns The path.
+ */
+export function freePath(folder: string, base: string, extension: string): string {
+  // A deleted file's path stays taken: the drive keeps hiding whatever is put back there.
+  const taken = (path: string) => !!documentAt(path) || drive.deleted.includes(path);
+  let path = `${folder}/${base}${extension}`;
+  for (let n = 2; taken(path); n++) path = `${folder}/${base} ${n}${extension}`;
+  return path;
+}
+
+/**
+ * The header a new document starts with, named after its file and made by the user.
+ *
+ * @param path - Where it goes.
+ * @param extension - Its file's extension, left out of its name.
+ * @returns Its header.
+ */
+export function newHeader(path: string, extension: string) {
+  const now = new Date().toISOString();
+  return {
+    version: 1 as const,
+    id: crypto.randomUUID(),
+    name: nameOf(path).slice(0, -extension.length),
+    created: now,
+    updated: now,
+    author: { kind: 'user' as const },
+  };
+}
+
+/**
  * The document a path written in another document leads to.
  *
  * @param from - The path of the document it is written in.

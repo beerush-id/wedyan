@@ -1,5 +1,5 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
-import { $bind, $static, type AnyType, derived, mutable, Snippet, setup, template } from '@airlib/react';
+import { $bind, $static, type AnyType, derived, mutable, Snippet, setup, template, untrack } from '@airlib/react';
 import { LIVE_SELECTION } from '@airlib/react/browser';
 import {
   Button,
@@ -7,6 +7,7 @@ import {
   Divider,
   EmptyState,
   FloatingToolbar,
+  Menu,
   TextInput,
   Toggle,
   ToggleGroup,
@@ -15,14 +16,17 @@ import {
 import { WindowPanel } from '@airlib/react-aui/desktop';
 import { MarkdownRenderer } from '@airlib/react-aui/markdown';
 import type { FC, ReactNode } from 'react';
+import { newPerson, people } from '@/apps/lounge/views/library.js';
+import { PersonaEditor } from '@/apps/lounge/views/Persona.js';
+import { loungeCtx } from '@/apps/lounge/views/session.js';
 import { DirectList, type DirectGroup as Group, type DirectItem as Row } from '@/components/Direct.js';
-import { documentAt, follow, keepWriting, resolvePath, sectionAt, writingAt } from '@/lib/documents/store.js';
+import { pictureAt } from '@/lib/documents/generation.js';
+import { follow, keepWriting, resolvePath, sectionAt, writingAt } from '@/lib/documents/store.js';
 import type {
   ChatDocument,
   MemoDocument,
   MotionAsset,
   MotionScript,
-  PersonaDocument,
   StageDocument,
   StillDocument,
   TakeDocument,
@@ -31,6 +35,7 @@ import { runtime } from './composition.js';
 import { ChatView, MemoView, StillView } from './Documents.js';
 import { type Formatting, formatSelection } from './formatting.js';
 import {
+  AddIcon,
   BoldIcon,
   ChatIcon,
   ComposeIcon,
@@ -46,7 +51,18 @@ import {
   ShortenIcon,
   SoundIcon,
 } from './icons.js';
-import { castsOf, duration, length, posterOf, type Project, shortDate, stagesOf } from './library.js';
+import {
+  addCast,
+  castsOf,
+  duration,
+  length,
+  newStage,
+  pictureOf,
+  posterOf,
+  type Project,
+  shortDate,
+  stagesOf,
+} from './library.js';
 import type { MotionsRoute } from './route.js';
 import { type MotionsSession, sessionCtx } from './session.js';
 
@@ -57,6 +73,8 @@ const OVERVIEW = 'overview';
 type DirectItem = Row & {
   /** What the content shows while the row is picked. */
   show: () => ReactNode;
+  /** Whether what it shows brings its own panels, as a cast's editor does; otherwise it shows on Direct's solid panel. */
+  panels?: boolean;
 };
 
 /** A run of rows of one kind, under its name. */
@@ -79,11 +97,17 @@ type ProjectViewProps = {
  */
 export const ProjectView = setup<ProjectViewProps>((props) => {
   const route = $static(() => props.route);
-  // What the project holds is read once, as the project opens.
-  const groups = $static(() => groupsOf(props.project, props.open));
-  const items = groups.flatMap((group) => group.items);
-  if (!$static(() => items.some((item) => item.key === route.item))) route.item = OVERVIEW;
-  const picked = () => items.find((item) => item.key === route.item) ?? items[0];
+  const project = $static(() => props.project);
+  const open = $static(() => props.open);
+  // The list follows which stages and casts the project has, so one added shows at once; each
+  // row's own words are read as the list is made.
+  const groups = () => {
+    castsOf(project);
+    return untrack(() => groupsOf(project, route, open));
+  };
+  const items = () => groups().flatMap((group) => group.items);
+  if (!untrack(() => items().some((item) => item.key === route.item))) route.item = OVERVIEW;
+  const picked = () => items().find((item) => item.key === route.item) ?? items()[0];
 
   const session = sessionCtx.get() as MotionsSession;
 
@@ -93,16 +117,85 @@ export const ProjectView = setup<ProjectViewProps>((props) => {
       <Snippet>
         {() =>
           session.sidebar && (
-            <DirectList label="Project" listLabel="What the project holds" groups={() => groups} value={$bind(route as AnyType, 'item')} />
+            <DirectList label="Project" listLabel="What the project holds" groups={groups} value={$bind(route as AnyType, 'item')} />
           )
         }
       </Snippet>
-      <WindowPanel surface="solid" role="region" aria-label="Picked" className="wedyan-direct-content">
-        <Snippet>{() => picked().show()}</Snippet>
-      </WindowPanel>
+      <Snippet data={picked}>
+        {(item) =>
+          item.panels ? (
+            item.show()
+          ) : (
+            <WindowPanel surface="solid" role="region" aria-label="Picked" className="wedyan-direct-content">
+              {item.show()}
+            </WindowPanel>
+          )
+        }
+      </Snippet>
     </div>
   );
 }, 'ProjectView');
+
+type AddProps = { project: Project; route: MotionsRoute };
+
+/** Adds an empty stage at the end of the project, and opens it. */
+const AddStage = template<AddProps>(
+  ({ project, route }) => (
+    <Button
+      aria-label="New stage"
+      size="xs"
+      variant="text"
+      className={AUI_CLASS.CONTROL_ICON}
+      onClick={() => (route.item = newStage(project))}
+    >
+      <AddIcon />
+      <Tooltip>New stage</Tooltip>
+    </Button>
+  ),
+  'AddStage'
+);
+
+/** Which command makes a new person, among the people to pick. */
+const NEW_PERSON = 'new-person';
+
+/**
+ * Puts someone in the project, on every stage: one of the people not cast in it yet, or a new
+ * person, made in People. Either opens as the project's cast.
+ */
+const AddCast = template<AddProps>(({ project, route }) => {
+  const cast = new Set(castsOf(project).map(({ path }) => path));
+  const items = [
+    ...people()
+      .filter(({ path }) => !cast.has(path))
+      .map(({ path, document }) => ({ name: path, label: document.name })),
+    { name: NEW_PERSON, label: 'New person' },
+  ];
+  const add = (command: string) => {
+    const persona = command === NEW_PERSON ? newPerson() : command;
+    addCast(project, persona);
+    route.item = persona;
+  };
+  return (
+    <Menu label="Add cast" size="xs" variant="text" xDir="between" items={items} oncommand={(event) => add(String(event.detail))}>
+      <Menu.Snippet for="trigger">{() => <AddIcon />}</Menu.Snippet>
+    </Menu>
+  );
+}, 'AddCast');
+
+/**
+ * A cast, edited as Lounge edits a person: their profile, face, figure or outfits, by the tab the
+ * toolbar picks, with how the picked one was made beside it. Deleting them stays in Lounge.
+ */
+const CastEditor = setup<{ path: string; route: MotionsRoute }>((props) => {
+  const route = $static(() => props.route);
+  loungeCtx.set({
+    path: $static(() => props.path),
+    get tab() {
+      return route.person ?? 'profile';
+    },
+  });
+  return () => <PersonaEditor />;
+}, 'CastEditor');
 
 /** The project itself: its whole script, beside its cover, what it is, and where it stands. */
 const OverviewPane = template<{ project: Project }>((props) => {
@@ -371,13 +464,14 @@ const StagePane = setup<StagePaneProps>((props) => {
   const path = $static(() => props.path);
   const stage = $static(() => props.stage);
   const open = $static(() => props.open);
-  const { width, height } = stage.composition.props;
+  const { width, height } = $static(() => ({ ...stage.composition.props }));
   // The stage's casts by name, following its casts and the documents they name: one deleted drops out.
   const casts = derived(() =>
     (stage.casts ?? []).map((cast) => follow<'persona'>(path, cast).document?.name).filter(Boolean)
   );
-  const scriptFile = project.document.script && resolvePath(project.path, project.document.script.path);
-  const view = mutable({ script: stage.script && resolvePath(path, stage.script) });
+  // Where its writing is, read once: writing its part sets both here.
+  const scriptFile = $static(() => project.document.script && resolvePath(project.path, project.document.script.path));
+  const view = mutable({ script: $static(() => stage.script && resolvePath(path, stage.script)) });
   const write = () => {
     if (!scriptFile) return;
     const at = sectionAt(scriptFile, stage.name);
@@ -487,44 +581,6 @@ const AssetPane = template<{ asset: MotionAsset; from: string; open: (path: stri
   );
 }, 'AssetPane');
 
-/** A cast: their main face as their portrait, who they are, their poses, body and wardrobe, and their voice. */
-const CastPane = template<{ persona: PersonaDocument }>((props) => {
-  const { persona } = props;
-  const portrait = persona.head?.main;
-  const looks = [
-    ...(persona.head?.poses ?? []),
-    ...(persona.body ? [persona.body.main, ...(persona.body.poses ?? [])] : []),
-    ...(persona.wardrobe ? [persona.wardrobe.main, ...(persona.wardrobe.outfits ?? [])] : []),
-  ];
-  return (
-    <article className="wedyan-direct-pane">
-      <div className="wedyan-direct-person">
-        {portrait && <img className="wedyan-direct-portrait" src={portrait} alt="" />}
-        <header className="wedyan-direct-heading">
-          <h2>{persona.name}</h2>
-          {persona.description && <p>{persona.description}</p>}
-        </header>
-      </div>
-      <DescriptionList
-        size="sm"
-        items={[
-          { label: 'Kind', value: capitalize(persona.kind) },
-          ...(persona.voice ? [{ label: 'Voice', value: persona.voice.name }] : []),
-          { label: 'Updated', value: shortDate(persona.updated) },
-        ]}
-      />
-      {looks.length > 0 && (
-        <ul className="wedyan-direct-looks" aria-label="Other looks">
-          {looks.map((look) => (
-            <li key={look}>
-              <img src={look} alt="" />
-            </li>
-          ))}
-        </ul>
-      )}
-    </article>
-  );
-}, 'CastPane');
 
 const ASSET_KINDS: Record<MotionAsset['kind'], string> = {
   image: 'Image',
@@ -540,10 +596,11 @@ const ASSET_KINDS: Record<MotionAsset['kind'], string> = {
  * are keyed by their path, so opening one by path picks its row.
  *
  * @param project - The project.
+ * @param route - The window's route, whose person tab an open cast shows.
  * @param open - Opens a document by path.
  * @returns Its groups, an empty one where it holds nothing of that kind.
  */
-function groupsOf(project: Project, open: (path: string) => void): DirectGroup[] {
+function groupsOf(project: Project, route: MotionsRoute, open: (path: string) => void): DirectGroup[] {
   const motion = project.document;
   const notes = (paths?: string[]) => (paths ?? []).map((path) => follow(project.path, path)).filter((note) => note.document);
 
@@ -563,6 +620,7 @@ function groupsOf(project: Project, open: (path: string) => void): DirectGroup[]
     },
     {
       label: 'Stages',
+      action: () => <AddStage project={project} route={route} />,
       items: stagesOf(project).map(({ path, document }) => ({
         key: path,
         title: document.name,
@@ -588,12 +646,15 @@ function groupsOf(project: Project, open: (path: string) => void): DirectGroup[]
     },
     {
       label: 'Casts',
+      action: () => <AddCast project={project} route={route} />,
       items: castsOf(project).map(({ path, document }) => ({
         key: path,
         title: document.name,
         description: document.description ?? capitalize(document.kind),
-        picture: document.head?.main,
-        show: () => <CastPane persona={document} />,
+        picture: pictureAt(path, path),
+        panels: true,
+        // Keyed by its cast, so picking another starts the editor afresh.
+        show: () => <CastEditor key={path} path={path} route={route} />,
       })),
     },
     {
@@ -624,25 +685,6 @@ function groupsOf(project: Project, open: (path: string) => void): DirectGroup[]
       }),
     },
   ];
-}
-
-/**
- * An asset's picture: an image itself, or a generated one's chosen attempt; none for sound.
- *
- * @param from - The project's path, which the asset's own path is written from.
- * @param asset - The asset.
- * @returns Its picture's address, if it has one.
- */
-function pictureOf(from: string, asset: MotionAsset): string | undefined {
-  if (asset.kind === 'image') return asset.src;
-  if (asset.kind === 'still') {
-    const still = documentAt<'still'>(follow(from, asset.src).path) as StillDocument | undefined;
-    return still?.attempts.find((attempt) => attempt.id === still.chosen)?.src;
-  }
-  if (asset.kind === 'take') {
-    const take = documentAt<'take'>(follow(from, asset.src).path) as TakeDocument | undefined;
-    return take?.attempts.find((attempt) => attempt.id === take.chosen)?.poster;
-  }
 }
 
 /**

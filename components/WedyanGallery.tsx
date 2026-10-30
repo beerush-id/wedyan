@@ -11,7 +11,7 @@ import {
   ToggleGroup,
   Tooltip,
 } from '@airlib/react-aui';
-import type { KeyboardEvent, MouseEvent } from 'react';
+import type { DragEvent, KeyboardEvent, MouseEvent, ReactNode, SyntheticEvent } from 'react';
 import { GridViewIcon, ListViewIcon } from './icons.js';
 
 /** What a file is, as every Wedyan view shows it: a folder, a plain file by its kind, or one of Wedyan's documents. */
@@ -39,7 +39,7 @@ export type WedyanGalleryEntry = {
   path: string;
   name: string;
   kind: WedyanFileKind;
-  /** An image's own picture. Every other kind shows its kind's art, as a listing gives no picture of anything else. */
+  /** Its picture, when there's one to show: an image itself, a still's chosen attempt, a take's poster. Without one, it shows its kind's art. */
   picture?: string;
   /** What matters about it, in a line: its size, how much a folder holds, a project's length and status. */
   detail?: string;
@@ -69,6 +69,10 @@ export type WedyanGalleryProps = {
   className?: string;
   /** Called with the file a double click, or Enter on the picked tile, opens. */
   onopen?: (entry: WedyanGalleryEntry) => void;
+  /** Makes the tiles draggable, and is called with the file whose tile starts being dragged, to say what it carries. */
+  ondragstart?: (entry: WedyanGalleryEntry, event: DragEvent<HTMLElement>) => void;
+  /** What else belongs to the gallery, e.g. a `ContextMenu` acting on the file a secondary click picked. */
+  children?: ReactNode;
 };
 
 /** A play mark, for anything that plays as a video. */
@@ -141,16 +145,36 @@ export const WedyanGallery = setup<WedyanGalleryProps>((props) => {
     return query ? all.filter((entry) => entry.name.toLowerCase().includes(query)) : all;
   };
 
-  // A double click opens the tile. While picking one, its second click unpicks the tile again, so the
-  // tile is found by its place among the tiles and picked; while picking several, its two clicks cancel out.
-  const openTile = (event: MouseEvent<HTMLElement>) => {
+  /**
+   * The file whose tile an event happened on, found by the tile's place among the tiles.
+   *
+   * @param event - An event from inside the gallery.
+   * @returns The tile's file, or none when the event was beside every tile.
+   */
+  const entryOf = (event: SyntheticEvent<HTMLElement>): WedyanGalleryEntry | undefined => {
     const tile = (event.target as Element).closest('[role="option"]');
     if (!tile) return;
-    const at = [...event.currentTarget.querySelectorAll('[role="option"]')].indexOf(tile);
-    const entry = entries()[at];
+    return entries()[[...event.currentTarget.querySelectorAll('[role="option"]')].indexOf(tile)];
+  };
+
+  // A double click opens the tile. While picking one, its second click unpicks the tile again, so the
+  // tile is picked again here; while picking several, its two clicks cancel out.
+  const openTile = (event: MouseEvent<HTMLElement>) => {
+    const entry = entryOf(event);
     if (!entry) return;
     if (!props.multiple) props.value = entry.path;
     props.onopen?.(entry);
+  };
+
+  // A secondary click picks the tile under it, as a file manager does, so a menu acts on that file.
+  const pickForMenu = (event: MouseEvent<HTMLElement>) => {
+    const entry = entryOf(event);
+    if (entry && !props.multiple) props.value = entry.path;
+  };
+
+  const dragTile = (event: DragEvent<HTMLElement>) => {
+    const entry = entryOf(event);
+    if (entry) props.ondragstart?.(entry, event);
   };
 
   // While picking one, Enter on the picked tile opens it, caught before the gallery would take it as
@@ -165,7 +189,14 @@ export const WedyanGallery = setup<WedyanGalleryProps>((props) => {
   };
 
   return () => (
-    <div className={props.className} onDoubleClick={openTile} onKeyDownCapture={openOnEnter}>
+    <div
+      className={props.className}
+      onDoubleClick={openTile}
+      onKeyDownCapture={openOnEnter}
+      onContextMenuCapture={pickForMenu}
+      onDragStart={dragTile}
+    >
+      {props.children}
       <Show
         when={() => props.layout === 'list'}
         fallback={() => (
@@ -176,6 +207,7 @@ export const WedyanGallery = setup<WedyanGalleryProps>((props) => {
             multiple={$bind(props as AnyType, 'multiple')}
             checkable={props.checkable}
             flow={props.flow}
+            draggable={Boolean(props.ondragstart)}
           />
         )}
       >
@@ -246,7 +278,7 @@ export const WedyanGalleryLayoutToggle = setup<{ layout?: Bindable<WedyanGallery
 export function tileOf(entry: WedyanGalleryEntry): GalleryEntry {
   return {
     value: entry.path,
-    src: (entry.kind === 'image' && entry.picture) || kindArt(entry.kind),
+    src: entry.picture || kindArt(entry.kind),
     alt: entry.name,
     title: entry.name,
     description: entry.detail,

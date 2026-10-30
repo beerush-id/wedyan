@@ -1,6 +1,6 @@
 import { mutable } from '@airlib/react';
 import { chosenAttempt } from '@/lib/documents/generation.js';
-import { documentAt, documentsOf, drive, follow, nameOf, parentOf, supply } from '@/lib/documents/store.js';
+import { documentAt, documentsOf, drive, follow, freePath, nameOf, newHeader, parentOf, supply } from '@/lib/documents/store.js';
 import type { DocumentHeader, DocumentType, PersonaDocument, StillDocument, WedyanDocument } from '@/lib/documents/types.js';
 import type { AgentFile } from '@/lib/share/agents.js';
 import AGENTS_SAMPLE from '../data/agents.json';
@@ -156,7 +156,7 @@ export function edit(document: { updated: string }, change: () => void): void {
  */
 export function newPerson(): string {
   const path = freePath(PEOPLE, 'New person', '.persona');
-  const persona: PersonaDocument = { ...headerOf(path, '.persona'), type: 'persona', kind: 'person', head: { main: '' } };
+  const persona: PersonaDocument = { ...newHeader(path, '.persona'), type: 'persona', kind: 'person', head: { main: '' } };
   supply([[path, persona]]);
   return path;
 }
@@ -168,7 +168,7 @@ export function newPerson(): string {
  */
 export function newAgent(): string {
   const path = freePath(AGENTS, 'New agent', '.agent');
-  const agent: AgentFile = { ...headerOf(path, '.agent'), type: 'agent', description: '', skills: [] };
+  const agent: AgentFile = { ...newHeader(path, '.agent'), type: 'agent', description: '', skills: [] };
   supply([[path, agent as unknown as WedyanDocument]]);
   return path;
 }
@@ -180,7 +180,7 @@ export function newAgent(): string {
  */
 export function newSkill(): string {
   const path = freePath(SKILLS_FOLDER, 'New skill', '.skill');
-  const skill: SkillFile = { ...headerOf(path, '.skill'), type: 'skill', description: '', instructions: '', tools: [], actions: [] };
+  const skill: SkillFile = { ...newHeader(path, '.skill'), type: 'skill', description: '', instructions: '', tools: [], actions: [] };
   supply([[path, skill as unknown as WedyanDocument]]);
   return path;
 }
@@ -198,7 +198,7 @@ export function newStill(personaPath: string, base: string, aspect: string): str
   const folder = nameOf(personaPath).slice(0, -'.persona'.length);
   const path = freePath(`${parentOf(personaPath)}/${folder}`, base, '.still');
   const still: StillDocument = {
-    ...headerOf(path, '.still'),
+    ...newHeader(path, '.still'),
     type: 'still',
     prompt: '',
     settings: { aspect, batch: 1 },
@@ -321,40 +321,4 @@ export function factsOf(document: AgentFile): string {
  */
 function longDate(iso: string): string {
   return new Date(iso).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
-}
-
-/**
- * The header a new document starts with, named after its file and made by the user.
- *
- * @param path - Where it goes.
- * @param extension - Its file's extension, left out of its name.
- * @returns Its header.
- */
-function headerOf(path: string, extension: string) {
-  const now = new Date().toISOString();
-  return {
-    version: 1 as const,
-    id: crypto.randomUUID(),
-    name: nameOf(path).slice(0, -extension.length),
-    created: now,
-    updated: now,
-    author: { kind: 'user' as const },
-  };
-}
-
-/**
- * A free path for a new file in a folder: `<base><extension>`, or the first `<base> N<extension>`
- * not taken.
- *
- * @param folder - The folder it goes in.
- * @param base - Its name before a number.
- * @param extension - Its extension, e.g. `.persona`.
- * @returns The path.
- */
-function freePath(folder: string, base: string, extension: string): string {
-  // A deleted file's path stays taken: the drive keeps hiding whatever is put back there.
-  const taken = (path: string) => !!documentAt(path) || drive.deleted.includes(path);
-  let path = `${folder}/${base}${extension}`;
-  for (let n = 2; taken(path); n++) path = `${folder}/${base} ${n}${extension}`;
-  return path;
 }

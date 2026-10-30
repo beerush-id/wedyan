@@ -1,7 +1,7 @@
 import { $bind, type AnyType, type Bindable, Snippet, setup, template } from '@airlib/react';
 import { Listbox, ListboxOption, SearchInput } from '@airlib/react-aui';
 import { WindowPanel } from '@airlib/react-aui/desktop';
-import type { FC } from 'react';
+import type { FC, ReactNode } from 'react';
 
 /** One row of a Direct list: its picture, or its kind's icon, its title, and a line about it. */
 export type DirectItem = {
@@ -13,7 +13,12 @@ export type DirectItem = {
 };
 
 /** A run of rows of one kind, under its name; a list of one kind needs no name. */
-export type DirectGroup<T extends DirectItem = DirectItem> = { label?: string; items: T[] };
+export type DirectGroup<T extends DirectItem = DirectItem> = {
+  label?: string;
+  items: T[];
+  /** What sits at the end of its name, e.g. a button adding one; a group with one shows even while it has no rows. */
+  action?: () => ReactNode;
+};
 
 type DirectListProps = {
   /** What the side is, as a place to go. */
@@ -44,12 +49,15 @@ export const DirectList = setup<DirectListProps>(
         <Snippet>
           {() =>
             props.groups().map((group, index) =>
-              group.items.length ? (
+              group.items.length || group.action ? (
                 <div key={group.label ?? index} role="group" aria-label={group.label} className="wedyan-direct-group">
                   {group.label && (
-                    <span className="wedyan-direct-group-label" aria-hidden="true">
-                      {group.label}
-                    </span>
+                    <div className="wedyan-direct-group-head">
+                      <span className="wedyan-direct-group-label" aria-hidden="true">
+                        {group.label}
+                      </span>
+                      {group.action?.()}
+                    </div>
                   )}
                   {group.items.map((item) => (
                     <ListboxOption key={item.key} value={item.key} className="wedyan-direct-row">

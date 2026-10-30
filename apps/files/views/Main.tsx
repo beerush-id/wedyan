@@ -200,7 +200,8 @@ function galleryEntryOf(file: FileEntry): WedyanGalleryEntry {
     path: `/${folder}/${file.name}`,
     name: file.name,
     kind: file.kind as WedyanFileKind,
-    picture: file.src,
+    // Only an image's file is a picture; anything else shows its kind's art.
+    picture: file.kind === 'image' ? file.src : undefined,
     detail: file.size,
     modified: file.modified,
   };

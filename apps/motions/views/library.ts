@@ -1,5 +1,22 @@
-import { documentsOf, follow, nameOf, parentOf } from '@/lib/documents/store.js';
-import type { MotionDocument, PersonaDocument, StageDocument } from '@/lib/documents/types.js';
+import {
+  documentAt,
+  documentsOf,
+  follow,
+  freePath,
+  nameOf,
+  newHeader,
+  parentOf,
+  resolvePath,
+  supply,
+} from '@/lib/documents/store.js';
+import type {
+  MotionAsset,
+  MotionDocument,
+  PersonaDocument,
+  StageDocument,
+  StillDocument,
+  TakeDocument,
+} from '@/lib/documents/types.js';
 import ALBUM_TAGS from '../data/albums.json';
 import { runtime } from './composition.js';
 
@@ -117,6 +134,66 @@ export const castsOf = (project: Project): { path: string; document: PersonaDocu
     }
   }
   return [...casts].map(([path, document]) => ({ path, document }));
+};
+
+/**
+ * Adds an empty stage at the end of a project, in its folder, the size and pace of its first stage
+ * — full HD at 30 frames a second while it has none — with every cast the project has.
+ *
+ * @param project - The project.
+ * @returns The new stage's path.
+ */
+export const newStage = (project: Project): string => {
+  const path = freePath(parentOf(project.path), 'Stage', '.stage');
+  const first = stagesOf(project)[0]?.document.composition;
+  const stage: StageDocument = {
+    ...newHeader(path, '.stage'),
+    type: 'stage',
+    casts: castsOf(project).map((cast) => cast.path),
+    composition: {
+      id: crypto.randomUUID(),
+      options: { frameRate: first?.options.frameRate ?? 30 },
+      props: { ...(first?.props ?? { width: 1920, height: 1080 }) },
+      tracks: [],
+    },
+  };
+  supply([[path, stage]]);
+  project.document.stages.push(nameOf(path));
+  project.document.updated = new Date().toISOString();
+  return path;
+};
+
+/**
+ * Puts a persona in a project: every stage names them, each one that doesn't already.
+ *
+ * @param project - The project.
+ * @param persona - The persona's path.
+ */
+export const addCast = (project: Project, persona: string): void => {
+  for (const { path, document } of stagesOf(project)) {
+    const casts = (document.casts ??= []);
+    if (!casts.some((cast) => resolvePath(path, cast) === persona)) casts.push(persona);
+  }
+  project.document.updated = new Date().toISOString();
+};
+
+/**
+ * An asset's picture: an image itself, or a generated one's chosen attempt; none for sound.
+ *
+ * @param from - The project's path, which the asset's own path is written from.
+ * @param asset - The asset.
+ * @returns Its picture's address, if it has one.
+ */
+export const pictureOf = (from: string, asset: MotionAsset): string | undefined => {
+  if (asset.kind === 'image') return asset.src;
+  if (asset.kind === 'still') {
+    const still = documentAt<'still'>(follow(from, asset.src).path) as StillDocument | undefined;
+    return still?.attempts.find((attempt) => attempt.id === still.chosen)?.src;
+  }
+  if (asset.kind === 'take') {
+    const take = documentAt<'take'>(follow(from, asset.src).path) as TakeDocument | undefined;
+    return take?.attempts.find((attempt) => attempt.id === take.chosen)?.poster;
+  }
 };
 
 /**

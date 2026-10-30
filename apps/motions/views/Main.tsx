@@ -15,6 +15,7 @@ import {
 } from '@airlib/react-aui/desktop';
 import { ArrowLeft, ClockIcon, FolderIcon } from '@airlib/react-aui/icons';
 import type { ReactNode } from 'react';
+import { PERSON_TABS, type PersonTab } from '@/apps/lounge/views/session.js';
 import { deleteConfirm } from '@/components/confirm.js';
 import { SaveButton } from '@/components/SaveButton.js';
 import { AlbumIcon, DeleteIcon, DownloadIcon, FavoritesIcon, PreviewPanelIcon, ShareIcon } from '@/components/icons.js';
@@ -282,6 +283,17 @@ export const motions = defineWindow({
   effect(() => {
     tabs.mode = route.view === 'stage' ? 'compose' : 'direct';
   });
+  // A cast open in Direct is edited as in Lounge, its tabs in the toolbar beside the editor's.
+  const castOpen = () => route.view === 'motion' && !!route.item && documentAt(route.item)?.type === 'persona';
+  const personTabs = {
+    get value() {
+      return route.person ?? 'profile';
+    },
+    set value(tab: string) {
+      route.person = tab as PersonTab;
+    },
+  };
+
   const switchMode = (mode: string) => {
     const current = project();
     if (!current) return;
@@ -418,6 +430,20 @@ export const motions = defineWindow({
                         <ComposeIcon />
                         <span>Compose</span>
                       </Toggle>
+                    </ToggleGroup>
+                    <Divider orientation="vertical" variant="ghost" size="sm" />
+                  </>
+                )}
+              </Show>
+              <Show when={castOpen}>
+                {() => (
+                  <>
+                    <ToggleGroup aria-label="Show" size="sm" variant="glass" value={$bind(personTabs, 'value')} required>
+                      {(Object.keys(PERSON_TABS) as PersonTab[]).map((tab) => (
+                        <Toggle key={tab} value={tab} variant="text" size="sm">
+                          <span>{PERSON_TABS[tab]}</span>
+                        </Toggle>
+                      ))}
                     </ToggleGroup>
                     <Divider orientation="vertical" variant="ghost" size="sm" />
                   </>

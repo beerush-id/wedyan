@@ -303,35 +303,6 @@
   }
 }
 
-/* A cast: their portrait beside who they are, their other looks small beneath. */
-.wedyan-direct-person {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-lg);
-}
-
-.wedyan-direct-portrait {
-  inline-size: 8rem;
-  aspect-ratio: 1;
-  object-fit: cover;
-  border-radius: var(--radius-lg);
-}
-
-.wedyan-direct-looks {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-sm);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-
-  & img {
-    inline-size: 5rem;
-    aspect-ratio: 1;
-    object-fit: cover;
-    border-radius: var(--radius-sm);
-  }
-}
 
 /*
  * Compose, shaped by its stage, the picture always in the stage's own shape. Wide: the stage's
@@ -796,45 +767,9 @@
   }
 }
 
-/* An asset or a cast: its picture, square and filled whatever its shape, or a blank for sound, and its name under it. */
-.wedyan-compose-tiles {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
-  gap: var(--spacing-sm);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.wedyan-compose-tile {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-  inline-size: 100%;
-  padding: 0;
-  border: 0;
-  background: none;
-  color: inherit;
-  font: inherit;
-  font-size: var(--font-label-sm-size);
-  text-align: start;
-  cursor: pointer;
-
-  & > img,
-  & > .wedyan-compose-tile-blank {
-    display: block;
-    inline-size: 100%;
-    aspect-ratio: 1;
-    object-fit: cover;
-    border-radius: var(--radius-sm);
-    background: color-mix(in oklch, var(--color-on-surface) 8%, transparent);
-  }
-
-  & > span:last-child {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
+/* Sources in the gallery Wedyan shows files in, its tiles small enough for a few across the narrow panel. */
+.wedyan-compose-gallery .aui-gallery {
+  --aui-gallery-tile: 5.5rem;
 }
 
 /* The timeline fills its panel, a small rim in, its corners concentric with the panel's. */
