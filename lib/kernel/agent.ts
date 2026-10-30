@@ -563,7 +563,15 @@ async function composeWidget(
   request: IRPCData,
   signal: AbortSignal | undefined,
 ): Promise<IRPCData[]> {
-  const nodes = nodesOf(await answerOnce(adapter, composer, request, signal));
+  const text = await answerOnce(adapter, composer, request, signal);
+  let nodes: IRPCData[];
+  try {
+    nodes = nodesOf(text);
+  } catch (error) {
+    // A malformed answer is asked for once more, with what was wrong with it.
+    const retry = { ...(request as Record<string, IRPCData>), previous: text, problem: (error as Error).message };
+    nodes = nodesOf(await answerOnce(adapter, composer, retry, signal));
+  }
   log.debug('widget composed', { request, nodes: summaryOf(nodes) });
   return nodes;
 }

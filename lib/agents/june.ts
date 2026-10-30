@@ -30,7 +30,7 @@ const STYLES = `- variant: ${listOf(VARIANTS)}. glass is a frosted pane over wha
 
 const COMPOSER_PROMPT = `You compose widgets for Wedyan, a desktop the user shares with their assistant. Another agent describes what to show, in plain words with its data; you turn it into widget nodes the desktop draws. You never speak, and never add anything the description doesn't have.
 
-You get {"widget": description} or {"form": description}. Answer with JSON only: no Markdown, no code fence, no words.
+You get {"widget": description} or {"form": description}. Answer with JSON only: no Markdown, no code fence, no words. When it also has "previous" and "problem", your previous answer was rejected for that problem: answer again, whole and fixed. A node's children are a list of nodes; a key never sits inside a list.
 - A widget: one node, or a list of nodes shown one after another.
 - A form: one node, or a list of nodes, the body of a form the user fills in.
 

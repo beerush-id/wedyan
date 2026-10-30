@@ -99,12 +99,12 @@ export interface BeatResult {
 
 /**
  * Runs one ask through the real loop and agents, from the router unless `entry` names who answers
- * first. Server calls get the seeded answers; asks to the user get `replies` in order; every action
- * succeeds.
+ * first. Server calls get the seeded answers, or, with a `drive`, r2-file's calls work on it; asks
+ * to the user get `replies` in order; every action succeeds.
  */
 export async function runBeat(
   input: ChatMessage[],
-  options: { models?: AgentModels; replies?: string[]; entry?: string } = {},
+  options: { models?: AgentModels; replies?: string[]; entry?: string; drive?: Drive } = {},
 ): Promise<BeatResult> {
   const replies = [...(options.replies ?? [])];
   const state = mutable<AskState>({ status: 'idle', agent: '', turn: 0, parts: [] });
@@ -134,6 +134,7 @@ export async function runBeat(
       state,
       resolve: async (call) => {
         calls.push(call);
+        if (options.drive && call.name.startsWith('r2-file.')) return onDrive(options.drive, call);
         if (call.name === 'r2-file.read') return INBOX[(call.args as { path: string }).path];
         return SYS[call.name];
       },
@@ -170,6 +171,46 @@ export async function runBeat(
     invalid: feedback.flatMap((entry) => entry?.invalid ?? []),
     failedActions: feedback.flatMap((entry) => entry?.actions ?? []),
   };
+}
+
+/** A drive held in memory for one beat, by path: each file's content as text. */
+export type Drive = Map<string, string>;
+
+/**
+ * r2-file's calls on a beat's drive: what the agents write lands in it, and what they read, list
+ * and stat comes from it.
+ *
+ * @param drive - The beat's drive.
+ * @param call - An r2-file call, with its arguments by name.
+ * @returns What r2-file would answer; undefined for a file that isn't there or a call it doesn't hold.
+ */
+function onDrive(drive: Drive, call: ToolCall): IRPCData | undefined {
+  const { path = '', data, options } = call.args as { path?: string; data?: unknown; options?: { encoding?: string } };
+  const info = (at: string, isDirectory = false) => ({ path: at, name: at.split('/').pop() ?? at, isDirectory });
+
+  switch (call.name) {
+    case 'r2-file.write': {
+      const text = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+      drive.set(path, text);
+      return { ...info(path), size: text.length };
+    }
+    case 'r2-file.mkdir':
+      return info(path, true);
+    case 'r2-file.read': {
+      const text = drive.get(path);
+      if (text === undefined) return undefined;
+      return options?.encoding === 'json' ? (JSON.parse(text) as IRPCData) : text;
+    }
+    case 'r2-file.stat':
+      return drive.has(path) ? info(path) : undefined;
+    case 'r2-file.list': {
+      const folder = `${path.replace(/\/$/, '')}/`;
+      const names = new Set([...drive.keys()].filter((at) => at.startsWith(folder)).map((at) => at.slice(folder.length).split('/')[0]));
+      return { entries: [...names].map((name) => info(`${folder}${name}`, !drive.has(`${folder}${name}`))) };
+    }
+    default:
+      return undefined;
+  }
 }
 
 /**

@@ -242,6 +242,7 @@ describe('askWedyan', () => {
     const vendor = mockVendor(
       says('[[ask_user]]A choice between orange and grey.[[/ask_user]]'),
       says('Pick one.'),
+      says('Pick one, please.'),
       says('Sorry, which one?'),
     );
     vi.spyOn(IRPC_STORE, 'error').mockImplementation(() => {});
@@ -254,7 +255,7 @@ describe('askWedyan', () => {
     });
 
     expect(asked).not.toHaveBeenCalled();
-    expect(messagesOf(vendor.bodies, 2).at(-1)).toEqual({
+    expect(messagesOf(vendor.bodies, 3).at(-1)).toEqual({
       role: 'user',
       content: JSON.stringify({
         feedback: {
@@ -262,7 +263,7 @@ describe('askWedyan', () => {
             {
               action: 'ask_user',
               args: 'A choice between orange and grey.',
-              error: 'The composer\'s answer isn\'t JSON: "Pick one."',
+              error: 'The composer\'s answer isn\'t JSON: "Pick one, please."',
             },
           ],
         },

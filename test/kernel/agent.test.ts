@@ -96,8 +96,24 @@ describe('agent loop', () => {
     });
   });
 
-  it('marks a widget the composer couldn’t draw as failed, and logs it, without a turn for the agent', async () => {
-    const vendor = mockVendor(says('[[widget]]A card[[/widget]]'), says('Here is your card!'));
+  it('asks the composer once more for a malformed widget, with what was wrong with it', async () => {
+    const vendor = mockVendor(
+      says('[[widget]]A card[[/widget]]'),
+      says('{"role":"card","children":[{"role":"p"},"children":["x"]]}'),
+      says('{"role":"card","children":[{"role":"p","children":["x"]}]}'),
+    );
+    const { state, run } = setup();
+
+    await run();
+
+    const retry = JSON.parse(messagesOf(vendor.bodies, 2)[1].content as string);
+    expect(retry).toMatchObject({ widget: 'A card', previous: '{"role":"card","children":[{"role":"p"},"children":["x"]]}' });
+    expect(retry.problem).toContain("isn't JSON");
+    expect(state.parts).toMatchObject([{ type: 'widget', status: 'ready', nodes: [{ role: 'card' }] }]);
+  });
+
+  it('marks a widget the composer couldn’t draw twice as failed, and logs it, without a turn for the agent', async () => {
+    const vendor = mockVendor(says('[[widget]]A card[[/widget]]'), says('Here is your card!'), says('Still a card!'));
     const logged = vi.spyOn(IRPC_STORE, 'error').mockImplementation(() => {});
     const { state, run } = setup();
 
@@ -109,11 +125,11 @@ describe('agent loop', () => {
         status: 'error',
         intent: 'A card',
         nodes: [],
-        error: 'The composer\'s answer isn\'t JSON: "Here is your card!"',
+        error: 'The composer\'s answer isn\'t JSON: "Still a card!"',
       },
     ]);
     expect(logged).toHaveBeenCalledWith(expect.any(Error), [{ composer: 'composer', widget: 'A card' }]);
-    expect(vendor.bodies).toHaveLength(2);
+    expect(vendor.bodies).toHaveLength(3);
     expect(state).toMatchObject({ status: 'done', turn: 1 });
   });
 

@@ -110,6 +110,21 @@ const told = (result: BeatResult) =>
 const called = (result: BeatResult, name: string) => result.calls.filter((call) => call.name === name);
 const acted = (result: BeatResult, name: string) => result.actions.filter((action) => action.name === name);
 
+/** The files an answer wrote, in the order it wrote them: each write's path and content as text. */
+const written = (result: BeatResult) =>
+  called(result, 'r2-file.write').map((call) => {
+    const { path, data } = call.args as { path: string; data: unknown };
+    return { path, text: typeof data === 'string' ? data : JSON.stringify(data) };
+  });
+/** A file's content as JSON, or undefined when it isn't. */
+const json = (text?: string): Record<string, unknown> | undefined => {
+  try {
+    return text ? (JSON.parse(text) as Record<string, unknown>) : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
 const CLAIMS: Record<string, RegExp> = {
   'app.open': /\bopened\b/i,
   'app.mail.open': /\bopened\b/i,
@@ -228,6 +243,51 @@ const BEATS: Array<{
         detail: result.actions.map((action) => action.name).join(', '),
       },
     ],
+  },
+  {
+    name: 'build',
+    run: (models) =>
+      runBeat(
+        ask("Let's start a new project: a short drama series, 3 episodes, about a lantern maker by the river. Set it up.", {
+          ...PROFILE,
+        }),
+        { models, drive: new Map() },
+      ),
+    checks: (result) => {
+      const writes = written(result);
+      const motions = writes.filter(({ path }) => path.endsWith('.motion'));
+      const stages = writes.filter(({ path }) => path.endsWith('.stage'));
+      const script = writes.find(({ path }) => /\/Script\.md$/.test(path));
+      const first = json(motions[0]?.text);
+      const final = json(motions.at(-1)?.text);
+      const listed = (final?.stages as string[] | undefined) ?? [];
+      const stageFiles = new Set(stages.map(({ path }) => path.split('/').pop()));
+      const placeholders = stages.every(({ text }) =>
+        JSON.stringify(json(text)?.composition ?? {}).includes('"placeholder":true'),
+      );
+      const order = writes.map(({ path }) => path);
+      return [
+        { name: 'routed to lita with motions', pass: result.agents.includes('lita:motions'), detail: result.agents.join(' → ') },
+        { name: 'all under ~/Motions/', pass: writes.length > 0 && writes.every(({ path }) => path.startsWith('~/Motions/')), detail: order.join(', ') },
+        {
+          name: 'project first, with no stages yet',
+          pass: order.findIndex((path) => path.endsWith('.motion')) === 0 && Array.isArray(first?.stages) && !(first?.stages as unknown[]).length,
+          detail: order[0],
+        },
+        { name: 'project has the header', pass: first?.type === 'motion' && first?.version === 1 && typeof first?.id === 'string' && (first?.author as { kind?: string })?.kind === 'agent' },
+        { name: 'a series', pass: (first?.meta as { series?: boolean })?.series === true },
+        { name: 'script with 3 headings', pass: (script?.text.match(/^## /gm) ?? []).length >= 3, detail: `${(script?.text.match(/^## /gm) ?? []).length}` },
+        { name: '3 stages', pass: stageFiles.size === 3, detail: [...stageFiles].join(', ') },
+        { name: 'stages point at the script', pass: stages.every(({ text }) => String(json(text)?.script ?? '').startsWith('Script.md#')) },
+        { name: 'stages hold placeholders', pass: stages.length > 0 && placeholders },
+        {
+          name: 'project lists every stage',
+          pass: listed.length === 3 && listed.every((path) => stageFiles.has(path.split('/').pop())),
+          detail: listed.join(', '),
+        },
+        { name: 'opens the project', pass: acted(result, 'app.open').some((action) => JSON.stringify(action.args).includes('.motion')) },
+      ];
+    },
   },
   {
     name: 'open',
