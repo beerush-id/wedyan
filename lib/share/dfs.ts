@@ -14,8 +14,11 @@ import { fileRef } from './workspace.js';
  * - `binding(path, rules?)`: a document a window works on: its live content, saved as it changes.
  *   With rules, agents work inside it part by part, and `who(part, id)` says who's on what.
  * - `image(path, resize?)`: a picture's address for `<img src>`, at a size when given.
- * - `generate(path, request?)`: new attempts of a still a window works on, saved with its edits.
  * - `link(path)`: a link that opens the file in its app, for a widget or an answer.
+ *
+ * What only one kind of file does is under that kind:
+ *
+ * - `still.generate(path, request?)`: new attempts of a still a window works on, saved with its edits.
  *
  * Paths are home paths (`~/…`).
  */
@@ -23,6 +26,6 @@ export const dfs = {
   read: fileRef,
   binding: createBinding,
   image: imageUrl,
-  generate: generateStill,
   link: openLink,
+  still: { generate: generateStill },
 };
