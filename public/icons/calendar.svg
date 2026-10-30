@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Calendar">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#3f6fae"/>
+      <stop offset="1" stop-color="#1c2f57"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="28%" cy="14%" r="75%">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.3"/>
+      <stop offset="0.6" stop-color="#ffffff" stop-opacity="0.04"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="page" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#efe7dd"/>
+    </linearGradient>
+    <linearGradient id="band" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f08a63"/>
+      <stop offset="1" stop-color="#c8553d"/>
+    </linearGradient>
+    <clipPath id="sheet">
+      <rect x="22" y="26" width="56" height="52" rx="5"/>
+    </clipPath>
+    <filter id="drop" x="-25%" y="-25%" width="150%" height="160%">
+      <feDropShadow dx="0" dy="3.5" stdDeviation="3.2" flood-color="#0c1830" flood-opacity="0.55"/>
+    </filter>
+  </defs>
+
+  <rect width="100" height="100" fill="url(#bg)"/>
+  <rect width="100" height="100" fill="url(#glow)"/>
+
+  <g filter="url(#drop)">
+    <rect x="22" y="26" width="56" height="52" rx="5" fill="url(#page)"/>
+    <g clip-path="url(#sheet)">
+      <rect x="22" y="26" width="56" height="14" fill="url(#band)"/>
+    </g>
+
+    <g fill="#d9cbbb">
+      <rect x="31.5" y="46" width="7" height="6" rx="1.5"/>
+      <rect x="41.5" y="46" width="7" height="6" rx="1.5"/>
+      <rect x="51.5" y="46" width="7" height="6" rx="1.5"/>
+      <rect x="61.5" y="46" width="7" height="6" rx="1.5"/>
+      <rect x="31.5" y="56" width="7" height="6" rx="1.5"/>
+      <rect x="41.5" y="56" width="7" height="6" rx="1.5"/>
+      <rect x="51.5" y="56" width="7" height="6" rx="1.5"/>
+      <rect x="31.5" y="66" width="7" height="6" rx="1.5"/>
+      <rect x="41.5" y="66" width="7" height="6" rx="1.5"/>
+      <rect x="51.5" y="66" width="7" height="6" rx="1.5"/>
+      <rect x="61.5" y="66" width="7" height="6" rx="1.5"/>
+    </g>
+    <rect x="60.5" y="55" width="9" height="8" rx="2" fill="#c8553d"/>
+
+    <g fill="#26215c">
+      <rect x="34" y="20" width="4" height="11" rx="2"/>
+      <rect x="62" y="20" width="4" height="11" rx="2"/>
+    </g>
+  </g>
+</svg>

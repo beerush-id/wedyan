@@ -1,0 +1,358 @@
+{
+  "calendars": [
+    { "tag": "work", "label": "Work", "color": "#3e6aa8" },
+    { "tag": "shoots", "label": "Shoots", "color": "#c8553d" },
+    { "tag": "personal", "label": "Personal", "color": "#1f7a6d" },
+    { "tag": "family", "label": "Family", "color": "#8f3552" }
+  ],
+  "events": [
+    {
+      "uid": "e00",
+      "path": "/Calendar/e00.ics",
+      "summary": "Quarter close",
+      "start": "2026-09-30",
+      "end": "2026-10-01",
+      "allDay": true,
+      "attendees": [],
+      "description": "Last day to file Q3 invoices and receipts.",
+      "tags": ["work"]
+    },
+    {
+      "uid": "e01",
+      "path": "/Calendar/e01.ics",
+      "summary": "Weekly planning",
+      "start": "2026-10-01T09:30:00+07:00",
+      "end": "2026-10-01T10:00:00+07:00",
+      "allDay": false,
+      "location": "Studio, room 2",
+      "attendees": [
+        { "name": "Ana Putri", "email": "ana@example.com", "response": "accepted" },
+        { "name": "Rudi Hartono", "email": "rudi@example.com", "response": "accepted" }
+      ],
+      "description": "What ships this week, and who's on it.",
+      "tags": ["work"]
+    },
+    {
+      "uid": "e02",
+      "path": "/Calendar/e02.ics",
+      "summary": "Rudi's birthday",
+      "start": "2026-10-02",
+      "end": "2026-10-03",
+      "allDay": true,
+      "attendees": [],
+      "tags": ["personal"]
+    },
+    {
+      "uid": "e03",
+      "path": "/Calendar/e03.ics",
+      "summary": "Script read-through: Lantern short",
+      "start": "2026-10-05T10:00:00+07:00",
+      "end": "2026-10-05T11:30:00+07:00",
+      "allDay": false,
+      "location": "Studio Kebayoran",
+      "organizer": { "name": "Ana Putri", "email": "ana@example.com" },
+      "attendees": [
+        { "name": "Ana Putri", "email": "ana@example.com", "response": "accepted" },
+        { "name": "Sari Wulandari", "email": "sari@example.com", "response": "accepted" },
+        { "name": "Dimas Pratama", "email": "dimas@example.com", "response": "tentative" }
+      ],
+      "description": "Full read with both leads. Bring notes on act two.",
+      "tags": ["shoots"],
+      "response": "accepted"
+    },
+    {
+      "uid": "e04",
+      "path": "/Calendar/e04.ics",
+      "summary": "Dinner with Sari",
+      "start": "2026-10-06T19:00:00+07:00",
+      "end": "2026-10-06T21:00:00+07:00",
+      "allDay": false,
+      "location": "Warung Lestari, Kemang",
+      "attendees": [{ "name": "Sari Wulandari", "email": "sari@example.com", "response": "accepted" }],
+      "tags": ["personal"]
+    },
+    {
+      "uid": "e05",
+      "path": "/Calendar/e05.ics",
+      "summary": "Weekly planning",
+      "start": "2026-10-08T09:30:00+07:00",
+      "end": "2026-10-08T10:00:00+07:00",
+      "allDay": false,
+      "location": "Studio, room 2",
+      "attendees": [
+        { "name": "Ana Putri", "email": "ana@example.com", "response": "accepted" },
+        { "name": "Rudi Hartono", "email": "rudi@example.com", "response": "declined" }
+      ],
+      "description": "What ships this week, and who's on it.",
+      "tags": ["work"]
+    },
+    {
+      "uid": "e06",
+      "path": "/Calendar/e06.ics",
+      "summary": "Budget review",
+      "start": "2026-10-09T14:00:00+07:00",
+      "end": "2026-10-09T15:00:00+07:00",
+      "allDay": false,
+      "location": "Video call",
+      "organizer": { "name": "Rudi Hartono", "email": "rudi@example.com" },
+      "attendees": [{ "name": "Rudi Hartono", "email": "rudi@example.com", "response": "accepted" }],
+      "description": "Where the lantern short stands against its budget, line by line.",
+      "tags": ["work"],
+      "response": "accepted"
+    },
+    {
+      "uid": "e07",
+      "path": "/Calendar/e07.ics",
+      "summary": "Location scouting, Bandung",
+      "start": "2026-10-12",
+      "end": "2026-10-13",
+      "allDay": true,
+      "location": "Bandung",
+      "attendees": [{ "name": "Dimas Pratama", "email": "dimas@example.com", "response": "accepted" }],
+      "description": "Two night markets and the old tea factory. Leave by 6.",
+      "tags": ["shoots"]
+    },
+    {
+      "uid": "e08",
+      "path": "/Calendar/e08.ics",
+      "summary": "Dentist",
+      "start": "2026-10-13T11:00:00+07:00",
+      "end": "2026-10-13T11:45:00+07:00",
+      "allDay": false,
+      "location": "Senyum Dental, Cipete",
+      "attendees": [],
+      "tags": ["personal"]
+    },
+    {
+      "uid": "e09",
+      "path": "/Calendar/e09.ics",
+      "summary": "Weekly planning",
+      "start": "2026-10-15T09:30:00+07:00",
+      "end": "2026-10-15T10:00:00+07:00",
+      "allDay": false,
+      "location": "Studio, room 2",
+      "attendees": [
+        { "name": "Ana Putri", "email": "ana@example.com", "response": "accepted" },
+        { "name": "Rudi Hartono", "email": "rudi@example.com", "response": "accepted" }
+      ],
+      "description": "What ships this week, and who's on it.",
+      "tags": ["work"]
+    },
+    {
+      "uid": "e10",
+      "path": "/Calendar/e10.ics",
+      "summary": "Wardrobe fitting",
+      "start": "2026-10-16T13:00:00+07:00",
+      "end": "2026-10-16T15:00:00+07:00",
+      "allDay": false,
+      "location": "Studio Kebayoran",
+      "organizer": { "name": "Sari Wulandari", "email": "sari@example.com" },
+      "attendees": [
+        { "name": "Sari Wulandari", "email": "sari@example.com", "response": "accepted" },
+        { "name": "Ana Putri", "email": "ana@example.com", "response": "tentative" }
+      ],
+      "tags": ["shoots"],
+      "response": "accepted"
+    },
+    {
+      "uid": "e11",
+      "path": "/Calendar/e11.ics",
+      "summary": "Lantern short: shoot days",
+      "start": "2026-10-19",
+      "end": "2026-10-22",
+      "allDay": true,
+      "location": "Studio Kebayoran",
+      "organizer": { "name": "Ana Putri", "email": "ana@example.com" },
+      "attendees": [
+        { "name": "Ana Putri", "email": "ana@example.com", "response": "accepted" },
+        { "name": "Sari Wulandari", "email": "sari@example.com", "response": "accepted" },
+        { "name": "Dimas Pratama", "email": "dimas@example.com", "response": "accepted" }
+      ],
+      "description": "Three days on set. Call sheets go out the evening before each.",
+      "tags": ["shoots"],
+      "response": "accepted"
+    },
+    {
+      "uid": "e12",
+      "path": "/Calendar/e12.ics",
+      "summary": "Call sheet check",
+      "start": "2026-10-20T07:00:00+07:00",
+      "end": "2026-10-20T07:30:00+07:00",
+      "allDay": false,
+      "location": "Studio Kebayoran",
+      "attendees": [{ "name": "Dimas Pratama", "email": "dimas@example.com", "response": "accepted" }],
+      "tags": ["shoots"]
+    },
+    {
+      "uid": "e13",
+      "path": "/Calendar/e13.ics",
+      "summary": "Weekly planning",
+      "start": "2026-10-22T09:30:00+07:00",
+      "end": "2026-10-22T10:00:00+07:00",
+      "allDay": false,
+      "location": "Studio, room 2",
+      "attendees": [
+        { "name": "Ana Putri", "email": "ana@example.com", "response": "accepted" },
+        { "name": "Rudi Hartono", "email": "rudi@example.com", "response": "accepted" }
+      ],
+      "description": "What ships this week, and who's on it.",
+      "tags": ["work"]
+    },
+    {
+      "uid": "e14",
+      "path": "/Calendar/e14.ics",
+      "summary": "Yoga",
+      "start": "2026-10-23T18:30:00+07:00",
+      "end": "2026-10-23T19:30:00+07:00",
+      "allDay": false,
+      "location": "Ruang Napas, Kemang",
+      "attendees": [],
+      "tags": ["personal"]
+    },
+    {
+      "uid": "e15",
+      "path": "/Calendar/e15.ics",
+      "summary": "Mum visits",
+      "start": "2026-10-24",
+      "end": "2026-10-26",
+      "allDay": true,
+      "attendees": [],
+      "description": "Pick her up at Gambir, Saturday 10:15.",
+      "tags": ["family"]
+    },
+    {
+      "uid": "e16",
+      "path": "/Calendar/e16.ics",
+      "summary": "First cut review",
+      "start": "2026-10-26T10:00:00+07:00",
+      "end": "2026-10-26T11:30:00+07:00",
+      "allDay": false,
+      "location": "Edit suite",
+      "organizer": { "name": "Ana Putri", "email": "ana@example.com" },
+      "attendees": [
+        { "name": "Ana Putri", "email": "ana@example.com", "response": "accepted" },
+        { "name": "Rudi Hartono", "email": "rudi@example.com", "response": "accepted" }
+      ],
+      "description": "Watch the first cut start to end, notes after.",
+      "tags": ["work"],
+      "response": "accepted"
+    },
+    {
+      "uid": "e17",
+      "path": "/Calendar/e17.ics",
+      "summary": "Lunch with Dimas",
+      "start": "2026-10-28T12:30:00+07:00",
+      "end": "2026-10-28T13:30:00+07:00",
+      "allDay": false,
+      "location": "Sate Khas Senayan",
+      "organizer": { "name": "Dimas Pratama", "email": "dimas@example.com" },
+      "attendees": [{ "name": "Dimas Pratama", "email": "dimas@example.com", "response": "accepted" }],
+      "tags": ["personal"],
+      "response": "declined"
+    },
+    {
+      "uid": "c1",
+      "path": "/Calendar/c1.ics",
+      "summary": "Casting call with Ana",
+      "start": "2026-10-29T10:00:00+07:00",
+      "end": "2026-10-29T11:00:00+07:00",
+      "allDay": false,
+      "organizer": { "name": "Ana Putri", "email": "ana@example.com" },
+      "attendees": [{ "name": "Ana Putri", "email": "ana@example.com", "response": "accepted" }],
+      "description": "Two leads for the lantern short. Ana brings the shortlist.",
+      "tags": ["shoots"],
+      "response": "accepted"
+    },
+    {
+      "uid": "e18",
+      "path": "/Calendar/e18.ics",
+      "summary": "Weekly planning",
+      "start": "2026-10-29T13:30:00+07:00",
+      "end": "2026-10-29T14:00:00+07:00",
+      "allDay": false,
+      "location": "Studio, room 2",
+      "attendees": [
+        { "name": "Ana Putri", "email": "ana@example.com", "response": "accepted" },
+        { "name": "Rudi Hartono", "email": "rudi@example.com", "response": "accepted" }
+      ],
+      "description": "Moved to the afternoon for the casting call.",
+      "tags": ["work"]
+    },
+    {
+      "uid": "e19",
+      "path": "/Calendar/e19.ics",
+      "summary": "Stand-up",
+      "start": "2026-10-30T09:00:00+07:00",
+      "end": "2026-10-30T09:15:00+07:00",
+      "allDay": false,
+      "location": "Video call",
+      "attendees": [
+        { "name": "Ana Putri", "email": "ana@example.com", "response": "accepted" },
+        { "name": "Dimas Pratama", "email": "dimas@example.com", "response": "accepted" }
+      ],
+      "tags": ["work"]
+    },
+    {
+      "uid": "e20",
+      "path": "/Calendar/e20.ics",
+      "summary": "Sound mix session",
+      "start": "2026-10-30T15:00:00+07:00",
+      "end": "2026-10-30T16:30:00+07:00",
+      "allDay": false,
+      "location": "Gema Audio, Blok M",
+      "organizer": { "name": "Sari Wulandari", "email": "sari@example.com" },
+      "attendees": [
+        { "name": "Sari Wulandari", "email": "sari@example.com", "response": "accepted" },
+        { "name": "Ana Putri", "email": "ana@example.com", "response": "needs-action" }
+      ],
+      "description": "First pass on dialogue and the market ambience. Bring the temp score.",
+      "tags": ["work"],
+      "response": "needs-reply"
+    },
+    {
+      "uid": "e21",
+      "path": "/Calendar/e21.ics",
+      "summary": "Movie night",
+      "start": "2026-10-30T19:30:00+07:00",
+      "end": "2026-10-30T22:00:00+07:00",
+      "allDay": false,
+      "attendees": [],
+      "tags": ["family"]
+    },
+    {
+      "uid": "e22",
+      "path": "/Calendar/e22.ics",
+      "summary": "Halloween at Sari's",
+      "start": "2026-10-31T19:00:00+07:00",
+      "end": "2026-10-31T23:00:00+07:00",
+      "allDay": false,
+      "location": "Sari's place, Tebet",
+      "organizer": { "name": "Sari Wulandari", "email": "sari@example.com" },
+      "attendees": [
+        { "name": "Dimas Pratama", "email": "dimas@example.com", "response": "accepted" },
+        { "name": "Rudi Hartono", "email": "rudi@example.com", "response": "tentative" },
+        { "name": "Ana Putri", "email": "ana@example.com", "response": "declined" }
+      ],
+      "description": "Costumes optional, snacks not.",
+      "tags": ["personal"],
+      "response": "needs-reply"
+    },
+    {
+      "uid": "e23",
+      "path": "/Calendar/e23.ics",
+      "summary": "Distribution meeting",
+      "start": "2026-11-02T10:00:00+07:00",
+      "end": "2026-11-02T11:00:00+07:00",
+      "allDay": false,
+      "location": "Video call",
+      "organizer": { "name": "Rudi Hartono", "email": "rudi@example.com" },
+      "attendees": [
+        { "name": "Rudi Hartono", "email": "rudi@example.com", "response": "accepted" },
+        { "name": "Ana Putri", "email": "ana@example.com", "response": "needs-action" }
+      ],
+      "description": "Festival list and the first two screenings.",
+      "tags": ["work"],
+      "response": "needs-reply"
+    }
+  ]
+}

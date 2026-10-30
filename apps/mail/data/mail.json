@@ -1,0 +1,174 @@
+{
+  "labels": [
+    { "tag": "shoot", "label": "Lantern shoot" },
+    { "tag": "team", "label": "Team" },
+    { "tag": "newsletters", "label": "Newsletters" }
+  ],
+  "messages": [
+    {
+      "path": "/Mail/m1.eml",
+      "messageId": "<m1.shoot@example.com>",
+      "from": { "name": "Ana Putri", "address": "ana@example.com" },
+      "to": [{ "address": "me@example.com" }],
+      "cc": [],
+      "subject": "Notes on the shoot schedule",
+      "date": "2026-10-29T06:40:00+07:00",
+      "body": "Hi,\n\nI moved the lantern scenes to Saturday evening, so we get the river at dusk\ninstead of fighting the noon light. Sunday morning stays for the market\nscenes. Can you check the cast is free both days?\n\nAna",
+      "attachments": [{ "name": "Shoot schedule.pdf", "size": "84 KB", "kind": "pdf" }],
+      "read": false,
+      "tags": ["flagged", "shoot"]
+    },
+    {
+      "path": "/Mail/m2.eml",
+      "messageId": "<m2.budget@example.com>",
+      "from": { "name": "Rudi Hartono", "address": "rudi@example.com" },
+      "to": [{ "address": "me@example.com" }],
+      "cc": [{ "name": "Ana Putri", "address": "ana@example.com" }],
+      "subject": "Budget for the lantern shoot",
+      "date": "2026-10-29T09:15:00+07:00",
+      "body": "Hey,\n\nThe venue came back at 4.2M for both days, a bit over what we planned.\nI can trim the catering, or we drop the second camera on Sunday. The sheet\nhas both versions side by side. Which way do you want to go?\n\nRudi",
+      "attachments": [{ "name": "Lantern shoot budget.xlsx", "size": "36 KB", "kind": "document" }],
+      "read": false,
+      "tags": ["shoot"]
+    },
+    {
+      "path": "/Mail/m3.eml",
+      "messageId": "<casting.0412@castingcall.example>",
+      "from": { "name": "Casting Call", "address": "hello@castingcall.example" },
+      "to": [{ "address": "me@example.com" }],
+      "cc": [],
+      "subject": "Three actors confirmed for Saturday",
+      "date": "2026-10-28T16:02:00+07:00",
+      "body": "Good news: Dewi, Bayu and Sari confirmed for Saturday evening. Their\nheadshots are attached, with the release forms they signed.\n\nIf the schedule moves again, let us know two days ahead so we can rebook.\n\nThe Casting Call team",
+      "attachments": [
+        { "name": "Headshots.zip", "size": "12.4 MB", "kind": "archive" },
+        { "name": "Release forms.pdf", "size": "410 KB", "kind": "pdf" }
+      ],
+      "read": false,
+      "tags": ["shoot"]
+    },
+    {
+      "path": "/Mail/m4.eml",
+      "messageId": "<m4.moodboard@example.com>",
+      "from": { "name": "Maya Lestari", "address": "maya@example.com" },
+      "to": [{ "address": "me@example.com" }, { "name": "Ana Putri", "address": "ana@example.com" }],
+      "cc": [],
+      "subject": "Moodboard for the river scenes",
+      "date": "2026-10-28T11:30:00+07:00",
+      "body": "Hi both,\n\nHere are the frames I pulled for the river at dusk. Warm practicals,\nlanterns low over the water, faces lit from below. The second frame is the\nlook I'd love for the opening.\n\nMaya",
+      "attachments": [
+        { "name": "River at dusk 1.jpg", "size": "2.1 MB", "kind": "image" },
+        { "name": "River at dusk 2.jpg", "size": "1.9 MB", "kind": "image" }
+      ],
+      "read": true,
+      "tags": ["shoot", "flagged"]
+    },
+    {
+      "path": "/Mail/m5.eml",
+      "messageId": "<m5.standup@example.com>",
+      "from": { "name": "Bayu Pratama", "address": "bayu@example.com" },
+      "to": [{ "name": "Team", "address": "team@example.com" }],
+      "cc": [],
+      "subject": "Friday stand-up moves to 10:00",
+      "date": "2026-10-27T18:20:00+07:00",
+      "body": "Hi all,\n\nFriday's stand-up moves to 10:00, as the studio is booked until then.\nSame room, same link.\n\nBayu",
+      "attachments": [],
+      "read": true,
+      "tags": ["team"]
+    },
+    {
+      "path": "/Mail/m6.eml",
+      "messageId": "<m6.voiceover@example.com>",
+      "from": { "name": "Sari Wulandari", "address": "sari@example.com" },
+      "to": [{ "address": "me@example.com" }],
+      "cc": [],
+      "subject": "Voice-over takes for the promo",
+      "date": "2026-10-27T14:05:00+07:00",
+      "body": "Hi,\n\nI recorded the three reads you asked for: calm, warm and bright. My pick is\nthe warm one, but the bright read sits better under the music at the end.\n\nSari",
+      "attachments": [
+        { "name": "Promo read warm.wav", "size": "5.6 MB", "kind": "audio" },
+        { "name": "Promo read bright.wav", "size": "5.4 MB", "kind": "audio" }
+      ],
+      "read": false,
+      "tags": []
+    },
+    {
+      "path": "/Mail/m7.eml",
+      "messageId": "<weekly.2026-43@studio-notes.example>",
+      "from": { "name": "Studio Notes", "address": "weekly@studio-notes.example" },
+      "to": [{ "address": "me@example.com" }],
+      "cc": [],
+      "subject": "Lighting at dusk without a crew",
+      "date": "2026-10-26T07:00:00+07:00",
+      "body": "This week: how to light a scene at dusk with two practicals and a bounce,\nwhy the blue hour is shorter than you think, and a reader's short film shot\nentirely on a phone.\n\nYou get this because you subscribed to Studio Notes.",
+      "attachments": [],
+      "read": true,
+      "tags": ["newsletters"]
+    },
+    {
+      "path": "/Mail/m8.eml",
+      "messageId": "<m8.cut@example.com>",
+      "from": { "name": "Dewi Anggraini", "address": "dewi@example.com" },
+      "to": [{ "address": "me@example.com" }],
+      "cc": [{ "name": "Maya Lestari", "address": "maya@example.com" }],
+      "subject": "First cut of the market scene",
+      "date": "2026-10-25T20:45:00+07:00",
+      "body": "Hi,\n\nThe first cut of the market scene is up. It runs 48 seconds; I think we can\nlose the second wide shot and land closer to 40. Notes welcome before\nMonday.\n\nDewi",
+      "attachments": [{ "name": "Market scene v1.mp4", "size": "84 MB", "kind": "video" }],
+      "read": true,
+      "tags": ["shoot"]
+    },
+    {
+      "path": "/Mail/m9.eml",
+      "messageId": "<m9.lunch@example.com>",
+      "from": { "name": "Rudi Hartono", "address": "rudi@example.com" },
+      "to": [{ "name": "Team", "address": "team@example.com" }],
+      "cc": [],
+      "subject": "Team lunch on Thursday?",
+      "date": "2026-10-25T12:10:00+07:00",
+      "body": "Anyone up for lunch on Thursday after the review? The new place by the\nriver does a good nasi campur. Reply by Wednesday so I can book.\n\nRudi",
+      "attachments": [],
+      "read": true,
+      "tags": ["team"]
+    },
+    {
+      "path": "/Mail/m10.eml",
+      "messageId": "<invoice.8841@rentals.example>",
+      "from": { "name": "Lensa Rentals", "address": "billing@rentals.example" },
+      "to": [{ "address": "me@example.com" }],
+      "cc": [],
+      "subject": "Your rental invoice for October",
+      "date": "2026-10-24T09:00:00+07:00",
+      "body": "Hello,\n\nYour invoice for the October rentals is attached: one cinema camera kit and\ntwo LED panels, for the 31st and the 1st. Payment is due on pickup.\n\nLensa Rentals",
+      "attachments": [{ "name": "Invoice 8841.pdf", "size": "120 KB", "kind": "pdf" }],
+      "read": false,
+      "tags": ["flagged"]
+    },
+    {
+      "path": "/Mail/m11.eml",
+      "messageId": "<m11.script@example.com>",
+      "from": { "name": "Ana Putri", "address": "ana@example.com" },
+      "to": [{ "address": "me@example.com" }],
+      "cc": [{ "name": "Bayu Pratama", "address": "bayu@example.com" }],
+      "subject": "Script, second draft",
+      "date": "2026-10-23T17:35:00+07:00",
+      "body": "Hi,\n\nSecond draft of the script attached. I cut the opening monologue down to two\nlines and moved the lantern release to the very end, so the promo closes on\nit. Tell me what you think of the last line.\n\nAna",
+      "attachments": [{ "name": "Lantern promo script v2.docx", "size": "48 KB", "kind": "document" }],
+      "read": true,
+      "tags": ["shoot"]
+    },
+    {
+      "path": "/Mail/m12.eml",
+      "messageId": "<digest.2026-10@frames.example>",
+      "from": { "name": "Frames Monthly", "address": "digest@frames.example" },
+      "to": [{ "address": "me@example.com" }],
+      "cc": [],
+      "subject": "October's picks: ten short films worth your evening",
+      "date": "2026-10-22T08:00:00+07:00",
+      "body": "Ten short films from this month, from a two-minute animation about a paper\nboat to a documentary on night markets. Each with a note on how it was made.\n\nYou get this because you subscribed to Frames Monthly.",
+      "attachments": [],
+      "read": true,
+      "tags": ["newsletters"]
+    }
+  ]
+}

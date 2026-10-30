@@ -1,0 +1,94 @@
+/* Mail's page: the list of messages, and the open one beside it, as tall as the window shows, each scrolling on its own. Both sides share the width, so a subject reads in full beside a message that reads comfortably. */
+.wedyan-mail-page {
+  display: grid;
+  grid-template-columns: minmax(calc(var(--spacing) * 80), 1fr) minmax(calc(var(--spacing) * 80), 1fr);
+  gap: var(--spacing-md);
+  box-sizing: border-box;
+  block-size: 100cqb;
+
+  /* With nothing open, the empty state sits in the middle of its side. */
+  & > .aui-empty-state {
+    margin-block: auto;
+  }
+}
+
+.wedyan-mail-list {
+  min-block-size: 0;
+  overflow-y: auto;
+
+  /* The rows fill the list's height, so pressing below the last one lets go of the pick. */
+  & > .wedyan-gallery-list {
+    min-block-size: 100%;
+    align-content: start;
+  }
+
+  /* Every message shows the same art, so its row gives that room to the subject. */
+  & .wedyan-gallery-list-thumb {
+    display: none;
+  }
+
+  /* The sender gets a name's width; the date, a short date's. */
+  & .wedyan-gallery-list-name + .wedyan-gallery-list-detail {
+    inline-size: calc(var(--spacing) * 28);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  & .wedyan-gallery-list-detail + .wedyan-gallery-list-detail {
+    inline-size: calc(var(--spacing) * 14);
+  }
+}
+
+/* The open message, on a frosted panel, its corners concentric with the content panel's: subject, sender, who it went to and when, what it says, then what came with it. */
+.wedyan-mail-reader {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  box-sizing: border-box;
+  min-block-size: 0;
+  min-inline-size: 0;
+  overflow-y: auto;
+  padding: var(--spacing-md);
+  border-radius: max(calc(var(--aui-window-panel-radius) - var(--spacing-md)), var(--radius-sm));
+}
+
+.wedyan-mail-subject {
+  font-size: var(--font-title-md-size);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+/* The sender's initials lead their name, with their address under it. */
+.wedyan-mail-sender {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: var(--spacing-sm);
+  align-items: center;
+
+  & > .aui-avatar {
+    grid-row: span 2;
+  }
+}
+
+.wedyan-mail-sender-name {
+  font-weight: 500;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.wedyan-mail-sender-address {
+  color: color-mix(in oklch, currentColor 70%, transparent);
+  font-size: var(--font-label-md-size);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* A plain-text body keeps its own line breaks, and long links wrap rather than widen the panel. */
+.wedyan-mail-body {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

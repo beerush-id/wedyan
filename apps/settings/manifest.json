@@ -1,0 +1,7 @@
+{
+  "name": "settings",
+  "label": "Settings",
+  "version": "0.0.1",
+  "icon": "/icons/settings.svg",
+  "main": "./views/index.ts"
+}

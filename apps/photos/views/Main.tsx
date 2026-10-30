@@ -31,6 +31,7 @@ import {
   WedyanGallerySearch,
 } from '@/components/WedyanGallery.js';
 import { documentAt, drive, nameOf, parentOf, supply } from '@/lib/documents/store.js';
+import { fullRect } from '@/lib/systems/window.js';
 import manifest from '../manifest.json';
 import { AlbumIcon, FavoritedIcon, FavoritesIcon, GenerativeIcon, LibraryIcon, PreviewIcon, ReferenceIcon } from './icons.js';
 import {
@@ -83,7 +84,7 @@ export const photos = defineWindow({
   label: manifest.label,
   title: manifest.label,
   image: manifest.icon,
-  rect: { width: 900, height: 560 },
+  rect: fullRect(),
   window: { snap: '.aui-window', minWidth: 520, minHeight: 360 },
   multiple: true,
   dockExtensions: PhotosDockOptions,

@@ -21,6 +21,7 @@ import {
 } from '@/components/WedyanGallery.js';
 import FILES from '../data/files.json';
 import FOLDERS from '../data/folders.json';
+import { fullRect } from '@/lib/systems/window.js';
 import manifest from '../manifest.json';
 import { DocumentsIcon, MusicsIcon, PhotosIcon, StorageIcon, VideosIcon } from './icons.js';
 
@@ -65,7 +66,7 @@ export const files = defineWindow({
   label: manifest.label,
   title: manifest.label,
   image: manifest.icon,
-  rect: { width: 780, height: 500 },
+  rect: fullRect(),
   window: { snap: '.aui-window', minWidth: 520, minHeight: 340 },
 }).render(() => {
   // `file` is one file's path while picking one, and the checked paths while picking several; both layouts share it.

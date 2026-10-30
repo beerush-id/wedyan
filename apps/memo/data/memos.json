@@ -1,0 +1,52 @@
+{
+  "/Memos/Wedy.memo": {
+    "type": "memo",
+    "version": 1,
+    "id": "n03",
+    "name": "Wedy",
+    "created": "2026-10-25T14:20:00Z",
+    "updated": "2026-10-28T11:05:00Z",
+    "author": { "kind": "agent", "ask": "Remember how Wedy should look in every promo." },
+    "tags": ["promo", "characters"],
+    "kind": "person",
+    "pinned": true,
+    "body": "# Wedy\n\nWedyan's mascot: a small lantern with **round eyes** and a warm amber glow.\n\n- Always friendly, never loud.\n- Speaks in short lines.\n- Shown on the left of the frame, looking right."
+  },
+  "/Memos/Render settings.memo": {
+    "type": "memo",
+    "version": 1,
+    "id": "n04",
+    "name": "Render settings",
+    "created": "2026-10-27T16:40:00Z",
+    "updated": "2026-10-27T16:40:00Z",
+    "author": { "kind": "agent", "ask": "What did we settle on for exports?" },
+    "tags": ["hackathon"],
+    "kind": "fact",
+    "body": "Exports go out as **H.264 MP4**, 1920 × 1080 at 30 fps. Keep the bitrate near 8 Mbps so a 30 second cut stays under 50 MB."
+  },
+  "/Memos/Voice-over.memo": {
+    "type": "memo",
+    "version": 1,
+    "id": "n05",
+    "name": "Voice-over",
+    "created": "2026-10-28T09:00:00Z",
+    "updated": "2026-10-29T18:30:00Z",
+    "author": { "kind": "user" },
+    "tags": ["promo"],
+    "kind": "note",
+    "remind": "2026-11-02T10:00:00Z",
+    "body": "Record the voice-over again once the script is final.\n\n1. Read the hook slower.\n2. Drop the second line of the outro.\n3. Leave a beat before the name."
+  },
+  "/Memos/Mornings.memo": {
+    "type": "memo",
+    "version": 1,
+    "id": "n06",
+    "name": "Mornings",
+    "created": "2026-10-20T07:45:00Z",
+    "updated": "2026-10-20T07:45:00Z",
+    "author": { "kind": "agent", "ask": "Don't book me before ten." },
+    "tags": ["style"],
+    "kind": "preference",
+    "body": "No meetings or reminders before **10:00**. Mornings are for making things."
+  }
+}

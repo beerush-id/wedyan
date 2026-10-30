@@ -1,0 +1,7 @@
+{
+  "name": "calendar",
+  "label": "Calendar",
+  "version": "0.0.1",
+  "icon": "/icons/calendar.svg",
+  "main": "./views/index.ts"
+}

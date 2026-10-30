@@ -1,0 +1,117 @@
+/* Memo's page: the list of memos, and the open one beside it, as tall as the window shows, each scrolling on its own. */
+.wedyan-memo-page {
+  display: grid;
+  grid-template-columns: calc(var(--spacing) * 80) minmax(0, 1fr);
+  gap: var(--spacing-md);
+  box-sizing: border-box;
+  block-size: 100cqb;
+
+  /* With nothing open, the empty state sits in the middle of its side. */
+  & > .aui-empty-state {
+    margin-block: auto;
+  }
+}
+
+.wedyan-memo-list {
+  min-block-size: 0;
+  overflow-y: auto;
+
+  /* The rows fill the list's height, so pressing below the last one lets go of the pick. */
+  & > .wedyan-gallery-list {
+    min-block-size: 100%;
+    align-content: start;
+  }
+}
+
+/* The open memo, on a frosted panel, its corners concentric with the content panel's: its name, what it is, its words filling the rest, and who wrote it. */
+.wedyan-memo-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  box-sizing: border-box;
+  min-block-size: 0;
+  padding: var(--spacing-md);
+  border-radius: max(calc(var(--aui-window-panel-radius) - var(--spacing-md)), var(--radius-sm));
+}
+
+/* The name reads as the memo's title. */
+.wedyan-memo-editor-name {
+  font-size: var(--font-title-md-size);
+  font-weight: 500;
+}
+
+/* What the memo is, in as many columns as fit. */
+.wedyan-memo-editor-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(calc(var(--spacing) * 44), 1fr));
+  align-items: end;
+  gap: var(--spacing-sm) var(--spacing-md);
+}
+
+/* A field's name over its control. */
+.wedyan-memo-editor-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  min-inline-size: 0;
+}
+
+.wedyan-memo-editor-field-label {
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-label-sm-size);
+}
+
+/* The reminder's date, with clearing it at its end. */
+.wedyan-memo-editor-remind {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+
+  & > .aui-date-picker {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+  }
+}
+
+/* The pin's words, then its switch, on the controls' line. */
+.wedyan-memo-editor-pin {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-block-size: calc(var(--spacing) * 9);
+}
+
+.wedyan-memo-editor-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-block-size: 0;
+
+  /* With nothing written, the empty state sits in the middle. */
+  & > .aui-empty-state {
+    margin-block: auto;
+  }
+}
+
+/* Writing fills the room it has, in a fixed-width face, as Markdown is written. */
+.wedyan-memo-editor-write {
+  flex: 1 1 auto;
+  min-block-size: 0;
+  resize: none;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  line-height: 1.6;
+}
+
+/* Reading scrolls on its own, so the name and fields above stay put. */
+.wedyan-memo-editor-read {
+  flex: 1 1 auto;
+  min-block-size: 0;
+  overflow-y: auto;
+  padding-inline: var(--spacing-sm);
+}
+
+.wedyan-memo-editor-facts {
+  margin: 0;
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-label-sm-size);
+}

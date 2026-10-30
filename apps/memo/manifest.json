@@ -1,0 +1,7 @@
+{
+  "name": "memo",
+  "label": "Memo",
+  "version": "0.0.1",
+  "icon": "/icons/memo.svg",
+  "main": "./views/index.ts"
+}

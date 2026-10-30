@@ -1,0 +1,7 @@
+{
+  "name": "mail",
+  "label": "Mail",
+  "version": "0.0.1",
+  "icon": "/icons/mail.svg",
+  "main": "./views/index.ts"
+}

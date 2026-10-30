@@ -1,11 +1,19 @@
 import { mutable } from '@airlib/react';
 import { type AUISystemState, bootstrap } from '@airlib/react-aui/desktop';
+import calendarManifest from '@/apps/calendar/manifest.json';
+import calendarMain from '@/apps/calendar/views/index.js';
 import filesManifest from '@/apps/files/manifest.json';
 import filesMain from '@/apps/files/views/index.js';
+import mailManifest from '@/apps/mail/manifest.json';
+import mailMain from '@/apps/mail/views/index.js';
+import memoManifest from '@/apps/memo/manifest.json';
+import memoMain from '@/apps/memo/views/index.js';
 import motionsManifest from '@/apps/motions/manifest.json';
 import motionsMain from '@/apps/motions/views/index.js';
 import photosManifest from '@/apps/photos/manifest.json';
 import photosMain from '@/apps/photos/views/index.js';
+import settingsManifest from '@/apps/settings/manifest.json';
+import settingsMain from '@/apps/settings/views/index.js';
 
 /** Where booting is: the line the splash shows, and whether the desktop can take over. */
 export const BOOT_STAT = mutable({ status: 'Boot messages', ready: false });
@@ -35,7 +43,11 @@ export async function boot(): Promise<void> {
     system.system.apps?.push(
       { manifest: filesManifest, main: filesMain },
       { manifest: photosManifest, main: photosMain },
-      { manifest: motionsManifest, main: motionsMain }
+      { manifest: motionsManifest, main: motionsMain },
+      { manifest: memoManifest, main: memoMain },
+      { manifest: mailManifest, main: mailMain },
+      { manifest: calendarManifest, main: calendarMain },
+      { manifest: settingsManifest, main: settingsMain }
     );
   });
   step('Preparing your desktop');

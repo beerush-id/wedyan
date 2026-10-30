@@ -1,0 +1,261 @@
+/* Calendar's days fill the window's visible area beside the preview: the weekdays' names over the cells, which share what's left. */
+.wedyan-calendar-days {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--spacing-xs);
+  min-inline-size: 0;
+  box-sizing: border-box;
+  block-size: 100cqb;
+}
+
+.wedyan-calendar-weekdays,
+.wedyan-calendar-cells {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--spacing-xs);
+}
+
+.wedyan-calendar-weekdays {
+  padding-inline: var(--spacing-sm);
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-label-sm-size);
+  line-height: var(--font-label-sm-line-height);
+}
+
+/* Every week as tall as the others, however many the month touches. */
+.wedyan-calendar-cells {
+  grid-auto-rows: minmax(0, 1fr);
+  min-block-size: 0;
+}
+
+/* A day: its date, then its events, one line each; its corners concentric with the content panel's. */
+.wedyan-calendar-day {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-block-size: 0;
+  padding: var(--spacing-xs);
+  overflow: hidden;
+  border-radius: max(calc(var(--aui-window-panel-radius) - var(--spacing-md)), var(--radius-xs));
+  background: color-mix(in oklch, var(--color-on-surface) 4%, transparent);
+
+  /* The days before and after the month shown sit back. */
+  &[data-outside] {
+    background: transparent;
+    color: var(--color-on-surface-variant);
+  }
+}
+
+/* A week shows every event of a day; a long day scrolls inside its column. */
+[data-period='week'] .wedyan-calendar-day {
+  overflow-y: auto;
+}
+
+.wedyan-calendar-day-head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-xs);
+}
+
+/* The date, in a round mark that today fills. */
+.wedyan-calendar-date {
+  display: grid;
+  place-items: center;
+  min-inline-size: calc(var(--spacing) * 6);
+  block-size: calc(var(--spacing) * 6);
+  border-radius: 999px;
+  font-size: var(--font-label-md-size);
+  font-variant-numeric: tabular-nums;
+
+  [data-today] > .wedyan-calendar-day-head > & {
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    font-weight: 600;
+  }
+}
+
+/* How many more events a day holds than a month shows; pressing it shows the day's week. */
+.wedyan-calendar-more {
+  padding: 0 var(--spacing-xs);
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: none;
+  color: var(--color-on-surface-variant);
+  font: inherit;
+  font-size: var(--font-label-sm-size);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--color-on-surface);
+  }
+
+  &:focus-visible {
+    outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+  }
+}
+
+/*
+ * An event's line in a day, in its calendar's tint: a timed event by a dot before its time, an
+ * all-day one filled. The picked one is filled fully.
+ */
+.wedyan-calendar-chip {
+  --wedyan-calendar-chip-tint: var(--wedyan-calendar-tint, var(--color-primary));
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: var(--spacing-xs);
+  inline-size: 100%;
+  min-inline-size: 0;
+  padding: 1px var(--spacing-xs);
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: var(--font-label-sm-size);
+  line-height: var(--font-label-sm-line-height);
+  text-align: start;
+  cursor: default;
+
+  &::before {
+    content: '';
+    flex: none;
+    inline-size: 6px;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: var(--wedyan-calendar-chip-tint);
+  }
+
+  &:hover {
+    background: color-mix(in oklch, var(--wedyan-calendar-chip-tint) 12%, transparent);
+  }
+
+  &[data-all-day] {
+    background: color-mix(in oklch, var(--wedyan-calendar-chip-tint) 22%, transparent);
+
+    &::before {
+      display: none;
+    }
+  }
+
+  &[aria-current='true'] {
+    background: var(--wedyan-calendar-chip-tint);
+    color: white;
+
+    &::before {
+      background: currentColor;
+    }
+  }
+
+  /* An invite still waiting on a reply is traced, not settled. */
+  &[data-response='needs-reply'] {
+    outline: 1px dashed var(--wedyan-calendar-chip-tint);
+    outline-offset: -1px;
+  }
+
+  /* A declined invite stays, struck through. */
+  &[data-response='declined'] .wedyan-calendar-chip-summary {
+    text-decoration: line-through;
+    color: var(--color-on-surface-variant);
+  }
+
+  &:focus-visible {
+    outline: var(--focus-ring-width) var(--focus-ring-style) var(--focus-ring-color);
+    outline-offset: var(--focus-ring-offset);
+  }
+}
+
+.wedyan-calendar-chip-time {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in oklch, currentColor 70%, transparent);
+}
+
+.wedyan-calendar-chip-summary {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* A calendar down the side: a dot in its tint, where a glyph would be. */
+.wedyan-calendar-dot {
+  display: grid;
+  flex: none;
+  place-items: center;
+  inline-size: var(--aui-icon-size, 1.25rem);
+  aspect-ratio: 1;
+
+  &::before {
+    content: '';
+    inline-size: 40%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: var(--wedyan-calendar-tint, var(--color-primary));
+  }
+}
+
+/* How many invites wait on a reply, at the end of their place. */
+.wedyan-calendar-count {
+  margin-inline-start: auto;
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-label-sm-size);
+  font-variant-numeric: tabular-nums;
+}
+
+/* An event in its own window: its details in a readable column. */
+.wedyan-calendar-event {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  max-inline-size: 64ch;
+  box-sizing: border-box;
+  min-block-size: 100cqb;
+
+  & > .aui-empty-state {
+    margin-block: auto;
+  }
+}
+
+/* The calendar an event is in, by its dot and name. */
+.wedyan-calendar-of {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-block-start: calc(var(--spacing-md) * -0.5);
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-label-md-size);
+
+  &::before {
+    content: '';
+    inline-size: 8px;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: var(--wedyan-calendar-tint, var(--color-primary));
+  }
+}
+
+/* An invite's reply: how it stands, over Accept and Decline. */
+.wedyan-calendar-reply {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+
+  & > span {
+    flex: 1 0 100%;
+    font-size: var(--font-label-md-size);
+  }
+}
+
+.wedyan-calendar-heading {
+  margin-block-end: var(--spacing-xs);
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-label-md-size);
+  font-weight: 500;
+}

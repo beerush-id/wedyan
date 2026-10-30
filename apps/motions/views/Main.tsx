@@ -27,6 +27,7 @@ import {
 } from '@/components/WedyanGallery.js';
 import { documentAt, drive, nameOf, parentOf } from '@/lib/documents/store.js';
 import { focusPrompt } from '@/lib/systems/focus.js';
+import { fullRect } from '@/lib/systems/window.js';
 import manifest from '../manifest.json';
 import { ChatView, MemoView, StillView } from './Documents.js';
 import { ComposeView } from './Editor.js';
@@ -83,7 +84,7 @@ export const motions = defineWindow({
   label: manifest.label,
   title: manifest.label,
   image: manifest.icon,
-  rect: { width: 960, height: 620 },
+  rect: fullRect(),
   window: { snap: '.aui-window', minWidth: 560, minHeight: 400 },
   multiple: true,
   dockExtensions: MotionsDockOptions,

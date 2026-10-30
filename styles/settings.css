@@ -1,0 +1,135 @@
+/* Settings' page: as tall as the window shows, scrolling on its own, its groups in one readable column. */
+.wedyan-settings-page {
+  box-sizing: border-box;
+  block-size: 100cqb;
+  overflow-y: auto;
+}
+
+.wedyan-settings-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  max-inline-size: calc(var(--spacing) * 160);
+  margin-inline: auto;
+}
+
+/* A group on a frosted panel, its corners concentric with the content panel's. */
+.wedyan-settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  border-radius: max(calc(var(--aui-window-panel-radius) - var(--spacing-md)), var(--radius-sm));
+
+  /* Opened at a group, it lands with room above it. */
+  scroll-margin-block-start: var(--spacing-md);
+}
+
+.wedyan-settings-group-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.wedyan-settings-group-title {
+  margin: 0;
+  font-size: var(--font-title-sm-size);
+  font-weight: 500;
+}
+
+.wedyan-settings-group-description,
+.wedyan-settings-row-description,
+.wedyan-settings-voice-description,
+.wedyan-settings-none,
+.wedyan-settings-identity-email {
+  margin: 0;
+  color: var(--color-on-surface-variant);
+  font-size: var(--font-label-sm-size);
+}
+
+/* A setting's name and what it does, then its control at the end of the line; stacked, under them, full width. */
+.wedyan-settings-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm) var(--spacing-md);
+
+  &[data-stacked] {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+.wedyan-settings-row-text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  min-inline-size: 0;
+}
+
+.wedyan-settings-row-control {
+  display: flex;
+  flex: 0 1 calc(var(--spacing) * 64);
+  justify-content: flex-end;
+  min-inline-size: 0;
+
+  /* A text field takes the room it's given. */
+  & > .aui-text-input {
+    flex: 1 1 auto;
+    min-inline-size: 0;
+  }
+
+  .wedyan-settings-row[data-stacked] > & {
+    flex-basis: auto;
+    flex-direction: column;
+  }
+}
+
+/* The voices one per line: the option, then hearing it. */
+.wedyan-settings-voices {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.wedyan-settings-voice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+
+.wedyan-settings-voice-text {
+  display: flex;
+  flex-direction: column;
+}
+
+/* A duration's number, then its unit. */
+.wedyan-settings-minutes {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  color: var(--color-on-surface-variant);
+
+  & > .aui-number-stepper {
+    inline-size: calc(var(--spacing) * 24);
+  }
+}
+
+/* Who's signed in: their picture, name and email, then signing out at the end. */
+.wedyan-settings-identity {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.wedyan-settings-identity-text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-inline-size: 0;
+}
+
+.wedyan-settings-identity-name {
+  font-weight: 500;
+}

@@ -1,0 +1,266 @@
+import { AUI_CLASS } from '@airlib/aui/utils';
+import { $bind, $use, mutable, Show, Snippet } from '@airlib/react';
+import { Button, Divider, EmptyState, Toggle, ToggleGroup, Tooltip } from '@airlib/react-aui';
+import {
+  defineWindow,
+  Window,
+  WindowSidebar,
+  WindowSidebarLabel,
+  WindowSidebarPanel,
+  WindowTitle,
+} from '@airlib/react-aui/desktop';
+import { ArrowLeft, ArrowRight } from '@airlib/react-aui/icons';
+import type { ReactNode } from 'react';
+import { type SelectionAction, SelectionActions } from '@/components/SelectionActions.js';
+import { BROWSE_CLASS, WedyanGallerySearch } from '@/components/WedyanGallery.js';
+import { nameOf } from '@/lib/documents/store.js';
+import { fullRect } from '@/lib/systems/window.js';
+import manifest from '../manifest.json';
+import { type CalendarState, calendarCtx } from './context.js';
+import { monthTitle, stepped, todayKey } from './dates.js';
+import { EventDetails, EventWindow } from './Event.js';
+import { CalendarGrid } from './Grid.js';
+import { DeleteIcon, InvitesIcon, LibraryIcon, OpenIcon, PreviewIcon, SidebarCloseIcon, SidebarOpenIcon } from './icons.js';
+import { CALENDARS, type CalendarEvent, eventAt, library, type ListingRequest, listing, tintOf } from './library.js';
+import { COMMANDS, CONTEXTS } from './prompt.js';
+
+/** What a Calendar window can be opened with: an event to show, by path; the calendar otherwise. */
+export type CalendarData = { event?: string } | undefined;
+
+const CLASS = {
+  BROWSE: BROWSE_CLASS.ROOT,
+  PREVIEW: BROWSE_CLASS.PREVIEW,
+  DOT: 'wedyan-calendar-dot',
+  COUNT: 'wedyan-calendar-count',
+};
+
+/**
+ * Calendar: the events and invites in the Calendar inbox, by the day. Down the side: Calendar
+ * itself, the invites waiting on a reply, and each calendar, which narrow what the days show. The
+ * days: a month of weeks, or one week, today marked; Today and the arrows move between them. Beside
+ * them, a preview of the picked event, which can be turned off, where an invite is accepted or
+ * declined. A double click, or Enter on the picked event, opens it in a window of its own.
+ */
+export const calendar = defineWindow({
+  name: manifest.name,
+  label: manifest.label,
+  title: manifest.label,
+  image: manifest.icon,
+  rect: fullRect(),
+  window: { snap: '.aui-window', minWidth: 640, minHeight: 420 },
+  multiple: true,
+}).render((props) => {
+  // A window opened on an event shows that event for its whole life.
+  const event = (props.instance.data as CalendarData)?.event;
+  if (event) return () => <EventWindow path={event} />;
+
+  const view = mutable<CalendarState>({
+    place: { view: 'calendar' },
+    anchor: todayKey(),
+    period: 'month',
+    picked: null,
+    query: '',
+    sidebarHidden: false,
+    previewHidden: false,
+  });
+
+  const shown = (): CalendarEvent[] => {
+    const query = view.query.trim().toLowerCase();
+    const events = listing(view.place);
+    return query ? events.filter((entry) => entry.summary.toLowerCase().includes(query)) : events;
+  };
+  // The picked event stays in the preview after a reply takes it out of the invites.
+  const picked = () => (view.picked ? eventAt(view.picked) : undefined);
+  const invites = () => listing({ view: 'invites' }).length;
+  const isAt = (request: ListingRequest) => samePlace(view.place, request);
+
+  calendarCtx.set({ state: view, shown, open: openEvent });
+
+  /**
+   * Shows everything, the invites, or a calendar, with nothing picked and nothing searched, as a
+   * new place starts. The days shown stay.
+   *
+   * @param request - Everything, the invites, or a calendar's tag.
+   */
+  const go = (request: ListingRequest) => {
+    Object.assign(view, { place: request, picked: null, query: '' });
+  };
+
+  /**
+   * Moves the days a month or a week on or back.
+   *
+   * @param by - How many; negative goes back.
+   */
+  const step = (by: number) => {
+    view.anchor = stepped(view.anchor, view.period, by);
+  };
+
+  // Back to the month or week holding today.
+  const today = () => {
+    view.anchor = todayKey();
+  };
+
+  const stepLabel = (by: number) => `${by < 0 ? 'Previous' : 'Next'} ${view.period}`;
+
+  // Takes the picked event out of the calendar for this session.
+  const remove = () => {
+    const path = view.picked;
+    view.picked = null;
+    if (path) library.deleted.push(path);
+  };
+
+  /** The actions for the picked event, in their groups: open; remove. */
+  const selection = (path: string): SelectionAction[][] => [
+    [{ label: 'Open in a window', icon: <OpenIcon />, run: () => openEvent(path) }],
+    [{ label: 'Delete', icon: <DeleteIcon />, run: remove }],
+  ];
+
+  /** One place down the side: Calendar itself, the invites, or a calendar. */
+  const place = (label: string, icon: ReactNode, request: ListingRequest, extra?: ReactNode) => (
+    <Button key={label} variant="text" size="sm" aria-current={$use(() => (isAt(request) ? 'true' : undefined))} onClick={() => go(request)}>
+      {icon}
+      <span>{label}</span>
+      {extra}
+    </Button>
+  );
+
+  const preview = () => (
+    <aside className={`${CLASS.PREVIEW} ${AUI_CLASS.GLASS_PANEL}`} aria-label="Preview">
+      <Show
+        when={picked}
+        fallback={() => (
+          <EmptyState title="Nothing picked" description="Pick an event to see it here." level={3}>
+            <EmptyState.Snippet for="icon">{() => <LibraryIcon />}</EmptyState.Snippet>
+          </EmptyState>
+        )}
+      >
+        {(entry) => <EventDetails event={entry} />}
+      </Show>
+    </aside>
+  );
+
+  return () => (
+    <Window sidebarResizeLabel="Resize sidebar">
+      <Window.Snippet for="title">
+        {() => (
+          <>
+            <Toggle aria-label="Hide sidebar" size="sm" variant="text" className={AUI_CLASS.CONTROL_ICON} pressed={$bind(view, 'sidebarHidden')}>
+              <Snippet>{() => (view.sidebarHidden ? <SidebarOpenIcon /> : <SidebarCloseIcon />)}</Snippet>
+              <Tooltip>Hide sidebar</Tooltip>
+            </Toggle>
+            <WindowTitle>
+              <Snippet>{() => monthTitle(view.anchor)}</Snippet>
+            </WindowTitle>
+            {/* While an event is picked, what can be done with it sits beside the title. */}
+            <Show when={() => picked()?.path}>{(path) => <SelectionActions label="Picked event" groups={selection(path)} />}</Show>
+          </>
+        )}
+      </Window.Snippet>
+      <Window.Snippet for="sidebar">
+        {() =>
+          !view.sidebarHidden && (
+            <WindowSidebar>
+              <WindowSidebarPanel>
+                <WindowSidebarLabel>Library</WindowSidebarLabel>
+                {place(manifest.label, <LibraryIcon />, { view: 'calendar' })}
+                {place(
+                  'Invites',
+                  <InvitesIcon />,
+                  { view: 'invites' },
+                  <Show when={invites}>{(count) => <span className={CLASS.COUNT}>{count}</span>}</Show>
+                )}
+              </WindowSidebarPanel>
+              <WindowSidebarPanel>
+                <WindowSidebarLabel>Calendars</WindowSidebarLabel>
+                {CALENDARS.map((entry) =>
+                  place(entry.label, <span className={CLASS.DOT} style={tintOf(entry)} aria-hidden="true" />, { tag: entry.tag })
+                )}
+              </WindowSidebarPanel>
+            </WindowSidebar>
+          )
+        }
+      </Window.Snippet>
+      <Window.Snippet for="actions">
+        {() => (
+          <>
+            <WedyanGallerySearch query={$bind(view, 'query')} />
+            <Divider orientation="vertical" variant="ghost" size="sm" />
+            <Button size="sm" variant="text" onClick={today}>
+              Today
+            </Button>
+            <Button aria-label={$use(() => stepLabel(-1))} size="sm" variant="text" className={AUI_CLASS.CONTROL_ICON} onClick={() => step(-1)}>
+              <ArrowLeft />
+              <Tooltip>
+                <Snippet>{() => stepLabel(-1)}</Snippet>
+              </Tooltip>
+            </Button>
+            <Button aria-label={$use(() => stepLabel(1))} size="sm" variant="text" className={AUI_CLASS.CONTROL_ICON} onClick={() => step(1)}>
+              <ArrowRight />
+              <Tooltip>
+                <Snippet>{() => stepLabel(1)}</Snippet>
+              </Tooltip>
+            </Button>
+            {/* Moving through the days apart from how they show. */}
+            <Divider orientation="vertical" variant="ghost" size="sm" />
+            <ToggleGroup aria-label="Period" value={$bind(view, 'period')} required size="xs">
+              <Toggle value="month" size="xs">
+                Month
+              </Toggle>
+              <Toggle value="week" size="xs">
+                Week
+              </Toggle>
+            </ToggleGroup>
+            <Toggle aria-label="Hide preview" size="sm" variant="text" pressed={$bind(view, 'previewHidden')} className={AUI_CLASS.CONTROL_ICON}>
+              <PreviewIcon />
+              <Tooltip>Hide preview</Tooltip>
+            </Toggle>
+            {/* Sets the app's own buttons apart from the window's. */}
+            <Divider orientation="vertical" variant="ghost" size="sm" />
+          </>
+        )}
+      </Window.Snippet>
+      <div className={CLASS.BROWSE}>
+        <CalendarGrid />
+        <Show when={() => !view.previewHidden}>{preview}</Show>
+      </div>
+    </Window>
+  );
+});
+
+/**
+ * Opens an event in a Calendar window of its own, or brings forward the one already showing it.
+ *
+ * @param path - The event's `.ics` path.
+ * @returns The window showing it.
+ */
+export function openEvent(path: string) {
+  const showing = calendar.instances.find((instance) => (instance.data as CalendarData)?.event === path);
+  if (showing) {
+    showing.focus();
+    return showing;
+  }
+
+  return calendar.open(
+    { event: path },
+    {
+      name: 'event',
+      commands: COMMANDS,
+      contexts: CONTEXTS,
+      get title() {
+        return eventAt(path)?.summary ?? nameOf(path);
+      },
+    }
+  );
+}
+
+/**
+ * Whether two places down the side are the same: both everything, both the invites, or the same calendar.
+ *
+ * @param a - One place.
+ * @param b - The other.
+ * @returns Whether they match.
+ */
+function samePlace(a: ListingRequest, b: ListingRequest): boolean {
+  if ('tag' in a || 'tag' in b) return 'tag' in a && 'tag' in b && a.tag === b.tag;
+  return a.view === b.view;
+}
