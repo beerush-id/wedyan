@@ -10,6 +10,7 @@ import {
 import type { AIAdapter } from '@irpclib/ai-kit/worker';
 import { getAbortSignal, IRPC_STORE, type IRPCData, type IRPCRouter, setContext, stream } from '@irpclib/irpc';
 import { logger } from '../logger.js';
+import { isUsageLimit } from '../share/usage.js';
 import {
   type ActionOutcome,
   type AskAction,
@@ -482,6 +483,11 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
     }
   } catch (error) {
     if (signal?.aborted) return end('stopped', 'Aborted');
+    // Nothing went wrong: the user is told so as any answer is, with nothing for the desktop to do.
+    if (isUsageLimit(error)) {
+      state.parts.push({ type: 'text', chunks: [error.message], text: error.message, spoken: true });
+      return end('done');
+    }
     IRPC_STORE.error(error as Error, [{ agent: agent.name, turn }]);
     return end('error', error instanceof Error ? error.message : String(error));
   }

@@ -1,11 +1,13 @@
 import { mutable, withContext } from '@airlib/react';
 import { type Log, LogLevel } from '@beerush/logger';
 import type { ToolCall } from '@irpclib/ai-kit';
-import { IRPC_STORE, type IRPCData } from '@irpclib/irpc';
+import { AIAdapter } from '@irpclib/ai-kit/worker';
+import { HandlerError, IRPC_STORE, type IRPCData } from '@irpclib/irpc';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { AskAction } from '../../lib/kernel/agent.h.js';
 import { type AgentLoopOptions, type AskState, type LoopSnapshot, runAgentLoop } from '../../lib/kernel/agent.js';
 import { logger } from '../../lib/logger.js';
+import { USAGE_LIMIT } from '../../lib/share/usage.js';
 import { AGENTS, createTestAdapter } from './fixtures.js';
 import { calls, messagesOf, mockVendor, responses, says, sse, toolCall } from './vendor.js';
 
@@ -709,6 +711,24 @@ describe('agent loop', () => {
     await run();
 
     expect(state).toMatchObject({ status: 'error', reason: 'meta chat request failed: 503' });
+  });
+
+  it('answers a call past the day’s limit as any answer, with nothing to handle', async () => {
+    const said = 'You’ve reached today’s limit for this.';
+    const refusing = {
+      name: 'refusing',
+      ask() {
+        throw new HandlerError(USAGE_LIMIT, said);
+      },
+    };
+    const { state, run } = setup({ adapter: new AIAdapter().use(refusing) });
+
+    await run();
+
+    expect(state).toMatchObject({ status: 'done' });
+    expect(state.reason).toBeUndefined();
+    expect(partsOf(state)).toEqual([said]);
+    expect(state.parts[0]).toMatchObject({ spoken: true });
   });
 
   it('snapshots after each turn and resumes from a snapshot', async () => {

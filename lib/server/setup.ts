@@ -23,6 +23,7 @@ import { wsTransport } from '@/src/api.js';
 import { DriveDriver } from './drive-driver.js';
 import { generateImage } from './images.js';
 import { setupStills } from './stills.js';
+import { setupUsage, UsageDriver } from './usage.js';
 
 /** The bindings and secrets the server runs with (see `wrangler.json`). */
 export type ServerEnv = FileWorkerEnv & {
@@ -54,6 +55,7 @@ export function setupServer(env: ServerEnv): void {
     meta: env.MUSE_API_KEY ?? globalThis.process?.env?.MUSE_API_KEY ?? '',
     baseten: env.BASETEN_API_KEY ?? globalThis.process?.env?.BASETEN_API_KEY,
   };
+  if (process.env.NODE_ENV === 'production') setupUsage(env.DB as never);
   const adapter = withModels(MODELS, keys);
   setupKernel({
     adapter,
@@ -144,14 +146,16 @@ export async function loadUserAgents(agents: Record<string, AgentProfile>): Prom
 export const MODELS = new AIAdapter();
 
 /**
- * Adds the models to an adapter: Meta's, Spark Open on Baseten when its key is set, and last, after
- * every provider, the drive, which keeps generated media in the user's drive when a call says where.
+ * Adds the models to an adapter: first what holds them to the day's limits, then Meta's, Spark Open
+ * on Baseten when its key is set, and last, after every provider, the drive, which keeps generated
+ * media in the user's drive when a call says where.
  *
  * @param adapter - The adapter to add them to.
  * @param keys - The Meta Model API key, and Baseten's if there is one.
  * @returns The adapter serving Muse Spark, Muse Wonder and Muse Image, and Spark Open with Baseten.
  */
 export function withModels(adapter: AIAdapter, keys: { meta: string; baseten?: string }): AIAdapter {
+  adapter.use(new UsageDriver());
   adapter.use(new MuseDriver({ apiKey: keys.meta }));
   if (keys.baseten) adapter.use(new BasetenDriver({ apiKey: keys.baseten, models: [SPARK_OPEN] }));
   return adapter.use(new DriveDriver());

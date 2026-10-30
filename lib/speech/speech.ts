@@ -1,4 +1,5 @@
 import { IRPC_STORE, stream } from '@irpclib/irpc';
+import { spend } from '@/lib/server/usage.js';
 import {
   DEFAULT_VOICE,
   type Heard,
@@ -43,6 +44,7 @@ export function setupSpeech(binding: SpeechModel, key?: string): void {
 }
 
 speech.construct(speak, async (text, speaker) => {
+  await spend('speech');
   const result = await model().run(SPEECH_MODEL, { text, speaker: speaker ?? DEFAULT_VOICE, encoding: 'mp3' });
   return { audio: base64Of(await bytesOf(result)), type: 'audio/mpeg' };
 });
@@ -83,6 +85,9 @@ speech.construct(hear, () => {
       failed = true;
       reject(error);
     };
+
+    // Past the day's limit, hearing ends before any audio is sent: the handler has to stay a stream.
+    spend('speech').catch(fail);
 
     // Ending input lets Meta flush what it still holds; it closes the socket once done.
     const endInput = () => {
