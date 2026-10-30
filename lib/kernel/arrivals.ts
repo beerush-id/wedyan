@@ -1,8 +1,8 @@
 /** Where the demo's arrivals are bundled from, beside the app. */
-const SOURCE = '../../arrivals/';
+const SOURCE = '../../seeds/arrivals/';
 
 /** The demo's arrivals as bundled, by their path from here. */
-const BUNDLED = import.meta.glob('../../arrivals/**/*', { query: '?raw', import: 'default', eager: true });
+const BUNDLED = import.meta.glob('../../seeds/arrivals/**/*', { query: '?raw', import: 'default', eager: true });
 
 /**
  * The demo's arrivals, by their path in the home without `~/` (`Mail/m1.eml`): mail, an invite and

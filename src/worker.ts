@@ -15,6 +15,7 @@ import { reportChanges } from '@/lib/kernel/workspace.js';
 import { logger } from '@/lib/logger.js';
 import { contentIndex } from '@/lib/memory/files.js';
 import { guardAgentFiles } from '@/lib/server/guard.js';
+import { seedHome } from '@/lib/server/seed.js';
 import { currentSession, homeOf } from '@/lib/server/session.js';
 import { MODELS, type ServerEnv, setupServer } from '@/lib/server/setup.js';
 import { AI_ENDPOINT, ai } from '@/lib/share/ai.js';
@@ -56,12 +57,14 @@ const SESSION_KEY = 'sessionId';
 SESSION_STORE.key(SESSION_KEY);
 
 // Every call runs in its session: its own home, and its session's live calls to reach. Without a
-// session r2-file would fall back to a shared home, so such a call is refused.
-const scopeToSession = () => {
+// session r2-file would fall back to a shared home, so such a call is refused. A new home is seeded
+// before its first call runs.
+const scopeToSession = async () => {
   const session = currentSession();
   if (!session) throw new Error('No session: load the page first');
   setContext(SESSION_KEY, session);
   fsContext.set(homeOf(session));
+  await seedHome(session);
 };
 wsRouter.use(scopeToSession);
 
