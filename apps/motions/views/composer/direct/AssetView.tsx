@@ -1,8 +1,10 @@
 import { setup, template } from '@airlib/react';
 import { DescriptionList } from '@airlib/react-aui';
 import { DirectContent } from '@/components/Direct.js';
+import { RenameField } from '@/components/RenameField.js';
 import { ASSET_KINDS, type FileRow } from '@/lib/documents/rows.js';
 import type { StillDocument, TakeDocument } from '@/lib/documents/types.js';
+import { dfs } from '@/lib/share/dfs.js';
 import { documentAt, duration } from '../../motion.js';
 import { type Composer, composerCtx } from '../context.js';
 import { StillView } from './StillView.js';
@@ -56,9 +58,7 @@ const MediaView = template<{ asset: FileRow }>(({ asset }) => (
     {asset.kind === 'video' && <video className="wedyan-direct-hero" src={asset.src} poster={asset.thumbnail} controls />}
     {/* biome-ignore lint/a11y/useMediaCaption: an uploaded sound comes with no captions to show. */}
     {asset.kind === 'audio' && <audio src={asset.src} controls />}
-    <header className="wedyan-direct-heading">
-      <h2>{asset.name}</h2>
-    </header>
+    <RenameField key={asset.path} name={asset.name} onrename={(title) => void dfs.update(asset.path, { metadata: { title } })} />
     <DescriptionList
       size="sm"
       items={[

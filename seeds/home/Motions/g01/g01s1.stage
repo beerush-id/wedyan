@@ -1,7 +1,7 @@
 {
   "type": "stage",
   "version": 1,
-  "id": "g01-promo",
+  "id": "g01s1",
   "projectId": "g01",
   "order": 0,
   "name": "Promo",
@@ -21,8 +21,8 @@
         "segments": [
           {
             "id": "g01-wedyan-v1",
-            "options": { "type": "image", "name": "Hero", "meta": { "thumbnail": "/~/Motions/Wedyan promo A/Hero 3.webp", "source": "Hero.still", "assignee": "../../Agents/Image.agent" }, "speed": 1, "duration": 2, "startFrame": 0 },
-            "props": { "src": "/~/Motions/Wedyan promo A/Hero 3.webp", "fit": "cover", "x": 0, "y": 0, "width": 1920, "height": 1080 },
+            "options": { "type": "image", "name": "Hero", "meta": { "thumbnail": "/~/Motions/g01/g01h1c.webp", "source": "g01h1.still", "assignee": "../../Agents/Image.agent" }, "speed": 1, "duration": 2, "startFrame": 0 },
+            "props": { "src": "/~/Motions/g01/g01h1c.webp", "fit": "cover", "x": 0, "y": 0, "width": 1920, "height": 1080 },
             "scenes": [
               { "id": "g01-wedyan-v1-k1", "options": { "atFrame": 0, "meta": { "ease": "in-out" } }, "data": { "scale": 1, "opacity": 1 } },
               { "id": "g01-wedyan-v1-k2", "options": { "atFrame": 60 }, "data": { "scale": 1.07, "opacity": 1 } }
@@ -30,8 +30,8 @@
           },
           {
             "id": "g01-wedyan-v2",
-            "options": { "type": "image", "name": "Agent Workspace", "meta": { "thumbnail": "/~/Motions/Wedyan promo A/Agent Workspace.webp" }, "speed": 1, "duration": 1.5, "startFrame": 60 },
-            "props": { "src": "/~/Motions/Wedyan promo A/Agent Workspace.webp", "fit": "cover", "x": 0, "y": 0, "width": 2080, "height": 1080 },
+            "options": { "type": "image", "name": "Agent Workspace", "meta": { "thumbnail": "/~/Motions/g01/g01a2.webp" }, "speed": 1, "duration": 1.5, "startFrame": 60 },
+            "props": { "src": "/~/Motions/g01/g01a2.webp", "fit": "cover", "x": 0, "y": 0, "width": 2080, "height": 1080 },
             "scenes": [
               { "id": "g01-wedyan-v2-k1", "options": { "atFrame": 0, "meta": { "ease": "in-out" } }, "data": { "x": 0, "scale": 1 } },
               { "id": "g01-wedyan-v2-k2", "options": { "atFrame": 45 }, "data": { "x": -160, "scale": 1.03 } }
@@ -39,8 +39,8 @@
           },
           {
             "id": "g01-wedyan-v3",
-            "options": { "type": "image", "name": "Closing Horizon", "meta": { "thumbnail": "/~/Motions/Wedyan promo A/Closing Horizon.webp" }, "speed": 1, "duration": 1.5, "startFrame": 105 },
-            "props": { "src": "/~/Motions/Wedyan promo A/Closing Horizon.webp", "fit": "cover", "x": 0, "y": 0, "width": 1920, "height": 1080 },
+            "options": { "type": "image", "name": "Closing Horizon", "meta": { "thumbnail": "/~/Motions/g01/g01a3.webp" }, "speed": 1, "duration": 1.5, "startFrame": 105 },
+            "props": { "src": "/~/Motions/g01/g01a3.webp", "fit": "cover", "x": 0, "y": 0, "width": 1920, "height": 1080 },
             "scenes": [
               { "id": "g01-wedyan-v3-k1", "options": { "atFrame": 0, "meta": { "ease": "in-out" } }, "data": { "scale": 1.09, "opacity": 1 } },
               { "id": "g01-wedyan-v3-k2", "options": { "atFrame": 45 }, "data": { "scale": 1, "opacity": 1 } }
@@ -52,7 +52,7 @@
         "id": "g01-wedyan-audio",
         "options": { "type": "audio", "name": "Audio", "meta": {} },
         "segments": [
-          { "id": "g01-wedyan-a1", "options": { "type": "audio", "name": "Backsound", "meta": { "assignee": "../../Agents/Audio.agent" }, "speed": 1, "duration": 5, "startFrame": 0 }, "props": { "src": "/~/Motions/Wedyan promo A/Backsound.mp3" } }
+          { "id": "g01-wedyan-a1", "options": { "type": "audio", "name": "Backsound", "meta": { "assignee": "../../Agents/Audio.agent" }, "speed": 1, "duration": 5, "startFrame": 0 }, "props": { "src": "/~/Motions/g01/g01a5.mp3" } }
         ]
       },
       {

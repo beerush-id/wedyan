@@ -1,9 +1,17 @@
-import { AUI_CLASS } from '@airlib/aui/utils';
-import { $bind, Show, Snippet, setup, template } from '@airlib/react';
 import { splitSegment } from '@airlib/aria';
+import { AUI_CLASS } from '@airlib/aui/utils';
+import { $bind, setup, Show, Snippet, template } from '@airlib/react';
 import type { Timeline } from '@airlib/react/timeline';
 import { Button, Divider, Toggle, Toolbar, Tooltip } from '@airlib/react-aui';
-import { AudioFileIcon, AutoAwesomeIcon, CodeIcon, DraftIcon, MovieIcon, ShapesIcon, TitleIcon } from '@airlib/react-aui/icons';
+import {
+  AudioFileIcon,
+  AutoAwesomeIcon,
+  CodeIcon,
+  DraftIcon,
+  MovieIcon,
+  ShapesIcon,
+  TitleIcon,
+} from '@airlib/react-aui/icons';
 import type { FC, ReactNode } from 'react';
 import { LoopIcon, PauseIcon, PlayIcon, SnapIcon, SplitIcon, ToEndIcon, ToStartIcon } from '../../icons.js';
 import { type Composer, composerCtx } from '../context.js';
@@ -28,15 +36,25 @@ export const ComposeDock = setup(() => {
     if (!timeline) return null;
     return (
       <Toolbar label="Motion settings" variant="text" className={AUI_CLASS.TOOLBAR_OPTIONS}>
-        <Snippet data={() => composer.generativeClip()}>{(generated) => (generated ? <RegenerateOptions generated={generated} /> : null)}</Snippet>
-        <Show when={() => composer.generativeClip()}>{() => <Divider orientation="vertical" size="sm" className="wedyan-motions-options-divider" />}</Show>
+        <Snippet data={() => composer.generativeClip()}>
+          {(generated) => (generated ? <RegenerateOptions generated={generated} /> : null)}
+        </Snippet>
+        <Show when={() => composer.generativeClip()}>
+          {() => <Divider orientation="vertical" size="sm" className="wedyan-motions-options-divider" />}
+        </Show>
         <Transport timeline={timeline} />
         <Divider orientation="vertical" size="sm" className="wedyan-motions-options-divider" />
-        <Toggle aria-label="Snap" size="sm" variant="text" className={AUI_CLASS.CONTROL_ICON} pressed={$bind(composer, 'snap')}>
+        <Toggle aria-label="Snap" size="sm" className={AUI_CLASS.CONTROL_ICON} pressed={$bind(composer, 'snap')}>
           <SnapIcon />
           <Tooltip>Snap</Tooltip>
         </Toggle>
-        <Button aria-label="Split" size="sm" variant="text" className={AUI_CLASS.CONTROL_ICON} onClick={() => splitPicked(composer)}>
+        <Button
+          aria-label="Split"
+          size="sm"
+          variant="text"
+          className={AUI_CLASS.CONTROL_ICON}
+          onClick={() => splitPicked(composer)}
+        >
           <SplitIcon />
           <Tooltip>Split at the playhead (⌘B)</Tooltip>
         </Button>
@@ -54,7 +72,13 @@ export const ComposeSubject = setup(() => {
     if (generated) return <GeneratedTile source={generated.source} />;
     const segment = composer.pickedClip();
     if (!segment) return null;
-    return <SubjectTile name={segment.name ?? 'Clip'} picture={segment.meta?.thumbnail as string | undefined} glyph={LANE_GLYPHS[segment.track.type ?? ''] ?? DraftIcon} />;
+    return (
+      <SubjectTile
+        name={segment.name ?? 'Clip'}
+        picture={segment.meta?.thumbnail as string | undefined}
+        glyph={LANE_GLYPHS[segment.track.type ?? ''] ?? DraftIcon}
+      />
+    );
   };
 }, 'ComposeSubject');
 
@@ -71,10 +95,19 @@ const Transport = template<{ timeline: Timeline }>(({ timeline }) => {
     <>
       {action('Previous clip', <ToStartIcon />, () => jumpToClip(timeline, -1))}
       <Snippet>
-        {() => (timeline.state.status === 'playing' ? action('Pause', <PauseIcon />, () => timeline.pause()) : action('Play', <PlayIcon />, () => timeline.play()))}
+        {() =>
+          timeline.state.status === 'playing'
+            ? action('Pause', <PauseIcon />, () => timeline.pause())
+            : action('Play', <PlayIcon />, () => timeline.play())
+        }
       </Snippet>
       {action('Next clip', <ToEndIcon />, () => jumpToClip(timeline, 1))}
-      <Toggle aria-label="Loop" size="sm" variant="text" className={AUI_CLASS.CONTROL_ICON} pressed={$bind(timeline as { repeat?: boolean }, 'repeat')}>
+      <Toggle
+        aria-label="Loop"
+        size="sm"
+        className={AUI_CLASS.CONTROL_ICON}
+        pressed={$bind(timeline as { repeat?: boolean }, 'repeat')}
+      >
         <LoopIcon />
         <Tooltip>Loop</Tooltip>
       </Toggle>

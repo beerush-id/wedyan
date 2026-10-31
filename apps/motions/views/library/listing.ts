@@ -31,9 +31,22 @@ const PROJECTS = { recursive: true, filter: { type: FILE_TYPES.motion } };
  * @returns `list`'s arguments.
  */
 export function listingOf(view: LibraryView, folder: string): [string, ListOptions] {
-  if (view === 'all') return [folder, { sort: ['-type', 'name'] }];
+  if (view === 'all') return [folder, {}];
   if (view === 'recent') return [ROOT, { ...PROJECTS, sort: '-mtime', limit: RECENT_COUNT }];
-  return [ROOT, { ...PROJECTS, sort: 'name', filter: { ...PROJECTS.filter, metadata: { [view]: FLAGGED } } }];
+  return [ROOT, { ...PROJECTS, filter: { ...PROJECTS.filter, metadata: { [view]: FLAGGED } } }];
+}
+
+/**
+ * Puts rows in the order a place shows them: Recents as listed, newest first; anywhere else folders
+ * first, by what they're called, which only the rows know: files are named by id.
+ *
+ * @param view - The place.
+ * @param rows - The rows.
+ * @returns The rows in order.
+ */
+export function orderOf(view: LibraryView, rows: FileRow[]): FileRow[] {
+  if (view === 'recent') return rows;
+  return [...rows].sort((a, b) => Number(b.isDirectory) - Number(a.isDirectory) || a.name.localeCompare(b.name));
 }
 
 /**

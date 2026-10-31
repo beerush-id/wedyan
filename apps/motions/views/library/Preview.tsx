@@ -2,22 +2,24 @@ import { AUI_CLASS } from '@airlib/aui/utils';
 import { Show, setup } from '@airlib/react';
 import { DescriptionList, EmptyState } from '@airlib/react-aui';
 import { FolderIcon } from '@airlib/react-aui/icons';
-import { BROWSE_CLASS } from '@/components/WedyanGallery.js';
-import { openMotion } from '../composer/Window.js';
+import { RenameField } from '@/components/RenameField.js';
+import { BROWSE_CLASS, type WedyanGalleryEntry } from '@/components/WedyanGallery.js';
+import { homePath } from '@/lib/documents/paths.js';
+import { openMotion } from '../composer/index.js';
 import { ProjectsIcon } from '../icons.js';
-import { duration, shortDate } from '../motion.js';
+import { duration, rename, shortDate } from '../motion.js';
 import { libraryCtx, type MotionLibrary } from './context.js';
 import { statusOf } from './listing.js';
 
 /** The picked project or folder, beside the tiles: its picture, its facts, and what it was asked to be. */
 export const LibraryPreview = setup(() => {
-  const { state, tiles, rows } = libraryCtx.get() as MotionLibrary;
+  const { state, tiles, rows, enter } = libraryCtx.get() as MotionLibrary;
   const picked = () => tiles().find((tile) => tile.path === state.picked);
   const checked = () => (Array.isArray(state.picked) ? state.picked.length : 0);
 
-  const open = (path: string, isFolder: boolean) => {
-    if (isFolder) state.folder = path;
-    else openMotion(path);
+  const named = (tile: WedyanGalleryEntry, title: string) => {
+    const row = rows().find((each) => homePath(each.path) === tile.path);
+    if (row) void rename(row, title);
   };
 
   return () => (
@@ -42,11 +44,19 @@ export const LibraryPreview = setup(() => {
                 type="button"
                 className={BROWSE_CLASS.PREVIEW_OPEN}
                 aria-label={`Open ${tile.name}`}
-                onClick={() => open(tile.path, !project)}
+                onClick={() => (project ? openMotion(tile.path) : enter(tile))}
               >
                 {project ? <img src={project.thumbnail} alt="" /> : <FolderIcon />}
               </button>
-              <h3 className={BROWSE_CLASS.PREVIEW_NAME}>{tile.name}</h3>
+              <RenameField
+                key={tile.path}
+                name={tile.name}
+                autoFocus={state.renaming}
+                onrename={(title) => named(tile, title)}
+                onleave={() => {
+                  state.renaming = false;
+                }}
+              />
               {project && (
                 <DescriptionList
                   size="sm"

@@ -3,7 +3,7 @@ import { Button, EmptyState, Spinner } from '@airlib/react-aui';
 import { IRPC_STATUS } from '@irpclib/irpc';
 import { BROWSE_CLASS, WedyanGallery, type WedyanGalleryEntry } from '@/components/WedyanGallery.js';
 import { focusPrompt } from '@/lib/systems/focus.js';
-import { openMotion } from '../composer/Window.js';
+import { openMotion } from '../composer/index.js';
 import { AddIcon, ProjectsIcon } from '../icons.js';
 import { libraryCtx, type MotionLibrary } from './context.js';
 import { VIEW_LABELS } from './listing.js';
@@ -16,12 +16,12 @@ const LOADING = 'Loading your motions';
 
 /** What's listed as tiles or rows, the picked one's preview beside; or why there's nothing to list. */
 export const LibrarySheet = setup(() => {
-  const { state, items, tiles } = libraryCtx.get() as MotionLibrary;
+  const { state, items, tiles, enter } = libraryCtx.get() as MotionLibrary;
   const pending = () => items.status === IRPC_STATUS.PENDING;
 
   /** A tile opens where it belongs: a folder here, a project in a window of its own. */
   const open = (tile: WedyanGalleryEntry) => {
-    if (tile.kind === 'folder') state.folder = tile.path;
+    if (tile.kind === 'folder') enter(tile);
     else openMotion(tile.path);
   };
 

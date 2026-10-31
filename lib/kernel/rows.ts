@@ -95,6 +95,10 @@ export const fileRows: D1Extension = {
     };
   },
 
+  directory: ({ options }) => ({ kind: 'folder', title: options?.metadata?.title }),
+
+  updated: ({ options }) => (options?.metadata?.title ? { title: options.metadata.title } : {}),
+
   statements(db, write) {
     if (documentKind(write.path) !== 'motion') return [];
     const motion = parsed(write.data) as MotionDocument | undefined;
@@ -191,12 +195,18 @@ function documentKind(path: string): RowKind | undefined {
  * @param write - The write.
  * @returns Its columns, unless it's something else.
  */
-function mediaColumns({ path, type }: D1Write): Record<string, unknown> | undefined {
+function mediaColumns({ path, type, options }: D1Write): Record<string, unknown> | undefined {
   const kind = /^(image|video|audio)\//.exec(type)?.[1];
-  if (!kind) return;
+  if (!kind || options?.metadata?.part) return;
   const src = `/~${homeOf(path).slice(1)}`;
-  const title = path.slice(path.lastIndexOf('/') + 1).replace(/\.[^.]+$/, '');
-  return { kind, title, src, thumbnail: kind === 'image' ? src : undefined };
+  const { title, thumbnail, duration } = options?.metadata ?? {};
+  return {
+    kind,
+    title: title ?? path.slice(path.lastIndexOf('/') + 1).replace(/\.[^.]+$/, ''),
+    src,
+    thumbnail: kind === 'image' ? src : thumbnail,
+    duration: duration ? Number(duration) : undefined,
+  };
 }
 
 /**

@@ -15,7 +15,7 @@ export const LibrarySidebar = setup(() => {
     <WindowSidebar>
       <WindowSidebarPanel>
         <WindowSidebarLabel>Library</WindowSidebarLabel>
-        <Listbox aria-label="Library" size="sm" required value={$bind(state, 'activeView')}>
+        <Listbox aria-label="Library" size="sm" aside required value={$bind(state, 'activeView')}>
           <ListboxOption value="recent">
             <ClockIcon />
             <span>{VIEW_LABELS.recent}</span>

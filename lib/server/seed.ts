@@ -1,5 +1,6 @@
 import { IRPCFile } from '@irpclib/irpc';
 import { exists, write } from '@irpclib/r2-file';
+import TITLES from '../../seeds/titles.json';
 
 /** Where a new home's seed is bundled from, beside the app. */
 const SOURCE = '../../seeds/home/';
@@ -63,7 +64,10 @@ async function plant(seeds: Record<string, string>): Promise<void> {
   await Promise.all(
     Object.entries(seeds).map(([path, content]) => {
       const [, type] = INLINE.exec(content) ?? [];
-      return type ? write(`~/${path}`, fileOf(path, type, content)) : write(`~/${path}`, content);
+      // Files are named by id, so what a seed file is called comes with it, as an upload's does.
+      const title = (TITLES as Record<string, string>)[path];
+      const options = title ? { metadata: { title } } : undefined;
+      return type ? write(`~/${path}`, fileOf(path, type, content), options) : write(`~/${path}`, content, options);
     }),
   );
   await write(SEED_MARKER, { seeded: new Date().toISOString() }, { hidden: true });

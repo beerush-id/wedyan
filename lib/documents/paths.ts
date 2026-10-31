@@ -8,7 +8,16 @@ const MOUNTED_HOME = /^\/users\/[^/]+/;
  * @returns Its home path (`~/…`).
  */
 export function homePath(mounted: string): string {
-  return `~${mounted.replace(MOUNTED_HOME, '')}`;
+  return mounted.startsWith('~') ? mounted : `~${mounted.replace(MOUNTED_HOME, '')}`;
+}
+
+/**
+ * A new file's or folder's name: what it's found by, whatever it's called, so naming it never moves it.
+ *
+ * @returns A short id.
+ */
+export function newId(): string {
+  return crypto.randomUUID().replaceAll('-', '').slice(0, 12);
 }
 
 /**

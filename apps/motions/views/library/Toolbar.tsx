@@ -5,26 +5,23 @@ import { WindowControls, WindowTitle, WindowToolbar } from '@airlib/react-aui/de
 import { ArrowLeft } from '@airlib/react-aui/icons';
 import { PreviewPanelIcon } from '@/components/icons.js';
 import { WedyanGalleryLayoutToggle, WedyanGallerySearch } from '@/components/WedyanGallery.js';
-import { nameOf, parentOf } from '@/lib/documents/paths.js';
-import { dfs } from '@/lib/share/dfs.js';
 import { focusPrompt } from '@/lib/systems/focus.js';
 import { AddIcon, NewFolderIcon, SidebarCloseIcon, SidebarOpenIcon } from '../icons.js';
-import { freePath, ROOT } from '../motion.js';
+import { newFolder, ROOT } from '../motion.js';
 import { libraryCtx, type MotionLibrary } from './context.js';
 import { VIEW_LABELS } from './listing.js';
 import { LibrarySelection } from './Selection.js';
 
 /** The library's toolbar: where it is, what can be done with what's picked, and how it's shown. */
 export const LibraryToolbar = setup(() => {
-  const { state, tiles } = libraryCtx.get() as MotionLibrary;
+  const { state, up } = libraryCtx.get() as MotionLibrary;
   const inFolder = () => state.activeView === 'all' && state.folder !== ROOT;
-  const title = () => (inFolder() ? nameOf(state.folder) : VIEW_LABELS[state.activeView]);
+  const title = () => (inFolder() ? state.trail.at(-1)?.name : VIEW_LABELS[state.activeView]);
 
-  const up = () => {
-    state.folder = parentOf(state.folder);
-  };
-  const newFolder = () => {
-    void dfs.mkdir(freePath(new Set(tiles().map((tile) => tile.path)), state.folder, 'New folder'));
+  // A new folder is named right away: it's picked, with its name in the preview, ready to type.
+  const addFolder = async () => {
+    const path = await newFolder(state.folder, 'New folder');
+    Object.assign(state, { picked: path, several: false, previewShown: true, renaming: true });
   };
 
   return () => (
@@ -58,7 +55,7 @@ export const LibraryToolbar = setup(() => {
         {/* Folders are made where folders are: not in what's gathered from all of them. */}
         <Show when={() => state.activeView === 'all'}>
           {() => (
-            <Button aria-label="New folder" size="sm" variant="text" className={AUI_CLASS.CONTROL_ICON} onClick={newFolder}>
+            <Button aria-label="New folder" size="sm" variant="text" className={AUI_CLASS.CONTROL_ICON} onClick={addFolder}>
               <NewFolderIcon />
               <Tooltip>New folder</Tooltip>
             </Button>

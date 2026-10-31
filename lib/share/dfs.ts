@@ -1,4 +1,4 @@
-import { exists, list, mkdir, remove, search, write } from '@irpclib/r2-file';
+import { exists, list, mkdir, read, remove, search, update, write } from '@irpclib/r2-file';
 import '@/lib/documents/file-types.js';
 import { stillDescribe } from '@/lib/kernel/stills.h.js';
 import { createBinding } from './binding.js';
@@ -17,6 +17,9 @@ import { fileRef, watchFolder } from './workspace.js';
  * - `list`, `search`, `exists`, `write`, `mkdir`, `remove`: r2-file's own calls, IRPC stubs like any
  *   other, so a window asks for what it shows with `.with(() => args)`, its reader carrying `status`,
  *   `data` and `error`.
+ * - `update(path, { metadata })`: what's known about a file or folder, without touching its content:
+ *   a rename moves nothing.
+ * - `load(path)`: a document once, for a change made without opening it.
  * - `watch(folder, listener)`: every change in a folder, whoever makes it, for a window to act on:
  *   bumping a version its `.with` reads, so a file an agent writes shows up by itself.
  * - `binding(path, options?)`: a document a window works on: its live content, saved as it changes.
@@ -42,6 +45,8 @@ export const dfs = {
   write,
   mkdir,
   remove,
+  update,
+  load: <T>(path: string) => read<T>(path, { encoding: 'json' }),
   watch: watchFolder,
   binding: createBinding,
   image: imageUrl,

@@ -7,7 +7,7 @@
   "created": "2026-10-27T09:00:00Z",
   "updated": "2026-10-27T09:00:00Z",
   "author": { "kind": "user" },
-  "kind": "agent",
-  "looks": ["https://api.dicebear.com/9.x/notionists/svg?seed=Wedy&backgroundColor=f2d4c4"],
+  "kind": "character",
+  "head": { "main": "/~/People/Wedy.webp" },
   "voice": { "name": "Calm" }
 }

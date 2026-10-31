@@ -68,8 +68,7 @@ const StageAbout = setup(() => {
       <ScriptAbout
         picture={posterOf(stage) ?? composer.motion?.cover}
         ratio={`${width} / ${height}`}
-        title={stage.name}
-        description={stage.description}
+        document={stage}
         facts={[
           { label: 'Length', value: duration(runtime(stage.composition)) },
           { label: 'Size', value: `${width} × ${height}` },

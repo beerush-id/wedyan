@@ -3,13 +3,17 @@ import type { WedyanGalleryLayout } from '@/components/WedyanGallery.js';
 import { rowsOf } from '@/lib/documents/rows.js';
 import { dfs } from '@/lib/share/dfs.js';
 import { ROOT } from '../motion.js';
-import { changesListing, type LibraryView, listingOf, tileOf } from './listing.js';
+import { changesListing, type LibraryView, listingOf, orderOf, tileOf } from './listing.js';
 
 /** A library window's state: where it is, how it shows it, and what's picked. */
 export type LibraryState = {
   activeView: LibraryView;
   /** The folder All motions is in. */
   folder: string;
+  /** The folders opened to get there, with what they're called: a path only says their ids. */
+  trail: { path: string; name: string }[];
+  /** Whether what's picked is being named, right after it's made or asked to be. */
+  renaming: boolean;
   viewMode: WedyanGalleryLayout;
   query: string;
   sidebarHidden: boolean;
@@ -37,6 +41,8 @@ export function createLibrary() {
   const state = mutable<LibraryState>({
     activeView: 'recent',
     folder: ROOT,
+    trail: [],
+    renaming: false,
     viewMode: 'grid',
     query: '',
     sidebarHidden: false,
@@ -61,5 +67,23 @@ export function createLibrary() {
     Object.assign(state, { picked: null, several: false, query: '' });
   });
 
-  return { state, items, rows: () => rowsOf(items), tiles: () => rowsOf(items).flatMap(tileOf) };
+  return {
+    state,
+    items,
+    rows: () => rowsOf(items),
+    tiles: () => orderOf(state.activeView, rowsOf(items)).flatMap(tileOf),
+
+    /** Goes into a folder. */
+    enter({ path, name }: { path: string; name: string }) {
+      state.trail = [...state.trail, { path, name }];
+      state.folder = path;
+    },
+
+    /** Goes up a folder. */
+    up() {
+      const trail = state.trail.slice(0, -1);
+      state.trail = trail;
+      state.folder = trail.at(-1)?.path ?? ROOT;
+    },
+  };
 }

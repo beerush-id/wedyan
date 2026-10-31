@@ -241,7 +241,7 @@ function pathFrom(from: string, to: string): string {
  * @param kind - Whether it's sound or footage.
  * @returns Its length, in seconds.
  */
-function mediaSeconds(src: string, kind: 'audio' | 'video'): Promise<number> {
+export function mediaSeconds(src: string, kind: 'audio' | 'video'): Promise<number> {
   return new Promise((resolve) => {
     const media = document.createElement(kind);
     media.preload = 'metadata';

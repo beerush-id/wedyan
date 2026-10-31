@@ -7,6 +7,7 @@ import { dfs } from '@/lib/share/dfs.js';
 import { AddIcon } from '../../icons.js';
 import { addCast, newStage } from '../../motion.js';
 import { type Composer, composerCtx } from '../context.js';
+import { ASSET_TYPES, addAsset } from '../upload.js';
 
 /** Which command makes a new person, among the people to pick. */
 const NEW_PERSON = 'new-person';
@@ -28,6 +29,39 @@ export const AddStage = setup(() => {
     </Button>
   );
 }, 'AddStage');
+
+/** Uploads pictures, videos and sounds into the project, each under an id, called by its own name. */
+export const AddAsset = setup(() => {
+  const composer = composerCtx.get() as Composer;
+  let picker: HTMLInputElement | null = null;
+
+  const upload = async (files: FileList | null) => {
+    const { project } = composer;
+    if (!project || !files) return;
+    for (const file of files) await addAsset(project, file);
+    if (picker) picker.value = '';
+  };
+
+  return () => (
+    <>
+      <input
+        ref={(input) => {
+          picker = input;
+        }}
+        type="file"
+        accept={ASSET_TYPES}
+        multiple
+        hidden
+        aria-label="Files to upload"
+        onChange={(event) => void upload(event.target.files)}
+      />
+      <Button aria-label="Upload" size="xs" variant="text" className={AUI_CLASS.CONTROL_ICON} onClick={() => picker?.click()}>
+        <AddIcon />
+        <Tooltip>Upload</Tooltip>
+      </Button>
+    </>
+  );
+}, 'AddAsset');
 
 /** Puts someone in the project: one of the people not cast in it yet, or a new person. Either opens as a cast. */
 export const AddCast = setup(() => {

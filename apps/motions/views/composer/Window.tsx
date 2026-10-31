@@ -1,12 +1,8 @@
-import { $static, effect, mutable, Show, setup } from '@airlib/react';
-import { defineWindow, isFrontWindow, Window, WindowBody } from '@airlib/react-aui/desktop';
+import { effect, mutable, Show, setup, template } from '@airlib/react';
+import { isFrontWindow, Window, WindowBody, type WindowRenderProps } from '@airlib/react-aui/desktop';
 import type { FC } from 'react';
 import { dfs } from '@/lib/share/dfs.js';
 import type { FileRefEncoding } from '@/lib/share/workspace.js';
-import { fullRect } from '@/lib/systems/window.js';
-import manifest from '../../manifest.json';
-import { documentAt } from '../motion.js';
-import { CONTEXTS } from '../prompt.js';
 import { Compose } from './compose/Compose.js';
 import { ComposeDock, ComposeSubject } from './compose/Dock.js';
 import { type ComposerData, composerCtx, createComposer } from './context.js';
@@ -17,29 +13,23 @@ import { ComposerToolbar } from './Toolbar.js';
 /** What the dock shows for the project window in front; that window says what. */
 const MOTION_DOCK = mutable<{ extension?: FC; subject?: FC }>({ extension: undefined, subject: undefined }, { recursive: false });
 
-const MotionDockExtension = setup(() => () => (MOTION_DOCK.extension ? <MOTION_DOCK.extension /> : null), 'MotionDockExtension');
+/** The options of the project window in front, in the dock. */
+export const MotionDockExtension = template(() => (MOTION_DOCK.extension ? <MOTION_DOCK.extension /> : null), 'MotionDockExtension');
 
-const MotionDockSubject = setup(() => () => (MOTION_DOCK.subject ? <MOTION_DOCK.subject /> : null), 'MotionDockSubject');
+/** What those options act on, beside them. */
+export const MotionDockSubject = template(() => (MOTION_DOCK.subject ? <MOTION_DOCK.subject /> : null), 'MotionDockSubject');
 
 /**
  * A project in a window of its own: Direct, its writing and everything around it, and Compose, a
  * stage put together. The view is one; each window is one project's data. The window holds the
  * composer every part reads, and hands the dock what's made in its scope.
+ *
+ * @param props - The window's instance.
+ * @returns The window's view.
  */
-export const motionComposer = defineWindow({
-  name: `${manifest.name}-composer`,
-  label: manifest.label,
-  title: manifest.label,
-  image: manifest.icon,
-  rect: fullRect(),
-  window: { snap: '.aui-window', minWidth: 560, minHeight: 400 },
-  multiple: true,
-  dockExtensions: MotionDockExtension,
-  dockSubject: MotionDockSubject,
-}).render((props) => {
-  const instance = $static(() => props.instance);
+export function ComposerWindow({ instance }: WindowRenderProps) {
   const { path, direct } = instance.data as ComposerData;
-  const composer = createComposer(instance, path, direct);
+  const composer = createComposer(path, direct);
   composerCtx.set(composer);
 
   // The dock sits outside the window, so what it shows is made here, reading this composer.
@@ -91,30 +81,4 @@ export const motionComposer = defineWindow({
       </Window.Snippet>
     </Window>
   );
-});
-
-/**
- * Opens a project in a window of its own, or brings forward the one already showing it.
- *
- * @param path - The project's `.motion`.
- * @param direct - Whether it opens in Direct rather than Compose.
- * @returns The window showing the project.
- */
-export function openMotion(path: string, direct = false) {
-  const showing = motionComposer.instances.find((instance) => (instance.data as ComposerData).path === path);
-  if (showing) {
-    showing.focus();
-    return showing;
-  }
-
-  return motionComposer.open({ path, direct } satisfies ComposerData, {
-    name: 'project',
-    contexts: CONTEXTS,
-    get title() {
-      return documentAt<'motion'>(path)?.name ?? '';
-    },
-    get thumbnail() {
-      return documentAt<'motion'>(path)?.cover;
-    },
-  });
 }

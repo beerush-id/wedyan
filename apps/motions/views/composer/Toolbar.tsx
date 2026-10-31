@@ -1,12 +1,10 @@
 import { canCaptureVideo } from '@airlib/aria';
 import { AUI_CLASS } from '@airlib/aui/utils';
-import { $bind, Show, Snippet, setup } from '@airlib/react';
+import { $bind, setup, Show, Snippet } from '@airlib/react';
 import { Button, Divider, Toggle, ToggleGroup, Tooltip } from '@airlib/react-aui';
 import { WindowControls, WindowTitle, WindowToolbar } from '@airlib/react-aui/desktop';
-import { ArrowLeft } from '@airlib/react-aui/icons';
 import { PERSON_TABS, type PersonTab } from '@/apps/lounge/views/session.js';
 import { ComposeIcon, DirectIcon, RenderIcon, SidebarCloseIcon, SidebarOpenIcon } from '../icons.js';
-import { openLibrary } from '../library/Window.js';
 import { assigneeAt } from './compose/assignee.js';
 import { AssigneeAvatar } from './compose/assignment.js';
 import { type Composer, composerCtx } from './context.js';
@@ -14,31 +12,23 @@ import { type Composer, composerCtx } from './context.js';
 /** Where turning HTML-in-Canvas on lives, for people whose Chrome doesn't have it yet. */
 const CAPTURE_FLAG = 'chrome://flags/#canvas-draw-element';
 
-/** The project window's toolbar: back to the library, the side panel, the two modes, and what it's showing. */
+/** The project window's toolbar: the side panel, the two modes, and what it's showing. */
 export const ComposerToolbar = setup(() => {
   const composer = composerCtx.get() as Composer;
 
-  const back = () => {
-    composer.window.close();
-    openLibrary();
-  };
-
   return () => (
     <WindowToolbar className="wedyan-editor-toolbar">
-      <Button aria-label="All projects" size="sm" variant="text" className={AUI_CLASS.CONTROL_ICON} onClick={back}>
-        <ArrowLeft />
-      </Button>
-      <Toggle aria-label="Sidebar" size="sm" variant="text" className={AUI_CLASS.CONTROL_ICON} pressed={$bind(composer, 'sidebar')}>
+      <Toggle aria-label="Sidebar" size="sm" className={AUI_CLASS.CONTROL_ICON} pressed={$bind(composer, 'sidebar')}>
         <Snippet>{() => (composer.sidebar ? <SidebarCloseIcon /> : <SidebarOpenIcon />)}</Snippet>
         <Tooltip>Sidebar</Tooltip>
       </Toggle>
       <Divider orientation="vertical" variant="ghost" size="sm" />
       <ToggleGroup aria-label="Editor" size="sm" variant="glass" value={$bind(composer, 'mode')} required>
-        <Toggle value="direct" variant="text" size="sm">
+        <Toggle value="direct" size="sm">
           <DirectIcon />
           <span>Direct</span>
         </Toggle>
-        <Toggle value="compose" variant="text" size="sm">
+        <Toggle value="compose" size="sm">
           <ComposeIcon />
           <span>Compose</span>
         </Toggle>
@@ -72,7 +62,7 @@ const CastTabs = setup(() => {
     <>
       <ToggleGroup aria-label="Show" size="sm" variant="glass" value={$bind(tab, 'value')} required>
         {(Object.keys(PERSON_TABS) as PersonTab[]).map((name) => (
-          <Toggle key={name} value={name} variant="text" size="sm">
+          <Toggle key={name} value={name} size="sm">
             <span>{PERSON_TABS[name]}</span>
           </Toggle>
         ))}
@@ -98,7 +88,9 @@ const ComposeActions = setup(() => {
 
   return () => (
     <>
-      <Snippet>{() => (composer.status ? <span className="wedyan-motions-notice">{composer.status}</span> : null)}</Snippet>
+      <Snippet>
+        {() => (composer.status ? <span className="wedyan-motions-notice">{composer.status}</span> : null)}
+      </Snippet>
       <Snippet data={() => assigneeAt(composer, composer.stage?.assignee)}>
         {(agent) =>
           agent ? (

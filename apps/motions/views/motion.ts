@@ -1,5 +1,5 @@
 import { mutable } from '@airlib/react';
-import { nameOf, newHeader, parentOf, resolvePath } from '@/lib/documents/paths.js';
+import { nameOf, newHeader, newId, parentOf, resolvePath } from '@/lib/documents/paths.js';
 import type { FileRow } from '@/lib/documents/rows.js';
 import type { DocumentOf, DocumentType, MotionDocument, StageDocument } from '@/lib/documents/types.js';
 import { dfs } from '@/lib/share/dfs.js';
@@ -39,20 +39,34 @@ export function follow<T extends DocumentType = DocumentType>(from: string, path
 }
 
 /**
- * A free path for something new in a folder: `<base><extension>`, or the first `<base> N<extension>`
- * not taken.
+ * Makes a folder in the library, named apart from its path.
  *
- * @param taken - The paths taken.
- * @param folder - The folder it goes in.
- * @param base - Its name before a number.
- * @param extension - Its extension, if it's a file.
- * @returns The path.
+ * @param parent - The folder it goes in.
+ * @param title - What it's called.
+ * @returns Its path.
  */
-export function freePath(taken: Set<string>, folder: string, base: string, extension = ''): string {
-  let path = `${folder}/${base}${extension}`;
-  for (let n = 2; taken.has(path); n++) path = `${folder}/${base} ${n}${extension}`;
+export const newFolder = async (parent: string, title: string): Promise<string> => {
+  const path = `${parent}/${newId()}`;
+  await dfs.mkdir(path, { metadata: { title } });
   return path;
-}
+};
+
+/**
+ * Renames a project or a folder. A project's name is its document's, so it's saved there; a folder's
+ * is all it has, and only its row changes. Neither moves.
+ *
+ * @param row - What's renamed.
+ * @param title - What it's called now.
+ * @returns When it's saved.
+ */
+export const rename = async (row: FileRow, title: string): Promise<void> => {
+  if (row.kind !== 'motion') {
+    await dfs.update(row.path, { metadata: { title } });
+    return;
+  }
+  const document = await dfs.load<MotionDocument>(row.path);
+  if (document) await dfs.write(row.path, { ...document, name: title, updated: new Date().toISOString() } as never);
+};
 
 /**
  * Takes projects off the drive: each `.motion` with the folder holding it, which is the project.
@@ -71,26 +85,30 @@ const STAGE_SIZES: Record<string, { width: number; height: number }> = {
 };
 
 /**
- * Starts a new project in its own folder, with one empty stage at its aspect ratio.
+ * Starts a new project in its own folder, with one empty stage at its aspect ratio. Its folder and
+ * file are named by its id; what it's called is its document's, and can change.
  *
- * @param name - What it's called, which its folder and file take too.
+ * @param name - What it's called.
  * @param aspect - Its aspect ratio, e.g. `16:9`.
  * @param cover - Its cover's address.
  * @returns The new project, once it's written.
  */
 export const newMotion = async (name: string, aspect: string, cover: string): Promise<Project> => {
-  let folder = `${ROOT}/${name}`;
-  for (let n = 2; await dfs.exists(folder); n++) folder = `${ROOT}/${name} ${n}`;
-  const path = `${folder}/${nameOf(folder)}.motion`;
+  const id = newId();
+  const folder = `${ROOT}/${id}`;
+  const path = `${folder}/${id}.motion`;
   const document: MotionDocument = {
     ...newHeader(path, '.motion'),
+    id,
+    name,
     type: 'motion',
     aspect,
     cover,
     status: 'draft',
     assets: [],
   };
-  await dfs.write(`${folder}/Stage.stage`, stageAt(`${folder}/Stage.stage`, document, 0) as never);
+  const stage = newId();
+  await dfs.write(`${folder}/${stage}.stage`, stageAt(stage, folder, 'Stage 1', document, 0) as never);
   await dfs.write(path, document as never);
   return { path, document };
 };
@@ -104,9 +122,11 @@ export const newMotion = async (name: string, aspect: string, cover: string): Pr
  * @returns The new stage's path.
  */
 export const newStage = (project: Project, stages: FileRow[]): string => {
-  const path = freePath(new Set(stages.map((stage) => stage.path)), parentOf(project.path), 'Stage', '.stage');
+  const id = newId();
+  const folder = parentOf(project.path);
   const last = Math.max(-1, ...stages.map((stage) => stage.position));
-  void dfs.write(path, stageAt(path, project.document, last + 1) as never);
+  const path = `${folder}/${id}.stage`;
+  void dfs.write(path, stageAt(id, folder, `Stage ${stages.length + 1}`, project.document, last + 1) as never);
   return path;
 };
 
@@ -118,24 +138,26 @@ export const newStage = (project: Project, stages: FileRow[]): string => {
  * @returns When it's written.
  */
 export const newScript = async (project: string, stage: StageDocument): Promise<void> => {
-  const folder = parentOf(project);
-  let path = `${folder}/${stage.name}.md`;
-  for (let n = 2; await dfs.exists(path); n++) path = `${folder}/${stage.name} ${n}.md`;
-  await dfs.write(path, `## ${stage.name}\n`);
+  const path = `${parentOf(project)}/${newId()}.md`;
+  await dfs.write(path, `## ${stage.name}\n`, { metadata: { title: `${stage.name} script` } });
   stage.script = nameOf(path);
 };
 
 /**
  * A new empty stage of a project: its size, its casts, at 30 frames a second.
  *
- * @param path - Where it goes.
+ * @param id - Its id, which names its file.
+ * @param folder - The folder it goes in.
+ * @param name - What it's called.
  * @param project - The project's `.motion`.
  * @param order - Its place in the project.
  * @returns The stage.
  */
-function stageAt(path: string, project: MotionDocument, order: number): StageDocument {
+function stageAt(id: string, folder: string, name: string, project: MotionDocument, order: number): StageDocument {
   return {
-    ...newHeader(path, '.stage'),
+    ...newHeader(`${folder}/${id}.stage`, '.stage'),
+    id,
+    name,
     type: 'stage',
     projectId: project.id,
     order,

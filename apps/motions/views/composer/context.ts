@@ -1,6 +1,5 @@
 import { createContext, effect, mutable } from '@airlib/react';
 import type { Timeline, TimelineSegment } from '@airlib/react/timeline';
-import type { WindowInstance } from '@airlib/react-aui/desktop';
 import type { PersonTab } from '@/apps/lounge/views/session.js';
 import { isGenerative } from '@/lib/documents/generation.js';
 import { resolvePath } from '@/lib/documents/paths.js';
@@ -23,7 +22,6 @@ export type GenerativeSource = { path: string; source: GenerativeDocument };
 
 /** One project window's facts, for every part of it and for its dock. */
 export type Composer = {
-  window: WindowInstance;
   path: string;
   mode: 'direct' | 'compose';
   activeView: DirectView;
@@ -89,20 +87,18 @@ export const composerCtx = createContext<Composer>();
 const HOME = '~';
 
 /** The files a project window's listing shows. */
-const LISTED_FILE = /\.(motion|stage|persona|agent|still|take)$/;
+const LISTED_FILE = /\.(motion|stage|persona|agent|still|take|png|jpe?g|webp|gif|mp4|webm|mp3|wav)$/;
 
 /**
  * A project window's one source of truth: the project, and what the window shows of it.
  *
- * @param window - The window.
  * @param path - The project's `.motion`.
  * @param direct - Whether it opens in Direct rather than Compose.
  * @returns The composer.
  */
-export function createComposer(window: WindowInstance, path: string, direct: boolean): Composer {
+export function createComposer(path: string, direct: boolean): Composer {
   const composer: Composer = mutable<Composer>(
     {
-      window,
       path,
       mode: direct ? 'direct' : 'compose',
       activeView: 'overview',

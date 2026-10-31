@@ -1,7 +1,7 @@
 import type { AUIBoot } from '@airlib/react-aui/desktop';
 import { type LinkHandle, linkTarget } from '@/lib/systems/public.js';
-import { motionComposer, openMotion } from './composer/Window.js';
-import { motionLibrary, openLibrary } from './library/Window.js';
+import { motionComposer, openMotion } from './composer/index.js';
+import { motionLibrary, openLibrary } from './library/index.js';
 
 export { COMMANDS as commands } from './prompt.js';
 export { motionComposer, motionLibrary };

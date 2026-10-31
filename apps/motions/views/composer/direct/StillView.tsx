@@ -1,5 +1,5 @@
 import { $bind, Snippet, template } from '@airlib/react';
-import { DescriptionList, Gallery } from '@airlib/react-aui';
+import { DescriptionList, Gallery, TextInput } from '@airlib/react-aui';
 import type { StillDocument } from '@/lib/documents/types.js';
 import { shortDate } from '../../motion.js';
 
@@ -20,6 +20,7 @@ export const StillView = template<{ document: StillDocument }>(({ document }) =>
   return (
     <div className="wedyan-document wedyan-still">
       <Snippet>{() => <img className="wedyan-still-picture" src={chosen()?.src} alt={document.name} />}</Snippet>
+      <TextInput size="sm" label="Name" value={$bind(document, 'name')} className="wedyan-rename" />
       <section className="wedyan-document-section" aria-label="Prompt">
         <Snippet>{() => <blockquote>{chosen()?.prompt ?? document.prompt}</blockquote>}</Snippet>
         <DescriptionList

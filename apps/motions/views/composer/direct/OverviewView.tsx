@@ -46,8 +46,7 @@ const OverviewAbout = setup(() => {
       <ScriptAbout
         picture={motion.cover}
         ratio={motion.aspect.replace(':', ' / ')}
-        title={motion.name}
-        description={motion.description}
+        document={motion}
         facts={[
           { label: 'Length', value: motion.length ? `${made} of ${duration(motion.length)}` : made },
           { label: 'Aspect', value: motion.aspect },

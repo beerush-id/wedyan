@@ -47,6 +47,9 @@ export function reportChanges(): FileDriver {
     async link(ctx) {
       report(ctx.path);
     },
+    async update(ctx) {
+      report(ctx.path);
+    },
     async remove(ctx) {
       report(ctx.path, true);
     },

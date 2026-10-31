@@ -39,6 +39,7 @@ type ScriptPaneProps = {
   script?: MotionScript;
   /** Names the aside, e.g. "About the stage". */
   label: string;
+  children?: ReactNode;
 };
 
 type ScriptPaneSlots = {

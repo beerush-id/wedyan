@@ -2,7 +2,7 @@ import { getContext, IRPC_STORE, IRPCFile } from '@irpclib/irpc';
 import { read } from '@irpclib/r2-file';
 import type { FileDriver } from '@irpclib/r2-file/adapter';
 import { fsContext } from '@irpclib/r2-file/context';
-import { hasWords, isMedia, wordsOf } from '@/lib/documents/words.js';
+import { hasWords, isMedia, titleOf, wordsOf } from '@/lib/documents/words.js';
 import { logger } from '../logger.js';
 import { configured, ownerOf, TEXT_LIMIT, vectorId } from './memory.js';
 
@@ -22,25 +22,31 @@ export function contentIndex(): FileDriver {
   const indexed = (path?: string): path is string => !!path && hasWords(path);
 
   return {
-    async write(ctx, _path, data) {
+    async write(ctx, _path, data, options) {
       if (!indexed(ctx.path)) return;
-      await behind(ctx.path, async () => index(ctx.path, await wordsAt(ctx.path, data)));
+      const title = options?.metadata?.title;
+      await behind(ctx.path, async () => index(ctx.path, ...(await wordsAt(ctx.path, data, title))));
+    },
+    async update(ctx, _path, options) {
+      const title = options?.metadata?.title;
+      if (!indexed(ctx.path) || !title) return;
+      await behind(ctx.path, async () => index(ctx.path, ...(await wordsAt(ctx.path, undefined, title))));
     },
     async copy(ctx) {
       const destination = ctx.destination;
       if (!indexed(destination)) return;
-      await behind(destination, async () => index(destination, await wordsAt(destination)));
+      await behind(destination, async () => index(destination, ...(await wordsAt(destination, undefined, ctx.info?.metadata?.title))));
     },
     async move(ctx) {
       const destination = ctx.destination;
       if (indexed(ctx.path)) await behind(ctx.path, () => unindex(ctx.path));
-      if (indexed(destination)) await behind(destination, async () => index(destination, await wordsAt(destination)));
+      if (indexed(destination)) await behind(destination, async () => index(destination, ...(await wordsAt(destination, undefined, ctx.info?.metadata?.title))));
     },
     async remove(ctx) {
       if (indexed(ctx.path)) await behind(ctx.path, () => unindex(ctx.path));
     },
     async restore(ctx) {
-      if (indexed(ctx.path)) await behind(ctx.path, async () => index(ctx.path, await wordsAt(ctx.path)));
+      if (indexed(ctx.path)) await behind(ctx.path, async () => index(ctx.path, ...(await wordsAt(ctx.path, undefined, ctx.info?.metadata?.title))));
     },
   };
 }
@@ -57,12 +63,12 @@ const MAX_CHUNKS = 32;
  *
  * @param storagePath - The file's resolved path.
  * @param text - Its words.
+ * @param name - What it's called.
  */
-async function index(storagePath: string, text: string | undefined): Promise<void> {
+async function index(storagePath: string, text: string | undefined, name: string): Promise<void> {
   const { vectors, embed } = configured();
   const owner = ownerOf();
   const path = userPath(storagePath);
-  const name = path.slice(path.lastIndexOf('/') + 1);
   const chunks = chunksOf(text ?? '').slice(0, MAX_CHUNKS);
   const words = await vectorId(owner, text ?? '');
 
@@ -97,12 +103,13 @@ async function unindex(storagePath: string): Promise<void> {
  *
  * @param storagePath - The file's resolved path.
  * @param data - What was written, if it was.
- * @returns Its words.
+ * @param title - What it was given to be called, if it was.
+ * @returns Its words, and what it's called.
  */
-async function wordsAt(storagePath: string, data?: unknown): Promise<string | undefined> {
-  if (isMedia(storagePath)) return wordsOf(storagePath);
+async function wordsAt(storagePath: string, data?: unknown, title?: string): Promise<[string | undefined, string]> {
   const carried = data !== undefined && !(data instanceof IRPCFile);
-  return wordsOf(storagePath, carried ? data : await read(storagePath, { encoding: 'text' }));
+  const content = carried || isMedia(storagePath) ? data : await read(storagePath, { encoding: 'text' });
+  return [wordsOf(storagePath, content, title), titleOf(storagePath, content, title)];
 }
 
 /** The ids of a file's chunks, from `start` up to `end`. */

@@ -191,6 +191,11 @@
   background: #000;
 }
 
+/* A name typed in place: it reads as the field it is, across what it names. */
+.wedyan-rename {
+  inline-size: 100%;
+}
+
 .wedyan-direct-heading {
   display: flex;
   flex-direction: column;

@@ -11,11 +11,17 @@ const DOCUMENT_WORDS: Record<string, Words> = {
   persona: (persona: Header & { kind?: string }) => [...header(persona), persona.kind],
   agent: (agent: Header & { persona?: string }) => [...header(agent), agent.persona],
   album: (album: Header) => [...header(album)],
-  chat: (chat: Header & { messages?: { parts: { kind: string; text?: string }[] }[] }) => [
+  chat: (chat: Header & { messages?: { text?: string; parts?: { text?: string }[] }[] }) => [
     ...header(chat),
-    ...(chat.messages ?? []).flatMap((message) => message.parts.map((part) => part.text)),
+    ...(chat.messages ?? []).flatMap((message) => [message.text, ...(message.parts ?? []).map((part) => part.text)]),
   ],
 };
+
+/**
+ * The desktop's current conversation page, saved on every message and already what the agents are
+ * given. A page that's closed leaves them, and is written once, so the index is how it stays found.
+ */
+const CONVERSATION = /\/Desktop\.chat$/;
 
 /** Plain text, indexed as it is. */
 const TEXT_FILE = /\.(md|txt)$/i;
@@ -29,7 +35,8 @@ const MEDIA_FILE = /\.(png|jpe?g|webp|gif|mp4|webm|mp3|wav)$/i;
  * @param path - The file's path.
  * @returns Whether it's text, media, or a kind of document that has words.
  */
-export const hasWords = (path: string): boolean => TEXT_FILE.test(path) || MEDIA_FILE.test(path) || extensionOf(path) in DOCUMENT_WORDS;
+export const hasWords = (path: string): boolean =>
+  !CONVERSATION.test(path) && (TEXT_FILE.test(path) || MEDIA_FILE.test(path) || extensionOf(path) in DOCUMENT_WORDS);
 
 /**
  * Whether a file's words are its name alone, so its content is never read for them.
@@ -40,14 +47,28 @@ export const hasWords = (path: string): boolean => TEXT_FILE.test(path) || MEDIA
 export const isMedia = (path: string): boolean => MEDIA_FILE.test(path);
 
 /**
+ * What a file is called, which its path doesn't say: files are named by id.
+ *
+ * @param path - The file's path.
+ * @param content - Its content, for a document, which holds its own name.
+ * @param title - What it was written or renamed with.
+ * @returns What it's called, or its file name for want of one.
+ */
+export function titleOf(path: string, content?: unknown, title?: string): string {
+  const named = TEXT_FILE.test(path) || MEDIA_FILE.test(path) ? undefined : (parsed(content) as { name?: string } | undefined)?.name;
+  return title ?? named ?? path.slice(path.lastIndexOf('/') + 1);
+}
+
+/**
  * What memory finds a file by.
  *
  * @param path - The file's path.
  * @param content - Its content: text or a document, as an object or as JSON. Media needs none.
+ * @param title - What it's called.
  * @returns Its words, unless it has none.
  */
-export function wordsOf(path: string, content?: unknown): string | undefined {
-  if (MEDIA_FILE.test(path)) return path.slice(path.lastIndexOf('/') + 1).replace(MEDIA_FILE, '');
+export function wordsOf(path: string, content?: unknown, title?: string): string | undefined {
+  if (MEDIA_FILE.test(path)) return title;
   if (TEXT_FILE.test(path)) return typeof content === 'string' ? content : undefined;
   const words = DOCUMENT_WORDS[extensionOf(path)];
   const document = parsed(content);
