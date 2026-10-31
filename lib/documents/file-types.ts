@@ -1,4 +1,5 @@
-import { fileModule, writeStub } from '@irpclib/r2-file';
+import { HandlerError } from '@irpclib/irpc';
+import { fileModule, readStub, writeStub } from '@irpclib/r2-file';
 
 /**
  * What each kind of document is, by its extension. r2-file types a file by how its data is carried,
@@ -17,6 +18,9 @@ export const FILE_TYPES: Record<string, string> = {
   agent: 'application/vnd.wedyan.agent+json',
 };
 
+/** Plain text files, by extension. */
+const TEXT_EXTENSIONS = new Set(['md', 'txt', 'json']);
+
 /** The metadata value of a project's favourite flag and of each of its tags. */
 export const FLAGGED = 'true';
 
@@ -26,8 +30,35 @@ fileModule.hook(writeStub, (req) => {
   const extension = path.split('.').pop() as string;
   const type = FILE_TYPES[extension];
   if (!type) return;
+  if (typeof data === 'string') assertDocument(path, data);
   req.args[2] = { ...options, type, metadata: { ...options?.metadata, ...(extension === 'motion' ? flagsOf(data) : {}) } };
 });
+
+// A document or a text file is words, whoever reads it: unencoded, a read gives a link to download,
+// which an agent on the server can't follow.
+fileModule.hook(readStub, (req) => {
+  const [path, options] = req.args;
+  const extension = path.split('.').pop() as string;
+  if (options?.encoding === undefined && (extension in FILE_TYPES || TEXT_EXTENSIONS.has(extension))) {
+    req.args[1] = { ...options, encoding: 'text' };
+  }
+});
+
+/**
+ * Refuses a document written as text that isn't JSON: kept, it could never be opened again. An agent
+ * writes documents as text, and the refusal tells it where to correct what it wrote.
+ *
+ * @param path - The document's path.
+ * @param text - The document, as written.
+ * @throws HandlerError `EINVAL` naming what's wrong with the text.
+ */
+function assertDocument(path: string, text: string): void {
+  try {
+    JSON.parse(text);
+  } catch (cause) {
+    throw new HandlerError('EINVAL', `${path} is not valid JSON, nothing was written: ${(cause as Error).message}`);
+  }
+}
 
 /**
  * A project's flags as file metadata, so a listing can ask for them.
