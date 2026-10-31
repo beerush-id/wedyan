@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { shortIdOf } from '../../lib/server/session.js';
 import { VISITOR_LIMIT } from '../../lib/server/usage.js';
 import { isUsageLimit } from '../../lib/share/usage.js';
-import { localTime, wedyan } from '../../lib/share/wedyan.js';
+import { localTime, plainDates, wedyan } from '../../lib/share/wedyan.js';
 import { speak } from '../../lib/speech/speech.h.js';
 
 // The desktop opening its conversation: one call, its tab's ID kept for it.
@@ -35,6 +35,19 @@ describe('a desktop opening the conversation', () => {
 
     expect(time).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/);
     expect(new Date(time).getTime()).toBe(now.getTime());
+  });
+
+  it('sends a picked date as the day that was picked, and leaves everything else as it is', () => {
+    const picked = new Date(2026, 10, 4).toISOString();
+    const moment = new Date(2026, 10, 4, 15, 30).toISOString();
+
+    expect(plainDates({ date: picked, at: moment, time: '10:30', title: 'Review', count: 2 })).toEqual({
+      date: '2026-11-04',
+      at: moment,
+      time: '10:30',
+      title: 'Review',
+      count: 2,
+    });
   });
 
   it('gives the dock what it’s wired to', async () => {

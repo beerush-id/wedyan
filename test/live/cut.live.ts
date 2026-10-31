@@ -25,6 +25,7 @@ const ASKS = [
   { text: 'Can you search for the most recent news in Indonesia? Around AI topics.' },
   { text: 'Do you know what time is it?', history: true, context: { time: '2026-10-31T11:30:00+07:00' } },
   { text: 'How useful are you?', history: true },
+  { text: 'Ask me which day and time for the lantern call, with a form.' },
 ];
 
 describe.skipIf(!PROVIDERS.meta.key)('the raw reply, live', () => {

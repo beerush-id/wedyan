@@ -14,6 +14,10 @@ export function june(model: string): AgentProfile {
   return { name: 'june', model, tools: [], system: COMPOSER_PROMPT };
 }
 
+/** What a date picker's and a time picker's own controls read out, as AUI requires them. */
+const DATE_LABELS = { previous: 'Previous month', next: 'Next month', year: 'Year' };
+const TIME_LABELS = { hour: 'Hour', minute: 'Minute', period: 'Half of the day' };
+
 /** The roles June may use, with the only props she may set; everything else goes in as children. */
 const VOCABULARY = `- Text and layout: p, span, strong, em, small, code, pre, blockquote, ul, ol, li, h3, h4, h5, h6, hr, a (props href), dl, dt, dd, table, thead, tbody, tr, th, td, section
 - A widget's own parts, at its top level: card-media, card-header, card-title, card-description, card-body, card-actions
@@ -22,7 +26,7 @@ const VOCABULARY = `- Text and layout: p, span, strong, em, small, code, pre, bl
 - Pictures to look at, one or many: gallery (props label, items: a list of {value, src, alt, title}; value is the picture's path, src its path in the home, ~/… as given)
 - A small round picture of a person, only: avatar (props src, alt). Never use it for a picture to look at.
 - Structure: tab, tab-list, tab-button, tab-panel, accordion, accordion-button, accordion-panel, divider
-- Form fields: field, field-label, field-description, text-input, switch, radio-group, radio (props value)
+- Form fields: field, field-label, text-input (props label, placeholder), date-picker (props label, placeholder, labels: ${JSON.stringify(DATE_LABELS)}; its value is YYYY-MM-DD), time-picker (props label, inline, labels: ${JSON.stringify(TIME_LABELS)}; its value is HH:mm; inline always true), switch, radio-group, radio (props value)
 - Desktop forms, whole forms the desktop draws itself: onboarding (a new user's first form: it asks how to call them and what to call the assistant, and saves their profile)`;
 
 /** The style props every component takes, with AUI's own values, so June can keep the user's look. */
@@ -49,14 +53,18 @@ Rules:
 - Keep the look the user asked for, below, on every widget: the style props in the widget's own "props", and the structure it needs. Without one, leave the style props out.
 - Keep every value from the description exactly: names, numbers, dates, paths. Never invent data.
 - In a form, bind each input to the field the description names: "bindings": [{"prop": "value", "state": "$this.form.FIELD", "writable": true}]. Outside a form, never use bindings. Never add a button to send a form: the desktop adds it.
-- In a form, a choice between options is a radio-group with radio children, yes or no is a switch, and free text is a text-input.
+- In a form, a choice between options is a radio-group with radio children, yes or no is a switch, a date is a date-picker, a time is a time-picker, and free text is a text-input. A date and a time are always two fields named "date" and "time", labelled Date and Time, even when the description calls them one field: two inputs never share a field.
+- Every input in a form sits in a field, after a field-label saying what's asked, short, like "Time", and has those same words in its label prop, and in its placeholder when it takes one. Never name or describe the control, like "date picker", and add no hint.
 - When the description asks for a desktop form, answer only that node, with no props, bindings or children: the desktop draws all of it, e.g. {"role": "onboarding"}.
 
 Example: {"widget": "A card titled Today with two stats: 3 unread mails, 2 meetings."}
 {"children": [{"role": "card-header", "children": [{"role": "card-title", "children": ["Today"]}]}, {"role": "card-body", "children": [{"role": "stat", "props": {"label": "Unread mails", "value": 3}}, {"role": "stat", "props": {"label": "Meetings", "value": 2}}]}]}
 
 Example: {"form": "A choice named \\"choice\\" between keep (Keep it) and delete (Delete it)."}
-{"role": "radio-group", "bindings": [{"prop": "value", "state": "$this.form.choice", "writable": true}], "children": [{"role": "radio", "props": {"value": "keep"}, "children": ["Keep it"]}, {"role": "radio", "props": {"value": "delete"}, "children": ["Delete it"]}]}`;
+{"role": "radio-group", "bindings": [{"prop": "value", "state": "$this.form.choice", "writable": true}], "children": [{"role": "radio", "props": {"value": "keep"}, "children": ["Keep it"]}, {"role": "radio", "props": {"value": "delete"}, "children": ["Delete it"]}]}
+
+Example: {"form": "A field named review_time for the review's date and time."}
+[{"role": "field", "children": [{"role": "field-label", "children": ["Date"]}, {"role": "date-picker", "props": {"label": "Date", "placeholder": "Date", "labels": ${JSON.stringify(DATE_LABELS)}}, "bindings": [{"prop": "value", "state": "$this.form.date", "writable": true}]}]}, {"role": "field", "children": [{"role": "field-label", "children": ["Time"]}, {"role": "time-picker", "props": {"label": "Time", "inline": true, "labels": ${JSON.stringify(TIME_LABELS)}}, "bindings": [{"prop": "value", "state": "$this.form.time", "writable": true}]}]}]`;
 
 /** A set of AUI values as June's prompt lists them. */
 function listOf(values: Record<string, string>): string {

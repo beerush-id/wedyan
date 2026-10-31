@@ -14,6 +14,9 @@ import { IDLE_AFTER, PROFILE_PATH, type UserProfile } from './profile.js';
 import { createWidgets } from './widgets.js';
 import { fileRef } from './workspace.js';
 
+/** An exact moment in ISO 8601 and UTC, as a date picker holds what's picked. */
+const ISO_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+
 /** Where a tab keeps its own ID, for itself and across its reloads. */
 const TAB_KEY = 'wedyan.tab';
 
@@ -159,10 +162,32 @@ export function wedyan() {
     widgets,
     speech,
     stop,
-    ack: (widget: string, form: Record<string, IRPCData>) => chat.ask('ack', widget, form),
+    ack: (widget: string, form: Record<string, IRPCData>) => chat.ask('ack', widget, plainDates(form)),
     answer,
     chat,
   };
+}
+
+/**
+ * A form's dates as the day the user picked. A date picker holds the UTC time of that day's local
+ * midnight, which east of Greenwich still reads as the day before: told that, an agent is a day off.
+ *
+ * @param form - The form's values.
+ * @returns Them with each picked date as `YYYY-MM-DD`.
+ */
+export function plainDates(form: Record<string, IRPCData>): Record<string, IRPCData> {
+  return Object.fromEntries(
+    Object.entries(form).map(([name, value]) => [name, typeof value === 'string' ? plainDate(value) : value]),
+  );
+}
+
+/** A picked date as `YYYY-MM-DD`; anything else, a time of day included, as it is. */
+function plainDate(value: string): string {
+  if (!ISO_TIME.test(value)) return value;
+  const date = new Date(value);
+  if (date.getHours() || date.getMinutes() || date.getSeconds()) return value;
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
 /** What the agents are told of this moment with the user's words: the desktop, and the time here. */
