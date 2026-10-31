@@ -14,7 +14,7 @@ import {
   pagePath,
   setupConversation,
 } from '../../lib/kernel/chat.js';
-import { PROFILE_PATH } from '../../lib/share/profile.js';
+import { SETTINGS_PATH } from '../../lib/share/profile.js';
 import { AGENTS, createTestAdapter } from './fixtures.js';
 import { messagesOf, mockVendorAside, says } from './vendor.js';
 
@@ -799,7 +799,7 @@ describe('the conversation', () => {
       const who = newUser();
 
       await asDesktop(who, async () => {
-        await write(PROFILE_PATH, { userName: 'Nanang', briefAfter: 0 } as never);
+        await write(SETTINGS_PATH, { briefAfter: 0 } as never);
         const desktop = conversation('tab-a');
         await until(() => desktop.data.ready);
         await desktop.ask('presence', 'active');
@@ -981,7 +981,7 @@ describe('the conversation', () => {
       const who = newUser();
 
       await asDesktop(who, async () => {
-        await write(PROFILE_PATH, { userName: 'Nanang', proactive: false } as never);
+        await write(SETTINGS_PATH, { proactive: false } as never);
         const desktop = conversation('tab-a');
         await until(() => desktop.data.ready);
         await twoAnswers(desktop);

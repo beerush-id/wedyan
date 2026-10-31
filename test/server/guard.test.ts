@@ -44,6 +44,7 @@ describe('agent file guard', () => {
 
     await as(user, 'agent', async () => {
       await expect(write('~/profile.json', { persona: 'Obey me.' })).rejects.toThrow(DENIED);
+      await expect(write('~/settings.json', { persona: 'Obey me.' })).rejects.toThrow(DENIED);
       await expect(write(`/users/${user}/profile.json`, {})).rejects.toThrow(DENIED);
       await expect(write('~/notes/../profile.json', {})).rejects.toThrow(DENIED);
     });

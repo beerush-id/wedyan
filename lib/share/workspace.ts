@@ -1,5 +1,5 @@
 import { isBrowser, microtask, mutable, onCleanup, subscribe } from '@irpclib/irpc/core';
-import { configure, type FileInput, fileModule, PERSIST_DELAY, read, readStub, write } from '@irpclib/r2-file';
+import { configure, type FileInput, fileModule, read, readStub, write } from '@irpclib/r2-file';
 import { workspace } from '@/lib/kernel/workspace.h.js';
 
 // The desktop's files, one live object per file: read once, then kept in sync with every change
@@ -8,6 +8,12 @@ import { workspace } from '@/lib/kernel/workspace.h.js';
 
 /** How long the browser keeps a read: the tab's life, since the workspace keeps it in sync. */
 const A_YEAR = 365 * 24 * 60 * 60 * 1000;
+
+/**
+ * How long, in ms, edits rest before they're saved: long enough that dragging or typing is one
+ * write, short enough that an agent asked right after reads what was just changed.
+ */
+const SAVE_DELAY = 1000;
 
 /** The field an item of a list is known by, so it stays the same object when the list changes. */
 export const ENTITY_KEY = 'id';
@@ -47,10 +53,20 @@ export function fileRef<T>(path: string, encoding: FileRefEncoding = 'json'): Fi
  * made in.
  *
  * @param path - The file's home path (`~/…`).
+ * @param blank - What to edit while the file doesn't exist: the file is made by the first change,
+ *   not by opening it, so a file whose absence means something keeps meaning it.
  * @returns The file's live reference, the same object `fileRef` gives every other caller.
  */
-export function edit<T>(path: string): FileRef<T> {
+export function edit<T>(path: string, blank?: T): FileRef<T> {
   const kept = KEPT.get(keyOf(path, 'json')) ?? open(path, 'json');
+  kept.blank ??= blank;
+  // Already read and not there, before anyone gave it a blank.
+  if (kept.absent && kept.blank !== undefined) {
+    kept.syncing = true;
+    kept.state.data = kept.blank;
+    kept.syncing = false;
+    kept.absent = false;
+  }
   kept.editors += 1;
   if (kept.editors === 1) kept.stopSaving = saveChanges(kept);
 
@@ -87,6 +103,10 @@ type Kept = {
   dirty: boolean;
   /** Taking a change from elsewhere, which isn't saved back. */
   syncing: boolean;
+  /** What its editors work on while the file doesn't exist. */
+  blank?: unknown;
+  /** Read, not there, and with no blank to show for it. */
+  absent?: boolean;
   stopSaving?: () => void;
 };
 
@@ -145,8 +165,10 @@ async function refresh(kept: Kept, fresh = false): Promise<void> {
   // Edited here since: the edits win until they're saved, and their save is what's kept.
   if (kept.dirty) return;
 
+  const next = content ?? kept.blank;
+  kept.absent = next === undefined || next === null;
   kept.syncing = true;
-  const merged = merge(kept.state.data, content);
+  const merged = merge(kept.state.data, next);
   if (merged !== kept.state.data) kept.state.data = merged;
   kept.state.ready = true;
   kept.syncing = false;
@@ -154,7 +176,7 @@ async function refresh(kept: Kept, fresh = false): Promise<void> {
 
 /** Saves a kept file's changes a moment after they stop; returns what stops it, saving what's left. */
 function saveChanges(kept: Kept): () => void {
-  const [schedule, cancel] = microtask(PERSIST_DELAY);
+  const [schedule, cancel] = microtask(SAVE_DELAY);
   let version = 0;
   let pending: (() => void) | undefined;
 

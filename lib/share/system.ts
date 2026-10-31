@@ -1,4 +1,4 @@
-import { PROFILE_PATH } from './profile.js';
+import { PROFILE_PATH, SETTINGS_PATH } from './profile.js';
 
 /** The user's conversation with Wedyan: its current page. Older pages are numbered beside it. */
 export const CONVERSATION_PATH = '~/Desktop.chat';
@@ -40,7 +40,8 @@ export type SystemEntry = {
 export const SYSTEM_FILES: SystemEntry[] = [
   { path: CONVERSATION_PATH, kind: 'file', holds: 'The conversation with Wedyan', writers: ['wedyan'] },
   { path: '~/Desktop.{n}.chat', kind: 'file', holds: 'An older page of the conversation', writers: ['wedyan'] },
-  { path: PROFILE_PATH, kind: 'file', holds: 'Who the user is, and the assistant’s voice', writers: ['desktop'] },
+  { path: PROFILE_PATH, kind: 'file', holds: 'Who the user is', writers: ['desktop'] },
+  { path: SETTINGS_PATH, kind: 'file', holds: 'How the assistant works with the user', writers: ['desktop'] },
   { path: MEMOS_PATH, kind: 'folder', holds: 'What the assistant remembers', writers: ['wedyan', 'desktop'] },
   { path: VAULT_PATH, kind: 'file', holds: 'The user’s secrets', writers: ['desktop'] },
   { path: AGENTS_PATH, kind: 'folder', holds: 'The user’s own agents, one file each', writers: ['desktop'] },

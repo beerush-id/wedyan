@@ -1,38 +1,45 @@
-import { $bind, $use, For, Show, Snippet, template } from '@airlib/react';
-import { Button, List, ListItem, NumberStepper, Radio, RadioGroup, Switch, TextInput } from '@airlib/react-aui';
+import { $bind, $use, Snippet, setup } from '@airlib/react';
+import { Button, NumberStepper, Radio, RadioGroup, Slider, Spinner, Switch, TextInput } from '@airlib/react-aui';
 import { PreviewIcon } from './icons.js';
 import { SettingsGroup, SettingsRow, descriptionOf } from './parts.js';
-import { assistantName, DEFAULT_ASSISTANT_NAME, minutes, profile, tryIdle, VOICES } from './profile.js';
+import { DEFAULT_ASSISTANT_NAME, type SettingsFiles, settingsCtx, VOICES } from './profile.js';
 
 const CLASS = {
   VOICES: 'wedyan-settings-voices',
   VOICE: 'wedyan-settings-voice',
   VOICE_TEXT: 'wedyan-settings-voice-text',
   VOICE_DESCRIPTION: 'wedyan-settings-voice-description',
+  RATE: 'wedyan-settings-rate',
+  RATE_VALUE: 'wedyan-settings-rate-value',
   MINUTES: 'wedyan-settings-minutes',
-  NONE: 'wedyan-settings-none',
 };
 
 const ID = {
   NAME: 'wedyan-settings-assistant-name',
   VOICE: 'wedyan-settings-voice',
+  RATE: 'wedyan-settings-speech-rate',
   PROACTIVE: 'wedyan-settings-proactive',
   PERSONA: 'wedyan-settings-persona',
-  REFINEMENTS: 'wedyan-settings-refinements',
   IDLE: 'wedyan-settings-idle-after',
   BRIEF: 'wedyan-settings-brief-after',
   TRY: 'wedyan-settings-try-idle',
 };
 
-/** The assistant's name, live, inside the page's words. */
-const Name = () => <Snippet>{assistantName}</Snippet>;
+/** How far the speed goes, and in what steps. */
+const RATES = { min: 0.75, max: 1.5, step: 0.05 };
 
 /**
  * General: the assistant — what it's called and sounds like, how it works with the user, and how it
  * notices them stepping away and catches them up when they're back.
  */
-export const GeneralPage = template(
-  () => (
+export const GeneralPage = setup(() => {
+  const files = settingsCtx.get() as SettingsFiles;
+  const { shown, assistantName, tryIdle, previewing, preview } = files;
+
+  /** The assistant's name, live, inside the page's words. */
+  const Name = () => <Snippet>{assistantName}</Snippet>;
+
+  return () => (
     <>
       <SettingsGroup title="Assistant">
         <SettingsRow label="Name" labelId={ID.NAME} description="What you call it, and what it calls itself.">
@@ -40,11 +47,11 @@ export const GeneralPage = template(
             aria-labelledby={ID.NAME}
             aria-describedby={descriptionOf(ID.NAME)}
             placeholder={DEFAULT_ASSISTANT_NAME}
-            value={$bind(profile, 'assistantName')}
+            value={$bind(files.settings, 'assistantName')}
           />
         </SettingsRow>
         <SettingsRow label="Voice" labelId={ID.VOICE} description={<>How <Name /> sounds when it speaks.</>} stacked>
-          <RadioGroup aria-labelledby={ID.VOICE} name={ID.VOICE} value={$bind(profile, 'voice')} className={CLASS.VOICES}>
+          <RadioGroup aria-labelledby={ID.VOICE} name={ID.VOICE} value={$bind(shown, 'voice')} className={CLASS.VOICES}>
             {VOICES.map((voice) => (
               <div key={voice.value} className={CLASS.VOICE}>
                 <Radio value={voice.value}>
@@ -53,23 +60,46 @@ export const GeneralPage = template(
                     <span className={CLASS.VOICE_DESCRIPTION}>{voice.description}</span>
                   </span>
                 </Radio>
-                <Button size="sm" variant="text" aria-label={`Preview ${voice.label}`}>
-                  <PreviewIcon />
+                <Button
+                  size="sm"
+                  variant="text"
+                  aria-label={`Preview ${voice.label}`}
+                  disabled={$use(() => Boolean(previewing.voice))}
+                  onClick={() => void preview(voice.value)}
+                >
+                  <Snippet>{() => (previewing.voice === voice.value ? <Spinner size="sm" label={`Previewing ${voice.label}`} /> : <PreviewIcon />)}</Snippet>
                   <span>Preview</span>
                 </Button>
               </div>
             ))}
           </RadioGroup>
         </SettingsRow>
+        <SettingsRow label="Speed" labelId={ID.RATE} description={<>How fast <Name /> speaks. Previews use it too.</>}>
+          <span className={CLASS.RATE}>
+            <Slider
+              size="sm"
+              aria-labelledby={ID.RATE}
+              aria-describedby={descriptionOf(ID.RATE)}
+              min={RATES.min}
+              max={RATES.max}
+              step={RATES.step}
+              valuetext={rateOf}
+              value={$bind(shown, 'speechRate')}
+            />
+            <span className={CLASS.RATE_VALUE}>
+              <Snippet>{() => rateOf(shown.speechRate)}</Snippet>
+            </span>
+          </span>
+        </SettingsRow>
       </SettingsGroup>
 
       <SettingsGroup title="Behavior">
         <SettingsRow
-          label="Raise what I may have missed"
+          label="Ask what my words answer"
           labelId={ID.PROACTIVE}
           description={<>When your words could also answer something earlier, <Name /> asks whether they do.</>}
         >
-          <Switch aria-labelledby={ID.PROACTIVE} aria-describedby={descriptionOf(ID.PROACTIVE)} checked={$bind(profile, 'proactive')} />
+          <Switch aria-labelledby={ID.PROACTIVE} aria-describedby={descriptionOf(ID.PROACTIVE)} checked={$bind(shown, 'proactive')} />
         </SettingsRow>
         <SettingsRow label="How it behaves" labelId={ID.PERSONA} description="In your own words: its manner, its pace, what it leaves out." stacked>
           <TextInput
@@ -78,24 +108,8 @@ export const GeneralPage = template(
             aria-labelledby={ID.PERSONA}
             aria-describedby={descriptionOf(ID.PERSONA)}
             placeholder="Warm and brief. Gets to the point first."
-            value={$bind(profile, 'persona')}
+            value={$bind(files.settings, 'persona')}
           />
-        </SettingsRow>
-        <SettingsRow label="What you've asked it to change" labelId={ID.REFINEMENTS} description="Corrections you gave along the way, kept as you said them." stacked>
-          <Show
-            when={() => profile.refinements?.length}
-            fallback={() => (
-              <p className={CLASS.NONE}>
-                Nothing yet. Tell <Name /> how to do better, and it shows up here.
-              </p>
-            )}
-          >
-            {() => (
-              <List aria-labelledby={ID.REFINEMENTS} size="sm">
-                <For each={() => profile.refinements ?? []}>{(refinement) => <ListItem title={refinement} />}</For>
-              </List>
-            )}
-          </Show>
         </SettingsRow>
       </SettingsGroup>
 
@@ -107,8 +121,8 @@ export const GeneralPage = template(
               aria-describedby={descriptionOf(ID.IDLE)}
               min={1}
               step={1}
-              valuetext={$use(() => minutesOf(minutes.idleAfter))}
-              value={$bind(minutes, 'idleAfter')}
+              valuetext={$use(() => minutesOf(shown.idleAfter))}
+              value={$bind(shown, 'idleAfter')}
             />
             <span aria-hidden="true">min</span>
           </span>
@@ -120,8 +134,8 @@ export const GeneralPage = template(
               aria-describedby={descriptionOf(ID.BRIEF)}
               min={0}
               step={1}
-              valuetext={$use(() => minutesOf(minutes.briefAfter))}
-              value={$bind(minutes, 'briefAfter')}
+              valuetext={$use(() => minutesOf(shown.briefAfter))}
+              value={$bind(shown, 'briefAfter')}
             />
             <span aria-hidden="true">min</span>
           </span>
@@ -133,9 +147,18 @@ export const GeneralPage = template(
         </SettingsRow>
       </SettingsGroup>
     </>
-  ),
-  'GeneralPage'
-);
+  );
+}, 'GeneralPage');
+
+/**
+ * A speech rate as it's shown and read aloud.
+ *
+ * @param rate - The multiple of the voice's own pace.
+ * @returns E.g. `1.25×`.
+ */
+function rateOf(rate: number): string {
+  return `${Number(rate.toFixed(2))}×`;
+}
 
 /**
  * A duration in minutes as it's read aloud.

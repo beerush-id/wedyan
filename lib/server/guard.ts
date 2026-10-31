@@ -1,15 +1,15 @@
 import { GuardError, getContext, type IRPCSubRequest } from '@irpclib/irpc';
 import { resolve } from '@irpclib/r2-file/path';
 import { ACTOR_KEY, AGENT_ACTOR } from '@/lib/kernel/agent.js';
-import { PROFILE_PATH } from '@/lib/share/profile.js';
+import { PROFILE_PATH, SETTINGS_PATH } from '@/lib/share/profile.js';
 import { AGENTS_PATH, VAULT_PATH } from '@/lib/share/system.js';
 
 /**
- * Files and folders only the user changes, through the desktop: the profile is every agent's
- * persona, so an agent writing it could steer every ask after it; and an agent writing in
+ * Files and folders only the user changes, through the desktop: the profile and settings are every
+ * agent's persona, so an agent writing them could steer every ask after it; and an agent writing in
  * `~/Agents` could grant itself, or another, any skill.
  */
-export const USER_ONLY = [PROFILE_PATH, AGENTS_PATH];
+export const USER_ONLY = [PROFILE_PATH, SETTINGS_PATH, AGENTS_PATH];
 
 /** Files no agent may change or read: the user's secrets. */
 export const SECRET = [VAULT_PATH];

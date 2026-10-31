@@ -12,10 +12,17 @@ import { type AgentProfile, setupKernel } from '@/lib/kernel/agent.js';
 // The conversation's handler: the desktop's one live call to Wedyan.
 import { setupConversation } from '@/lib/kernel/chat.js';
 // Who is working where in each document, for every desktop showing it.
+import '@/lib/kernel/account.js';
 import '@/lib/kernel/document.js';
 import { embedWith, setupMemory, type VectorStore } from '@/lib/memory/memory.js';
 import { AGENT_EXTENSION, type AgentFile } from '@/lib/share/agents.js';
-import { PROFILE_PATH, type UserProfile } from '@/lib/share/profile.js';
+import {
+  PROFILE_PATH,
+  SETTINGS_PATH,
+  type UserDetails,
+  type UserProfile,
+  type UserSettings,
+} from '@/lib/share/profile.js';
 import { type SkillFile, userSkillPath } from '@/lib/share/skills.js';
 import { AGENTS_PATH } from '@/lib/share/system.js';
 import { type SpeechModel, setupSpeech } from '@/lib/speech/speech.js';
@@ -90,14 +97,22 @@ export function picturesOf(env: ServerEnv): ImageWorkerEnv {
 }
 
 /**
- * The persona every agent speaks with in this session, from its `~/profile.json`; Wedyan's own
- * when the session has no profile yet.
+ * The persona every agent speaks with in this session, from its `~/profile.json` and
+ * `~/settings.json`; Wedyan's own when the session has neither yet.
  *
  * @returns The persona section of the agents' prompts.
  */
 export async function loadPersona(): Promise<string> {
-  const profile = (await read<UserProfile>(PROFILE_PATH, { encoding: 'json' })) ?? undefined;
-  return personaPrompt(profile);
+  return personaPrompt(await readUser());
+}
+
+/** The session's profile and settings, as far as it has any. */
+async function readUser(): Promise<UserDetails> {
+  const [profile, settings] = await Promise.all([
+    read<UserProfile>(PROFILE_PATH, { encoding: 'json' }),
+    read<UserSettings>(SETTINGS_PATH, { encoding: 'json' }),
+  ]);
+  return { ...settings, ...profile };
 }
 
 /**
@@ -114,8 +129,8 @@ export async function loadUserAgents(agents: Record<string, AgentProfile>): Prom
     .map((entry) => `${AGENTS_PATH}/${entry.name}`);
   if (!paths.length) return agents;
 
-  const [profile, ...files] = await Promise.all([
-    read<UserProfile>(PROFILE_PATH, { encoding: 'json' }),
+  const [user, ...files] = await Promise.all([
+    readUser(),
     ...paths.map((path) => read<AgentFile>(path, { encoding: 'json' }).catch(() => null)),
   ]);
   const own = paths.flatMap((path, index) => {
@@ -136,7 +151,7 @@ export async function loadUserAgents(agents: Record<string, AgentProfile>): Prom
   const theirs = Object.fromEntries(
     skillFiles.flatMap(([path, file]) => (file?.type === 'skill' ? [[path, userSkill(file)]] : [])),
   );
-  return withUserAgents(agents, { ...SKILLS, ...theirs }, own, (profile as UserProfile | null) ?? undefined);
+  return withUserAgents(agents, { ...SKILLS, ...theirs }, own, user as UserDetails);
 }
 
 /**

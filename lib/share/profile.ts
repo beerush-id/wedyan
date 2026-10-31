@@ -4,17 +4,23 @@ import type { Voice } from '../speech/speech.h.js';
 /** Where the user's profile lives, in their home. Only the desktop writes it, never an agent. */
 export const PROFILE_PATH = '~/profile.json';
 
-/**
- * Who the user is and how the assistant behaves with them (`~/profile.json`). It holds no secrets;
- * those live in `~/private.vault`.
- */
+/** Where the assistant's settings live, in the user's home. Only the desktop writes them, never an agent. */
+export const SETTINGS_PATH = '~/settings.json';
+
+/** Who the user is (`~/profile.json`). It holds no secrets; those live in `~/private.vault`. */
 export interface UserProfile {
-  /** The name the user gave the assistant; "Wedyan" when they gave none. */
-  assistantName?: string;
   /** How to call the user. */
   userName?: string;
+}
+
+/** How the assistant works with the user (`~/settings.json`). */
+export interface UserSettings {
+  /** The name the user gave the assistant; "Wedyan" when they gave none. */
+  assistantName?: string;
   /** The voice the assistant speaks with; `DEFAULT_VOICE` until the user picks one. */
   voice?: Voice;
+  /** How fast it speaks, as a multiple of the voice's own pace; `SPEECH_RATE` when unset. */
+  speechRate?: number;
   /** How the assistant behaves, in the user's words. */
   persona?: string;
   /** Corrections the user asked for along the way, one per item. */
@@ -32,6 +38,12 @@ export interface UserProfile {
    */
   proactive?: boolean;
 }
+
+/** Everything an agent is told of the user: their profile and their settings, together. */
+export type UserDetails = UserProfile & UserSettings;
+
+/** How fast the assistant speaks when the settings don't say: the voices are a little slow as they come. */
+export const SPEECH_RATE = 1.1;
 
 /** How long a desktop goes without input before it is idle, when the profile doesn't say. */
 export const IDLE_AFTER = 5 * 60_000;

@@ -1,7 +1,7 @@
 import type { ChatTool } from '@irpclib/ai-kit';
 import type { AgentProfile, AgentSkill } from '../kernel/agent.js';
 import type { AgentFile } from '../share/agents.js';
-import type { UserProfile } from '../share/profile.js';
+import type { UserDetails } from '../share/profile.js';
 import { SKILL_EXTENSION, userSkillPath } from '../share/skills.js';
 import { ENTRY, SPECIALIST } from './index.js';
 import { personaPrompt } from './persona.js';
@@ -19,14 +19,14 @@ export type UserAgent = { path: string; file: AgentFile };
  * @param agents - Wedyan's agents.
  * @param skills - The skills there are: the apps' by name, the user's own by their path in the home.
  * @param own - The user's own agents.
- * @param profile - The user's profile, for how every agent speaks to them.
+ * @param user - The user's profile and settings, for how every agent speaks to them.
  * @returns The agents the ask runs with.
  */
 export function withUserAgents(
   agents: Record<string, AgentProfile>,
   skills: Record<string, AgentSkill>,
   own: UserAgent[],
-  profile?: UserProfile,
+  user?: UserDetails,
 ): Record<string, AgentProfile> {
   if (!own.length) return agents;
   const engine = agents[SPECIALIST];
@@ -35,7 +35,7 @@ export function withUserAgents(
 
   return {
     ...agents,
-    ...Object.fromEntries(own.map((agent) => [agent.path, userAgentProfile(agent, engine, skills, own, profile)])),
+    ...Object.fromEntries(own.map((agent) => [agent.path, userAgentProfile(agent, engine, skills, own, user)])),
     // Lita is handed the apps' skills only; the user's own are their agents'.
     [ENTRY]: {
       ...router,
@@ -62,7 +62,7 @@ function userAgentProfile(
   engine: AgentProfile,
   skills: Record<string, AgentSkill>,
   own: UserAgent[],
-  profile?: UserProfile,
+  user?: UserDetails,
 ): AgentProfile {
   // The apps' skills by name; the user's own by their path, as the agent's file names them.
   const granted = file.skills.flatMap((name) => {
@@ -87,6 +87,6 @@ function userAgentProfile(
       .filter(Boolean)
       .join('\n\n'),
     tools: [...tools.values()],
-    persona: personaPrompt(profile, file),
+    persona: personaPrompt(user, file),
   };
 }

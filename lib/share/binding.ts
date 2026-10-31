@@ -24,6 +24,12 @@ export type BindingRules = {
   update: (request: PartRequest & { value: IRPCData; entity: object }) => true | string;
 };
 
+/** How a window binds a document: agents' rules for working inside it, and what it starts as. */
+export type BindingOptions<T> = Partial<BindingRules> & {
+  /** What to work on while the file doesn't exist; its first change makes the file. */
+  blank?: T;
+};
+
 /** A document as a window works with it: its live content, and who is working on which part. */
 export type DocumentBinding<T> = {
   /** Whether both its content and its presence have arrived. */
@@ -56,12 +62,14 @@ const BOUND = new Map<string, Bound>();
  * with the window. A document only referred to needs `fileRef`, not a binding.
  *
  * @param path - The document's home path (`~/…`).
- * @param rules - Which parts agents may open, and how their values are written; none, for a
- *   document they don't work inside.
+ * @param options - Which parts agents may open and how their values are written, for a document
+ *   they work inside; and `blank`, for a file that may not exist yet.
  * @returns The live document.
  */
-export function createBinding<T>(path: string, rules?: BindingRules): DocumentBinding<T> {
-  const content = edit<T>(path);
+export function createBinding<T>(path: string, options: BindingOptions<T> = {}): DocumentBinding<T> {
+  const { open, update, blank } = options;
+  const rules = open && update ? { open, update } : undefined;
+  const content = edit<T>(path, blank);
   const presence = rules ? documentPresence(path) : undefined;
   const bound: Bound = { content, presence, rules, granted: new Map() };
   BOUND.set(path, bound);

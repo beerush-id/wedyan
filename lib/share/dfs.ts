@@ -12,8 +12,10 @@ import { fileRef } from './workspace.js';
  *
  * - `read(path, encoding?)`: a file's content, live, for a window that shows or refers to it:
  *   `{ ready, data }`. JSON unless `'text'`.
- * - `binding(path, rules?)`: a document a window works on: its live content, saved as it changes.
- *   With rules, agents work inside it part by part, and `who(part, id)` says who's on what.
+ * - `binding(path, options?)`: a document a window works on: its live content, saved as it changes.
+ *   With `open` and `update` rules, agents work inside it part by part, and `who(part, id)` says
+ *   who's on what. With `blank`, a file that doesn't exist yet is worked on as that, and made by
+ *   its first change.
  * - `image(path, resize?)`: a picture's address for `<img src>`, at a size when given.
  * - `link(path)`: a link that opens the file in its app, for a widget or an answer.
  *

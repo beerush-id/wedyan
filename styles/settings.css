@@ -1,10 +1,4 @@
-/* Settings' page: as tall as the window shows, scrolling on its own, its groups in one readable column. */
-.wedyan-settings-page {
-  box-sizing: border-box;
-  block-size: 100cqb;
-  overflow-y: auto;
-}
-
+/* Settings' page: its groups in one readable column. */
 .wedyan-settings-column {
   display: flex;
   flex-direction: column;
@@ -40,7 +34,6 @@
 .wedyan-settings-group-description,
 .wedyan-settings-row-description,
 .wedyan-settings-voice-description,
-.wedyan-settings-none,
 .wedyan-settings-identity-email {
   margin: 0;
   color: var(--color-on-surface-variant);
@@ -102,6 +95,26 @@
 .wedyan-settings-voice-text {
   display: flex;
   flex-direction: column;
+}
+
+/* The speed's slider, then what it's set to. */
+.wedyan-settings-rate {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  inline-size: calc(var(--spacing) * 48);
+}
+
+.wedyan-settings-rate > :first-child {
+  flex: 1;
+}
+
+/* As wide as its longest value, so the slider never resizes under the pointer. */
+.wedyan-settings-rate-value {
+  flex: none;
+  inline-size: 5ch;
+  text-align: end;
+  font-variant-numeric: tabular-nums;
 }
 
 /* A duration's number, then its unit. */

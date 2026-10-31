@@ -15,7 +15,7 @@ type HearingCall = {
 };
 
 /** The part of a voice call this uses. */
-type VoiceCall = {
+export type VoiceCall = {
   answer(name: 'play', handler: (chunk: PlayChunk) => void): unknown;
   ask(name: 'say', input: SayInput): unknown;
   ask(name: 'end', input: { part: number }): unknown;

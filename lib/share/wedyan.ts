@@ -10,7 +10,7 @@ import { createPlayer, openMicrophone, playClip, stopClip } from './audio.js';
 import { answerDocuments } from './binding.js';
 import { createHandsFree } from './hands-free.js';
 import { trackPresence } from './presence.js';
-import { IDLE_AFTER, PROFILE_PATH, type UserProfile } from './profile.js';
+import { IDLE_AFTER, SETTINGS_PATH, SPEECH_RATE, type UserSettings } from './profile.js';
 import { createWidgets } from './widgets.js';
 import { fileRef } from './workspace.js';
 
@@ -41,16 +41,18 @@ export function wedyan() {
     id: message.id,
   }));
 
+  const speechRate = () => fileRef<UserSettings>(SETTINGS_PATH).data?.speechRate ?? SPEECH_RATE;
+
   const handsFree = createHandsFree({
     microphone: openMicrophone,
-    player: createPlayer,
+    player: () => createPlayer(speechRate()),
     hear: () => hear() as never,
     voice: (name) => voice(name) as never,
-    voiceOf: () => fileRef<UserProfile>(PROFILE_PATH).data?.voice,
+    voiceOf: () => fileRef<UserSettings>(SETTINGS_PATH).data?.voice,
     send: (text) => chat.ask('send', { text, context: momentNow() }),
     clip: async (text, name) => {
       const { audio, type } = await speak(text, name);
-      await playClip(audio, type);
+      await playClip(audio, type, speechRate());
     },
     stopClip,
   });
@@ -62,7 +64,7 @@ export function wedyan() {
       : trackPresence({
           events: document,
           hidden: () => document.hidden,
-          idleAfter: () => fileRef<UserProfile>(PROFILE_PATH).data?.idleAfter ?? IDLE_AFTER,
+          idleAfter: () => fileRef<UserSettings>(SETTINGS_PATH).data?.idleAfter ?? IDLE_AFTER,
           report: (state) => void chat.ask('presence', state, momentNow()),
         });
   // Talking is input too, with nothing touched: hands-free, it's all the input there is.

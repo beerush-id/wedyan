@@ -1,15 +1,21 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
 import { $bind, $use, effect, mutable, Snippet } from '@airlib/react';
-import { Button, Divider, Toggle, Tooltip } from '@airlib/react-aui';
-import { defineWindow, Window, WindowSidebar, WindowSidebarPanel, WindowTitle } from '@airlib/react-aui/desktop';
+import { Button, Toggle, Tooltip } from '@airlib/react-aui';
+import {
+  defineWindow,
+  Window,
+  WindowSidebar,
+  WindowSidebarLabel,
+  WindowSidebarPanel,
+  WindowTitle,
+} from '@airlib/react-aui/desktop';
 import type { ReactNode } from 'react';
-import { SaveButton } from '@/components/SaveButton.js';
 import manifest from '../manifest.json';
 import { AccountPage } from './Account.js';
 import { GeneralPage } from './General.js';
 import { AccountIcon, GeneralIcon, SidebarCloseIcon, SidebarOpenIcon } from './icons.js';
 import { anchorOf } from './parts.js';
-import { goTo, place, type SettingsPlace, type SettingsSection } from './profile.js';
+import { bindSettings, goTo, place, type SettingsPlace, type SettingsSection, settingsCtx } from './profile.js';
 
 /** What a Settings window can be opened with: the page to show, and a group on it to bring into view. */
 export type SettingsData = SettingsPlace | undefined;
@@ -21,14 +27,14 @@ const SECTION_LABELS: Record<SettingsSection, string> = {
 };
 
 const CLASS = {
-  PAGE: 'wedyan-settings-page',
   COLUMN: 'wedyan-settings-column',
 };
 
 /**
  * Settings: one window, its pages down the side — General, the assistant: its name, voice, how it
  * works with the user, and idle; Account, the user: their name and who they're signed in as — and
- * the chosen page beside them. Every control changes the profile as it's used; there is nothing to save.
+ * the chosen page beside them. Every control changes `~/settings.json` or `~/profile.json` as it's
+ * used, and the file saves itself; there is nothing to save.
  */
 export const settings = defineWindow({
   name: manifest.name,
@@ -41,6 +47,9 @@ export const settings = defineWindow({
   // A window opened at a place shows it first.
   const opened = props.instance.data as SettingsData;
   if (opened) goTo(opened);
+
+  const files = bindSettings();
+  settingsCtx.set(files);
 
   const view = mutable({ sidebarHidden: false });
   let page: HTMLElement | null = null;
@@ -61,7 +70,7 @@ export const settings = defineWindow({
 
   // Asked to show a group while open: after the page it's on is drawn.
   effect(() => {
-    if (!place.focus) return;
+    if (!place.focus || !files.ready) return;
     const frame = requestAnimationFrame(reveal);
     return () => cancelAnimationFrame(frame);
   });
@@ -95,21 +104,12 @@ export const settings = defineWindow({
           </>
         )}
       </Window.Snippet>
-      {/* Settings edit your profile file: saving it, at the end of the toolbar. */}
-      <Window.Snippet for="actions">
-        {() => (
-          <>
-            <SaveButton />
-            {/* Sets the app's own buttons apart from the window's. */}
-            <Divider orientation="vertical" variant="ghost" size="sm" />
-          </>
-        )}
-      </Window.Snippet>
       <Window.Snippet for="sidebar">
         {() =>
           !view.sidebarHidden && (
             <WindowSidebar>
               <WindowSidebarPanel>
+                <WindowSidebarLabel>{manifest.label}</WindowSidebarLabel>
                 {section('general', <GeneralIcon />)}
                 {section('account', <AccountIcon />)}
               </WindowSidebarPanel>
@@ -117,10 +117,8 @@ export const settings = defineWindow({
           )
         }
       </Window.Snippet>
-      <div ref={holdPage} className={CLASS.PAGE}>
-        <div className={CLASS.COLUMN}>
-          <Snippet>{() => (place.section === 'account' ? <AccountPage /> : <GeneralPage />)}</Snippet>
-        </div>
+      <div ref={holdPage} className={CLASS.COLUMN}>
+        <Snippet>{() => files.ready && (place.section === 'account' ? <AccountPage /> : <GeneralPage />)}</Snippet>
       </div>
     </Window>
   );

@@ -65,12 +65,16 @@ export async function openMicrophone(onFrame: (pcm: string) => void): Promise<()
  * Creates a player for one answer's speech: its MP3 is appended to one Media Source buffer, so it
  * plays as it comes with no gap between chunks.
  *
+ * @param rate - How fast it plays, as a multiple of the speech's own pace.
  * @returns The player.
  */
-export function createPlayer(): Player {
+export function createPlayer(rate = 1): Player {
   const audio = new Audio();
   const source = new MediaSource();
   const url = URL.createObjectURL(source);
+  // The default too: loading the source resets the rate to it.
+  audio.defaultPlaybackRate = rate;
+  audio.playbackRate = rate;
   audio.src = url;
 
   type Queued = { bytes: Uint8Array } | { played: () => void };
@@ -134,12 +138,15 @@ let clip: { audio: HTMLAudioElement; ended: () => void } | undefined;
  *
  * @param audio - The clip, base64.
  * @param type - Its media type.
+ * @param rate - How fast it plays, as a multiple of the speech's own pace.
  * @returns Once it has played, or stopped.
  */
-export function playClip(audio: string, type: string): Promise<void> {
+export function playClip(audio: string, type: string, rate = 1): Promise<void> {
   stopClip();
   return new Promise((resolve) => {
     const element = new Audio(`data:${type};base64,${audio}`);
+    element.defaultPlaybackRate = rate;
+    element.playbackRate = rate;
     const ended = () => {
       clip = undefined;
       resolve();

@@ -1,7 +1,8 @@
-import { $bind, $use, Snippet, template } from '@airlib/react';
-import { Avatar, Button, TextInput } from '@airlib/react-aui';
+import { $bind, $use, Snippet, setup } from '@airlib/react';
+import { Avatar, TextInput } from '@airlib/react-aui';
+import { account } from '@/lib/kernel/account.h.js';
 import { SettingsGroup, SettingsRow, descriptionOf } from './parts.js';
-import { account, assistantName, profile } from './profile.js';
+import { type SettingsFiles, settingsCtx } from './profile.js';
 
 const CLASS = {
   IDENTITY: 'wedyan-settings-identity',
@@ -15,8 +16,12 @@ const ID = {
 };
 
 /** Account: the user — what the assistant calls them, and who they're signed in as. */
-export const AccountPage = template(
-  () => (
+export const AccountPage = setup(() => {
+  const files = settingsCtx.get() as SettingsFiles;
+  const { assistantName } = files;
+  const signedIn = account.once();
+
+  return () => (
     <>
       <SettingsGroup title="You">
         <SettingsRow
@@ -32,28 +37,24 @@ export const AccountPage = template(
             aria-labelledby={ID.USER}
             aria-describedby={descriptionOf(ID.USER)}
             placeholder="Your name"
-            value={$bind(profile, 'userName')}
+            value={$bind(files.profile, 'userName')}
           />
         </SettingsRow>
       </SettingsGroup>
 
       <SettingsGroup title="Signed in">
         <div className={CLASS.IDENTITY}>
-          <Avatar size="lg" alt={$use(() => account.name)} src={$use(() => account.picture)} />
+          <Avatar size="lg" alt={$use(() => files.profile.userName ?? '')} />
           <div className={CLASS.IDENTITY_TEXT}>
             <span className={CLASS.IDENTITY_NAME}>
-              <Snippet>{() => account.name}</Snippet>
+              <Snippet>{() => files.profile.userName}</Snippet>
             </span>
             <span className={CLASS.IDENTITY_EMAIL}>
-              <Snippet>{() => account.email}</Snippet>
+              <Snippet>{() => signedIn.data?.email}</Snippet>
             </span>
           </div>
-          <Button size="sm" variant="tonal">
-            Sign out
-          </Button>
         </div>
       </SettingsGroup>
     </>
-  ),
-  'AccountPage'
-);
+  );
+}, 'AccountPage');

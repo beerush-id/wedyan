@@ -13,7 +13,7 @@ import { exists, list, read, write } from '@irpclib/r2-file';
 import { fsContext } from '@irpclib/r2-file/context';
 import type { DocumentHeader } from '@/lib/documents/types.js';
 import { userPath } from '@/lib/memory/files.js';
-import { PROFILE_PATH, type UserProfile } from '@/lib/share/profile.js';
+import { SETTINGS_PATH, type UserSettings } from '@/lib/share/profile.js';
 import { AGENTS_PATH, CONVERSATION_PATH, INBOXES } from '@/lib/share/system.js';
 import { type ActionMeta, type AskAction, type AskInput, actorOf, type WidgetPart } from './agent.h.js';
 import { askRouter, askWith, type CallResult, toChatInput } from './agent.js';
@@ -274,8 +274,8 @@ function createConversation({ hold }: RoomSetup) {
     if (!since) return;
     data.away = undefined;
     if (!client) return;
-    const profile = await readProfile();
-    if (Date.now() - Date.parse(since) >= (profile?.briefAfter ?? config.briefAfter)) {
+    const settings = await readSettings();
+    if (Date.now() - Date.parse(since) >= (settings?.briefAfter ?? config.briefAfter)) {
       await deliver();
       await brief(client, since, context);
     }
@@ -649,7 +649,7 @@ function createConversation({ hold }: RoomSetup) {
 
         // Answers the words may or may not cover: a proactive assistant asks.
         const unclear = earlier.filter((message) => judgment.unclear.includes(message.id) && !message.acked);
-        const proactive = unclear.length ? ((await readProfile())?.proactive ?? config.proactive) : false;
+        const proactive = unclear.length ? ((await readSettings())?.proactive ?? config.proactive) : false;
         start(
           originOf(words),
           proactive ? { ...input, context: { ...input.context, unclear: unclear.map(lineOf) } } : input,
@@ -836,9 +836,9 @@ function isWriting(message: AgentMessage): boolean {
   return message.status === 'running' || message.status === 'idle';
 }
 
-/** The user's profile, for their own settings; `undefined` before they have one. */
-async function readProfile(): Promise<UserProfile | undefined> {
-  return (await read<UserProfile>(PROFILE_PATH, { encoding: 'json' })) ?? undefined;
+/** The user's settings; `undefined` before they have any. */
+async function readSettings(): Promise<UserSettings | undefined> {
+  return (await read<UserSettings>(SETTINGS_PATH, { encoding: 'json' })) ?? undefined;
 }
 
 /** The latest of the user's words that joined an answer, to answer them on their own. */

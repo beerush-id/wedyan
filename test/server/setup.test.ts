@@ -25,9 +25,10 @@ describe('server setup', () => {
     implement({ bucket: env.BUCKET, indexer: env.DB });
   });
 
-  it('builds the persona from the session’s ~/profile.json', async () => {
+  it('builds the persona from the session’s ~/profile.json and ~/settings.json', async () => {
     const persona = await asSession(async () => {
-      await write('~/profile.json', { assistantName: 'Mira', userName: 'Nanang', persona: 'Calm and direct.' });
+      await write('~/profile.json', { userName: 'Nanang' });
+      await write('~/settings.json', { assistantName: 'Mira', persona: 'Calm and direct.' });
       return loadPersona();
     });
 
