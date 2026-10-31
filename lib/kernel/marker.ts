@@ -94,6 +94,8 @@ export function createMarkerParser(events: MarkerEvents): MarkerParser {
       return true;
     }
     if (closer.kind === 'partial') return false;
+    // Its own opener may be the last thing written, where a model meant the closer: held to see.
+    if (openerOf(current.tag).startsWith(pending)) return false;
 
     emitBody('[');
     pending = pending.slice(1);
@@ -110,7 +112,10 @@ export function createMarkerParser(events: MarkerEvents): MarkerParser {
     },
 
     end() {
-      if (open) {
+      if (open && pending === openerOf(open.tag)) {
+        events.close(open.tag, open.body);
+        open = undefined;
+      } else if (open) {
         emitBody(pending);
         events.discard(open.tag, open.body);
         open = undefined;
@@ -120,6 +125,11 @@ export function createMarkerParser(events: MarkerEvents): MarkerParser {
       pending = '';
     },
   };
+}
+
+/** A marker's opener as written with no attributes. */
+function openerOf(tag: MarkerTag): string {
+  return `[[${tag.type}]]`;
 }
 
 type CloserScan = { kind: 'match'; length: number } | { kind: 'partial' } | { kind: 'fail' };

@@ -70,9 +70,12 @@ describe.skipIf(!KEY)('June keeps the user’s look, live', () => {
       expect(state.status).toBe('done');
       expect(widgets.length, 'Wendy showed no widget').toBeGreaterThan(0);
       expect(widgets.every((widget) => widget.status === 'ready')).toBe(true);
+      for (const widget of widgets) {
+        expect(widget.props?.variant, 'the widget’s own card carries the glass variant').toBe('glass');
+      }
       for (const root of roots) {
         if (typeof root === 'string') continue;
-        expect(root.props?.variant, `${root.role} carries the glass variant`).toBe('glass');
+        expect(root.role, 'the host draws the card').not.toBe('card');
       }
     });
   }

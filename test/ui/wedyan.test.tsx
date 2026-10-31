@@ -13,13 +13,13 @@ import { speak } from '../../lib/speech/speech.h.js';
 describe('a desktop opening the conversation', () => {
   it('opens as this tab, keeping its ID, and a duplicated tab opens with one of its own', async () => {
     await withContext(async () => {
-      const first = wedyan();
+      const first = wedyan().chat;
       await waitFor(() => expect(first.data.ready).toBe(true), { timeout: 10_000 });
       const id = sessionStorage.getItem('wedyan.tab');
       expect(id).toBeTruthy();
 
       // A duplicated tab: the same storage, so the same ID, while the first is still open.
-      const second = wedyan();
+      const second = wedyan().chat;
       await waitFor(() => expect(second.data.ready).toBe(true), { timeout: 10_000 });
       expect(sessionStorage.getItem('wedyan.tab')).not.toBe(id);
 
@@ -28,10 +28,24 @@ describe('a desktop opening the conversation', () => {
     });
   });
 
+  it('gives the dock what it’s wired to', async () => {
+    await withContext(async () => {
+      const { ask, widgets, speech, stop, ack, answer, chat } = wedyan();
+      await waitFor(() => expect(chat.data.ready).toBe(true), { timeout: 10_000 });
+
+      expect(widgets).toEqual([]);
+      expect(speech).toMatchObject({ listening: false, speaking: false, heard: '', problem: '' });
+      for (const call of [ask, stop, ack, answer, speech.toggle, speech.speak, speech.stop]) {
+        expect(call).toBeTypeOf('function');
+      }
+      chat.close();
+    });
+  });
+
   // Only against a deployment: it spends a model call, and proves the deployment's own keys work.
   it.runIf(process.env.WEDYAN_ORIGIN)('gets an answer from the deployed models', { timeout: 90_000 }, async () => {
     await withContext(async () => {
-      const chat = wedyan();
+      const { chat } = wedyan();
       await waitFor(() => expect(chat.data.ready).toBe(true), { timeout: 10_000 });
 
       await chat.ask('send', {
@@ -72,7 +86,7 @@ describe('a desktop opening the conversation', () => {
           },
         );
 
-        const chat = wedyan();
+        const { chat } = wedyan();
         await waitFor(() => expect(chat.data.ready).toBe(true), { timeout: 10_000 });
         await chat.ask('send', { text: 'Say hello again.', context: { time: new Date().toISOString() } });
         const answer = () => chat.data.messages.findLast((message) => message.role === 'agent');

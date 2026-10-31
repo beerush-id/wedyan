@@ -238,6 +238,32 @@ describe('askWedyan', () => {
     expect(forms).toEqual([fields]);
   });
 
+  it('stops putting forms to the user when replies don’t help, and has the agent say what it needs', async () => {
+    const form = () => says('[[ask_user]]A field named time.[[/ask_user]]');
+    const composed = () => says('{"role":"text-input"}');
+    const vendor = mockVendor(
+      form(),
+      composed(),
+      form(),
+      composed(),
+      form(),
+      composed(),
+      form(),
+      says('[[say]]I still need a time for it.[[/say]]'),
+    );
+    const asked = vi.fn(() => ({ time: 'whenever' }));
+
+    await withContext(async () => {
+      const call = askWedyan({ text: 'Set up a meeting' });
+      call.answer('ask_user', asked);
+      await call;
+    });
+
+    expect(asked).toHaveBeenCalledTimes(3);
+    expect(vendor.bodies).toHaveLength(8);
+    expect(JSON.stringify(messagesOf(vendor.bodies, 7).at(-1))).toContain('asked the user enough');
+  });
+
   it('never asks the user with a form the composer couldn’t make, and tells the model', async () => {
     const vendor = mockVendor(
       says('[[ask_user]]A choice between orange and grey.[[/ask_user]]'),

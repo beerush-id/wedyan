@@ -7,6 +7,8 @@ import { kernel } from './package.js';
 export type AskInput = {
   text: string;
   context?: Record<string, IRPCData>;
+  /** What the user picked into their words, as the desktop offered it, to show them the same again. */
+  selections?: IRPCData[];
 };
 
 /**
@@ -23,16 +25,32 @@ export type TextPart = {
 /**
  * UI described as data. It's added `pending`, with no nodes, where the agent asked for it, and the
  * composer fills its widget nodes (`role`, `props`, `bindings`, `children`) in place: `ready`, or
- * `error` with why, when the composer couldn't.
+ * `error` with why, when the composer couldn't. `status` is about composing it: what the desktop
+ * sees of a form's own state is `settled`.
  */
 export type WidgetPart = {
   type: 'widget';
+  /** Names it for good, so what's done with it later can find it. */
+  id: string;
   status: 'pending' | 'ready' | 'error';
   /** What the agent asked to show, in its own words: the widget's plain-text summary. */
   intent: string;
   nodes: IRPCData[];
   error?: string;
+  /** What it asks of the card the desktop draws it in: the style the user's look calls for. */
+  props?: Record<string, IRPCData>;
+  /** What its inputs start with, and after it's settled, the facts it ended with. */
+  form?: Record<string, IRPCData>;
+  /** What a submit runs on the desktop, e.g. `system.calendar.createEvent`. */
+  formAction?: string;
+  /** Whether it locks once its action succeeds. */
+  once?: boolean;
+  /** When the desktop acknowledged it done: it's a fact from then on, no longer asked. */
+  settled?: string;
 };
+
+/** What the composer gives a widget. */
+export type Composed = Pick<WidgetPart, 'nodes' | 'props' | 'form' | 'formAction' | 'once'>;
 
 /** One part of an answer, in the order the agent produced it. */
 export type AskPart = TextPart | WidgetPart;

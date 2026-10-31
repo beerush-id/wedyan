@@ -55,7 +55,13 @@ describe('agent loop', () => {
     expect(state).toMatchObject({ status: 'done', agent: 'router', turn: 1 });
     expect(state.parts).toEqual([
       { type: 'text', chunks: ['Hello.'], text: 'Hello.', spoken: true },
-      { type: 'widget', status: 'ready', intent: 'A badge saying ok', nodes: [{ role: 'badge', children: ['ok'] }] },
+      {
+        type: 'widget',
+        id: expect.any(String),
+        status: 'ready',
+        intent: 'A badge saying ok',
+        nodes: [{ role: 'badge', children: ['ok'] }],
+      },
       { type: 'text', chunks: ['Done.'], text: 'Done.', spoken: false },
     ]);
     expect(vendor.bodies[0]).toMatchObject({ model: 'router-m' });
@@ -127,6 +133,7 @@ describe('agent loop', () => {
     expect(state.parts).toEqual([
       {
         type: 'widget',
+        id: expect.any(String),
         status: 'error',
         intent: 'A card',
         nodes: [],

@@ -10,6 +10,8 @@ export type UserMessage = {
   created: string;
   text: string;
   context?: Record<string, IRPCData>;
+  /** What they picked into their words, as the desktop offered it, to show them the same again. */
+  selections?: IRPCData[];
   /** The desktop that sent them: the answer's actions run there and nowhere else. */
   client: string;
   /** The running answer these words joined as a follow-up; unset when they started their own. */
@@ -130,6 +132,8 @@ export type ConversationQueries = {
   page: (page: number) => ConversationMessage[] | undefined;
   presence: (presence: Presence, context?: AskInput['context']) => boolean;
   finished: (job: FinishedJob) => boolean;
+  /** Says a widget is done: its form becomes these facts, and it's settled. False once it already is. */
+  ack: (widget: string, form: Record<string, IRPCData>) => boolean;
 };
 
 /**

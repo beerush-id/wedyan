@@ -132,6 +132,7 @@ kernel.construct(conversation, (client) => {
       state.answer('page', (page) => member.ask('page', page));
       state.answer('presence', (presence, context) => member.ask('presence', presence, client, context));
       state.answer('finished', (job) => member.ask('finished', job, client));
+      state.answer('ack', (widget, form) => member.ask('ack', widget, form));
 
       return () => {
         detach();
@@ -628,6 +629,16 @@ function createConversation({ hold }: RoomSetup) {
         start({ client, event: 'job' }, { text: JOB_TEXT, context: { event: 'job', job } });
         return true;
       },
+      ack: async (id: string, form: Record<string, IRPCData>) => {
+        await loaded;
+        const widget = widgetOf(data.messages, id);
+        // The first says what happened: a second press can't change it.
+        if (!widget || widget.settled) return false;
+        widget.form = form;
+        widget.settled = new Date().toISOString();
+        keep();
+        return true;
+      },
     },
   };
 }
@@ -812,7 +823,24 @@ function userMessage(input: AskInput, client: string): UserMessage {
     text: input.text,
     client,
     ...(input.context ? { context: input.context } : {}),
+    ...(input.selections?.length ? { selections: input.selections } : {}),
   };
+}
+
+/** A widget of an answer on the live page, by its id. */
+function widgetOf(messages: ConversationMessage[], id: string): WidgetPart | undefined {
+  for (const message of messages) {
+    if (message.role !== 'agent') continue;
+    const found = message.parts.find((part) => part.type === 'widget' && part.id === id);
+    if (found) return found as WidgetPart;
+  }
+  return undefined;
+}
+
+/** What the agents read of a widget: what it showed, and for a form, what became of it. */
+function shownOf(part: WidgetPart): string {
+  if (part.settled) return `${part.intent} (done: ${JSON.stringify(part.form)})`;
+  return part.formAction ? `${part.intent} (waiting on the user)` : part.intent;
 }
 
 /** A new answer, to the user's words or an event, before it starts. */
@@ -849,7 +877,7 @@ function lineOf(message: ConversationMessage): string {
     .flatMap((part) => (part.type === 'text' ? [part.text ?? part.chunks.join('')] : []))
     .join(' ')
     .trim();
-  const shown = message.parts.filter((part): part is WidgetPart => part.type === 'widget').map((part) => part.intent);
+  const shown = message.parts.filter((part): part is WidgetPart => part.type === 'widget').map(shownOf);
   const call = (action: ActionRecord) => `${action.name} ${JSON.stringify(action.args)}`;
   const done = message.actions.filter((action) => action.status === 'done').map(call);
   const undone = message.actions

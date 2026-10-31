@@ -287,7 +287,7 @@ export interface AgentLoopOptions {
   /** Drained at each safe turn: what the user said while the ask was running. */
   followUps?: () => string[];
   signal?: AbortSignal;
-  limits?: { turns?: number; handoffs?: number };
+  limits?: { turns?: number; handoffs?: number; forms?: number };
   resume?: LoopSnapshot;
   /** Called after every completed turn. */
   onSnapshot?: (snapshot: LoopSnapshot) => void;
@@ -298,6 +298,13 @@ export const HANDOFF = 'handoff';
 
 const DEFAULT_TURN_LIMIT = 12;
 const DEFAULT_HANDOFF_LIMIT = 3;
+
+/** How many forms one answer may put to the user: a reply that doesn't help must not start a loop. */
+const DEFAULT_FORM_LIMIT = 3;
+
+/** What an agent is told when it would ask once more than that. */
+const TOO_MANY_FORMS =
+  'You have asked the user enough in this answer: don’t ask again. Say in words what you still need, and stop.';
 
 /**
  * Runs one ask to the end. Each turn calls the active agent's model, translates its markers into
@@ -318,6 +325,7 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
   const { adapter, agents, state, signal, resume, skills = {}, persona } = options;
   const turnLimit = options.limits?.turns ?? DEFAULT_TURN_LIMIT;
   const handoffLimit = options.limits?.handoffs ?? DEFAULT_HANDOFF_LIMIT;
+  const formLimit = options.limits?.forms ?? DEFAULT_FORM_LIMIT;
 
   let skill = resume?.skill ? skills[resume.skill] : undefined;
   let agent = withSkill(agents[resume?.agent ?? options.entry], skill);
@@ -327,6 +335,7 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
   let handoffs = resume?.handoffs ?? 0;
   const actions = createActionQueue(options.act, options.track);
   const problems: string[] = [];
+  let forms = 0;
   const composer = options.composer ? agents[options.composer] : undefined;
   const compositions: Promise<void>[] = [];
   const compose = (request: IRPCData) =>
@@ -369,8 +378,8 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
             // The agent keeps speaking while its widget is composed; the part fills in place.
             compositions.push(
               compose({ widget: intent }).then(
-                (nodes) => {
-                  part.nodes = nodes;
+                (composed) => {
+                  Object.assign(part, composed);
                   part.status = 'ready';
                 },
                 (error) => {
@@ -387,12 +396,20 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
               problems.push(`${written.name} is a call, not an action: call it as a tool to get its result`);
               return;
             }
+            if (written.name === 'ask_user' && ++forms > formLimit) {
+              problems.push(TOO_MANY_FORMS);
+              return;
+            }
             if (written.ask) asked = true;
             // Stamped now: by the time it runs, the ask may have been handed to another agent.
             const action = { ...written, agent: agent.name };
             if (action.name !== 'ask_user') return actions.add(action, current);
             // Composed now, while the turn streams; the user is asked once their turn in the queue comes.
-            actions.add(action, current, compose({ form: String(action.args) }));
+            actions.add(
+              action,
+              current,
+              compose({ form: String(action.args) }).then(({ nodes }) => nodes),
+            );
           },
           onInvalid: (problem) => problems.push(problem),
         });
@@ -567,25 +584,25 @@ async function modelTurn(
  * @param composer - The composer's profile.
  * @param request - `{ widget: description }`, or `{ form: description }` for an `ask_user` form.
  * @param signal - Aborts the composition with the ask.
- * @returns The nodes; throws when the answer isn't widget nodes.
+ * @returns What was composed; throws when the answer isn't widget nodes.
  */
 async function composeWidget(
   adapter: AIAdapter,
   composer: AgentProfile,
   request: IRPCData,
   signal: AbortSignal | undefined,
-): Promise<IRPCData[]> {
+): Promise<Composed> {
   const text = await answerOnce(adapter, composer, request, signal);
-  let nodes: IRPCData[];
+  let composed: Composed;
   try {
-    nodes = nodesOf(text);
+    composed = composedOf(text);
   } catch (error) {
     // A malformed answer is asked for once more, with what was wrong with it.
     const retry = { ...(request as Record<string, IRPCData>), previous: text, problem: (error as Error).message };
-    nodes = nodesOf(await answerOnce(adapter, composer, retry, signal));
+    composed = composedOf(await answerOnce(adapter, composer, retry, signal));
   }
-  log.debug('widget composed', { request, nodes: summaryOf(nodes) });
-  return nodes;
+  log.debug('widget composed', { request, nodes: summaryOf(composed.nodes) });
+  return composed;
 }
 
 /**
@@ -620,25 +637,28 @@ async function answerOnce(
 }
 
 /**
- * The widget nodes in the composer's answer: JSON, fenced or not, one node or a list of them.
+ * What the composer's answer gives a widget: JSON, fenced or not. The widget itself, a node with no
+ * role since the host draws its card, with what it declares about that card; or just what goes in it.
  *
  * @param text - The composer's answer.
- * @returns The nodes; throws when the answer isn't widget nodes.
+ * @returns What was composed; throws when the answer isn't widget nodes.
  */
-function nodesOf(text: string): IRPCData[] {
+function composedOf(text: string): Composed {
   let parsed: unknown;
   try {
     parsed = JSON.parse(text.trim().replace(/^```(?:json)?\s*|\s*```$/g, ''));
   } catch {
     throw new Error(`The composer's answer isn't JSON: ${summaryOf(text)}`);
   }
-  const nodes = Array.isArray(parsed) ? parsed : [parsed];
+  const { children, role, ...declared } = (parsed ?? {}) as Record<string, IRPCData> & { role?: unknown };
+  const widget = !Array.isArray(parsed) && !role && Array.isArray(children);
+  const nodes = widget ? (children as IRPCData[]) : Array.isArray(parsed) ? parsed : [parsed];
   const isNode = (node: unknown) =>
     typeof node === 'string' ||
     (typeof node === 'object' && node !== null && typeof (node as { role?: unknown }).role === 'string');
   if (!nodes.length || !nodes.every(isNode))
     throw new Error(`The composer's answer isn't widget nodes: ${summaryOf(text)}`);
-  return nodes as IRPCData[];
+  return widget ? { ...declared, nodes } : { nodes: nodes as IRPCData[] };
 }
 
 /**

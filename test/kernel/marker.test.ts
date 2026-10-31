@@ -150,6 +150,18 @@ describe('marker parser', () => {
     expect(events.at(-1)).toEqual(['text', 'Next']);
   });
 
+  it('takes its own opener for the closer when nothing comes after it, so it never shows', () => {
+    const whole = setup();
+    whole.parser.push('[[say]]Want one?[[say]]');
+    whole.parser.end();
+    expect(whole.events.at(-1)).toEqual(['close', 'say', 'Want one?']);
+
+    const split = setup();
+    for (const char of '[[say]]Want one?[[say]]') split.parser.push(char);
+    split.parser.end();
+    expect(split.events.at(-1)).toEqual(['close', 'say', 'Want one?']);
+  });
+
   it('does not take a bracket without a slash, or another type, for a closer', () => {
     const { events, parser } = setup();
     parser.push('[[say]]a [[say]] b [/show]] c[[/say]]');

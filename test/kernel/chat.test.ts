@@ -4,6 +4,7 @@ import { exists, read, write } from '@irpclib/r2-file';
 import { implement } from '@irpclib/r2-file/constructor';
 import { fsContext } from '@irpclib/r2-file/context';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { WidgetPart } from '../../lib/kernel/agent.h.js';
 import { setupKernel } from '../../lib/kernel/agent.js';
 import { type AgentMessage, type Conversation, conversation } from '../../lib/kernel/chat.h.js';
 import {
@@ -239,6 +240,58 @@ describe('the conversation', () => {
           ],
         }),
       });
+      desktop.close();
+    });
+  });
+
+  it('settles a widget once, for every desktop, and the agents read it as a fact', async () => {
+    const vendor = chatVendor(
+      [],
+      says('[[widget]]A meeting form[[/widget]]'),
+      says('{"role":"card","props":{"title":"New meeting"}}'),
+      says('Done.'),
+    );
+    const who = newUser();
+
+    await asDesktop(who, async () => {
+      const desktop = conversation('tab-a');
+      const other = conversation('tab-b');
+      await until(() => desktop.data.ready && other.data.ready);
+      await desktop.ask('send', { text: 'Book a meeting' });
+      await until(() => desktop.data.messages.length === 2 && answered(desktop.data));
+
+      const { id } = (last(desktop.data) as AgentMessage).parts[0] as WidgetPart;
+      expect(await desktop.ask('ack', id, { title: 'Trailer review' })).toBe(true);
+      expect(await desktop.ask('ack', id, { title: 'Something else' })).toBe(false);
+      expect(await desktop.ask('ack', 'no-such-widget', {})).toBe(false);
+
+      await until(() => (other.data.messages[1] as AgentMessage).parts[0]?.type === 'widget');
+      await until(() => !!((other.data.messages[1] as AgentMessage).parts[0] as WidgetPart).settled);
+      expect((other.data.messages[1] as AgentMessage).parts[0]).toMatchObject({ form: { title: 'Trailer review' } });
+
+      await desktop.ask('send', { text: 'Is it booked?' });
+      await until(() => desktop.data.messages.length === 4 && answered(desktop.data));
+      const asked = messagesOf(vendor.bodies, vendor.bodies.length - 1);
+      expect(asked.find((message) => message.content?.includes('conversation'))?.content).toContain(
+        'showed: A meeting form (done: {\\"title\\":\\"Trailer review\\"})',
+      );
+      desktop.close();
+      other.close();
+    });
+  });
+
+  it('keeps what the user picked into their words', async () => {
+    chatVendor([], says('Done.'));
+    const who = newUser();
+
+    await asDesktop(who, async () => {
+      const desktop = conversation('tab-a');
+      await until(() => desktop.data.ready);
+      const selections = [{ type: 'file', value: '~/x.still', label: 'xyz' }];
+      await desktop.ask('send', { text: 'generate from @xyz', selections });
+      await until(() => desktop.data.messages.length === 2 && answered(desktop.data));
+
+      expect(desktop.data.messages[0]).toMatchObject({ selections });
       desktop.close();
     });
   });
