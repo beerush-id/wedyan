@@ -1,10 +1,10 @@
-import { $bind, $use, onMount, page, Show, setup } from '@airlib/react';
+import { $bind, $static, $use, onMount, page, Show, setup } from '@airlib/react';
 import { ToastHost } from '@airlib/react-aui';
 import { Desktop, DesktopClock, DesktopWidgets, Dock, DockWidgets, WindowHost } from '@airlib/react-aui/desktop';
 import type { ReactNode } from 'react';
 import { AnswerActions, TurnActions } from '@/components/AnswerActions.js';
 import { Splash } from '@/components/Splash.js';
-import { engine } from '@/lib/assistant/mock.js';
+import { openSession, sessionCtx } from '@/lib/assistant/session.js';
 import { BOOT_STAT } from '@/lib/systems/boot.js';
 import { focusPrompt, PROMPT_LABEL } from '@/lib/systems/focus.js';
 import { promptSuggestions } from '@/lib/systems/prompt.js';
@@ -30,6 +30,10 @@ const SHORTCUT = /Mac|iPhone|iPad/.test(globalThis.navigator?.platform ?? '') ? 
  * anywhere.
  */
 const WedyanDesktop = setup<{ children?: ReactNode }>((props) => {
+  // Opened once: what it reads while opening is the conversation's, not this component's to follow.
+  const session = $static(openSession);
+  sessionCtx.set(session);
+
   onMount(() => {
     focusPrompt();
 
@@ -80,19 +84,21 @@ const WedyanDesktop = setup<{ children?: ReactNode }>((props) => {
       speakingLabel="Wedyan is speaking"
       suggestions={promptSuggestions}
       suggestionsLabel="Suggestions"
-      listening={$bind(engine.state, 'listening')}
-      busy={$use(() => engine.state.pressing > 0)}
-      speaking={$use(() => engine.state.speaking)}
-      onsubmit={engine.submit}
-      onstop={engine.stop}
+      value={$bind(session.prompt, 'text')}
+      listening={$bind(session.speech, 'listening')}
+      busy={$use(() => session.state.pressing > 0)}
+      speaking={$use(() => session.speech.speaking)}
+      onsubmit={session.ask}
+      onstop={session.stop}
     />
     <DockWidgets
       label="Answers"
-      widgets={engine.widgets}
-      onaction={engine.run}
-      onlink={engine.link}
+      widgets={session.widgets}
+      waiting={$use(() => session.waiting)}
+      onaction={session.run}
+      onlink={session.link}
       allowsLink={isAppLink}
-      ondismiss={engine.dismiss}
+      ondismiss={session.dismiss}
     >
       <DockWidgets.Snippet for="footer">{(widget) => <AnswerActions widget={widget} />}</DockWidgets.Snippet>
       <DockWidgets.Snippet for="after">{(widget) => <TurnActions widget={widget} />}</DockWidgets.Snippet>

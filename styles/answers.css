@@ -36,18 +36,13 @@
   font-size: var(--font-label-sm-size);
 }
 
-/* The same under what the user sent, at the bubble's side. It sits on the open stack's frame, so it's only there with it. */
+/* The same under what the user sent, at the bubble's side. */
 .turn-actions {
   display: flex;
   align-items: center;
   align-self: flex-end;
   gap: var(--spacing-xs);
-  margin-block-start: calc(var(--aui-dock-gap) * -0.5);
   color: var(--color-on-surface-variant);
-}
-
-.aui-dock-widgets:not(:hover, :focus-within, :has([aria-expanded='true'])) .turn-actions {
-  visibility: hidden;
 }
 
 /* What a command made: its picture, at a tile's size, above the words about it. */

@@ -3,8 +3,8 @@ import { $bind, $static, $use, mutable, onCleanup, Show, Snippet, setup } from '
 import { Button, Toggle, Tooltip } from '@airlib/react-aui';
 import type { DockWidgetEntry } from '@airlib/react-aui/desktop';
 import { CheckIcon, StopIcon, VolumeUpIcon } from '@airlib/react-aui/icons';
-import { engine } from '@/lib/assistant/mock.js';
-import type { Answer, UserTurn } from '@/lib/assistant/turns.js';
+import { type Session, sessionCtx } from '@/lib/assistant/session.js';
+import type { UserTurn } from '@/lib/assistant/turns.js';
 import { CopyIcon, PinIcon, RetryIcon } from './icons.js';
 
 /** How long something copied says so. */
@@ -22,7 +22,8 @@ const ago = new Intl.RelativeTimeFormat(undefined, { numeric: 'always' });
  * answers have it, so anything else in the stack draws nothing here.
  */
 export const AnswerActions = setup<{ widget: DockWidgetEntry }>((props) => {
-  const answer = $static(() => props.widget) as Answer;
+  const session = sessionCtx.get() as Session;
+  const answer = $static(() => props.widget);
   const state = mutable({ pinned: false, speaking: false });
 
   // Only its words: a widget's data isn't something to read out or paste.
@@ -32,28 +33,22 @@ export const AnswerActions = setup<{ widget: DockWidgetEntry }>((props) => {
       .filter(Boolean)
       .join('\n\n');
 
-  const stopSpeaking = () => {
-    state.speaking = false;
-    engine.state.speaking = false;
-  };
-
-  const speak = () => {
-    speechSynthesis.cancel();
-    if (state.speaking) return stopSpeaking();
-    const utterance = new SpeechSynthesisUtterance(words());
-    utterance.onend = stopSpeaking;
-    utterance.onerror = stopSpeaking;
+  const speak = async () => {
+    if (state.speaking) return session.speech.stop();
     state.speaking = true;
-    engine.state.speaking = true;
-    speechSynthesis.speak(utterance);
+    try {
+      await session.speech.speak(words());
+    } finally {
+      state.speaking = false;
+    }
   };
 
   onCleanup(() => {
-    if (state.speaking) speechSynthesis.cancel();
+    if (state.speaking) session.speech.stop();
   });
 
   return () => (
-    <Show when={() => 'at' in answer && answer.from !== 'user' && answer.children?.length}>
+    <Show when={() => session.timeOf(answer) !== undefined && answer.from !== 'user' && answer.children?.length}>
       {() => (
         <div className="answer-actions">
           <Show when={() => state.pinned}>{() => <span className="answer-ribbon" />}</Show>
@@ -78,7 +73,7 @@ export const AnswerActions = setup<{ widget: DockWidgetEntry }>((props) => {
               </Button>
             )}
           </Show>
-          <TimeSince at={answer.at} />
+          <TimeSince at={session.timeOf(answer) as number} />
         </div>
       )}
     </Show>
@@ -90,19 +85,20 @@ export const AnswerActions = setup<{ widget: DockWidgetEntry }>((props) => {
  * under the bubble, on the open stack's frame, so anything but the user's turns draws nothing here.
  */
 export const TurnActions = setup<{ widget: DockWidgetEntry }>((props) => {
+  const session = sessionCtx.get() as Session;
   const turn = $static(() => props.widget) as UserTurn;
 
   return () =>
     turn.from === 'user' ? (
       <div className="turn-actions">
-        <TimeSince at={turn.at} />
+        <TimeSince at={session.timeOf(turn) as number} />
         <CopyButton text={() => turn.sent.text} />
         <Button
           aria-label="Retry"
           size="sm"
           variant="text"
           className={AUI_CLASS.CONTROL_ICON}
-          onClick={() => void engine.retry(turn)}
+          onClick={() => void session.retry(turn)}
         >
           <RetryIcon />
           <Tooltip>Retry</Tooltip>
