@@ -1,10 +1,13 @@
 import { $bind, Snippet, setup, template } from '@airlib/react';
 import { Button, Listbox, ListboxOption, Select, Stepper, TextInput, Tooltip } from '@airlib/react-aui';
 import { AddIcon, CloseIcon } from '@airlib/react-aui/icons';
+import { IRPCFile } from '@irpclib/irpc';
 import type { ReactNode } from 'react';
 import { ASPECTS, attemptPicture, chosenAttempt, MODELS, pictureAt, reuseAttempt, settingsOf } from '@/lib/documents/generation.js';
-import { follow } from '@/lib/documents/store.js';
+import { nameOf, newId, parentOf } from '@/lib/documents/paths.js';
 import type { GeneratedAttempt, GenerativeDocument, PersonaDocument, SoundDocument } from '@/lib/documents/types.js';
+import { dfs } from '@/lib/share/dfs.js';
+import { follow } from '@/lib/share/documents.js';
 import { ConfirmButton } from './ConfirmButton.js';
 import { type GenerationSubject, generationCtx } from './generation.js';
 import { GenerativeIcon, SoundIcon } from './icons.js';
@@ -182,7 +185,7 @@ const referencesGroup = (source: GenerativeDocument, subject: GenerationSubject)
         }
       </Snippet>
       <li>
-        <ReferenceAdd source={source} />
+        <ReferenceAdd source={source} path={subject.path} />
       </li>
     </ul>,
     true
@@ -204,8 +207,8 @@ function removeReference(source: GenerativeDocument, reference: string): void {
  * Adding references: a tile, always at the end, picking from the user's own files — images, or
  * sounds for a sound — each added as it's picked.
  */
-const ReferenceAdd = template<{ source: GenerativeDocument }>(
-  ({ source }) => (
+const ReferenceAdd = template<{ source: GenerativeDocument; path?: string }>(
+  ({ source, path }) => (
     <label className="wedyan-compose-thumb wedyan-compose-thumb-add" title="Add reference">
       <AddIcon />
       <input
@@ -216,9 +219,9 @@ const ReferenceAdd = template<{ source: GenerativeDocument }>(
         className="wedyan-compose-thumb-file"
         onChange={(event) => {
           const input = event.currentTarget;
-          // Until the drive takes uploads, a picked file is referenced where the browser keeps it.
-          const added = [...(input.files ?? [])].map((file) => URL.createObjectURL(file));
-          (source.references ??= []).push(...added);
+          for (const file of Array.from(input.files ?? [])) {
+            void storeReference(file, path).then((address) => (source.references ??= []).push(address));
+          }
           input.value = '';
         }}
       />
@@ -226,6 +229,20 @@ const ReferenceAdd = template<{ source: GenerativeDocument }>(
   ),
   'ReferenceAdd'
 );
+
+/**
+ * Stores a picked file beside what it's a reference of, as a part of it that lists as nothing.
+ *
+ * @param file - The file.
+ * @param path - The document it's a reference of, if it has a place yet.
+ * @returns Where it's delivered from.
+ */
+async function storeReference(file: File, path?: string): Promise<string> {
+  const stored = `${path ? parentOf(path) : '~'}/${newId()}.${file.name.slice(file.name.lastIndexOf('.') + 1).toLowerCase()}`;
+  const content = new IRPCFile({ name: nameOf(stored), size: file.size, type: file.type }, file);
+  await dfs.write(stored, content, { metadata: { part: 'true' } });
+  return `/~${stored.slice(1)}`;
+}
 
 /**
  * Who's in it, each a tile picking which of their pictures it takes — for speech, who says the words, by

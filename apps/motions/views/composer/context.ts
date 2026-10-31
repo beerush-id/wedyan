@@ -2,9 +2,10 @@ import { createContext, effect, mutable } from '@airlib/react';
 import type { Timeline, TimelineSegment } from '@airlib/react/timeline';
 import type { PersonTab } from '@/apps/lounge/views/session.js';
 import { isGenerative } from '@/lib/documents/generation.js';
-import { resolvePath } from '@/lib/documents/paths.js';
+import { parentOf, resolvePath } from '@/lib/documents/paths.js';
 import { type FileRow, rowsOf } from '@/lib/documents/rows.js';
 import type { GenerativeDocument, MotionDocument, StageDocument } from '@/lib/documents/types.js';
+import { LOUNGE, LOUNGE_EVENT } from '@/lib/kernel/workspace.h.js';
 import { dfs } from '@/lib/share/dfs.js';
 import { documentAt, follow, type Project } from '../motion.js';
 
@@ -78,6 +79,16 @@ export type Composer = {
   generativeAsset(): GenerativeSource | undefined;
   /** Makes a generated document again; nothing in Motions generates yet, so it says so. */
   generate(generated: GenerativeSource): void;
+  /**
+   * Puts a row this desktop is adding in the listing, which needs no asking again for it: the
+   * project only holds a file once it's saved, so a listing can't have it yet.
+   *
+   * @param row - The new row.
+   * @returns The row as it's listed, live.
+   */
+  add(row: FileRow): FileRow;
+  /** Takes a row back out of the listing, for a file that couldn't be added. */
+  drop(row: FileRow): void;
 };
 
 /** The composer of the window a part is in. */
@@ -86,8 +97,8 @@ export const composerCtx = createContext<Composer>();
 /** Where a project window's listing looks, narrowed to what the project holds. */
 const HOME = '~';
 
-/** The files a project window's listing shows. */
-const LISTED_FILE = /\.(motion|stage|persona|agent|still|take|png|jpe?g|webp|gif|mp4|webm|mp3|wav)$/;
+/** The files that change a project window's listing: media only lists once the project holds it. */
+const LISTED_FILE = /\.(motion|stage|persona|agent|still|take)$/;
 
 /**
  * A project window's one source of truth: the project, and what the window shows of it.
@@ -176,6 +187,17 @@ export function createComposer(path: string, direct: boolean): Composer {
       generate({ source }) {
         composer.status = `Generating ${source.name} isn't connected yet.`;
       },
+
+      add(row) {
+        const rows = rowsOf(listed);
+        rows.push(row);
+        return rows[rows.length - 1];
+      },
+
+      drop(row) {
+        const rows = rowsOf(listed);
+        rows.splice(rows.indexOf(row), 1);
+      },
     },
     { recursive: false },
   );
@@ -190,6 +212,11 @@ export function createComposer(path: string, direct: boolean): Composer {
   // What an agent writes isn't held here, so it's listed again.
   dfs.watch(HOME, ({ path: changed }) => {
     if (LISTED_FILE.test(changed)) composer.version += 1;
+  });
+
+  // What another tab added, which it holds and this one can't list until the project is saved.
+  LOUNGE.subscribe(({ type, data }) => {
+    if (type === LOUNGE_EVENT.CREATED && data.held && parentOf(data.path) === parentOf(path)) rowsOf(listed).push(data);
   });
 
   // A stage edited in Compose changes only its row, which shows in Direct: it's listed again on the

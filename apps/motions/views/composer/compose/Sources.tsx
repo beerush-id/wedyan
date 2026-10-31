@@ -4,11 +4,16 @@ import { WindowPanel } from '@airlib/react-aui/desktop';
 import type { DragEvent } from 'react';
 import { WedyanGallery, type WedyanGalleryEntry } from '@/components/WedyanGallery.js';
 import type { FileRow, RowKind } from '@/lib/documents/rows.js';
+import { linkTo, previewLink, requestLink } from '@/lib/systems/public.js';
 import { type Composer, composerCtx } from '../context.js';
 import { ASSET_DRAG, placeOnStage } from '../placement.js';
+import { addAssets } from '../upload.js';
 
 /** The asset kinds drawn on the stage, as against sound. */
 const PICTURE_KINDS = new Set<RowKind>(['image', 'still', 'video', 'take']);
+
+/** What a drag of files from outside the browser carries. */
+const FILES_DRAG = 'Files';
 
 /** What a tile's menu does with its asset. */
 const TILE_COMMANDS = [{ name: 'place', label: 'Add to timeline' }];
@@ -16,7 +21,7 @@ const TILE_COMMANDS = [{ name: 'place', label: 'Add to timeline' }];
 /**
  * What a stage can be made from, narrowed by kind: everything, or only its pictures and footage, its
  * sound, or its casts. An asset drags onto a track of the timeline, its menu puts it at the playhead,
- * and a generated one opens in Direct on a double click.
+ * and it opens in Preview on a double click. Files dropped on the panel are uploaded into the project.
  */
 export const Sources = setup(() => {
   const composer = composerCtx.get() as Composer;
@@ -39,21 +44,37 @@ export const Sources = setup(() => {
     event.dataTransfer.setData(ASSET_DRAG, asset.path);
     event.dataTransfer.effectAllowed = 'copy';
   };
-  const openGenerated = (entry: WedyanGalleryEntry) => {
+  const openPreview = (entry: WedyanGalleryEntry) => {
     const asset = assetOf(entry.path);
-    if (asset?.kind !== 'still' && asset?.kind !== 'take') return;
-    composer.activeAsset = asset;
-    composer.activeView = 'asset';
-    composer.mode = 'direct';
+    if (!asset) return;
+    const { kind, src, name, path } = asset;
+    void requestLink(kind === 'image' || kind === 'video' || kind === 'audio' ? previewLink(src as string, kind, name) : linkTo('preview', path));
   };
   const addPicked = () => {
     const asset = assetOf(view.picked);
     if (asset) placeOnStage(composer, asset);
   };
 
+  // Asset tiles drag too, so only what's dragged in from outside is taken.
+  const dragOver = (event: DragEvent<HTMLElement>) => {
+    if (!event.dataTransfer.types.includes(FILES_DRAG)) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+    event.currentTarget.dataset.dropping = 'true';
+  };
+  const dragLeave = (event: DragEvent<HTMLElement>) => {
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) delete event.currentTarget.dataset.dropping;
+  };
+  const drop = (event: DragEvent<HTMLElement>) => {
+    if (!event.dataTransfer.types.includes(FILES_DRAG)) return;
+    event.preventDefault();
+    delete event.currentTarget.dataset.dropping;
+    void addAssets(composer, event.dataTransfer.files);
+  };
+
   const gallery = (label: string, entries: WedyanGalleryEntry[], empty: [string, string]) =>
     entries.length ? (
-      <WedyanGallery label={label} entries={entries} value={$bind(view, 'picked')} onopen={openGenerated} ondragstart={drag} className="wedyan-compose-gallery">
+      <WedyanGallery label={label} entries={entries} value={$bind(view, 'picked')} onopen={openPreview} ondragstart={drag} className="wedyan-compose-gallery">
         {entries.some((entry) => assetOf(entry.path)) && <ContextMenu label="Source" size="xs" items={TILE_COMMANDS} oncommand={addPicked} />}
       </WedyanGallery>
     ) : (
@@ -64,7 +85,14 @@ export const Sources = setup(() => {
     const pictures = assets().filter((asset) => PICTURE_KINDS.has(asset.kind)).map(entryOf);
     const sounds = assets().filter((asset) => !PICTURE_KINDS.has(asset.kind)).map(entryOf);
     return (
-      <WindowPanel role="region" aria-label="Sources" className="wedyan-compose-group wedyan-compose-sources">
+      <WindowPanel
+        role="region"
+        aria-label="Sources"
+        className="wedyan-compose-group wedyan-compose-sources"
+        onDragOver={dragOver}
+        onDragLeave={dragLeave}
+        onDrop={drop}
+      >
         <Tabs size="xs" value="all">
           <TabList label="Show">
             <TabButton name="all">All</TabButton>

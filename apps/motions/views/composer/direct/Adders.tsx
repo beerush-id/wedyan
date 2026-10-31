@@ -1,13 +1,10 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
 import { $use, setup } from '@airlib/react';
 import { Button, Menu, Tooltip } from '@airlib/react-aui';
-import { newPerson } from '@/apps/lounge/views/library.js';
-import { documentAt as personOnDrive } from '@/lib/documents/store.js';
-import { dfs } from '@/lib/share/dfs.js';
 import { AddIcon } from '../../icons.js';
-import { addCast, newStage } from '../../motion.js';
+import { addCast, newPerson, newStage } from '../../motion.js';
 import { type Composer, composerCtx } from '../context.js';
-import { ASSET_TYPES, addAsset } from '../upload.js';
+import { ASSET_TYPES, addAssets } from '../upload.js';
 
 /** Which command makes a new person, among the people to pick. */
 const NEW_PERSON = 'new-person';
@@ -36,9 +33,7 @@ export const AddAsset = setup(() => {
   let picker: HTMLInputElement | null = null;
 
   const upload = async (files: FileList | null) => {
-    const { project } = composer;
-    if (!project || !files) return;
-    for (const file of files) await addAsset(project, file);
+    if (files) await addAssets(composer, files);
     if (picker) picker.value = '';
   };
 
@@ -76,7 +71,7 @@ export const AddCast = setup(() => {
   const add = async (command: string) => {
     const { project } = composer;
     if (!project) return;
-    const persona = command === NEW_PERSON ? await writePerson() : command;
+    const persona = command === NEW_PERSON ? await newPerson() : command;
     addCast(project, persona);
     composer.activeCast = persona;
     composer.activeView = 'cast';
@@ -88,15 +83,3 @@ export const AddCast = setup(() => {
     </Menu>
   );
 }, 'AddCast');
-
-/**
- * Makes a new person as Lounge does, as a real file.
- *
- * @returns Its home path.
- */
-async function writePerson(): Promise<string> {
-  const made = newPerson();
-  const path = `~${made}`;
-  await dfs.write(path, personOnDrive(made) as never);
-  return path;
-}

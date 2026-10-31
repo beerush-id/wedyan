@@ -114,7 +114,8 @@ const ImageClipView = template<{ segment: TimelineSegment<ImageClip> }>(
 /** A title clip: its words in their CSS, filling its box. */
 const TitleClipView = template<{ segment: TimelineSegment<TitleClip> }>(
   (props) => (
-    <StageClip segment={props.segment} style={props.segment.props.style}>
+    // React freezes the object it's given as a style: the clip's own stays the clip's to change.
+    <StageClip segment={props.segment} style={{ ...props.segment.props.style }}>
       {props.segment.props.text}
     </StageClip>
   ),

@@ -4,8 +4,9 @@ import { defineWindow, Window, WindowTitle } from '@airlib/react-aui/desktop';
 import { ImageIcon } from '@airlib/react-aui/icons';
 import { FloatingDownload } from '@/components/FloatingDownload.js';
 import { chosenAttempt } from '@/lib/documents/generation.js';
-import { documentAt, nameOf } from '@/lib/documents/store.js';
-import type { SoundDocument, StillDocument, TakeDocument } from '@/lib/documents/types.js';
+import { nameOf } from '@/lib/documents/paths.js';
+import type { DocumentOf, DocumentType, SoundDocument, StillDocument, TakeDocument } from '@/lib/documents/types.js';
+import { dfs } from '@/lib/share/dfs.js';
 import type { PreviewTarget } from '@/lib/systems/system.js';
 import { fullRect } from '@/lib/systems/window.js';
 import manifest from '../manifest.json';
@@ -54,10 +55,36 @@ export const preview = defineWindow({
           </WindowTitle>
         )}
       </Window.Snippet>
-      <div className={CLASS.PREVIEW}>{target ? <Shown target={target} /> : <Nothing />}</div>
+      <div className={CLASS.PREVIEW}>
+        {target ? (
+          <Snippet data={() => arrived(target)}>{(ready) => (ready ? <Shown target={target} /> : null)}</Snippet>
+        ) : (
+          <Nothing />
+        )}
+      </div>
     </Window>
   );
 });
+
+/**
+ * Whether what's shown has arrived, so what it is can be told.
+ *
+ * @param target - What's previewed.
+ * @returns False while a document is on its way.
+ */
+function arrived(target: PreviewTarget): boolean {
+  return typeof target !== 'string' || dfs.read(target).ready;
+}
+
+/**
+ * The document a target names.
+ *
+ * @param target - A document's home path.
+ * @returns The document, once it has arrived and if it's there.
+ */
+function documentOf(target: string): DocumentOf<DocumentType> | undefined {
+  return dfs.read<DocumentOf<DocumentType>>(target).data ?? undefined;
+}
 
 /**
  * Opens something in a Preview window of its own, or brings forward the one already showing it.
@@ -105,8 +132,10 @@ const Shown = setup<{ target: PreviewTarget }>((props) => {
     case 'image':
       return () => <Pictures slides={() => [{ src: shape.src, alt: shape.name }]} name={shape.name} />;
     case 'video':
-    case 'audio':
-      return () => <Player src={shape.src} type={shape.kind} name={shape.name} />;
+    case 'audio': {
+      const { src, kind, name } = shape;
+      return () => <Player src={src} type={kind} name={name} />;
+    }
     case 'still': {
       const still = shape.document;
       // Every attempt, the chosen one shown first.
@@ -140,7 +169,7 @@ const Shown = setup<{ target: PreviewTarget }>((props) => {
  */
 function shapeOf(target: PreviewTarget): Shape {
   if (typeof target !== 'string') return { kind: target.type, src: target.src, name: target.name ?? 'Picture' };
-  const document = documentAt(target);
+  const document = documentOf(target);
   if (document?.type === 'still') return { kind: 'still', document };
   if (document?.type === 'take' || document?.type === 'sound') return { kind: document.type, document };
   return { kind: 'none', name: nameOf(target) };
@@ -202,7 +231,7 @@ function keyOf(target: PreviewTarget): string {
  */
 function titleOf(target: PreviewTarget): string {
   if (typeof target !== 'string') return target.name ?? 'Preview';
-  return documentAt(target)?.name ?? nameOf(target);
+  return documentOf(target)?.name ?? nameOf(target);
 }
 
 /**
@@ -213,7 +242,7 @@ function titleOf(target: PreviewTarget): string {
  */
 function thumbnailOf(target: PreviewTarget): string | undefined {
   if (typeof target !== 'string') return target.type === 'image' ? target.src : undefined;
-  const document = documentAt(target);
+  const document = documentOf(target);
   if (document?.type === 'still') return chosenAttempt(document)?.src;
   if (document?.type === 'take') return (chosenAttempt(document) as { poster?: string } | undefined)?.poster;
 }

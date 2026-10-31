@@ -515,6 +515,23 @@
   font-size: var(--font-label-md-size);
 }
 
+/* The sources while files are held over them, ready to be dropped in. */
+.wedyan-compose-sources[data-dropping] {
+  outline: 2px dashed var(--color-primary);
+  outline-offset: -4px;
+}
+
+/* A swatch the size of the controls beside it, opening the browser's own picker. */
+.wedyan-compose-color {
+  inline-size: 40px;
+  block-size: 24px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  cursor: pointer;
+}
+
 /*
  * A step back, the keyframe, a step on: marks drawn to sit on the name's line, a control's size
  * being too tall for it. The diamond fills in the primary while the group is keyed at the playhead.
@@ -610,18 +627,22 @@
 
   & > .aui-stepper {
     grid-column: span 2;
-    gap: var(--spacing-xs);
-    padding-inline: var(--spacing-sm);
+  }
+}
 
-    & > .aui-icon {
-      --aui-icon-size: 0.875rem;
-      flex: none;
-      color: var(--color-on-surface-variant);
-    }
+/* A value's field wherever it sits: its glyph in from the edge, its number at the end. */
+:is(.wedyan-compose-property-body, .wedyan-compose-property-row) > .aui-stepper {
+  gap: var(--spacing-xs);
+  padding-inline: var(--spacing-sm);
 
-    & > .aui-stepper-input {
-      text-align: end;
-    }
+  & > .aui-icon {
+    --aui-icon-size: 0.875rem;
+    flex: none;
+    color: var(--color-on-surface-variant);
+  }
+
+  & > .aui-stepper-input {
+    text-align: end;
   }
 }
 

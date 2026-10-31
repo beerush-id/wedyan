@@ -59,7 +59,7 @@ export function ComposerWindow({ instance }: WindowRenderProps) {
     bind(path);
     const direct = composer.mode === 'direct';
     if (direct && composer.activeView === 'overview' && motion.script) bind(composer.pathOf(motion.script.path), 'text');
-    const generated = composer.generativeAsset();
+    const generated = composer.generativeAsset() ?? composer.generativeClip();
     if (generated) bind(generated.path);
     if (direct && composer.activeView !== 'stage') return;
     const { stagePath, stage } = composer;

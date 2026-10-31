@@ -1,4 +1,4 @@
-import { follow } from './store.js';
+import { follow } from '../share/documents.js';
 import type { DocumentType, GeneratedAttempt, GenerationSettings, GenerativeDocument, WedyanDocument } from './types.js';
 
 /** The models a generation can be asked of, by what it makes. Placeholders until the kernel names its own. */
@@ -101,6 +101,9 @@ export function attemptPicture(source: GenerativeDocument, attempt?: GenerativeD
   return source.type === 'still' ? attempt.src : (attempt as { poster?: string }).poster;
 }
 
+/** A written reference that's an address to load, not a document to follow. */
+const ADDRESS = /^(\/~\/|[a-z][a-z0-9+.-]*:)/i;
+
 /**
  * The picture a written path or address shows: a still's chosen attempt, a take's poster, a
  * persona's face, or the address itself when it's no document.
@@ -110,6 +113,7 @@ export function attemptPicture(source: GenerativeDocument, attempt?: GenerativeD
  * @returns Its picture's address, if it has one.
  */
 export function pictureAt(from: string, reference: string): string | undefined {
+  if (ADDRESS.test(reference)) return reference;
   const found = follow(from, reference);
   const document = found.document;
   if (!document) return reference;

@@ -1,8 +1,31 @@
 import { $bind, $static, Show, Snippet, setup } from '@airlib/react';
 import { sampleSegment, type Timeline, type TimelineSegment } from '@airlib/react/timeline';
-import { EmptyState, Slider, Stepper, StepperInput, Switch, TabButton, TabList, TabPanel, Tabs, Tooltip } from '@airlib/react-aui';
+import {
+  EmptyState,
+  Slider,
+  Stepper,
+  StepperInput,
+  Switch,
+  TabButton,
+  TabList,
+  TabPanel,
+  Tabs,
+  TextInput,
+  Toggle,
+  ToggleGroup,
+  Tooltip,
+} from '@airlib/react-aui';
 import { WindowPanel } from '@airlib/react-aui/desktop';
-import type { FC } from 'react';
+import {
+  FormatAlignCenterIcon,
+  FormatAlignLeftIcon,
+  FormatAlignRightIcon,
+  FormatBoldIcon,
+  FormatItalicIcon,
+  FormatUnderlinedIcon,
+  TitleIcon,
+} from '@airlib/react-aui/icons';
+import type { ChangeEvent, FC } from 'react';
 import {
   BalanceIcon,
   HeightIcon,
@@ -18,7 +41,7 @@ import {
   XIcon,
   YIcon,
 } from '../../icons.js';
-import type { ClipSound } from '../composition.js';
+import type { ClipSound, TitleClip } from '../composition.js';
 import { type Composer, composerCtx } from '../context.js';
 import { clipAssignee } from './assignee.js';
 import { AssigneeAvatar } from './assignment.js';
@@ -61,10 +84,25 @@ const hasBox = (segment?: TimelineSegment) => !!segment && segment.type !== 'aud
 /** A clip with sound: footage, or a sound. */
 const hasSound = (segment?: TimelineSegment) => segment?.type === 'video' || segment?.type === 'audio';
 
+/** The picked clip when it has words: a title. */
+const titleOf = (segment?: TimelineSegment) => (segment?.type === 'title' ? (segment as TimelineSegment<TitleClip>) : undefined);
+
+/** A title's `font` when it hasn't one, and its parts: italic, weight, size in stage units, and the rest. */
+const DEFAULT_FONT = '500 48px/1.2 system-ui, sans-serif';
+const FONT_PARTS = /^(italic )?(\d+) ([\d.]+)px(.*)$/;
+
+/** The weights a title is set in. */
+const WEIGHT = { REGULAR: 500, BOLD: 700 };
+
+/** Where each alignment puts a title's line in its box, as well as its words. */
+const ALIGNMENTS = { left: 'start', center: 'center', right: 'end' };
+
+type Alignment = keyof typeof ALIGNMENTS;
+
 /**
- * The picked clip's properties, by kind on tabs: Layer holds its box, and Audio its sound, each
- * value shown at the playhead. Everything here reads the picked clip from the composer, so picking
- * another just shows it.
+ * The picked clip's properties, by kind on tabs: Layer holds its box, Audio its sound, each value
+ * shown at the playhead, and Text a title's words and how they're set. Everything here reads the
+ * picked clip from the composer, so picking another just shows it.
  */
 export const Properties = setup(() => {
   const composer = composerCtx.get() as Composer;
@@ -109,6 +147,18 @@ export const Properties = setup(() => {
             )}
           >
             {() => <Sound />}
+          </Show>
+        </TabPanel>
+        <TabPanel name="text">
+          <Show
+            when={() => titleOf(composer.pickedClip())}
+            fallback={() => (
+              <EmptyState size="sm" title="No text picked" description="Pick one title clip to edit its words.">
+                <EmptyState.Snippet for="icon">{() => <TextIcon />}</EmptyState.Snippet>
+              </EmptyState>
+            )}
+          >
+            {(clip) => <TitleText key={clip.id} clip={clip} />}
           </Show>
         </TabPanel>
       </Tabs>
@@ -171,6 +221,112 @@ const Sound = setup(() => {
     </div>
   );
 }, 'Sound');
+
+/** A title's words and how they're set, each read and written on the clip itself. */
+const TitleText = setup<{ clip: TimelineSegment<TitleClip> }>((props) => {
+  const clip = $static(() => props.clip);
+  const style = () => {
+    clip.props.style ??= {};
+    return clip.props.style;
+  };
+  const font = () => (FONT_PARTS.exec(String(clip.props.style?.font)) ?? FONT_PARTS.exec(DEFAULT_FONT)) as RegExpExecArray;
+  const setFont = (italic: unknown, weight: number | string, size: number | string) => {
+    style().font = `${italic ? 'italic ' : ''}${weight} ${size}px${font()[4]}`;
+  };
+  const setColor = (event: ChangeEvent<HTMLInputElement>) => {
+    style().color = event.currentTarget.value;
+  };
+
+  const look = {
+    get size() {
+      return Number(font()[3]);
+    },
+    set size(size: number | undefined) {
+      if (size) setFont(font()[1], font()[2], size);
+    },
+    get bold() {
+      return Number(font()[2]) >= WEIGHT.BOLD;
+    },
+    set bold(bold: boolean | undefined) {
+      setFont(font()[1], bold ? WEIGHT.BOLD : WEIGHT.REGULAR, font()[3]);
+    },
+    get italic() {
+      return Boolean(font()[1]);
+    },
+    set italic(italic: boolean | undefined) {
+      setFont(italic, font()[2], font()[3]);
+    },
+    get underline() {
+      return clip.props.style?.textDecoration === 'underline';
+    },
+    set underline(underline: boolean | undefined) {
+      style().textDecoration = underline ? 'underline' : 'none';
+    },
+    get align() {
+      return (clip.props.style?.textAlign ?? 'center') as Alignment;
+    },
+    set align(align: Alignment) {
+      Object.assign(style(), { textAlign: align, placeItems: `center ${ALIGNMENTS[align]}` });
+    },
+  };
+
+  return () => (
+    <div className="wedyan-compose-properties-fields">
+      <TextInput size="sm" label="Words" multiline rows={3} value={$bind(clip.props, 'text')} />
+      <fieldset aria-label="Font" className="wedyan-compose-property-group">
+        <div className="wedyan-compose-property-head">
+          <span className="wedyan-compose-property-label" aria-hidden="true">
+            Font
+          </span>
+        </div>
+        <div className="wedyan-compose-property-row">
+          <Stepper size="xs" label="Size" step={1} min={1} value={$bind(look, 'size')}>
+            <TitleIcon />
+            <StepperInput aria-label="Size" />
+            <Tooltip>Size</Tooltip>
+          </Stepper>
+          <ToggleGroup aria-label="Format" size="xs" multiple>
+            <Toggle aria-label="Bold" pressed={$bind(look, 'bold')}>
+              <FormatBoldIcon />
+              <Tooltip>Bold</Tooltip>
+            </Toggle>
+            <Toggle aria-label="Italic" pressed={$bind(look, 'italic')}>
+              <FormatItalicIcon />
+              <Tooltip>Italic</Tooltip>
+            </Toggle>
+            <Toggle aria-label="Underline" pressed={$bind(look, 'underline')}>
+              <FormatUnderlinedIcon />
+              <Tooltip>Underline</Tooltip>
+            </Toggle>
+          </ToggleGroup>
+        </div>
+        <div className="wedyan-compose-property-row">
+          <span>Align</span>
+          <ToggleGroup aria-label="Align" size="xs" value={$bind(look, 'align')} required>
+            <Toggle value="left" aria-label="Left">
+              <FormatAlignLeftIcon />
+              <Tooltip>Left</Tooltip>
+            </Toggle>
+            <Toggle value="center" aria-label="Center">
+              <FormatAlignCenterIcon />
+              <Tooltip>Center</Tooltip>
+            </Toggle>
+            <Toggle value="right" aria-label="Right">
+              <FormatAlignRightIcon />
+              <Tooltip>Right</Tooltip>
+            </Toggle>
+          </ToggleGroup>
+        </div>
+        <div className="wedyan-compose-property-row">
+          <span>Color</span>
+          <Snippet data={() => String(clip.props.style?.color ?? '#ffffff')}>
+            {(color) => <input type="color" aria-label="Color" className="wedyan-compose-color" value={color} onChange={setColor} />}
+          </Snippet>
+        </div>
+      </fieldset>
+    </div>
+  );
+}, 'TitleText');
 
 /** A clip's keyed values, a group under its name for each, keyed together. */
 const Groups = setup<{ groups: Group[] }>((props) => {

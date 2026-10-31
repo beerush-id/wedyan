@@ -1,9 +1,11 @@
 import { mutable } from '@airlib/react';
-import { nameOf, newHeader, newId, parentOf, resolvePath } from '@/lib/documents/paths.js';
+import { nameOf, newHeader, newId, parentOf } from '@/lib/documents/paths.js';
 import type { FileRow } from '@/lib/documents/rows.js';
-import type { DocumentOf, DocumentType, MotionDocument, StageDocument } from '@/lib/documents/types.js';
+import type { MotionDocument, PersonaDocument, StageDocument } from '@/lib/documents/types.js';
 import { dfs } from '@/lib/share/dfs.js';
 import { LOUNGE, LOUNGE_EVENT } from '../../../lib/kernel/workspace.h.js';
+
+export { documentAt, follow } from '@/lib/share/documents.js';
 
 /** How Motions animates a new motion: set from the dock, read when a prompt is sent. */
 export const animation = mutable({ model: 'standard', aspect: '16:9', seconds: 6 });
@@ -17,30 +19,20 @@ export const ROOT = '~/Motions';
 /** A project's own file. */
 export const MOTION_FILE = /\.motion$/;
 
-/**
- * The document at a path, live.
- *
- * @param path - Its path.
- * @returns The document, once it has arrived and if it's there.
- */
-export function documentAt<T extends DocumentType = DocumentType>(path?: string): DocumentOf<T> | undefined {
-  return path ? (dfs.read<DocumentOf<T>>(path).data ?? undefined) : undefined;
-}
+/** Where people are kept. */
+const PEOPLE = '~/People';
 
 /**
- * The document a path written in another document leads to.
+ * Makes a new person on the drive, named apart from its path.
  *
- * @param from - The path of the document it is written in.
- * @param path - The path as written.
- * @returns Where it leads, and the document there, once it has arrived.
+ * @returns Its path.
  */
-export function follow<T extends DocumentType = DocumentType>(
-  from: string,
-  path: string,
-): { path: string; document: DocumentOf<T> | undefined } {
-  const resolved = resolvePath(from, path);
-  return { path: resolved, document: documentAt<T>(resolved) };
-}
+export const newPerson = async (): Promise<string> => {
+  const path = `${PEOPLE}/${newId()}.persona`;
+  const person: PersonaDocument = { ...newHeader(path, '.persona'), name: 'New person', type: 'persona', kind: 'person', head: { main: '' } };
+  await dfs.write(path, person as never);
+  return path;
+};
 
 /**
  * Makes a folder in the library, named apart from its path.
