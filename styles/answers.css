@@ -1,0 +1,61 @@
+/* In an answer: the pictures of something being made, a few across, and a badge that keeps to its words. */
+.aui-dock-widget {
+  & .aui-gallery {
+    --aui-gallery-tile: 6rem;
+    margin-block-end: var(--spacing-sm);
+  }
+
+  & .aui-badge {
+    align-self: flex-start;
+  }
+}
+
+/* What can be done with an answer, and when it came: a quiet row under it. */
+.answer-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-block-start: var(--spacing-xs);
+  color: var(--color-on-surface-variant);
+}
+
+/* A pinned answer's ribbon: hung from the top edge of the entry, whose pane is what it's placed against. */
+.answer-ribbon {
+  position: absolute;
+  inset-block-start: -1px;
+  inset-inline-end: var(--spacing-xl);
+  inline-size: 1.5rem;
+  block-size: 2rem;
+  background-color: var(--color-primary);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%);
+  pointer-events: none;
+}
+
+.answer-time {
+  margin-inline: var(--spacing-sm);
+  font-size: var(--font-label-sm-size);
+}
+
+/* The same under what the user sent, at the bubble's side. It sits on the open stack's frame, so it's only there with it. */
+.turn-actions {
+  display: flex;
+  align-items: center;
+  align-self: flex-end;
+  gap: var(--spacing-xs);
+  margin-block-start: calc(var(--aui-dock-gap) * -0.5);
+  color: var(--color-on-surface-variant);
+}
+
+.aui-dock-widgets:not(:hover, :focus-within, :has([aria-expanded='true'])) .turn-actions {
+  visibility: hidden;
+}
+
+/* What a command made: its picture, at a tile's size, above the words about it. */
+.answer-picture {
+  display: block;
+  inline-size: 6rem;
+  aspect-ratio: 1;
+  margin-block-end: var(--spacing-sm);
+  border-radius: var(--radius-md);
+  object-fit: cover;
+}

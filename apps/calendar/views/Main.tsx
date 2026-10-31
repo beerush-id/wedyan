@@ -1,5 +1,5 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
-import { $bind, $use, mutable, Show, Snippet } from '@airlib/react';
+import { $bind, $use, effect, mutable, Show, Snippet } from '@airlib/react';
 import { Button, Divider, EmptyState, Toggle, ToggleGroup, Tooltip } from '@airlib/react-aui';
 import {
   defineWindow,
@@ -21,7 +21,7 @@ import { monthTitle, stepped, todayKey } from './dates.js';
 import { EventDetails } from './Event.js';
 import { CalendarGrid } from './Grid.js';
 import { DeleteIcon, InvitesIcon, LibraryIcon, PreviewIcon, SidebarCloseIcon, SidebarOpenIcon } from './icons.js';
-import { CALENDARS, type CalendarEvent, eventAt, library, type ListingRequest, listing, tintOf } from './library.js';
+import { CALENDARS, type CalendarEvent, eventAt, library, type ListingRequest, listing, opening, tintOf } from './library.js';
 
 const CLASS = {
   BROWSE: BROWSE_CLASS.ROOT,
@@ -72,6 +72,13 @@ export const calendar = defineWindow({
   };
 
   calendarCtx.set({ state: view, shown, open });
+
+  // A link's event opens like any other.
+  effect(() => {
+    if (!opening.path) return;
+    open(opening.path);
+    opening.path = null;
+  });
 
   /**
    * Shows everything, the invites, or a calendar, with nothing picked and nothing searched, as a

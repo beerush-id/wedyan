@@ -1,5 +1,5 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
-import { $bind, mutable, Show, Snippet } from '@airlib/react';
+import { $bind, effect, mutable, Show, Snippet } from '@airlib/react';
 import { Button, Divider, EmptyState, Toggle, ToggleGroup, Tooltip } from '@airlib/react-aui';
 import { defineWindow, Window, WindowBody, WindowControls, WindowPanel, WindowToolbar } from '@airlib/react-aui/desktop';
 import { AddIcon } from '@airlib/react-aui/icons';
@@ -9,7 +9,7 @@ import { SaveButton } from '@/components/SaveButton.js';
 import { fullRect } from '@/lib/systems/window.js';
 import manifest from '../manifest.json';
 import { MemosIcon, MemoryIcon, SidebarCloseIcon, SidebarOpenIcon } from './icons.js';
-import { type MemoGroup, memosOf, newMemo, PRIORITIES, priorityOf, remove, shortDate } from './library.js';
+import { type MemoGroup, memoAt, memosOf, newMemo, opening, PRIORITIES, priorityOf, remove, shortDate } from './library.js';
 import { MemoEditor } from './Memo.js';
 import { memoCtx } from './session.js';
 
@@ -52,6 +52,17 @@ export const memo = defineWindow({
       view.picked[view.group] = null;
       remove(path);
     },
+  });
+
+  // A link's memo opens in its own tab, picked.
+  effect(() => {
+    const path = opening.path;
+    const document = path ? memoAt(path) : undefined;
+    if (!path || !document) return;
+    view.group = document.author.kind === 'agent' ? 'memory' : 'personal';
+    view.picked[view.group] = path;
+    view.query = '';
+    opening.path = null;
   });
 
   // What the toolbar's tabs pick: the tab, which starts its search afresh.

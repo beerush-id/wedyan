@@ -1,11 +1,13 @@
 import type { DockSuggestion } from '@airlib/react-aui/desktop';
+import { generateImages } from '@/lib/assistant/mock.js';
+import type { Commands } from '@/lib/systems/public.js';
 import { GenerativeIcon } from './icons.js';
 import { PHOTOS } from './library.js';
 
-/** What Photos adds to the prompt's commands while it's in front. */
-export const COMMANDS: DockSuggestion[] = [
-  { value: 'generate', label: 'generate', hint: 'Make an image', icon: <GenerativeIcon /> },
-];
+/** What Photos can do, at `system.photos.name`. */
+export const COMMANDS: Commands = {
+  generate: { hint: 'Make an image', icon: <GenerativeIcon />, handle: (input) => generateImages(input) },
+};
 
 /** What a request can mention while Photos is in front: its photos, each shown by its own picture. */
 export const CONTEXTS: DockSuggestion[] = PHOTOS.map((photo) => ({

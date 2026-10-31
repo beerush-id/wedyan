@@ -28,7 +28,7 @@ const CLASS = {
 };
 
 /**
- * Preview: one window for each thing an app asks to see larger, through `system.preview`. A still
+ * Preview: one window for each thing an app asks to see larger, through a `preview:` link. A still
  * shows every attempt, the chosen one first, to step through and zoom; a take plays its chosen
  * attempt, a sound plays its own; a picture, a video or a sound by its address shows as it is. A
  * picture can be downloaded from its corner.

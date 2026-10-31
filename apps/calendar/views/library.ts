@@ -52,6 +52,9 @@ export type ListingRequest = { view: 'calendar' } | { view: 'invites' } | { tag:
 /** Every event in the inbox, answered as the user replies. A mock listing, until the drive serves one. */
 export const EVENTS: CalendarEvent[] = mutable(LISTING.events as CalendarEvent[]);
 
+/** The event a link asked for, until the window opens it. */
+export const opening = mutable({ path: null as string | null });
+
 /** What changes as Calendar is used, for this session: the events deleted, by path. */
 export const library = mutable({ deleted: [] as string[] });
 

@@ -1,23 +1,24 @@
 import { mutable } from '@airlib/react';
 import { type AUISystemState, bootstrap } from '@airlib/react-aui/desktop';
 import calendarManifest from '@/apps/calendar/manifest.json';
-import calendarMain from '@/apps/calendar/views/index.js';
+import calendarMain, { commands as calendarCommands, linkHandle as calendarLinks } from '@/apps/calendar/views/index.js';
 import filesManifest from '@/apps/files/manifest.json';
-import filesMain from '@/apps/files/views/index.js';
+import filesMain, { commands as filesCommands } from '@/apps/files/views/index.js';
 import loungeManifest from '@/apps/lounge/manifest.json';
 import loungeMain from '@/apps/lounge/views/index.js';
 import mailManifest from '@/apps/mail/manifest.json';
 import previewManifest from '@/apps/preview/manifest.json';
-import previewMain from '@/apps/preview/views/index.js';
-import mailMain from '@/apps/mail/views/index.js';
+import previewMain, { linkHandle as previewLinks } from '@/apps/preview/views/index.js';
+import mailMain, { commands as mailCommands, linkHandle as mailLinks } from '@/apps/mail/views/index.js';
 import memoManifest from '@/apps/memo/manifest.json';
-import memoMain from '@/apps/memo/views/index.js';
+import memoMain, { commands as memoCommands, linkHandle as memoLinks } from '@/apps/memo/views/index.js';
 import motionsManifest from '@/apps/motions/manifest.json';
-import motionsMain from '@/apps/motions/views/index.js';
+import motionsMain, { commands as motionsCommands, linkHandle as motionsLinks } from '@/apps/motions/views/index.js';
 import photosManifest from '@/apps/photos/manifest.json';
-import photosMain from '@/apps/photos/views/index.js';
+import photosMain, { commands as photosCommands, linkHandle as photosLinks } from '@/apps/photos/views/index.js';
 import settingsManifest from '@/apps/settings/manifest.json';
 import settingsMain from '@/apps/settings/views/index.js';
+import { dropWindow, keepWindow, type WedyanApp } from './registry.js';
 
 /** Where booting is: the line the splash shows, and whether the desktop can take over. */
 export const BOOT_STAT = mutable({ status: 'Boot messages', ready: false });
@@ -35,7 +36,11 @@ export let SYSTEM: AUISystemState | undefined;
 export async function boot(): Promise<void> {
   if (import.meta.env.SSR) return;
 
-  const system = bootstrap({ devMode: import.meta.env.DEV, system: { apps: [] } });
+  const system = bootstrap({
+    devMode: import.meta.env.DEV,
+    system: { apps: [] },
+    window: { onopen: keepWindow, onclose: dropWindow },
+  });
   if (!system) {
     BOOT_STAT.status = 'Wedyan could not start';
     throw new Error('The system was claimed before Wedyan booted.');
@@ -44,17 +49,18 @@ export async function boot(): Promise<void> {
 
   step('Starting Wedyan');
   step('Installing apps', () => {
-    system.system.apps?.push(
-      { manifest: filesManifest, main: filesMain },
-      { manifest: photosManifest, main: photosMain },
-      { manifest: motionsManifest, main: motionsMain },
-      { manifest: memoManifest, main: memoMain },
-      { manifest: mailManifest, main: mailMain },
-      { manifest: calendarManifest, main: calendarMain },
+    const apps: WedyanApp[] = [
+      { manifest: filesManifest, main: filesMain, commands: filesCommands },
+      { manifest: photosManifest, main: photosMain, commands: photosCommands, linkHandle: photosLinks },
+      { manifest: motionsManifest, main: motionsMain, commands: motionsCommands, linkHandle: motionsLinks },
+      { manifest: memoManifest, main: memoMain, commands: memoCommands, linkHandle: memoLinks },
+      { manifest: mailManifest, main: mailMain, commands: mailCommands, linkHandle: mailLinks },
+      { manifest: calendarManifest, main: calendarMain, commands: calendarCommands, linkHandle: calendarLinks },
       { manifest: loungeManifest, main: loungeMain },
-      { manifest: previewManifest, main: previewMain },
-      { manifest: settingsManifest, main: settingsMain }
-    );
+      { manifest: previewManifest, main: previewMain, linkHandle: previewLinks },
+      { manifest: settingsManifest, main: settingsMain },
+    ];
+    system.system.apps?.push(...apps);
   });
   step('Preparing your desktop');
 

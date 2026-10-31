@@ -62,7 +62,7 @@ import {
 } from './library.js';
 import { MotionsDockOptions, MotionsDockSubject } from './options.js';
 import { ProjectView } from './Project.js';
-import { COMMANDS, CONTEXTS } from './prompt.js';
+import { CONTEXTS } from './prompt.js';
 import { goUp, isEditing, type MotionsRoute, openIn } from './route.js';
 import { endSession, type MotionsSession, sessionCtx, sessionOf } from './session.js';
 
@@ -538,7 +538,6 @@ export function openMotions(motion: string, direct = false) {
   if (!direct) openIn(route, motion);
   return motions.open(route, {
     name: 'project',
-    commands: COMMANDS,
     contexts: CONTEXTS,
     get title() {
       return titleOf(route);

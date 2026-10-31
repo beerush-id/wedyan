@@ -2,6 +2,7 @@ import { AUI_CLASS } from '@airlib/aui/utils';
 import { $bind, $static, $use, createContext, For, mutable, Show, Snippet, setup } from '@airlib/react';
 import { Avatar, Button, EmptyState, Listbox, ListboxOption, Select, Switch, TextInput, Tooltip } from '@airlib/react-aui';
 import { WindowPanel } from '@airlib/react-aui/desktop';
+import { linkTo, requestLink } from '@/lib/systems/public.js';
 import type { ReactNode } from 'react';
 import { ConfirmButton } from '@/components/ConfirmButton.js';
 import { FloatingDownload } from '@/components/FloatingDownload.js';
@@ -10,7 +11,6 @@ import { GenerationForm, GenerationGroup } from '@/components/GenerationForm.js'
 import { GenerativeIcon } from '@/components/icons.js';
 import { WRITING_MODELS } from '@/lib/documents/generation.js';
 import type { PersonaDocument } from '@/lib/documents/types.js';
-import { system } from '@/lib/systems/system.js';
 import { AddIcon, CloseIcon, DeleteIcon, ImageIcon, PeopleIcon, PersonIcon } from './icons.js';
 import { edit, KINDS, newStill, type PersonaKind, personaAt, personalityOf, pictureOf, portraitOf, stillAt } from './library.js';
 import { type LoungeSession, loungeCtx, PERSON_TABS, type PersonTab } from './session.js';
@@ -554,7 +554,7 @@ const PictureButton = setup<{ source: string; label: string; children?: ReactNod
   // The persona writes its pictures by path from its own file; Preview takes the still's own path.
   const enlarge = () => {
     const still = session.path ? stillAt(session.path, props.source) : undefined;
-    if (still) system.preview(still.path);
+    if (still) void requestLink(linkTo('preview', still.path));
   };
 
   return () => (

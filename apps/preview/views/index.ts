@@ -1,11 +1,13 @@
 import type { AUIBoot } from '@airlib/react-aui/desktop';
-import { provide } from '@/lib/systems/system.js';
+import { type LinkHandle, linkTarget } from '@/lib/systems/public.js';
 import { openPreview, preview } from './Main.js';
 
 export { preview };
 
-// Every app previews through the system; Preview does it.
-provide({ preview: openPreview });
+/** What Preview opens: `preview:/Photos/boats.still`, any document larger, in a window of its own. */
+export const linkHandle: Record<string, LinkHandle> = {
+  preview: (link) => openPreview(linkTarget(link)),
+};
 
 /** Preview's entry: launched on its own, it opens a window saying what it's for. */
 export default (({ open }) => {

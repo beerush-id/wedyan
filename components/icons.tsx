@@ -1,4 +1,4 @@
-import { SymbolIcon } from './SymbolIcon.js';
+import { LineIcon, SymbolIcon } from './SymbolIcon.js';
 
 /** The system's command and selection glyphs, and the one for an app: Material Symbols, weight 200. */
 
@@ -93,6 +93,30 @@ export const PreviewIcon = () => (
 /** `edit` */
 export const EditIcon = () => (
   <SymbolIcon d="M200-200h43.92l427.93-427.92-43.93-43.93L200-243.92V-200Zm-40 40v-100.77l527.23-527.77q6.15-5.48 13.57-8.47 7.43-2.99 15.49-2.99t15.62 2.54q7.55 2.54 13.94 9.15l42.69 42.93q6.61 6.38 9.04 14 2.42 7.63 2.42 15.25 0 8.13-2.74 15.56-2.74 7.42-8.72 13.57L260.77-160H160Zm600.77-556.31-44.46-44.46 44.46 44.46ZM649.5-649.5l-21.58-22.35 43.93 43.93-22.35-21.58Z" />
+);
+
+/** Two sheets, one over the other: copying something. */
+export const CopyIcon = () => (
+  <LineIcon>
+    <rect x="9" y="9" width="12" height="12" rx="2.5" />
+    <path d="M5.5 15A2.5 2.5 0 0 1 3 12.5v-7A2.5 2.5 0 0 1 5.5 3h7A2.5 2.5 0 0 1 15 5.5" />
+  </LineIcon>
+);
+
+/** A circle coming back round: doing it again. */
+export const RetryIcon = () => (
+  <LineIcon>
+    <path d="M20.5 12a8.5 8.5 0 1 1-2.6-6.1L20.5 8.3" />
+    <path d="M20.5 3.5v4.8h-4.8" />
+  </LineIcon>
+);
+
+/** A pin: keeping something. */
+export const PinIcon = () => (
+  <LineIcon>
+    <path d="M12 17v4.5" />
+    <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z" />
+  </LineIcon>
 );
 
 /** `apps` */

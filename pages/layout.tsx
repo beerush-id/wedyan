@@ -1,11 +1,14 @@
-import { onMount, page, Show, setup } from '@airlib/react';
+import { $bind, $use, onMount, page, Show, setup } from '@airlib/react';
 import { ToastHost } from '@airlib/react-aui';
 import { Desktop, DesktopClock, DesktopWidgets, Dock, DockWidgets, WindowHost } from '@airlib/react-aui/desktop';
 import type { ReactNode } from 'react';
+import { AnswerActions, TurnActions } from '@/components/AnswerActions.js';
 import { Splash } from '@/components/Splash.js';
+import { engine } from '@/lib/assistant/mock.js';
 import { BOOT_STAT } from '@/lib/systems/boot.js';
 import { focusPrompt, PROMPT_LABEL } from '@/lib/systems/focus.js';
-import { PROMPT_FILTERS } from '@/lib/systems/prompt.js';
+import { promptSuggestions } from '@/lib/systems/prompt.js';
+import { isAppLink } from '@/lib/systems/registry.js';
 import rootRoute from './route.js';
 
 /**
@@ -75,10 +78,25 @@ const WedyanDesktop = setup<{ children?: ReactNode }>((props) => {
       busyLabel="Thinking"
       stopLabel="Stop"
       speakingLabel="Wedyan is speaking"
-      filters={PROMPT_FILTERS}
+      suggestions={promptSuggestions}
       suggestionsLabel="Suggestions"
+      listening={$bind(engine.state, 'listening')}
+      busy={$use(() => engine.state.pressing > 0)}
+      speaking={$use(() => engine.state.speaking)}
+      onsubmit={engine.submit}
+      onstop={engine.stop}
     />
-    <DockWidgets label="Answers" closeLabel="Dismiss" />
+    <DockWidgets
+      label="Answers"
+      widgets={engine.widgets}
+      onaction={engine.run}
+      onlink={engine.link}
+      allowsLink={isAppLink}
+      ondismiss={engine.dismiss}
+    >
+      <DockWidgets.Snippet for="footer">{(widget) => <AnswerActions widget={widget} />}</DockWidgets.Snippet>
+      <DockWidgets.Snippet for="after">{(widget) => <TurnActions widget={widget} />}</DockWidgets.Snippet>
+    </DockWidgets>
     <ToastHost closeLabel="Dismiss" />
     {props.children}
   </Desktop>

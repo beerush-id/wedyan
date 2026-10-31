@@ -1,9 +1,24 @@
 import type { DockSuggestion } from '@airlib/react-aui/desktop';
+import { remember } from '@/lib/assistant/mock.js';
+import type { Commands } from '@/lib/systems/public.js';
 import { MemosIcon } from './icons.js';
-import { memos, shortDate } from './library.js';
+import { memoAt, memos, shortDate } from './library.js';
 
-/** What Memo adds to the prompt's commands while it's in front. */
-export const COMMANDS: DockSuggestion[] = [{ value: 'remember', label: 'remember', hint: 'Keep a memo', icon: <MemosIcon /> }];
+/** What Memo can do, at `system.memo.name`. */
+export const COMMANDS: Commands = {
+  remember: { hint: 'Keep a memo', icon: <MemosIcon />, handle: (input) => remember(input) },
+  /** Sums up the memo a form picked, by its first line of words. */
+  summarize: async ({ form, ack, widgetId }) => {
+    const memo = memoAt(form.memo);
+    const first = memo?.body.split('\n').find((line) => line.trim() && !line.startsWith('#'));
+    if (widgetId) await ack?.(widgetId, { ...form });
+    return (
+      <p>
+        <strong>{memo?.name}</strong> in short: {first ?? 'there is nothing in it yet.'}
+      </p>
+    );
+  },
+};
 
 /** What a request can mention while Memo is in front: its memos, each by whose it is and when it changed. */
 export const CONTEXTS: DockSuggestion[] = memos().map((memo) => ({

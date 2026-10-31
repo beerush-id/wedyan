@@ -1,9 +1,13 @@
+import { mutable } from '@airlib/react';
 import { documentAt, documentsOf, drive, freePath, newHeader, supply } from '@/lib/documents/store.js';
 import type { MemoDocument } from '@/lib/documents/types.js';
 import SAMPLES from '../data/memos.json';
 
 // More memos than the seed holds, on the drive at their paths, until the drive serves the user's own.
 supply(Object.entries(SAMPLES) as [string, MemoDocument][]);
+
+/** The memo a link asked for, until the window opens it. */
+export const opening = mutable({ path: null as string | null });
 
 /** Where the memos live: the Memos folder at the drive's root. */
 export const ROOT = '/Memos';

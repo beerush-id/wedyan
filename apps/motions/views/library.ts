@@ -136,6 +136,30 @@ export const castsOf = (project: Project): { path: string; document: PersonaDocu
   return [...casts].map(([path, document]) => ({ path, document }));
 };
 
+/** A stage's size at each aspect ratio a motion is made at. */
+const STAGE_SIZES: Record<string, { width: number; height: number }> = {
+  '16:9': { width: 1920, height: 1080 },
+  '9:16': { width: 1080, height: 1920 },
+  '1:1': { width: 1080, height: 1080 },
+};
+
+/**
+ * Starts a new project in its own folder, with one empty stage at its aspect ratio.
+ *
+ * @param name - What it's called, which its folder and file take too.
+ * @param aspect - Its aspect ratio, e.g. `16:9`.
+ * @param cover - Its cover's address.
+ * @returns The new project.
+ */
+export const newMotion = (name: string, aspect: string, cover: string): Project => {
+  const path = freePath(`${ROOT}/${name}`, name, '.motion');
+  supply([[path, { ...newHeader(path, '.motion'), type: 'motion', aspect, cover, status: 'draft', stages: [], assets: [] }]]);
+  const project = { path, document: documentAt<'motion'>(path) as MotionDocument };
+  const stage = documentAt<'stage'>(newStage(project)) as StageDocument;
+  Object.assign(stage.composition.props, STAGE_SIZES[aspect]);
+  return project;
+};
+
 /**
  * Adds an empty stage at the end of a project, in its folder, the size and pace of its first stage
  * — full HD at 30 frames a second while it has none — with every cast the project has.
