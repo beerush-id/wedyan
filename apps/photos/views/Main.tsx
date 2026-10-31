@@ -78,7 +78,7 @@ const CLASS = {
 /**
  * Photos: a browser of the Photos folder, like a file explorer. Down the side: Photos itself, and
  * the tags — Favorites, Generative, and each album — which list every file carrying them. As tiles: the open folder's folders, still projects and images, or the tag's files, and
- * beside them a preview of the picked one, which can be turned off. A double click, Enter, or pressing the preview's picture
+ * beside them a preview of the picked one, off until it's turned on. A double click, Enter, or pressing the preview's picture
  * opens what's picked: a folder, a still project in a window of its own, or an image in the
  * viewer, which steps through the rest. While Photos is in front, the dock holds how new images
  * are made.
@@ -105,7 +105,7 @@ export const photos = defineWindow({
     picked: null as string | string[] | null,
     several: false,
     viewing: false,
-    previewHidden: false,
+    previewShown: false,
     layout: 'grid' as WedyanGalleryLayout,
     query: '',
     sidebarHidden: false,
@@ -359,9 +359,9 @@ export const photos = defineWindow({
                 {/* Making something apart from how the files show. */}
                 <Divider orientation="vertical" variant="ghost" size="sm" />
                 <WedyanGalleryLayoutToggle layout={$bind(view, 'layout')} />
-                <Toggle aria-label="Hide preview" size="sm" variant="text" pressed={$bind(view, 'previewHidden')} className={AUI_CLASS.CONTROL_ICON}>
+                <Toggle aria-label="Preview" size="sm" variant="text" pressed={$bind(view, 'previewShown')} className={AUI_CLASS.CONTROL_ICON}>
                   <PreviewIcon />
-                  <Tooltip>Hide preview</Tooltip>
+                  <Tooltip>Preview</Tooltip>
                 </Toggle>
                 {/* Sets the app's own buttons apart from the window's. */}
                 <Divider orientation="vertical" variant="ghost" size="sm" />
@@ -388,7 +388,7 @@ export const photos = defineWindow({
                 if (entry) open(entry);
               }}
             />
-            <Show when={() => !view.previewHidden}>{preview}</Show>
+            <Show when={() => view.previewShown}>{preview}</Show>
           </div>
         )}
       >

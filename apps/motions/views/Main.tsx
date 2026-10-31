@@ -115,7 +115,7 @@ export const motions = defineWindow({
     layout: 'grid' as WedyanGalleryLayout,
     query: '',
     sidebarHidden: false,
-    previewHidden: false,
+    previewShown: false,
   });
 
   const project = (): Project | undefined => {
@@ -262,7 +262,7 @@ export const motions = defineWindow({
             if (entry) openEntry(entry);
           }}
         />
-        <Show when={() => !browse.previewHidden}>{preview}</Show>
+        <Show when={() => browse.previewShown}>{preview}</Show>
       </div>
     ) : (
       <EmptyState title="No motions yet" description="Ask Wedyan for one, and it starts here.">
@@ -479,14 +479,14 @@ export const motions = defineWindow({
                       <Divider orientation="vertical" variant="ghost" size="sm" />
                       <WedyanGalleryLayoutToggle layout={$bind(browse, 'layout')} />
                       <Toggle
-                        aria-label="Hide preview"
+                        aria-label="Preview"
                         size="sm"
                         variant="text"
                         className={AUI_CLASS.CONTROL_ICON}
-                        pressed={$bind(browse, 'previewHidden')}
+                        pressed={$bind(browse, 'previewShown')}
                       >
                         <PreviewPanelIcon />
-                        <Tooltip>Hide preview</Tooltip>
+                        <Tooltip>Preview</Tooltip>
                       </Toggle>
                       {/* Sets the app's own buttons apart from the window's. */}
                       <Divider orientation="vertical" variant="ghost" size="sm" />

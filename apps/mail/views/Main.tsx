@@ -302,8 +302,8 @@ export function openMail(id: string) {
 }
 
 /**
- * A message as the rows every Wedyan gallery shows: its subject, who sent it, and when. Mail has
- * no kind of its own in the gallery yet, so it shows as a document.
+ * A message as the rows every Wedyan gallery shows: who sent it, its subject, when, and what it says.
+ * Mail has no kind of its own in the gallery yet, so it shows as a document.
  *
  * @param message - The message.
  * @returns The file, for the gallery.
@@ -315,5 +315,7 @@ function galleryEntryOf(message: Mail): WedyanGalleryEntry {
     kind: 'document',
     detail: nameOfPerson(message.from),
     modified: new Date(message.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+    summary: message.body.replace(/\s+/g, ' ').trim(),
+    person: nameOfPerson(message.from),
   };
 }

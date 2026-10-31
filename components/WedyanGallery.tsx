@@ -1,6 +1,7 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
 import { $bind, $use, type AnyType, type Bindable, For, Show, setup } from '@airlib/react';
 import {
+  Avatar,
   Gallery,
   type GalleryEntry,
   type GalleryValue,
@@ -45,6 +46,10 @@ export type WedyanGalleryEntry = {
   detail?: string;
   /** When it last changed, short. */
   modified?: string;
+  /** What it says, under its row, for what's read rather than looked at, like a message. Two lines at most. */
+  summary?: string;
+  /** Who it's from, for what comes from someone: their avatar leads its row in place of a picture. */
+  person?: string;
 };
 
 /** How a gallery shows its files: as picture tiles, or as rows with their details. */
@@ -129,6 +134,7 @@ const LIST = {
   THUMB: 'wedyan-gallery-list-thumb',
   NAME: 'wedyan-gallery-list-name',
   DETAIL: 'wedyan-gallery-list-detail',
+  SUMMARY: 'wedyan-gallery-list-summary',
 };
 
 /**
@@ -219,15 +225,19 @@ export const WedyanGallery = setup<WedyanGalleryProps>((props) => {
             checkable={props.checkable}
             className={LIST.ROOT}
           >
-            <For each={() => entries().map(tileOf)}>
-              {(tile) => (
-                <ListboxOption value={tile.value}>
-                  <img src={tile.src} alt="" className={LIST.THUMB} />
-                  <span className={LIST.NAME}>{tile.title}</span>
-                  <span className={LIST.DETAIL}>{tile.description}</span>
-                  <span className={LIST.DETAIL}>{tile.meta}</span>
-                </ListboxOption>
-              )}
+            <For each={entries}>
+              {(entry) => {
+                const tile = tileOf(entry);
+                return (
+                  <ListboxOption value={tile.value}>
+                    {entry.person ? <Avatar alt={entry.person} size="sm" color="primary" /> :<img src={tile.src} alt="" className={LIST.THUMB} />}
+                    <span className={LIST.NAME}>{tile.title}</span>
+                    <span className={LIST.DETAIL}>{tile.description}</span>
+                    <span className={LIST.DETAIL}>{tile.meta}</span>
+                    {entry.summary && <span className={LIST.SUMMARY}>{entry.summary}</span>}
+                  </ListboxOption>
+                );
+              }}
             </For>
           </Listbox>
         )}

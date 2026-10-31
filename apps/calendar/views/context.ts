@@ -15,7 +15,7 @@ export type CalendarState = {
   picked: string | null;
   query: string;
   sidebarHidden: boolean;
-  previewHidden: boolean;
+  previewShown: boolean;
 };
 
 /**
@@ -26,7 +26,7 @@ export type CalendarView = {
   state: CalendarState;
   /** The events the picked place and the search leave. */
   shown(): CalendarEvent[];
-  /** Opens an event in the preview beside the days, showing the preview if it was hidden. */
+  /** Opens an event in the preview beside the days, showing the preview if it was off. */
   open(path: string): void;
 };
 

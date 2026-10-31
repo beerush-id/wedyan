@@ -13,18 +13,52 @@
 }
 
 .wedyan-mail-list {
+  /* A small avatar's size, and the check that sits on its corner. */
+  --wedyan-mail-avatar: calc(var(--spacing) * 9);
+  --wedyan-mail-check: calc(var(--spacing) * 4.5);
+  display: flex;
   min-block-size: 0;
-  overflow-y: auto;
 
-  /* The rows fill the list's height, so pressing below the last one lets go of the pick. */
+  /* The list scrolls within its own corners, and fills the height, so pressing below the last row lets go of the pick. */
   & > .wedyan-gallery-list {
-    min-block-size: 100%;
+    flex: 1;
+    min-inline-size: 0;
+    overflow-y: auto;
     align-content: start;
   }
 
-  /* Every message shows the same art, so its row gives that room to the subject. */
-  & .wedyan-gallery-list-thumb {
-    display: none;
+  /* The sender's avatar leads both lines; subject, sender and date are the first, and what it says the second, from the subject's edge. */
+  & [role='option'] {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    align-items: start;
+    padding: var(--spacing-md);
+    row-gap: var(--spacing-xs);
+  }
+
+  & :is(.aui-listbox-check, .aui-avatar) {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+
+  /* The check is a small mark on the avatar's corner, which stays as it is under it. */
+  & .aui-listbox-check {
+    --aui-icon-size: 0.625rem;
+    z-index: 1;
+    justify-self: end;
+    margin-block-start: calc(var(--wedyan-mail-avatar) - var(--wedyan-mail-check));
+    inline-size: var(--wedyan-mail-check);
+    block-size: var(--wedyan-mail-check);
+    translate: 20% 20%;
+
+    /* Solid until it's checked, so it reads over the initials. */
+    &:not([data-checked='true']) {
+      background-color: var(--aui-glass-surface-bg);
+    }
+  }
+
+  & .wedyan-gallery-list-summary {
+    grid-column: 2 / -1;
   }
 
   /* The sender gets a name's width; the date, a short date's. */

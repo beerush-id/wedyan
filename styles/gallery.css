@@ -102,6 +102,11 @@
 .wedyan-gallery-list {
   display: flex;
   flex-direction: column;
+
+  /* A row keeps its height, so a list held to its space scrolls rather than squeezing them. */
+  & > [role='option'] {
+    flex: none;
+  }
 }
 
 .wedyan-gallery-list-thumb {
@@ -126,4 +131,17 @@
   color: color-mix(in oklch, currentColor 70%, transparent);
   font-size: var(--font-label-sm-size);
   text-align: end;
+}
+
+/* What a row says, on a line of its own under the rest, in a fainter wash of the row's ink so it reads on a picked row too. */
+.wedyan-gallery-list-summary {
+  flex: 0 0 100%;
+  display: -webkit-box;
+  overflow: hidden;
+  color: color-mix(in oklch, currentColor 70%, transparent);
+  font-size: var(--font-label-md-size);
+  font-weight: 400;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
 }

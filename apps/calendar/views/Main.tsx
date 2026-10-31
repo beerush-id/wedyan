@@ -34,7 +34,7 @@ const CLASS = {
  * Calendar: the events and invites in the Calendar inbox, by the day, in one window. Down the side:
  * Calendar itself, the invites waiting on a reply, and each calendar, which narrow what the days
  * show. The days: a month of weeks, or one week, today marked; Today and the arrows move between
- * them. Beside them, a preview of the picked event, which can be turned off, where an invite is
+ * them. Beside them, a preview of the picked event, off until it's turned on or an event opens, where an invite is
  * accepted or declined. A double click, or Enter on the picked event, opens it there, showing the
  * preview if it was hidden.
  */
@@ -53,7 +53,7 @@ export const calendar = defineWindow({
     picked: null,
     query: '',
     sidebarHidden: false,
-    previewHidden: false,
+    previewShown: false,
   });
 
   const shown = (): CalendarEvent[] => {
@@ -66,9 +66,9 @@ export const calendar = defineWindow({
   const invites = () => listing({ view: 'invites' }).length;
   const isAt = (request: ListingRequest) => samePlace(view.place, request);
 
-  // An event opens in the preview beside the days, the preview showing again if it was hidden.
+  // An event opens in the preview beside the days, the preview showing if it was off.
   const open = (path: string) => {
-    Object.assign(view, { picked: path, previewHidden: false });
+    Object.assign(view, { picked: path, previewShown: true });
   };
 
   calendarCtx.set({ state: view, shown, open });
@@ -213,9 +213,9 @@ export const calendar = defineWindow({
                 Week
               </Toggle>
             </ToggleGroup>
-            <Toggle aria-label="Hide preview" size="sm" variant="text" pressed={$bind(view, 'previewHidden')} className={AUI_CLASS.CONTROL_ICON}>
+            <Toggle aria-label="Preview" size="sm" variant="text" pressed={$bind(view, 'previewShown')} className={AUI_CLASS.CONTROL_ICON}>
               <PreviewIcon />
-              <Tooltip>Hide preview</Tooltip>
+              <Tooltip>Preview</Tooltip>
             </Toggle>
             {/* Sets the app's own buttons apart from the window's. */}
             <Divider orientation="vertical" variant="ghost" size="sm" />
@@ -224,7 +224,7 @@ export const calendar = defineWindow({
       </Window.Snippet>
       <div className={CLASS.BROWSE}>
         <CalendarGrid />
-        <Show when={() => !view.previewHidden}>{preview}</Show>
+        <Show when={() => view.previewShown}>{preview}</Show>
       </div>
     </Window>
   );
