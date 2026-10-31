@@ -1,10 +1,8 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
-import { Show, setup } from '@airlib/react';
-import { DescriptionList, EmptyState } from '@airlib/react-aui';
+import { $bind, Show, Snippet, setup } from '@airlib/react';
+import { DescriptionList, EmptyState, TextInput } from '@airlib/react-aui';
 import { FolderIcon } from '@airlib/react-aui/icons';
-import { RenameField } from '@/components/RenameField.js';
-import { BROWSE_CLASS, type WedyanGalleryEntry } from '@/components/WedyanGallery.js';
-import { homePath } from '@/lib/documents/paths.js';
+import { BROWSE_CLASS } from '@/components/WedyanGallery.js';
 import { openMotion } from '../composer/index.js';
 import { ProjectsIcon } from '../icons.js';
 import { duration, rename, shortDate } from '../motion.js';
@@ -13,19 +11,14 @@ import { statusOf } from './listing.js';
 
 /** The picked project or folder, beside the tiles: its picture, its facts, and what it was asked to be. */
 export const LibraryPreview = setup(() => {
-  const { state, tiles, rows, enter } = libraryCtx.get() as MotionLibrary;
-  const picked = () => tiles().find((tile) => tile.path === state.picked);
+  const library = libraryCtx.get() as MotionLibrary;
+  const { state, enter } = library;
   const checked = () => (Array.isArray(state.picked) ? state.picked.length : 0);
-
-  const named = (tile: WedyanGalleryEntry, title: string) => {
-    const row = rows().find((each) => homePath(each.path) === tile.path);
-    if (row) void rename(row, title);
-  };
 
   return () => (
     <aside className={`${BROWSE_CLASS.PREVIEW} ${AUI_CLASS.GLASS_PANEL}`} aria-label="Preview">
       <Show
-        when={picked}
+        when={() => library.selected}
         fallback={() => (
           <EmptyState
             title={checked() ? `${checked()} checked` : 'Nothing picked'}
@@ -36,26 +29,35 @@ export const LibraryPreview = setup(() => {
           </EmptyState>
         )}
       >
-        {(tile) => {
-          const project = rows().find((row) => row.kind === 'motion' && row.path === tile.path);
+        {(row) => {
+          const project = row.kind === 'motion' ? row : undefined;
+          // Made once: the name its button is labelled with changes the label alone.
+          const picture = project ? <img src={project.thumbnail} alt="" /> : <FolderIcon />;
           return (
             <>
-              <button
-                type="button"
-                className={BROWSE_CLASS.PREVIEW_OPEN}
-                aria-label={`Open ${tile.name}`}
-                onClick={() => (project ? openMotion(tile.path) : enter(tile))}
-              >
-                {project ? <img src={project.thumbnail} alt="" /> : <FolderIcon />}
-              </button>
-              <RenameField
-                key={tile.path}
-                name={tile.name}
+              <Snippet data={() => row.name}>
+                {(name) => (
+                  <button
+                    type="button"
+                    className={BROWSE_CLASS.PREVIEW_OPEN}
+                    aria-label={`Open ${name}`}
+                    onClick={() => (project ? openMotion(row.path) : enter(row))}
+                  >
+                    {picture}
+                  </button>
+                )}
+              </Snippet>
+              <TextInput
+                key={row.path}
+                size="sm"
+                label="Name"
+                value={$bind(row, 'name')}
                 autoFocus={state.renaming}
-                onrename={(title) => named(tile, title)}
-                onleave={() => {
+                onBlur={() => {
                   state.renaming = false;
                 }}
+                onchange={() => rename(row)}
+                className="wedyan-rename"
               />
               {project && (
                 <DescriptionList

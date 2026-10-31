@@ -3,6 +3,7 @@ import { nameOf, newHeader, newId, parentOf, resolvePath } from '@/lib/documents
 import type { FileRow } from '@/lib/documents/rows.js';
 import type { DocumentOf, DocumentType, MotionDocument, StageDocument } from '@/lib/documents/types.js';
 import { dfs } from '@/lib/share/dfs.js';
+import { LOUNGE, LOUNGE_EVENT } from '../../../lib/kernel/workspace.h.js';
 
 /** How Motions animates a new motion: set from the dock, read when a prompt is sent. */
 export const animation = mutable({ model: 'standard', aspect: '16:9', seconds: 6 });
@@ -33,7 +34,10 @@ export function documentAt<T extends DocumentType = DocumentType>(path?: string)
  * @param path - The path as written.
  * @returns Where it leads, and the document there, once it has arrived.
  */
-export function follow<T extends DocumentType = DocumentType>(from: string, path: string): { path: string; document: DocumentOf<T> | undefined } {
+export function follow<T extends DocumentType = DocumentType>(
+  from: string,
+  path: string,
+): { path: string; document: DocumentOf<T> | undefined } {
   const resolved = resolvePath(from, path);
   return { path: resolved, document: documentAt<T>(resolved) };
 }
@@ -43,23 +47,40 @@ export function follow<T extends DocumentType = DocumentType>(from: string, path
  *
  * @param parent - The folder it goes in.
  * @param title - What it's called.
- * @returns Its path.
+ * @returns Its row, which is a fact already: the folder is made behind it, and others are told.
  */
-export const newFolder = async (parent: string, title: string): Promise<string> => {
+export const newFolder = (parent: string, title: string): FileRow => {
   const path = `${parent}/${newId()}`;
-  await dfs.mkdir(path, { metadata: { title } });
-  return path;
+  const row = {
+    path,
+    name: title,
+    size: 0,
+    type: 'inode/directory',
+    mtime: new Date(),
+    isDirectory: true,
+    public: false,
+    hidden: false,
+    metadata: { title },
+    kind: 'folder',
+    duration: 0,
+    position: 0,
+  } as FileRow;
+  LOUNGE.ask({ type: LOUNGE_EVENT.CREATED, data: row });
+  void dfs.mkdir(path, { metadata: { title } });
+  return row;
 };
 
 /**
- * Renames a project or a folder. A project's name is its document's, so it's saved there; a folder's
- * is all it has, and only its row changes. Neither moves.
+ * Saves a row's new name. A project's name is its document's, so it's saved there; a folder's is
+ * all it has, and only its row changes. Neither moves.
  *
- * @param row - What's renamed.
- * @param title - What it's called now.
+ * @param row - What's renamed, already holding its new name.
  * @returns When it's saved.
  */
-export const rename = async (row: FileRow, title: string): Promise<void> => {
+export const rename = async (row: FileRow): Promise<void> => {
+  const title = row.name;
+  LOUNGE.ask({ type: LOUNGE_EVENT.RENAMED, data: { path: row.path, title } });
+
   if (row.kind !== 'motion') {
     await dfs.update(row.path, { metadata: { title } });
     return;
@@ -74,8 +95,10 @@ export const rename = async (row: FileRow, title: string): Promise<void> => {
  * @param paths - What's picked: projects by their `.motion`, or folders.
  * @returns When they're gone.
  */
-export const removeEntries = (paths: string[]): Promise<unknown> =>
-  Promise.all(paths.map((path) => dfs.remove(MOTION_FILE.test(path) ? parentOf(path) : path, { recursive: true })));
+export const removeEntries = (paths: string[]): Promise<unknown> => {
+  LOUNGE.ask({ type: LOUNGE_EVENT.REMOVED, data: paths });
+  return Promise.all(paths.map((path) => dfs.remove(MOTION_FILE.test(path) ? parentOf(path) : path, { recursive: true })));
+};
 
 /** A stage's size at each aspect ratio a motion is made at. */
 const STAGE_SIZES: Record<string, { width: number; height: number }> = {
@@ -162,7 +185,12 @@ function stageAt(id: string, folder: string, name: string, project: MotionDocume
     projectId: project.id,
     order,
     casts: [...(project.casts ?? [])],
-    composition: { id: crypto.randomUUID(), options: { frameRate: 30 }, props: STAGE_SIZES[project.aspect] ?? STAGE_SIZES['16:9'], tracks: [] },
+    composition: {
+      id: crypto.randomUUID(),
+      options: { frameRate: 30 },
+      props: STAGE_SIZES[project.aspect] ?? STAGE_SIZES['16:9'],
+      tracks: [],
+    },
   };
 }
 

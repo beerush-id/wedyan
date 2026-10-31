@@ -9,20 +9,21 @@ import { libraryCtx, type MotionLibrary } from './context.js';
 
 /** What can be done with what's picked, beside the title. */
 export const LibrarySelection = setup(() => {
-  const { state, tiles } = libraryCtx.get() as MotionLibrary;
+  const library = libraryCtx.get() as MotionLibrary;
+  const { state } = library;
   const paths = (): string[] => (Array.isArray(state.picked) ? state.picked : state.picked ? [state.picked] : []);
-  const isProject = (path: string) => tiles().find((tile) => tile.path === path)?.kind === 'motion';
 
   const remove = () => {
     const picked = paths();
     Object.assign(state, { several: false, picked: null });
+    library.drop(picked);
     void removeEntries(picked);
   };
 
   const groups = (): SelectionAction[][] => {
     const [one] = paths();
     return [
-      ...(!state.several && isProject(one)
+      ...(!state.several && library.selected?.kind === 'motion'
         ? [
             [
               { label: 'Open in Direct', icon: <DirectIcon />, run: () => openMotion(one, true) },

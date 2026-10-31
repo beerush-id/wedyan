@@ -1,9 +1,8 @@
 import type { ListOptions } from '@irpclib/r2-file';
-import type { WedyanGalleryEntry } from '@/components/WedyanGallery.js';
+import { kindArt, type WedyanFileKind } from '@/components/WedyanGallery.js';
 import { FILE_TYPES, FLAGGED } from '@/lib/documents/file-types.js';
-import { homePath, nameOf } from '@/lib/documents/paths.js';
+import { nameOf, parentOf } from '@/lib/documents/paths.js';
 import type { FileRow } from '@/lib/documents/rows.js';
-import type { FileChange } from '@/lib/share/workspace.js';
 import { duration, MOTION_FILE, ROOT, shortDate } from '../motion.js';
 
 /** The places down the library's side. */
@@ -50,38 +49,44 @@ export function orderOf(view: LibraryView, rows: FileRow[]): FileRow[] {
 }
 
 /**
- * Whether a change alters what a listing holds: a project coming, going or being saved, which moves
- * it in Recents and may change its flags, a stage, which changes a project's length, or a folder
- * coming or going.
+ * Whether a file belongs in what a place lists: in a folder, what's directly in it, a folder or the
+ * project in one; anywhere else, any project.
  *
- * @param change - What changed.
- * @returns Whether to list again.
+ * @param view - The place.
+ * @param folder - The folder being browsed.
+ * @param path - The file.
+ * @returns Whether it's listed there.
  */
-export const changesListing = ({ path, removed }: FileChange): boolean =>
-  removed || MOTION_FILE.test(path) || path.endsWith('.stage') || !nameOf(path).includes('.');
+export const changesListing = (view: LibraryView, folder: string, path: string): boolean => {
+  if (view !== 'all') return MOTION_FILE.test(path);
+  if (MOTION_FILE.test(path)) return parentOf(parentOf(path)) === folder;
+  return parentOf(path) === folder && !nameOf(path).includes('.');
+};
 
 /**
- * What a listed row shows as: a project, whether its `.motion` or the folder holding one of its own
- * name was listed; a plain folder; nothing else lists.
+ * A listed row's picture: a project's thumbnail, or its kind's art.
  *
- * @param row - The listed row.
- * @returns Its tile.
+ * @param row - The row.
+ * @returns The picture's address.
  */
-export function tileOf(row: FileRow): WedyanGalleryEntry[] {
-  if (row.kind === 'motion') {
-    return [
-      {
-        path: row.path,
-        name: row.name,
-        kind: 'motion',
-        picture: row.thumbnail,
-        detail: [duration(row.duration), statusOf(row), row.author].join(' · '),
-        modified: row.updated && shortDate(row.updated),
-      },
-    ];
-  }
-  return row.isDirectory ? [{ path: homePath(row.path), name: row.name, kind: 'folder', detail: 'Folder' }] : [];
-}
+export const pictureOf = (row: FileRow): string => row.thumbnail || kindArt(row.kind as WedyanFileKind);
+
+/**
+ * What matters about a listed row, in a line.
+ *
+ * @param row - The row.
+ * @returns A project's length, status and author, or that it's a folder.
+ */
+export const detailOf = (row: FileRow): string =>
+  row.kind === 'motion' ? [duration(row.duration), statusOf(row), row.author].join(' · ') : 'Folder';
+
+/**
+ * When a listed row last changed, short.
+ *
+ * @param row - The row.
+ * @returns The date; none for a folder.
+ */
+export const modifiedOf = (row: FileRow): string | undefined => (row.updated ? shortDate(row.updated) : undefined);
 
 /**
  * Where a project stands, in a word.

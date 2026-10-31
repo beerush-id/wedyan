@@ -1,9 +1,11 @@
-import { createContext, effect, mutable } from '@airlib/react';
+import { createContext, effect, mutable, untrack } from '@airlib/react';
 import type { WedyanGalleryLayout } from '@/components/WedyanGallery.js';
-import { rowsOf } from '@/lib/documents/rows.js';
+import { parentOf } from '@/lib/documents/paths.js';
+import { type FileRow, rowsOf } from '@/lib/documents/rows.js';
 import { dfs } from '@/lib/share/dfs.js';
+import { LOUNGE, LOUNGE_EVENT } from '../../../../lib/kernel/workspace.h.js';
 import { ROOT } from '../motion.js';
-import { changesListing, type LibraryView, listingOf, orderOf, tileOf } from './listing.js';
+import { changesListing, type LibraryView, listingOf, orderOf } from './listing.js';
 
 /** A library window's state: where it is, how it shows it, and what's picked. */
 export type LibraryState = {
@@ -21,8 +23,8 @@ export type LibraryState = {
   /** One project's path while picking one, and the checked paths while picking several. */
   picked: string | string[] | null;
   several: boolean;
-  /** Read by the listing, which runs again as it changes. */
-  version: number;
+  /** Read by the listing, which is asked for again as it changes: after a failure, or for what nobody here holds. */
+  asked: number;
 };
 
 /** One library window, for every part of it. */
@@ -49,16 +51,45 @@ export function createLibrary() {
     previewShown: false,
     picked: null,
     several: false,
-    version: 0,
+    asked: 0,
   });
 
   const items = dfs.list.with(() => {
-    void state.version;
+    void state.asked;
     return listingOf(state.activeView, state.folder);
   });
 
-  dfs.watch(ROOT, (change) => {
-    if (changesListing(change)) state.version += 1;
+  /** Puts a new row in the listing, when it's in the folder being browsed. */
+  const add = (row: FileRow) => {
+    if (state.activeView === 'all' && parentOf(row.path) === state.folder) rowsOf(items).push(row);
+  };
+
+  /** Takes rows out of the listing: those at these paths, and the projects in them. */
+  const drop = (paths: string[]) => {
+    const rows = rowsOf(items);
+    for (let index = rows.length - 1; index >= 0; index -= 1) {
+      const { path } = rows[index];
+      if (paths.includes(path) || paths.includes(parentOf(path))) rows.splice(index, 1);
+    }
+  };
+
+  LOUNGE.subscribe((e) => {
+    if (e.type === LOUNGE_EVENT.RENAMED) {
+      const row = rowsOf(items).find(({ path }) => path === e.data.path);
+      if (row) row.name = e.data.title;
+    } else if (e.type === LOUNGE_EVENT.CREATED) {
+      add(e.data);
+    } else if (e.type === LOUNGE_EVENT.REMOVED) {
+      drop(e.data);
+    }
+  });
+
+  // An agent's work, which no desktop holds: what's gone goes, and what isn't here is asked for.
+  dfs.watch(ROOT, ({ path, removed }) => {
+    if (removed) drop([path]);
+    else if (changesListing(state.activeView, state.folder, path) && !rowsOf(items).some((row) => row.path === path)) {
+      state.asked += 1;
+    }
   });
 
   // Each place starts with nothing picked and nothing searched.
@@ -70,8 +101,20 @@ export function createLibrary() {
   return {
     state,
     items,
-    rows: () => rowsOf(items),
-    tiles: () => orderOf(state.activeView, rowsOf(items)).flatMap(tileOf),
+    /** What's listed, in the order this place shows it: settled by the listing, so typing a name moves nothing. */
+    rows: () => {
+      const { activeView } = state;
+      const listed = rowsOf(items);
+      return listed.length ? untrack(() => orderOf(activeView, listed)) : listed;
+    },
+
+    /** The picked row itself, which whoever shows it reads and writes. */
+    get selected() {
+      return rowsOf(items).find((row) => row.path === state.picked);
+    },
+
+    add,
+    drop,
 
     /** Goes into a folder. */
     enter({ path, name }: { path: string; name: string }) {

@@ -852,7 +852,7 @@ function lastWords(data: Conversation, answer: string): UserMessage | undefined 
  * A copy of the current call's context, its parents flattened in: what work that outlives the call
  * runs in, since a call's context ends with the call.
  */
-function detachedContext() {
+export function detachedContext() {
   const chain = [];
   for (let store: AsyncStore | undefined = getContextStore(); store; store = store.parent) chain.unshift(store);
   return createContextStore(chain.flatMap((store) => [...store.entries()]));

@@ -1,4 +1,3 @@
-import { snapshot } from '@airlib/react';
 import type { FileInfo } from '@irpclib/r2-file';
 
 /** What a row is: a kind of document, a kind of media, or a folder. */
@@ -42,13 +41,10 @@ export const ASSET_KINDS: Partial<Record<RowKind, string>> = {
 };
 
 /**
- * What a listing holds, as plain rows: a row is drawn whole and replaced whole, so a list of any
- * size is one thing to follow, the listing, never each field of each row.
+ * What a listing holds: the rows themselves, so whoever reads one sees what's changed on it.
  *
  * @param listing - A list reader.
  * @returns Its rows; none until they've arrived.
  */
-export const rowsOf = (listing: { data?: { entries?: unknown[] } }): FileRow[] => {
-  const entries = listing.data?.entries;
-  return (entries ? snapshot(entries) : []) as FileRow[];
-};
+export const rowsOf = (listing: { data?: { entries?: unknown[] } }): FileRow[] =>
+  (listing.data?.entries ?? []) as FileRow[];

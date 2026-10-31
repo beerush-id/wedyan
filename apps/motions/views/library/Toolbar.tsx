@@ -14,14 +14,15 @@ import { LibrarySelection } from './Selection.js';
 
 /** The library's toolbar: where it is, what can be done with what's picked, and how it's shown. */
 export const LibraryToolbar = setup(() => {
-  const { state, up } = libraryCtx.get() as MotionLibrary;
+  const { state, up, add } = libraryCtx.get() as MotionLibrary;
   const inFolder = () => state.activeView === 'all' && state.folder !== ROOT;
   const title = () => (inFolder() ? state.trail.at(-1)?.name : VIEW_LABELS[state.activeView]);
 
   // A new folder is named right away: it's picked, with its name in the preview, ready to type.
-  const addFolder = async () => {
-    const path = await newFolder(state.folder, 'New folder');
-    Object.assign(state, { picked: path, several: false, previewShown: true, renaming: true });
+  const addFolder = () => {
+    const row = newFolder(state.folder, 'New folder');
+    add(row);
+    Object.assign(state, { picked: row.path, several: false, previewShown: true, renaming: true });
   };
 
   return () => (

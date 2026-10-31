@@ -1,5 +1,5 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
-import { $bind, $use, type AnyType, type Bindable, For, Show, setup } from '@airlib/react';
+import { $bind, $use, type AnyType, type Bindable, For, Show, setup, template } from '@airlib/react';
 import {
   Avatar,
   Gallery,
@@ -55,10 +55,11 @@ export type WedyanGalleryEntry = {
 /** How a gallery shows its files: as picture tiles, or as rows with their details. */
 export type WedyanGalleryLayout = 'grid' | 'list';
 
-export type WedyanGalleryProps = {
+export type WedyanGalleryProps<T extends { path: string; name: string } = WedyanGalleryEntry> = {
   /** Names the gallery for screen readers, e.g. the folder's name. */
   label?: string;
-  entries?: WedyanGalleryEntry[];
+  /** The files, as tiles from these, or as what they are when the `tile` and `row` slots draw them. */
+  entries?: T[];
   /** The picked file's path, or the checked paths while picking several. */
   value?: Bindable<GalleryValue>;
   /** Whether several files are picked at once. */
@@ -73,11 +74,28 @@ export type WedyanGalleryProps = {
   query?: string;
   className?: string;
   /** Called with the file a double click, or Enter on the picked tile, opens. */
-  onopen?: (entry: WedyanGalleryEntry) => void;
+  onopen?: (entry: T) => void;
   /** Makes the tiles draggable, and is called with the file whose tile starts being dragged, to say what it carries. */
-  ondragstart?: (entry: WedyanGalleryEntry, event: DragEvent<HTMLElement>) => void;
+  ondragstart?: (entry: T, event: DragEvent<HTMLElement>) => void;
   /** What else belongs to the gallery, e.g. a `ContextMenu` acting on the file a secondary click picked. */
   children?: ReactNode;
+};
+
+export type WedyanGallerySlots = {
+  /** Draws one file as a tile, reading what it shows from the file itself. */
+  tile?: (file: AnyType) => ReactNode;
+  /** Draws one file as a row of the list layout. */
+  row?: (file: AnyType) => ReactNode;
+};
+
+export type WedyanGalleryRowProps = {
+  value: string;
+  src?: string;
+  title?: string;
+  description?: string;
+  meta?: string;
+  summary?: string;
+  person?: string;
 };
 
 /** A play mark, for anything that plays as a video. */
@@ -143,7 +161,7 @@ const LIST = {
  * from the file's tile, so a file reads the same either way. What opening does is the app's: it
  * hears which file through `onopen`.
  */
-export const WedyanGallery = setup<WedyanGalleryProps>((props) => {
+export const WedyanGallery = setup<WedyanGalleryProps<AnyType>, WedyanGallerySlots>((props, snippets) => {
   // The files shown: those whose name holds the query, so opening by place finds the one under the pointer.
   const entries = () => {
     const query = props.query?.trim().toLowerCase();
@@ -208,13 +226,15 @@ export const WedyanGallery = setup<WedyanGalleryProps>((props) => {
         fallback={() => (
           <Gallery
             label={props.label}
-            items={$use(() => entries().map(tileOf))}
+            items={$use(() => (snippets.tile ? undefined : entries().map(tileOf)))}
             value={$bind(props as AnyType, 'value')}
             multiple={$bind(props as AnyType, 'multiple')}
             checkable={props.checkable}
             flow={props.flow}
             draggable={Boolean(props.ondragstart)}
-          />
+          >
+            <For each={entries}>{(entry) => snippets.tile?.(entry)}</For>
+          </Gallery>
         )}
       >
         {() => (
@@ -227,15 +247,18 @@ export const WedyanGallery = setup<WedyanGalleryProps>((props) => {
           >
             <For each={entries}>
               {(entry) => {
+                if (snippets.row) return snippets.row(entry);
                 const tile = tileOf(entry);
                 return (
-                  <ListboxOption value={tile.value}>
-                    {entry.person ? <Avatar alt={entry.person} size="sm" color="primary" /> :<img src={tile.src} alt="" className={LIST.THUMB} />}
-                    <span className={LIST.NAME}>{tile.title}</span>
-                    <span className={LIST.DETAIL}>{tile.description}</span>
-                    <span className={LIST.DETAIL}>{tile.meta}</span>
-                    {entry.summary && <span className={LIST.SUMMARY}>{entry.summary}</span>}
-                  </ListboxOption>
+                  <WedyanGalleryRow
+                    value={tile.value}
+                    src={tile.src}
+                    title={tile.title}
+                    description={tile.description}
+                    meta={tile.meta}
+                    summary={entry.summary}
+                    person={entry.person}
+                  />
                 );
               }}
             </For>
@@ -245,6 +268,20 @@ export const WedyanGallery = setup<WedyanGalleryProps>((props) => {
     </div>
   );
 }, 'WedyanGallery');
+
+/** One file as a row of the list layout: what stands for it, its name, and what matters about it. */
+export const WedyanGalleryRow = template<WedyanGalleryRowProps>(
+  ({ value, src, title, description, meta, summary, person }) => (
+    <ListboxOption value={value}>
+      {person ? <Avatar alt={person} size="sm" color="primary" /> : <img src={src} alt="" className={LIST.THUMB} />}
+      <span className={LIST.NAME}>{title}</span>
+      <span className={LIST.DETAIL}>{description}</span>
+      <span className={LIST.DETAIL}>{meta}</span>
+      {summary && <span className={LIST.SUMMARY}>{summary}</span>}
+    </ListboxOption>
+  ),
+  'WedyanGalleryRow'
+);
 
 /**
  * Searching a gallery's files, for the window's toolbar: what's typed narrows them to those whose
@@ -302,7 +339,7 @@ export function tileOf(entry: WedyanGalleryEntry): GalleryEntry {
  * @param kind - The file's kind.
  * @returns The art as a data URL.
  */
-function kindArt(kind: WedyanFileKind): string {
+export function kindArt(kind: WedyanFileKind): string {
   const art = KIND_ART[kind] ?? (KIND_ART.document as { tint: string; glyph: string });
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 360"><rect width="480" height="360" fill="${art.tint}"/><g fill="#fff7ef">${art.glyph}</g></svg>`;
   return `data:image/svg+xml,${encodeURIComponent(svg)}`;

@@ -187,18 +187,18 @@ export function createComposer(path: string, direct: boolean): Composer {
   });
   const ofKind = (test: (row: FileRow) => boolean) => rowsOf(listed).filter(test).sort((a, b) => a.position - b.position);
 
-  // A stage saved in Compose changes only its row, which shows in Direct: it's listed again on the
-  // way back, so an edit costs its own save and nothing more.
-  let outdated = false;
+  // What an agent writes isn't held here, so it's listed again.
   dfs.watch(HOME, ({ path: changed }) => {
-    if (!LISTED_FILE.test(changed)) return;
-    if (changed.endsWith('.stage') && composer.mode === 'compose') outdated = true;
-    else composer.version += 1;
+    if (LISTED_FILE.test(changed)) composer.version += 1;
   });
+
+  // A stage edited in Compose changes only its row, which shows in Direct: it's listed again on the
+  // way back, so an edit costs nothing more.
+  let composing = false;
   effect(() => {
-    if (composer.mode !== 'direct' || !outdated) return;
-    outdated = false;
-    composer.version += 1;
+    const back = composing && composer.mode === 'direct';
+    composing = composer.mode === 'compose';
+    if (back) composer.version += 1;
   });
 
   return composer;

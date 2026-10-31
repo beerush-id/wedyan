@@ -20,9 +20,10 @@ import { fileRef, watchFolder } from './workspace.js';
  * - `update(path, { metadata })`: what's known about a file or folder, without touching its content:
  *   a rename moves nothing.
  * - `load(path)`: a document once, for a change made without opening it.
- * - `watch(folder, listener)`: every change in a folder, whoever makes it, for a window to act on:
- *   bumping a version its `.with` reads, so a file an agent writes shows up by itself.
- * - `binding(path, options?)`: a document a window works on: its live content, saved as it changes.
+ * - `watch(folder, listener)`: what's written in a folder outside what the session holds, like an
+ *   agent's work, for a window to learn of what it doesn't have.
+ * - `binding(path, options?)`: a document a window works on: its live content, each change sent as
+ *   it's made to the room that holds it.
  *   With `open` and `update` rules, agents work inside it part by part, and `who(part, id)` says
  *   who's on what. With `blank`, a file that doesn't exist yet is worked on as that, and made by
  *   its first change.
