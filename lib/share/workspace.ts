@@ -122,6 +122,8 @@ type Kept = {
   dirty: boolean;
   /** Taking a change from elsewhere, which isn't saved back. */
   syncing: boolean;
+  /** Its own saves not reported back yet. */
+  saving: number;
   /** What its editors work on while the file doesn't exist. */
   blank?: unknown;
   /** Read, not there, and with no blank to show for it. */
@@ -151,6 +153,7 @@ function open(path: string, encoding: FileRefEncoding): Kept {
     editors: 0,
     dirty: false,
     syncing: false,
+    saving: 0,
   };
   // Kept for the tab only: on the server every request is someone else's.
   if (isBrowser()) KEPT.set(keyOf(path, encoding), kept);
@@ -165,19 +168,27 @@ function listen(): void {
   channel = stream;
 
   stream.answer('changed', (path, removed) => {
-    for (const kept of KEPT.values()) if (kept.path === path) void refresh(kept, true);
+    for (const kept of KEPT.values()) {
+      if (kept.path !== path) continue;
+      // Its own save coming back: what's here is what was written, so there's nothing to read.
+      if (kept.saving) kept.saving -= 1;
+      else void refresh(kept, true);
+    }
     for (const watcher of WATCHERS) watcher({ path, removed: Boolean(removed) });
     return true;
   });
 
   // Connected again: what changed while it was away is read again.
   let connected = 0;
-  stream.subscribe(() => {
-    const since = stream.data.connected;
-    if (!since || since === connected) return;
-    if (connected) for (const kept of KEPT.values()) void refresh(kept, true);
-    connected = since;
-  });
+  // Subscribing reads the stream at once, so it's left out of whatever window asked first.
+  queueMicrotask(() =>
+    stream.subscribe(() => {
+      const since = stream.data.connected;
+      if (!since || since === connected) return;
+      if (connected) for (const kept of KEPT.values()) void refresh(kept, true);
+      connected = since;
+    }),
+  );
 }
 
 /** Reads a kept file and puts its content into what's kept, in place. */
@@ -209,9 +220,15 @@ function saveChanges(kept: Kept): () => void {
     const mine = ++version;
     pending = () => {
       pending = undefined;
-      void write(kept.path, (snap as Kept['state']).data as FileInput).then(() => {
-        if (mine === version) kept.dirty = false;
-      });
+      kept.saving += 1;
+      void write(kept.path, (snap as Kept['state']).data as FileInput).then(
+        () => {
+          if (mine === version) kept.dirty = false;
+        },
+        () => {
+          kept.saving -= 1;
+        },
+      );
     };
     schedule(() => pending?.());
   });

@@ -5,13 +5,13 @@ import { FolderIcon } from '@airlib/react-aui/icons';
 import { BROWSE_CLASS } from '@/components/WedyanGallery.js';
 import { openMotion } from '../composer/Window.js';
 import { ProjectsIcon } from '../icons.js';
-import { documentAt, duration, shortDate } from '../motion.js';
+import { duration, shortDate } from '../motion.js';
 import { libraryCtx, type MotionLibrary } from './context.js';
 import { statusOf } from './listing.js';
 
 /** The picked project or folder, beside the tiles: its picture, its facts, and what it was asked to be. */
 export const LibraryPreview = setup(() => {
-  const { state, tiles, lengthOf } = libraryCtx.get() as MotionLibrary;
+  const { state, tiles, rows } = libraryCtx.get() as MotionLibrary;
   const picked = () => tiles().find((tile) => tile.path === state.picked);
   const checked = () => (Array.isArray(state.picked) ? state.picked.length : 0);
 
@@ -35,8 +35,7 @@ export const LibraryPreview = setup(() => {
         )}
       >
         {(tile) => {
-          const document = documentAt<'motion'>(tile.path);
-          const project = document && { path: tile.path, document };
+          const project = rows().find((row) => row.kind === 'motion' && row.path === tile.path);
           return (
             <>
               <button
@@ -45,22 +44,20 @@ export const LibraryPreview = setup(() => {
                 aria-label={`Open ${tile.name}`}
                 onClick={() => open(tile.path, !project)}
               >
-                {document ? <img src={document.cover} alt="" /> : <FolderIcon />}
+                {project ? <img src={project.thumbnail} alt="" /> : <FolderIcon />}
               </button>
               <h3 className={BROWSE_CLASS.PREVIEW_NAME}>{tile.name}</h3>
               {project && (
                 <DescriptionList
                   size="sm"
                   items={[
-                    { label: 'Length', value: duration(lengthOf(project.document.id)) },
+                    { label: 'Length', value: duration(project.duration) },
                     { label: 'Status', value: statusOf(project) },
-                    { label: 'Updated', value: shortDate(project.document.updated) },
+                    ...(project.updated ? [{ label: 'Updated', value: shortDate(project.updated) }] : []),
                   ]}
                 />
               )}
-              {document?.author.kind === 'agent' && document.author.ask && (
-                <DescriptionList size="sm" layout="stacked" items={[{ label: 'Asked', value: document.author.ask }]} />
-              )}
+              {project?.ask && <DescriptionList size="sm" layout="stacked" items={[{ label: 'Asked', value: project.ask }]} />}
             </>
           );
         }}

@@ -1,6 +1,4 @@
 import { fileModule, writeStub } from '@irpclib/r2-file';
-import { posterOf, runtime } from './stage.js';
-import type { StageDocument } from './types.js';
 
 /**
  * What each kind of document is, by its extension. r2-file types a file by how its data is carried,
@@ -22,57 +20,26 @@ export const FILE_TYPES: Record<string, string> = {
 /** The metadata value of a project's favourite flag and of each of its tags. */
 export const FLAGGED = 'true';
 
-/** What a listing or a search needs of each kind of document, as file metadata, so neither reads the file. */
-const LISTED: Record<string, (document: never) => Record<string, string>> = { motion: flagsOf, stage: stageFacts };
-
 // Every write of a document, whoever makes it: the desktop, an agent or the seed, so none can forget.
 fileModule.hook(writeStub, (req) => {
   const [path, data, options] = req.args;
   const extension = path.split('.').pop() as string;
   const type = FILE_TYPES[extension];
   if (!type) return;
-  req.args[2] = { ...options, type, metadata: { ...options?.metadata, ...listedOf(extension, data) } };
+  req.args[2] = { ...options, type, metadata: { ...options?.metadata, ...(extension === 'motion' ? flagsOf(data) : {}) } };
 });
 
 /**
- * What a document gives its listing.
+ * A project's flags as file metadata, so a listing can ask for them.
  *
- * @param extension - Its kind.
- * @param data - The document, as an object, or as text as the seed writes it.
- * @returns Its metadata, empty for a kind no listing asks about, or a document that doesn't parse.
+ * @param data - The `.motion`, as an object, or as text as the seed writes it.
+ * @returns One key for each tag it carries, and one for being a favourite.
  */
-function listedOf(extension: string, data: unknown): Record<string, string> {
+function flagsOf(data: unknown): Record<string, string> {
   try {
-    return LISTED[extension]?.((typeof data === 'string' ? JSON.parse(data) : data) as never) ?? {};
+    const { favourite, tags } = (typeof data === 'string' ? JSON.parse(data) : data) as { favourite?: boolean; tags?: string[] };
+    return Object.fromEntries([...(favourite ? ['favourite'] : []), ...(tags ?? [])].map((flag) => [flag, FLAGGED]));
   } catch {
     return {};
   }
-}
-
-/**
- * A project's flags, so a listing can ask for them.
- *
- * @param motion - The `.motion`.
- * @returns One key for each tag it carries, and one for being a favourite.
- */
-function flagsOf({ favourite, tags }: { favourite?: boolean; tags?: string[] }): Record<string, string> {
-  return Object.fromEntries([...(favourite ? ['favourite'] : []), ...(tags ?? [])].map((flag) => [flag, FLAGGED]));
-}
-
-/**
- * What a stage's row shows, and which project it's listed under.
- *
- * @param stage - The `.stage`.
- * @returns Its id, its project, its place there, its name, its duration in seconds, and its thumbnail if it has one.
- */
-function stageFacts(stage: StageDocument): Record<string, string> {
-  const thumbnail = posterOf(stage);
-  return {
-    id: stage.id,
-    projectId: stage.projectId,
-    order: String(stage.order),
-    title: stage.name,
-    duration: String(runtime(stage.composition)),
-    ...(thumbnail ? { thumbnail } : {}),
-  };
 }

@@ -20,7 +20,8 @@ import {
 } from '../../icons.js';
 import type { ClipSound } from '../composition.js';
 import { type Composer, composerCtx } from '../context.js';
-import { AssigneeAvatar, clipAssignee } from './assignment.js';
+import { clipAssignee } from './assignee.js';
+import { AssigneeAvatar } from './assignment.js';
 import { clipFrame, keyedFrames, timelineFrame, toggleKeyframe, writeValue } from './keyframes.js';
 
 /**
@@ -120,7 +121,7 @@ const Assigned = setup(() => {
   const composer = composerCtx.get() as Composer;
   const agent = () => {
     const segment = composer.pickedClip();
-    return segment && clipAssignee(composer.path, segment);
+    return segment && clipAssignee(composer, segment);
   };
 
   return () => (
@@ -155,7 +156,7 @@ const Sound = setup(() => {
 
   return () => (
     <div className="wedyan-compose-properties-fields">
-      <div role="group" aria-label="Sound" className="wedyan-compose-property-group">
+      <fieldset aria-label="Sound" className="wedyan-compose-property-group">
         <div className="wedyan-compose-property-head">
           <span className="wedyan-compose-property-label" aria-hidden="true">
             Sound
@@ -165,7 +166,7 @@ const Sound = setup(() => {
           <span id="wedyan-compose-mute">Mute</span>
           <Switch size="xs" aria-labelledby="wedyan-compose-mute" checked={$bind(muted, 'value')} />
         </div>
-      </div>
+      </fieldset>
       <Groups groups={SOUND_GROUPS} />
     </div>
   );
@@ -176,7 +177,7 @@ const Groups = setup<{ groups: Group[] }>((props) => {
   return () => (
     <div className="wedyan-compose-properties-fields">
       {props.groups.map((group) => (
-        <div key={group.label} role="group" aria-label={group.label} className="wedyan-compose-property-group">
+        <fieldset key={group.label} aria-label={group.label} className="wedyan-compose-property-group">
           <div className="wedyan-compose-property-head">
             <span className="wedyan-compose-property-label" aria-hidden="true">
               {group.label}
@@ -188,7 +189,7 @@ const Groups = setup<{ groups: Group[] }>((props) => {
               <FieldView key={field.key} field={field} />
             ))}
           </div>
-        </div>
+        </fieldset>
       ))}
     </div>
   );

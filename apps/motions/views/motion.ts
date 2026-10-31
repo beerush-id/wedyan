@@ -1,17 +1,11 @@
-import { pictureAt } from '@/lib/documents/generation.js';
+import { mutable } from '@airlib/react';
 import { nameOf, newHeader, parentOf, resolvePath } from '@/lib/documents/paths.js';
-import type { StageRow } from '@/lib/documents/stage.js';
-import type {
-  DocumentOf,
-  DocumentType,
-  MotionAsset,
-  MotionDocument,
-  PersonaDocument,
-  StageDocument,
-  StillDocument,
-  TakeDocument,
-} from '@/lib/documents/types.js';
+import type { FileRow } from '@/lib/documents/rows.js';
+import type { DocumentOf, DocumentType, MotionDocument, StageDocument } from '@/lib/documents/types.js';
 import { dfs } from '@/lib/share/dfs.js';
+
+/** How Motions animates a new motion: set from the dock, read when a prompt is sent. */
+export const animation = mutable({ model: 'standard', aspect: '16:9', seconds: 6 });
 
 /** A project: the `.motion` and where it is. */
 export type Project = { path: string; document: MotionDocument };
@@ -69,25 +63,6 @@ export function freePath(taken: Set<string>, folder: string, base: string, exten
 export const removeEntries = (paths: string[]): Promise<unknown> =>
   Promise.all(paths.map((path) => dfs.remove(MOTION_FILE.test(path) ? parentOf(path) : path, { recursive: true })));
 
-/**
- * A project's casts.
- *
- * @param project - The project.
- * @returns Each persona it names that is on the drive, with where it is.
- */
-export const castsOf = (project: Project): { path: string; document: PersonaDocument }[] =>
-  (project.document.casts ?? [])
-    .map((cast) => follow<'persona'>(project.path, cast))
-    .filter((cast): cast is { path: string; document: PersonaDocument } => !!cast.document);
-
-/**
- * A cast's picture. People are still kept on Lounge's drive, by the same path without `~`.
- *
- * @param path - The persona's home path.
- * @returns Its picture's address, if it has one.
- */
-export const castPicture = (path: string): string | undefined => pictureAt(path.slice(1), path.slice(1));
-
 /** A stage's size at each aspect ratio a motion is made at. */
 const STAGE_SIZES: Record<string, { width: number; height: number }> = {
   '16:9': { width: 1920, height: 1080 },
@@ -128,9 +103,9 @@ export const newMotion = async (name: string, aspect: string, cover: string): Pr
  * @param stages - The stages it has.
  * @returns The new stage's path.
  */
-export const newStage = (project: Project, stages: StageRow[]): string => {
+export const newStage = (project: Project, stages: FileRow[]): string => {
   const path = freePath(new Set(stages.map((stage) => stage.path)), parentOf(project.path), 'Stage', '.stage');
-  const last = Math.max(-1, ...stages.map((stage) => stage.order));
+  const last = Math.max(-1, ...stages.map((stage) => stage.position));
   void dfs.write(path, stageAt(path, project.document, last + 1) as never);
   return path;
 };
@@ -176,27 +151,8 @@ function stageAt(path: string, project: MotionDocument, order: number): StageDoc
  * @param persona - The persona's path.
  */
 export const addCast = (project: Project, persona: string): void => {
-  (project.document.casts ??= []).push(persona);
+  project.document.casts = [...(project.document.casts ?? []), persona];
   project.document.updated = new Date().toISOString();
-};
-
-/**
- * An asset's picture: an image itself, or a generated one's chosen attempt; none for sound.
- *
- * @param from - The project's path, which the asset's own path is written from.
- * @param asset - The asset.
- * @returns Its picture's address, if it has one.
- */
-export const pictureOf = (from: string, asset: MotionAsset): string | undefined => {
-  if (asset.kind === 'image') return asset.src;
-  if (asset.kind === 'still') {
-    const still = follow<'still'>(from, asset.src).document as StillDocument | undefined;
-    return still?.attempts.find((attempt) => attempt.id === still.chosen)?.src;
-  }
-  if (asset.kind === 'take') {
-    const take = follow<'take'>(from, asset.src).document as TakeDocument | undefined;
-    return take?.attempts.find((attempt) => attempt.id === take.chosen)?.poster;
-  }
 };
 
 /**
@@ -205,7 +161,7 @@ export const pictureOf = (from: string, asset: MotionAsset): string | undefined 
  * @param stages - Its stages.
  * @returns Its length, in seconds.
  */
-export const length = (stages: StageRow[]): number => stages.reduce((total, stage) => total + stage.duration, 0);
+export const length = (stages: FileRow[]): number => stages.reduce((total, stage) => total + stage.duration, 0);
 
 /**
  * A length as tiles show it, e.g. `0:13`.

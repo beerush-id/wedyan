@@ -3,16 +3,12 @@ import { ContextMenu, EmptyState, type GalleryValue, TabButton, TabList, TabPane
 import { WindowPanel } from '@airlib/react-aui/desktop';
 import type { DragEvent } from 'react';
 import { WedyanGallery, type WedyanGalleryEntry } from '@/components/WedyanGallery.js';
-import type { MotionAsset } from '@/lib/documents/types.js';
-import { castPicture, castsOf, pictureOf } from '../../motion.js';
+import type { FileRow, RowKind } from '@/lib/documents/rows.js';
 import { type Composer, composerCtx } from '../context.js';
-import { placeOnStage } from '../placement.js';
-
-/** How a dragged asset names itself to the timeline: its id, under this type. */
-export const ASSET_DRAG = 'application/x-wedyan-asset';
+import { ASSET_DRAG, placeOnStage } from '../placement.js';
 
 /** The asset kinds drawn on the stage, as against sound. */
-const PICTURE_KINDS = new Set<MotionAsset['kind']>(['image', 'still', 'video', 'take']);
+const PICTURE_KINDS = new Set<RowKind>(['image', 'still', 'video', 'take']);
 
 /** What a tile's menu does with its asset. */
 const TILE_COMMANDS = [{ name: 'place', label: 'Add to timeline' }];
@@ -26,24 +22,21 @@ export const Sources = setup(() => {
   const composer = composerCtx.get() as Composer;
   const view = mutable({ picked: null as GalleryValue });
 
-  const assets = () => composer.motion?.assets ?? [];
-  const assetOf = (id: unknown) => assets().find((asset) => asset.id === id);
-  const entryOf = (asset: MotionAsset): WedyanGalleryEntry => ({
-    path: asset.id,
-    name: asset.name,
-    kind: asset.kind,
-    picture: pictureOf(composer.path, asset),
+  const assets = () => composer.assets;
+  const assetOf = (path: unknown) => assets().find((asset) => asset.path === path);
+  const entryOf = (row: FileRow): WedyanGalleryEntry => ({
+    path: row.path,
+    name: row.name,
+    kind: row.kind === 'persona' ? 'image' : (row.kind as WedyanGalleryEntry['kind']),
+    picture: row.thumbnail,
   });
-  const casts = () => {
-    const { project } = composer;
-    return (project ? castsOf(project) : []).map(({ path, document }): WedyanGalleryEntry => ({ path, name: document.name, kind: 'image', picture: castPicture(path) }));
-  };
+  const casts = () => composer.casts.map(entryOf);
 
   // A cast isn't something a track holds, so it doesn't drag.
   const drag = (entry: WedyanGalleryEntry, event: DragEvent<HTMLElement>) => {
     const asset = assetOf(entry.path);
     if (!asset) return event.preventDefault();
-    event.dataTransfer.setData(ASSET_DRAG, asset.id);
+    event.dataTransfer.setData(ASSET_DRAG, asset.path);
     event.dataTransfer.effectAllowed = 'copy';
   };
   const openGenerated = (entry: WedyanGalleryEntry) => {

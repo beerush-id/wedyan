@@ -1,19 +1,11 @@
 import { setup, template } from '@airlib/react';
 import { DescriptionList } from '@airlib/react-aui';
 import { DirectContent } from '@/components/Direct.js';
-import type { MotionAsset, StillDocument, TakeDocument } from '@/lib/documents/types.js';
-import { documentAt } from '../../motion.js';
+import { ASSET_KINDS, type FileRow } from '@/lib/documents/rows.js';
+import type { StillDocument, TakeDocument } from '@/lib/documents/types.js';
+import { documentAt, duration } from '../../motion.js';
 import { type Composer, composerCtx } from '../context.js';
 import { StillView } from './StillView.js';
-
-/** What each kind of asset is called. */
-export const ASSET_KINDS: Record<MotionAsset['kind'], string> = {
-  image: 'Image',
-  video: 'Video',
-  audio: 'Audio',
-  still: 'Generated image',
-  take: 'Generated video',
-};
 
 /** The picked asset: a generated one as its own document, otherwise the media itself, as it plays or shows. */
 export const AssetView = setup(() => {
@@ -24,25 +16,18 @@ export const AssetView = setup(() => {
     const asset = composer.activeAsset;
     if (!asset) return null;
 
-    const generated = asset.kind === 'still' || asset.kind === 'take' ? documentAt(composer.pathOf(asset.src)) : undefined;
-    if (generated?.type === 'still') {
-      return (
-        <DirectContent>
-          <StillView document={generated as StillDocument} />
-        </DirectContent>
-      );
+    if (asset.kind === 'still') {
+      const still = documentAt<'still'>(asset.path);
+      return <DirectContent>{still && <StillView document={still as StillDocument} />}</DirectContent>;
     }
-    if (generated?.type === 'take') {
-      return (
-        <DirectContent>
-          <TakeView take={generated as TakeDocument} />
-        </DirectContent>
-      );
+    if (asset.kind === 'take') {
+      const take = documentAt<'take'>(asset.path);
+      return <DirectContent>{take && <TakeView take={take as TakeDocument} />}</DirectContent>;
     }
 
     return (
       <DirectContent>
-        <MediaView asset={asset} src={asset.src.includes('://') ? asset.src : composer.pathOf(asset.src)} />
+        <MediaView asset={asset} />
       </DirectContent>
     );
   };
@@ -53,6 +38,7 @@ const TakeView = template<{ take: TakeDocument }>(({ take }) => {
   const chosen = take.attempts.find((attempt) => attempt.id === take.chosen);
   return (
     <article className="wedyan-direct-pane">
+      {/* biome-ignore lint/a11y/useMediaCaption: a generated clip has no words to caption. */}
       <video className="wedyan-direct-hero" src={chosen?.src} poster={chosen?.poster} controls />
       <header className="wedyan-direct-heading">
         <h2>{take.name}</h2>
@@ -62,20 +48,22 @@ const TakeView = template<{ take: TakeDocument }>(({ take }) => {
   );
 }, 'TakeView');
 
-/** An image, a video or a sound, as it shows or plays, with what it is and where it's from. */
-const MediaView = template<{ asset: MotionAsset; src: string }>(({ asset, src }) => (
+/** An image, a video or a sound, as it shows or plays, with what it is. */
+const MediaView = template<{ asset: FileRow }>(({ asset }) => (
   <article className="wedyan-direct-pane">
-    {asset.kind === 'image' && <img className="wedyan-direct-hero" src={src} alt="" />}
-    {asset.kind === 'video' && <video className="wedyan-direct-hero" src={src} controls />}
-    {asset.kind === 'audio' && <audio src={src} controls />}
+    {asset.kind === 'image' && <img className="wedyan-direct-hero" src={asset.src} alt="" />}
+    {/* biome-ignore lint/a11y/useMediaCaption: an uploaded video comes with no captions to show. */}
+    {asset.kind === 'video' && <video className="wedyan-direct-hero" src={asset.src} poster={asset.thumbnail} controls />}
+    {/* biome-ignore lint/a11y/useMediaCaption: an uploaded sound comes with no captions to show. */}
+    {asset.kind === 'audio' && <audio src={asset.src} controls />}
     <header className="wedyan-direct-heading">
       <h2>{asset.name}</h2>
     </header>
     <DescriptionList
       size="sm"
       items={[
-        { label: 'Kind', value: ASSET_KINDS[asset.kind] },
-        { label: 'From', value: asset.src },
+        { label: 'Kind', value: ASSET_KINDS[asset.kind] ?? asset.kind },
+        ...(asset.duration ? [{ label: 'Length', value: duration(asset.duration) }] : []),
       ]}
     />
   </article>

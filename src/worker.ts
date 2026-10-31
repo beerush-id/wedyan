@@ -9,7 +9,7 @@ import { fileModule } from '@irpclib/r2-file';
 import { fsContext } from '@irpclib/r2-file/context';
 import { createWorker as createFileWorker } from '@irpclib/r2-file/worker';
 import { WebSocketRouter } from '@irpclib/ws/router';
-import { listRows } from '@/lib/kernel/listing.js';
+import { fileRows } from '@/lib/kernel/rows.js';
 import { reportChanges } from '@/lib/kernel/workspace.js';
 import { logger } from '@/lib/logger.js';
 import { contentIndex } from '@/lib/memory/files.js';
@@ -73,17 +73,17 @@ wsRouter.use(scopeToSession);
 
 // r2-file in this worker: its handlers serve the desktop's file calls and the agents' tool calls
 // alike, each with the bindings of the call's own environment.
-// Its content index keeps memory in step with the user's files, every change is reported to the
-// session's desktops, which keep what they hold in sync, and listings arrive as rows.
+// Its content index keeps memory in step with the user's files, and every change is reported to the
+// session's desktops, which keep what they hold in sync. Listings arrive as rows.
 const files = createFileWorker({
   endpoint: FILES_ENDPOINT,
   public: DELIVERED_FILES,
   // A file can change at its path, so nothing keeps it but the asking browser, by its ETag.
   cache: { browserTtl: 0, edgeTtl: 0 },
+  extension: fileRows,
 })
   .use(contentIndex())
-  .use(reportChanges())
-  .use(listRows());
+  .use(reportChanges());
 files.router.use(scopeToSession);
 
 // ai-kit in this worker: the desktop's own generation, on the models the agents run, so what it

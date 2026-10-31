@@ -5,14 +5,12 @@
   "name": "Wedyan promo A",
   "created": "2026-10-27T09:12:00Z",
   "updated": "2026-10-27T10:40:00Z",
-  "author": { "kind": "agent", "ask": "Hey, let's create a presentation video for Wedyan. 30s video to promote it for the hack." },
+  "author": { "kind": "agent", "ask": "Hey, let's create a short presentation video for Wedyan to promote it for the hack." },
   "tags": ["promo", "hackathon", "generative"],
-  "description": "A 30s promo for Wedyan, for the hack.",
+  "description": "A short promo for Wedyan, for the hack.",
   "aspect": "16:9",
-  "cover": "https://picsum.photos/seed/wedyan-promo-desk/480/270",
-  "length": 30,
+  "cover": "/~/Motions/Wedyan promo A/Cover.webp",
   "status": "draft",
-  "album": "../../Albums/Wedyan promos.album",
   "script": {
     "path": "Script.md",
     "revisions": [
@@ -20,18 +18,10 @@
       { "id": "r1", "path": "Revisions/Script 1.md", "note": "First draft", "author": { "kind": "agent" }, "created": "2026-10-27T09:14:00Z" }
     ],
     "histories": [
-      { "id": "h1", "ask": "Hey, let's create a presentation video for Wedyan. 30s video to promote it for the hack.", "model": "balanced", "effort": "medium", "revision": "r1", "created": "2026-10-27T09:13:00Z" },
+      { "id": "h1", "ask": "Hey, let's create a short presentation video for Wedyan to promote it for the hack.", "model": "balanced", "effort": "medium", "revision": "r1", "created": "2026-10-27T09:13:00Z" },
       { "id": "h2", "ask": "Open on a question, and end on the name with the line about human and AI.", "model": "best", "effort": "high", "created": "2026-10-27T10:38:00Z" }
     ]
   },
   "casts": ["../../People/Wedy.persona", "../../People/Sam.persona"],
-  "assets": [
-    { "id": "a1", "name": "Shared Desktop", "kind": "image", "src": "https://picsum.photos/seed/wedyan-promo-desk/1920/1080" },
-    { "id": "a2", "name": "Agent Workspace", "kind": "image", "src": "https://picsum.photos/seed/wedyan-promo-workspace/2080/1080" },
-    { "id": "a3", "name": "Closing Horizon", "kind": "image", "src": "https://picsum.photos/seed/wedyan-promo-closing/1920/1080" },
-    { "id": "a4", "name": "Hero", "kind": "still", "src": "Hero.still" },
-    { "id": "a5", "name": "Premium Ambient", "kind": "audio", "src": "/assets/music.mp3" }
-  ],
-  "chats": ["../../Chats/Wedyan promo.chat"],
-  "memos": ["../../Memos/Hack brief.memo", "../../Memos/Tone.memo"]
+  "assets": ["Hero.still", "Shared Desktop.webp", "Agent Workspace.webp", "Closing Horizon.webp", "Backsound.mp3"]
 }

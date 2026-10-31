@@ -1,9 +1,8 @@
 import { createContext, effect, mutable } from '@airlib/react';
 import type { WedyanGalleryLayout } from '@/components/WedyanGallery.js';
-import { FILE_TYPES } from '@/lib/documents/file-types.js';
-import type { StageRow } from '@/lib/documents/stage.js';
+import { rowsOf } from '@/lib/documents/rows.js';
 import { dfs } from '@/lib/share/dfs.js';
-import { length, ROOT } from '../motion.js';
+import { ROOT } from '../motion.js';
 import { changesListing, type LibraryView, listingOf, tileOf } from './listing.js';
 
 /** A library window's state: where it is, how it shows it, and what's picked. */
@@ -52,11 +51,6 @@ export function createLibrary() {
     return listingOf(state.activeView, state.folder);
   });
 
-  const stages = dfs.list.with(() => {
-    void state.version;
-    return [ROOT, { recursive: true, filter: { type: FILE_TYPES.stage } }];
-  });
-
   dfs.watch(ROOT, (change) => {
     if (changesListing(change)) state.version += 1;
   });
@@ -67,7 +61,5 @@ export function createLibrary() {
     Object.assign(state, { picked: null, several: false, query: '' });
   });
 
-  const lengthOf = (project: string) => length(((stages.data?.entries ?? []) as unknown as StageRow[]).filter((stage) => stage.projectId === project));
-
-  return { state, items, lengthOf, tiles: () => (items.data?.entries ?? []).flatMap((file) => tileOf(file, lengthOf)) };
+  return { state, items, rows: () => rowsOf(items), tiles: () => rowsOf(items).flatMap(tileOf) };
 }

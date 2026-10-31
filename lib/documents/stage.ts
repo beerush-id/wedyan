@@ -1,19 +1,5 @@
 import type { StageDocument } from './types.js';
 
-/** A stage as a list shows it, from its listing alone: its file isn't read. */
-export type StageRow = {
-  id: string;
-  projectId: string;
-  name: string;
-  /** Where its file is, as a home path. */
-  path: string;
-  /** Its place in the project's playing order. */
-  order: number;
-  /** How long it runs, in seconds. */
-  duration: number;
-  thumbnail?: string;
-};
-
 /**
  * How long a composition runs: to the end of its last clip.
  *

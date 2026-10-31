@@ -7,7 +7,8 @@ import { ArrowLeft } from '@airlib/react-aui/icons';
 import { PERSON_TABS, type PersonTab } from '@/apps/lounge/views/session.js';
 import { ComposeIcon, DirectIcon, RenderIcon, SidebarCloseIcon, SidebarOpenIcon } from '../icons.js';
 import { openLibrary } from '../library/Window.js';
-import { assigneeAt, AssigneeAvatar } from './compose/assignment.js';
+import { assigneeAt } from './compose/assignee.js';
+import { AssigneeAvatar } from './compose/assignment.js';
 import { type Composer, composerCtx } from './context.js';
 
 /** Where turning HTML-in-Canvas on lives, for people whose Chrome doesn't have it yet. */
@@ -98,7 +99,7 @@ const ComposeActions = setup(() => {
   return () => (
     <>
       <Snippet>{() => (composer.status ? <span className="wedyan-motions-notice">{composer.status}</span> : null)}</Snippet>
-      <Snippet data={() => assigneeAt(composer.path, composer.stage?.assignee)}>
+      <Snippet data={() => assigneeAt(composer, composer.stage?.assignee)}>
         {(agent) =>
           agent ? (
             <>

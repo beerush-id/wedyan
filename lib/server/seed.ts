@@ -1,3 +1,4 @@
+import { IRPCFile } from '@irpclib/irpc';
 import { exists, write } from '@irpclib/r2-file';
 
 /** Where a new home's seed is bundled from, beside the app. */
@@ -62,8 +63,21 @@ async function plant(seeds: Record<string, string>): Promise<void> {
   await Promise.all(
     Object.entries(seeds).map(([path, content]) => {
       const [, type] = INLINE.exec(content) ?? [];
-      return write(`~/${path}`, content, type ? { encoding: 'data-url', type } : undefined);
+      return type ? write(`~/${path}`, fileOf(path, type, content)) : write(`~/${path}`, content);
     }),
   );
   await write(SEED_MARKER, { seeded: new Date().toISOString() }, { hidden: true });
+}
+
+/**
+ * A bundled picture or sound as the file it is, written as an upload is, at any size.
+ *
+ * @param path - Its path in the home.
+ * @param type - Its media type.
+ * @param content - Its data URL.
+ * @returns The file.
+ */
+function fileOf(path: string, type: string, content: string): IRPCFile {
+  const bytes = Uint8Array.from(atob(content.slice(content.indexOf(',') + 1)), (byte) => byte.charCodeAt(0));
+  return new IRPCFile({ name: path.slice(path.lastIndexOf('/') + 1), size: bytes.byteLength, type }, new Blob([bytes], { type }));
 }

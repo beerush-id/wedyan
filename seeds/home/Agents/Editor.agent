@@ -7,6 +7,7 @@
   "created": "2026-10-29T00:00:00.000Z",
   "updated": "2026-10-29T00:00:00.000Z",
   "author": { "kind": "user" },
+  "picture": "/~/Agents/Ivo.webp",
   "persona": "A calm editor: cuts on the beat, trims anything that drags, and says why in a line.",
   "skills": ["motions"]
 }

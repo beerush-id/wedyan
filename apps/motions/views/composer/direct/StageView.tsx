@@ -4,7 +4,7 @@ import { Button, EmptyState, Tooltip } from '@airlib/react-aui';
 import { DirectContent } from '@/components/Direct.js';
 import { posterOf, runtime } from '@/lib/documents/stage.js';
 import { ComposeIcon, ScriptIcon } from '../../icons.js';
-import { documentAt, duration, newScript, shortDate } from '../../motion.js';
+import { duration, newScript, shortDate } from '../../motion.js';
 import { type Composer, composerCtx } from '../context.js';
 import { ScriptAbout } from './ScriptAbout.js';
 import { ScriptPane } from './ScriptPane.js';
@@ -62,7 +62,8 @@ const StageAbout = setup(() => {
     const { stage } = composer;
     if (!stage) return null;
     const { width, height } = stage.composition.props;
-    const casts = (stage.casts ?? []).map((cast) => documentAt<'persona'>(composer.pathOf(cast))?.name).filter(Boolean);
+    const { people } = composer;
+    const casts = (stage.casts ?? []).map((cast) => people.find((person) => person.path === composer.pathOf(cast))?.name).filter(Boolean);
     return (
       <ScriptAbout
         picture={posterOf(stage) ?? composer.motion?.cover}

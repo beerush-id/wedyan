@@ -1,14 +1,13 @@
-import { createContext, mutable } from '@airlib/react';
+import { createContext, effect, mutable } from '@airlib/react';
 import type { Timeline, TimelineSegment } from '@airlib/react/timeline';
 import type { WindowInstance } from '@airlib/react-aui/desktop';
 import type { PersonTab } from '@/apps/lounge/views/session.js';
-import { FILE_TYPES } from '@/lib/documents/file-types.js';
 import { isGenerative } from '@/lib/documents/generation.js';
 import { resolvePath } from '@/lib/documents/paths.js';
-import type { StageRow } from '@/lib/documents/stage.js';
-import type { GenerativeDocument, MotionAsset, MotionDocument, StageDocument } from '@/lib/documents/types.js';
+import { type FileRow, rowsOf } from '@/lib/documents/rows.js';
+import type { GenerativeDocument, MotionDocument, StageDocument } from '@/lib/documents/types.js';
 import { dfs } from '@/lib/share/dfs.js';
-import { documentAt, follow, type Project, ROOT } from '../motion.js';
+import { documentAt, follow, type Project } from '../motion.js';
 
 /** What a project window opens with: which project, and whether it opens in Direct. */
 export type ComposerData = { path: string; direct: boolean };
@@ -31,7 +30,7 @@ export type Composer = {
   /** The stage picked, by path, once one is. */
   activeStage?: string;
   /** The asset picked. */
-  activeAsset?: MotionAsset;
+  activeAsset?: FileRow;
   /** The cast picked, by path. */
   activeCast?: string;
   /** What the picked cast shows. */
@@ -57,8 +56,16 @@ export type Composer = {
   readonly motion: MotionDocument | undefined;
   /** The project with where it is, once it has arrived. */
   readonly project: Project | undefined;
-  /** The project's stages in playing order, from one listing: none of their files are read for this. */
-  readonly stages: StageRow[];
+  /** The project's stages in playing order. Every list here is from one listing, which reads no file. */
+  readonly stages: FileRow[];
+  /** What the project's stages are made from. */
+  readonly assets: FileRow[];
+  /** Who's in the project. */
+  readonly casts: FileRow[];
+  /** Everyone who could be. */
+  readonly people: FileRow[];
+  /** The agents work can be assigned to. */
+  readonly agents: FileRow[];
   /** Where the stage picked is, or the project's first until one is. */
   readonly stagePath: string | undefined;
   /** The stage picked, or the project's first until one is. */
@@ -77,6 +84,12 @@ export type Composer = {
 
 /** The composer of the window a part is in. */
 export const composerCtx = createContext<Composer>();
+
+/** Where a project window's listing looks, narrowed to what the project holds. */
+const HOME = '~';
+
+/** The files a project window's listing shows. */
+const LISTED_FILE = /\.(motion|stage|persona|agent|still|take)$/;
 
 /**
  * A project window's one source of truth: the project, and what the window shows of it.
@@ -112,7 +125,23 @@ export function createComposer(window: WindowInstance, path: string, direct: boo
       },
 
       get stages() {
-        return [...((listed.data?.entries ?? []) as unknown as StageRow[])].sort((a, b) => a.order - b.order);
+        return ofKind((row) => row.kind === 'stage');
+      },
+
+      get assets() {
+        return ofKind((row) => !!row.held && row.kind !== 'persona');
+      },
+
+      get casts() {
+        return ofKind((row) => !!row.held && row.kind === 'persona');
+      },
+
+      get people() {
+        return ofKind((row) => row.kind === 'persona');
+      },
+
+      get agents() {
+        return ofKind((row) => row.kind === 'agent');
       },
 
       get stagePath() {
@@ -144,8 +173,8 @@ export function createComposer(window: WindowInstance, path: string, direct: boo
       generativeAsset() {
         const asset = composer.activeAsset;
         if (asset?.kind !== 'still' && asset?.kind !== 'take') return;
-        const found = follow(path, asset.src);
-        return isGenerative(found.document) ? { path: found.path, source: found.document } : undefined;
+        const source = documentAt(asset.path);
+        return isGenerative(source) ? { path: asset.path, source } : undefined;
       },
 
       generate({ source }) {
@@ -155,13 +184,25 @@ export function createComposer(window: WindowInstance, path: string, direct: boo
     { recursive: false },
   );
 
-  // Every stage naming this project, in one call.
+  // Everything the window lists, in one call.
   const listed = dfs.list.with(() => {
     void composer.version;
-    return [ROOT, { recursive: true, filter: { type: FILE_TYPES.stage, metadata: { projectId: composer.motion?.id ?? '' } } }];
+    return [HOME, { recursive: true, scope: { holds: path } }];
   });
-  dfs.watch(ROOT, (change) => {
-    if (change.path.endsWith('.stage')) composer.version += 1;
+  const ofKind = (test: (row: FileRow) => boolean) => rowsOf(listed).filter(test).sort((a, b) => a.position - b.position);
+
+  // A stage saved in Compose changes only its row, which shows in Direct: it's listed again on the
+  // way back, so an edit costs its own save and nothing more.
+  let outdated = false;
+  dfs.watch(HOME, ({ path: changed }) => {
+    if (!LISTED_FILE.test(changed)) return;
+    if (changed.endsWith('.stage') && composer.mode === 'compose') outdated = true;
+    else composer.version += 1;
+  });
+  effect(() => {
+    if (composer.mode !== 'direct' || !outdated) return;
+    outdated = false;
+    composer.version += 1;
   });
 
   return composer;

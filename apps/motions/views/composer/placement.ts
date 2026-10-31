@@ -1,7 +1,8 @@
 import type { Timeline, TimelineSegment, TimelineTrack } from '@airlib/react/timeline';
 import { chosenAttempt, isGenerative } from '@/lib/documents/generation.js';
-import { follow } from '../motion.js';
-import type { GenerativeDocument, MotionAsset } from '@/lib/documents/types.js';
+import type { FileRow } from '@/lib/documents/rows.js';
+import type { GenerativeDocument } from '@/lib/documents/types.js';
+import { documentAt } from '../motion.js';
 import type { AudioClip, HtmlClip, ImageClip, StageProps, SvgClip, TitleClip, VideoClip } from './composition.js';
 import type { Composer } from './context.js';
 
@@ -9,6 +10,9 @@ import type { Composer } from './context.js';
 export const TRACK_NAMES = { video: 'Video', audio: 'Audio', title: 'Title', html: 'HTML', svg: 'SVG' };
 
 export type TrackType = keyof typeof TRACK_NAMES;
+
+/** How a dragged asset names itself to the timeline: its path, under this type. */
+export const ASSET_DRAG = 'application/x-wedyan-asset';
 
 /** How long a clip runs when nothing says: a picture's or a title's time on screen, in seconds. */
 const CLIP_SECONDS = 5;
@@ -28,7 +32,7 @@ export type PlacementStage = { timeline: Timeline; size: StageProps; project: st
  * @param asset - The asset.
  * @param at - Where it goes.
  */
-export function placeOnStage(composer: Composer, asset: MotionAsset, at?: Placement): void {
+export function placeOnStage(composer: Composer, asset: FileRow, at?: Placement): void {
   const { timeline, stage } = composer;
   if (!timeline || !stage) return;
   const placement = { timeline, size: stage.composition.props, project: composer.path };
@@ -64,7 +68,7 @@ export function addTrack(timeline: Timeline, type: TrackType): TimelineTrack {
  * @param at - Where it goes.
  * @returns The new clip, or nothing when the asset has no media to show.
  */
-export async function placeAsset(stage: PlacementStage, asset: MotionAsset, at: Placement): Promise<TimelineSegment | undefined> {
+export async function placeAsset(stage: PlacementStage, asset: FileRow, at: Placement): Promise<TimelineSegment | undefined> {
   const { timeline, size } = stage;
   const box = { x: 0, y: 0, width: size.width, height: size.height };
   const name = asset.name;
@@ -76,15 +80,14 @@ export async function placeAsset(stage: PlacementStage, asset: MotionAsset, at: 
     }
     const props: VideoClip | AudioClip = asset.kind === 'video' ? { src: asset.src, ...box } : { src: asset.src };
     const type = asset.kind === 'video' ? 'video' : 'audio';
-    return place(timeline, type, at, { type, name, duration: await mediaSeconds(asset.src, asset.kind) }, props);
+    return place(timeline, type, at, { type, name, duration: await mediaSeconds(asset.src as string, asset.kind) }, props);
   }
 
-  const found = follow(stage.project, asset.src);
-  if (!isGenerative(found.document)) return;
-  const source = found.document;
+  const source = documentAt(asset.path);
+  if (!isGenerative(source)) return;
   const attempt = chosenAttempt(source);
   if (!attempt) return;
-  const meta = { source: pathFrom(stage.project, found.path) };
+  const meta = { source: pathFrom(stage.project, asset.path) };
 
   if (source.type === 'still') {
     const props: ImageClip = { src: attempt.src, fit: 'cover', ...box };
@@ -113,7 +116,7 @@ export function showAttempt(segment: TimelineSegment, source: GenerativeDocument
   source.chosen = id;
   const thumbnail = source.type === 'still' ? attempt.src : (attempt as { poster?: string }).poster;
   (segment.props as { src?: string }).src = attempt.src;
-  if (thumbnail) (segment.meta ??= {}).thumbnail = thumbnail;
+  if (thumbnail) segment.meta = { ...segment.meta, thumbnail };
   if (segment.timeline.status !== 'playing') void segment.timeline.scrub(segment.timeline.frame);
 }
 

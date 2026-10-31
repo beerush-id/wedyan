@@ -46,7 +46,8 @@ export type MotionDocument = DocumentHeader<'motion'> & {
   script?: MotionScript;
   /** Who's in it, by path from this file to each `.persona`. Its stages name it by `projectId`. */
   casts?: string[];
-  assets: MotionAsset[];
+  /** What its stages are made from: files of its own, by path from this file. */
+  assets: string[];
   /** The chats and memos about it, by path from this file. */
   chats?: string[];
   memos?: string[];
@@ -83,14 +84,6 @@ export type ScriptHistory = {
   /** The version it made, by revision id; none when it made the script as it is now. */
   revision?: string;
   created: string;
-};
-
-/** Something a project's stages use: media by address, or a generated image, video or sound by path. */
-export type MotionAsset = {
-  id: string;
-  name: string;
-  kind: 'image' | 'video' | 'audio' | 'still' | 'take' | 'sound';
-  src: string;
 };
 
 /**

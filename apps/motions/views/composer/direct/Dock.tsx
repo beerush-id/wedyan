@@ -12,7 +12,7 @@ const EFFORTS = { low: 'Low effort', medium: 'Medium effort', high: 'High effort
  * How the script is written: set from the dock while one shows, read when a prompt is sent. The
  * models are placeholders until the kernel names its own.
  */
-export const writing = mutable({ model: 'balanced', effort: 'medium' });
+const writing = mutable({ model: 'balanced', effort: 'medium' });
 
 /** Direct's options in the dock: how the script is written, or how the picked generated asset is made again. */
 export const DirectDock = setup(() => {

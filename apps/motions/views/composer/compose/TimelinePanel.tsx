@@ -5,9 +5,9 @@ import { WindowPanel } from '@airlib/react-aui/desktop';
 import { AddIcon } from '../../icons.js';
 import { type Composer, composerCtx } from '../context.js';
 import { buffers } from '../media.js';
-import { addTrack, placeBox, placeOnStage, placeShape, placeTitle, TRACK_NAMES, type TrackType } from '../placement.js';
-import { AssigneeAvatar, clipAssignee } from './assignment.js';
-import { ASSET_DRAG } from './Sources.js';
+import { ASSET_DRAG, addTrack, placeBox, placeOnStage, placeShape, placeTitle, TRACK_NAMES, type TrackType } from '../placement.js';
+import { clipAssignee } from './assignee.js';
+import { AssigneeAvatar } from './assignment.js';
 
 const TRACK_KINDS = Object.entries(TRACK_NAMES).map(([name, label]) => ({ name, label: `${label} track` }));
 
@@ -53,7 +53,7 @@ export const TimelinePanel = setup(() => {
   // An asset dragged from Sources onto a track goes there, at the frame it's let go on.
   const dropAsset = (event: CustomEvent<TimelineLaneDrop>) => {
     const { data, track, frame } = event.detail;
-    const asset = composer.motion?.assets.find((each) => each.id === data.getData(ASSET_DRAG));
+    const asset = composer.assets.find((each) => each.path === data.getData(ASSET_DRAG));
     if (asset) placeOnStage(composer, asset, { track, frame });
   };
 
@@ -85,7 +85,7 @@ export const TimelinePanel = setup(() => {
         {/* Who a clip is assigned to, on the clip. */}
         <TimelineEditor.Snippet for="adornment">
           {(segment: TimelineSegment) => {
-            const agent = clipAssignee(composer.path, segment);
+            const agent = clipAssignee(composer, segment);
             return agent ? <AssigneeAvatar assignee={agent} size="xs" /> : null;
           }}
         </TimelineEditor.Snippet>
@@ -98,7 +98,7 @@ export const TimelinePanel = setup(() => {
               </Menu>
               <Snippet>
                 {() => (
-                  <span className="wedyan-compose-timecode" aria-label="Playhead timecode">
+                  <span role="timer" className="wedyan-compose-timecode" aria-label="Playhead timecode">
                     {timecode(timeline.state.frame, timeline.frameRate)}
                   </span>
                 )}

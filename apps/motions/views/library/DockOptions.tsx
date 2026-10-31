@@ -1,12 +1,10 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
-import { $bind, mutable, template } from '@airlib/react';
+import { $bind, template } from '@airlib/react';
 import { Select, Stepper, Toolbar } from '@airlib/react-aui';
 import { AspectRatioIcon } from '@airlib/react-aui/icons';
 import { ASPECTS, MODELS } from '@/lib/documents/generation.js';
 import { ModelIcon } from '../icons.js';
-
-/** How Motions animates a new motion: set from the dock, read when a prompt is sent. */
-export const animation = mutable({ model: 'standard', aspect: '16:9', seconds: 6 });
+import { animation } from '../motion.js';
 
 /** How a new motion is made, in the dock while the library is in front: its model, its shape, and how long it runs. */
 export const LibraryDockOptions = template(

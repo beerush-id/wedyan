@@ -1,15 +1,25 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
-import { $bind, For, mutable, Show, setup } from '@airlib/react';
+import { $bind, For, mutable, setup, Show } from '@airlib/react';
 import { LIVE_SELECTION } from '@airlib/react/browser';
 import { Button, Divider, FloatingToolbar, TextInput, Toggle, ToggleGroup } from '@airlib/react-aui';
 import { MarkdownRenderer } from '@airlib/react-aui/markdown';
 import type { FC, ReactNode } from 'react';
 import type { MotionScript } from '@/lib/documents/types.js';
 import { dfs } from '@/lib/share/dfs.js';
-import { BoldIcon, EditIcon, ExpandIcon, HeadingIcon, ItalicIcon, ListIcon, PreviewIcon, RewriteIcon, ShortenIcon } from '../../icons.js';
+import {
+  BoldIcon,
+  EditIcon,
+  ExpandIcon,
+  HeadingIcon,
+  ItalicIcon,
+  ListIcon,
+  PreviewIcon,
+  RewriteIcon,
+  ShortenIcon,
+} from '../../icons.js';
 import { shortDate } from '../../motion.js';
 import { type Composer, composerCtx } from '../context.js';
-import { type Formatting, formatSelection } from '../formatting.js';
+import { formatSelection, type Formatting } from '../formatting.js';
 
 /** The version a script pane shows first: the script as it is now. */
 const CURRENT = 'current';
@@ -118,10 +128,22 @@ export const ScriptPane = setup<ScriptPaneProps, ScriptPaneSlots>((props, slots)
             >
               {() => (
                 <>
-                  <TextInput multiline label="Script, in Markdown" value={$bind(source, 'text')} className="wedyan-script-editor" />
+                  <TextInput
+                    multiline
+                    label="Script, in Markdown"
+                    value={$bind(source, 'text')}
+                    className="wedyan-script-editor"
+                  />
                   <FloatingToolbar label="Formatting">
                     {FORMATTINGS.map(({ formatting, label, Icon }) => (
-                      <Button key={formatting} aria-label={label} size="sm" variant="text" className={AUI_CLASS.CONTROL_ICON} onClick={() => format(formatting)}>
+                      <Button
+                        key={formatting}
+                        aria-label={label}
+                        size="sm"
+                        variant="text"
+                        className={AUI_CLASS.CONTROL_ICON}
+                        onClick={() => format(formatting)}
+                      >
                         <Icon />
                       </Button>
                     ))}
@@ -145,11 +167,11 @@ export const ScriptPane = setup<ScriptPaneProps, ScriptPaneSlots>((props, slots)
                   view.shown = CURRENT;
                 }}
               >
-                <Toggle value="preview" variant="text" size="sm">
+                <Toggle value="preview" size="sm">
                   <PreviewIcon />
                   <span>Preview</span>
                 </Toggle>
-                <Toggle value="edit" variant="text" size="sm">
+                <Toggle value="edit" size="sm">
                   <EditIcon />
                   <span>Edit</span>
                 </Toggle>
@@ -187,7 +209,9 @@ export const ScriptPane = setup<ScriptPaneProps, ScriptPaneSlots>((props, slots)
                     <li className="wedyan-script-entry">
                       <span className="wedyan-script-title">{history.ask}</span>
                       <span className="wedyan-script-meta">
-                        {[history.model, history.effort && `${history.effort} effort`, shortDate(history.created)].filter(Boolean).join(' · ')}
+                        {[history.model, history.effort && `${history.effort} effort`, shortDate(history.created)]
+                          .filter(Boolean)
+                          .join(' · ')}
                       </span>
                     </li>
                   )}

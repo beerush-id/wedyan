@@ -1,28 +1,27 @@
 import { $use, For, Show, setup } from '@airlib/react';
 import { ListboxOption } from '@airlib/react-aui';
 import { DirectRow, DirectSection } from '@/components/Direct.js';
+import { ASSET_KINDS } from '@/lib/documents/rows.js';
 import { SoundIcon } from '../../icons.js';
-import { pictureOf } from '../../motion.js';
 import { type Composer, composerCtx } from '../context.js';
-import { ASSET_KINDS } from './AssetView.js';
 
 /** What the project's stages are made from, while it has any. Picking one shows it. */
 export const AssetList = setup(() => {
   const composer = composerCtx.get() as Composer;
 
   return () => (
-    <Show when={() => composer.motion?.assets.length}>
+    <Show when={() => composer.assets.length}>
       {() => (
         <DirectSection label="Assets">
-          <For each={() => composer.motion?.assets ?? []}>
+          <For each={() => composer.assets}>
             {(asset) => (
               <ListboxOption
-                value={asset.id}
-                selected={$use(() => composer.activeView === 'asset' && composer.activeAsset === asset)}
+                value={asset.path}
+                selected={$use(() => composer.activeView === 'asset' && composer.activeAsset?.path === asset.path)}
                 onchange={() => Object.assign(composer, { activeView: 'asset', activeAsset: asset })}
                 className="wedyan-direct-row"
               >
-                <DirectRow title={asset.name} description={ASSET_KINDS[asset.kind]} picture={pictureOf(composer.path, asset)} icon={SoundIcon} />
+                <DirectRow title={asset.name} description={ASSET_KINDS[asset.kind]} picture={asset.thumbnail} icon={SoundIcon} />
               </ListboxOption>
             )}
           </For>

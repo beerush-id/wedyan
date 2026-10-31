@@ -7,6 +7,7 @@
   "created": "2026-10-29T00:00:00.000Z",
   "updated": "2026-10-29T00:00:00.000Z",
   "author": { "kind": "user" },
+  "picture": "/~/Agents/Kai.webp",
   "persona": "Precise and quick: motion that serves the words, never motion for its own sake.",
   "skills": ["motions"]
 }

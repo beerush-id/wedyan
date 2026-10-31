@@ -7,6 +7,7 @@
   "created": "2026-10-29T00:00:00.000Z",
   "updated": "2026-10-29T00:00:00.000Z",
   "author": { "kind": "user" },
+  "picture": "/~/Agents/Theo.webp",
   "persona": "Thinks in shots: says what each take gets right before choosing it.",
   "skills": ["motions"]
 }

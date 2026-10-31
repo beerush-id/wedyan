@@ -2,16 +2,11 @@ import { AUI_CLASS } from '@airlib/aui/utils';
 import { $use, setup } from '@airlib/react';
 import { Button, Menu, Tooltip } from '@airlib/react-aui';
 import { newPerson } from '@/apps/lounge/views/library.js';
-import { FILE_TYPES } from '@/lib/documents/file-types.js';
-import { homePath, nameOf } from '@/lib/documents/paths.js';
 import { documentAt as personOnDrive } from '@/lib/documents/store.js';
 import { dfs } from '@/lib/share/dfs.js';
 import { AddIcon } from '../../icons.js';
-import { addCast, castsOf, newStage } from '../../motion.js';
+import { addCast, newStage } from '../../motion.js';
 import { type Composer, composerCtx } from '../context.js';
-
-/** Where people are kept. */
-const PEOPLE = '~/People';
 
 /** Which command makes a new person, among the people to pick. */
 const NEW_PERSON = 'new-person';
@@ -34,21 +29,13 @@ export const AddStage = setup(() => {
   );
 }, 'AddStage');
 
-/**
- * Puts someone in the project, on every stage: one of the people not cast in it yet, or a new person.
- * Either opens as the project's cast.
- */
+/** Puts someone in the project: one of the people not cast in it yet, or a new person. Either opens as a cast. */
 export const AddCast = setup(() => {
   const composer = composerCtx.get() as Composer;
-  const listed = dfs.list.with(() => [PEOPLE, { filter: { type: FILE_TYPES.persona }, sort: 'name' }]);
 
   const items = () => {
-    const { project } = composer;
-    const cast = new Set(project ? castsOf(project).map(({ path }) => path) : []);
-    const people = (listed.data?.entries ?? [])
-      .map((entry) => homePath(entry.path))
-      .filter((path) => !cast.has(path))
-      .map((path) => ({ name: path, label: nameOf(path).replace(/\.persona$/, '') }));
+    const cast = new Set(composer.casts.map(({ path }) => path));
+    const people = composer.people.filter(({ path }) => !cast.has(path)).map(({ path, name }) => ({ name: path, label: name }));
     return [...people, { name: NEW_PERSON, label: 'New person' }];
   };
 

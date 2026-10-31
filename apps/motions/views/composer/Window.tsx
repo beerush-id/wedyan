@@ -67,13 +67,14 @@ export const motionComposer = defineWindow({
     const { motion } = composer;
     if (!motion) return;
     bind(path);
-    if (motion.script) bind(composer.pathOf(motion.script.path), 'text');
+    const direct = composer.mode === 'direct';
+    if (direct && composer.activeView === 'overview' && motion.script) bind(composer.pathOf(motion.script.path), 'text');
     const generated = composer.generativeAsset();
     if (generated) bind(generated.path);
-    if (composer.mode !== 'compose' && composer.activeView !== 'stage') return;
+    if (direct && composer.activeView !== 'stage') return;
     const { stagePath, stage } = composer;
     if (stagePath) bind(stagePath);
-    if (stage?.script) bind(composer.pathOf(stage.script), 'text');
+    if (direct && stage?.script) bind(composer.pathOf(stage.script), 'text');
   });
 
   return () => (
