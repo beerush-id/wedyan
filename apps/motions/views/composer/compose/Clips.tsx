@@ -1,4 +1,4 @@
-import { For, template } from '@airlib/react';
+import { $static, For, mutable, Snippet, setup, template } from '@airlib/react';
 import { StageClip } from '@airlib/react-aui';
 import type { Timeline, TimelineSegment } from '@airlib/react/timeline';
 import type { ReactNode } from 'react';
@@ -13,8 +13,10 @@ import {
   TRACK_CLIPS,
   type TitleClip,
   type VideoClip,
+  type WidgetClip,
 } from '../composition.js';
 import { PAINTERS } from '../painters.js';
+import { WIDGETS } from '../widgets.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -26,6 +28,12 @@ const SVG_SIZED = new Set(['image', 'rect', 'foreignObject', 'use', 'svg']);
 
 /** Clip values that aren't attributes of an SVG element, nor CSS of an HTML one. */
 const ELEMENT_SKIP = new Set(['element', 'text', 'attrs', 'style']);
+
+/** Clip values that aren't props a widget's keyframes move. */
+const WIDGET_SKIP = new Set(['widget', 'params', 'text', 'style']);
+
+/** A widget on a stage is a picture: the pointer goes through it to what's under it. */
+const PICTURE_ONLY = { pointerEvents: 'none' } as const;
 
 /** CSS properties a bare number is written to as it is; every other number is a length, in stage units. */
 const UNITLESS = new Set(['opacity', 'zIndex', 'fontWeight', 'lineHeight', 'flex', 'flexGrow', 'flexShrink', 'order']);
@@ -59,6 +67,7 @@ const DRAW: Record<string, (segment: TimelineSegment, stage: StageProps) => Reac
   audio: (segment) => <AudioClipView segment={segment as TimelineSegment<AudioClip>} />,
   title: (segment) => <TitleClipView segment={segment as TimelineSegment<TitleClip>} />,
   html: (segment) => <HtmlClipView segment={segment as TimelineSegment<HtmlClip>} />,
+  widget: (segment) => <WidgetClipView segment={segment as TimelineSegment<WidgetClip>} />,
   svg: (segment, stage) => <SvgClipView segment={segment as TimelineSegment<SvgClip>} stage={stage} />,
   ...Object.fromEntries(
     Object.keys(PAINTERS).map((name) => [name, (segment: TimelineSegment) => <PainterClipView segment={segment as TimelineSegment<PainterClip>} />])
@@ -142,6 +151,29 @@ const HtmlClipView = template<{ segment: TimelineSegment<HtmlClip> }>((props) =>
     </StageClip>
   );
 }, 'HtmlClipView');
+
+/**
+ * A widget clip: the AUI widget it names in its box, with its props and words. Each frame its
+ * keyframed values go onto a live copy of its props, so only the widget redraws.
+ */
+const WidgetClipView = setup<{ segment: TimelineSegment<WidgetClip> }>((props) => {
+  const { widget, params, text, style } = $static(() => props.segment.props);
+  const Widget = WIDGETS[widget ?? ''];
+  const shown = mutable<Record<string, unknown>>({ ...params });
+
+  const draw = ({ values }: { values: Record<string, unknown> }) => {
+    for (const [key, value] of Object.entries(values)) {
+      if (!MOTION_KEYS.has(key) && !WIDGET_SKIP.has(key) && shown[key] !== value) shown[key] = value;
+    }
+  };
+
+  return () =>
+    Widget ? (
+      <StageClip segment={props.segment} style={{ ...PICTURE_ONLY, ...style }} draw={draw}>
+        <Snippet data={() => ({ ...shown })}>{(values) => <Widget {...values}>{text}</Widget>}</Snippet>
+      </StageClip>
+    ) : null;
+}, 'WidgetClipView');
 
 /**
  * An SVG clip: its one element in the stage's units. Drawn over its box when it has one, so its

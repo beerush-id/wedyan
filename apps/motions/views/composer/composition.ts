@@ -19,7 +19,7 @@ export const TRACK_CLIPS: Record<string, string[]> = {
   video: ['video', 'image'],
   audio: ['audio'],
   title: ['title'],
-  html: ['html'],
+  html: ['html', 'widget'],
   svg: ['svg'],
   painter: Object.keys(PAINTERS),
 };
@@ -40,6 +40,18 @@ export type HtmlClip = MotionBox & {
   attrs?: Record<string, string | number>;
   style?: Record<string, string | number>;
   [property: string]: unknown;
+};
+
+/**
+ * An AUI widget on an HTML track, in its box: which widget, its props as `params`, its words, its
+ * box's fixed CSS, and any other value as a prop keyframes can move, e.g. a progress bar's `value`.
+ */
+export type WidgetClip = MotionBox & {
+  widget?: string;
+  params?: Record<string, unknown>;
+  text?: string;
+  style?: Record<string, string | number>;
+  [prop: string]: unknown;
 };
 
 /**
