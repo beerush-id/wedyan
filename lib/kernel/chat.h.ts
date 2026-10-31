@@ -156,8 +156,7 @@ export const DUPLICATE_CLIENT = 'This client is already connected';
  * answer's actions run only on the desktop that sent its words. A desktop opens it with `wedyan()`
  * (`lib/share/wedyan.ts`), which owns its ID; other clients, with an ID of their own.
  */
-export const conversation = kernel.declare<ConversationFn>({
-  name: 'wedyan.chat',
+export const conversation = kernel.declare<ConversationFn>('wedyan.chat', {
   stream: true,
   keepAlive: true,
   coalesce: false,

@@ -8,14 +8,14 @@ import {
   stream,
   withContext,
 } from '@irpclib/irpc';
-import { type AsyncStore, getContextStore, mutable } from '@irpclib/irpc/core';
+import { anchor, type AsyncStore, getContextStore, mutable } from '@irpclib/irpc/core';
 import { exists, list, read, write } from '@irpclib/r2-file';
 import { fsContext } from '@irpclib/r2-file/context';
 import type { DocumentHeader } from '@/lib/documents/types.js';
 import { userPath } from '@/lib/memory/files.js';
 import { SETTINGS_PATH, type UserSettings } from '@/lib/share/profile.js';
 import { AGENTS_PATH, CONVERSATION_PATH, INBOXES } from '@/lib/share/system.js';
-import { type ActionMeta, type AskAction, type AskInput, actorOf, type WidgetPart } from './agent.h.js';
+import { type ActionMeta, actorOf, type AskAction, type AskInput, type WidgetPart } from './agent.h.js';
 import { askRouter, askWith, type CallResult, toChatInput } from './agent.js';
 import { ARRIVAL_SEEDS, landed } from './arrivals.js';
 import {
@@ -23,9 +23,9 @@ import {
   type AgentMessage,
   ASK_REPLY,
   type Conversation,
+  conversation,
   type ConversationMessage,
   type ConversationQueries,
-  conversation,
   DUPLICATE_CLIENT,
   type FinishedJob,
   type Presence,
@@ -233,12 +233,14 @@ function createConversation({ hold }: RoomSetup) {
           Object.assign(message, { status: 'stopped', reason: 'Interrupted' });
         }
       }
-      data.page = page?.page ?? 0;
-      data.messages.push(...(page?.messages ?? []));
-      data.away = page?.away;
-      // A task still running when the conversation was last kept was cut off: it starts over.
-      data.work = (page?.work ?? []).map((task) => (task.status === 'running' ? { ...task, status: 'queued' } : task));
-      data.ready = true;
+
+      anchor.assign(data, {
+        messages: page?.messages ?? [],
+        page: page?.page ?? 0,
+        away: page?.away,
+        work: (page?.work ?? []).map((task) => (task.status === 'running' ? { ...task, status: 'queued' } : task)),
+        ready: true,
+      } as typeof data);
       pump();
     }),
   );
