@@ -38,12 +38,14 @@ export type MotionDocument = DocumentHeader<'motion'> & {
   /** How long it is meant to run, in seconds. */
   length?: number;
   status: 'draft' | 'rendered';
+  /** Whether the user keeps it among their favourites. */
+  favourite?: boolean;
   /** The `.album` it's kept in, by path from this file; without one, it's among the unsorted. */
   album?: string;
   /** Its script, with the versions before it and how an agent wrote it. */
   script?: MotionScript;
-  /** Its stages in playing order, by path from this file. */
-  stages: string[];
+  /** Who's in it, by path from this file to each `.persona`. Its stages name it by `projectId`. */
+  casts?: string[];
   assets: MotionAsset[];
   /** The chats and memos about it, by path from this file. */
   chats?: string[];
@@ -96,7 +98,11 @@ export type MotionAsset = {
  * composition's own `props` are the stage's size and backdrop.
  */
 export type StageDocument = DocumentHeader<'stage'> & {
-  /** Its part of the script, by path from this file: `Script.md`, or one scene as `Script.md#heading`. */
+  /** The project it belongs to, by the project's `id`. */
+  projectId: string;
+  /** Its place in the project's playing order. */
+  order: number;
+  /** Its script, a Markdown file of its own, by path from this file. */
   script?: string;
   /** Who appears or speaks in it, by path from this file to each `.persona`. */
   casts?: string[];

@@ -6,10 +6,10 @@ export type WorkspaceState = { connected: number };
 
 /**
  * What the workspace asks a desktop: one of the session's files changed (`changed`), by its home
- * path (`~/…`), whoever changed it: a window, an agent, or another tab.
+ * path (`~/…`), whoever changed it: a window, an agent, or another tab; and whether it's gone.
  */
 export type WorkspaceQueries = {
-  changed: (path: string) => boolean;
+  changed: (path: string, removed: boolean) => boolean;
 };
 
 /**

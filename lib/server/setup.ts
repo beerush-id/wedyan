@@ -12,6 +12,7 @@ import { type AgentProfile, setupKernel } from '@/lib/kernel/agent.js';
 // The conversation's handler: the desktop's one live call to Wedyan.
 import { setupConversation } from '@/lib/kernel/chat.js';
 // Who is working where in each document, for every desktop showing it.
+import '@/lib/documents/file-types.js';
 import '@/lib/kernel/account.js';
 import '@/lib/kernel/document.js';
 import { embedWith, setupMemory, type VectorStore } from '@/lib/memory/memory.js';

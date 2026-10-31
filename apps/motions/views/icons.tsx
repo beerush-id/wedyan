@@ -4,6 +4,11 @@ export { EditIcon, GenerativeIcon, PreviewIcon, SidebarCloseIcon, SidebarOpenIco
 
 /** Motions' glyphs for its views: Material Symbols, weight 200. */
 
+/** `create_new_folder`: the kit's `folder`, with a plus in it. */
+export const NewFolderIcon = () => (
+  <SymbolIcon d="M184.62-200q-27.62 0-46.12-18.5Q120-237 120-264.62v-430.76q0-27.62 18.5-46.12Q157-760 184.62-760H357q12.92 0 25.12 5.23 12.19 5.23 20.88 13.92L463.85-680h311.53q27.62 0 46.12 18.5Q840-643 840-615.38v350.76q0 27.62-18.5 46.12Q803-200 775.38-200H184.62Zm0-40h590.76q10.77 0 17.7-6.92 6.92-6.93 6.92-17.7v-350.76q0-10.77-6.92-17.7-6.93-6.92-17.7-6.92H447.77l-73.08-73.08q-3.84-3.84-8.07-5.38-4.24-1.54-8.85-1.54H184.62q-10.77 0-17.7 6.92-6.92 6.93-6.92 17.7v430.76q0 10.77 6.92 17.7 6.93 6.92 17.7 6.92ZM160-240v-480 480Zm300-100h40v-80h80v-40h-80v-80h-40v80h-80v40h80v80Z" />
+);
+
 /** `skip_previous` */
 export const ToStartIcon = () => (
   <SymbolIcon d="M269.23-295.38v-369.24h40v369.24h-40Zm421.54 0L413.85-480l276.92-184.62v369.24Zm-40-184.62Zm0 110v-220L485.54-480l165.23 110Z" />

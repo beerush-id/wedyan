@@ -7,11 +7,14 @@ import { type WorkspaceQueries, type WorkspaceState, workspace } from './workspa
 /** The session topic every change to the session's files goes out on, by its home path. */
 const FILE_CHANGED = 'workspace.changed';
 
+/** A change as it goes out: which file, and whether it's gone. */
+type FileChange = { path: string; removed: boolean };
+
 kernel.construct(workspace, () =>
   stream<WorkspaceState, WorkspaceQueries>(
     (state) => {
-      const member = SESSION_STORE.join<string>(FILE_CHANGED, (path) => {
-        void state.ask('changed', path);
+      const member = SESSION_STORE.join<FileChange>(FILE_CHANGED, ({ path, removed }) => {
+        void state.ask('changed', path, removed);
       });
       state.data = { connected: Date.now() };
       return () => member.leave();
@@ -31,18 +34,21 @@ export function reportChanges(): FileDriver {
     async write(ctx) {
       report(ctx.path);
     },
+    async mkdir(ctx) {
+      report(ctx.path);
+    },
     async copy(ctx) {
       report(ctx.destination);
     },
     async move(ctx) {
-      report(ctx.path);
+      report(ctx.path, true);
       report(ctx.destination);
     },
     async link(ctx) {
       report(ctx.path);
     },
     async remove(ctx) {
-      report(ctx.path);
+      report(ctx.path, true);
     },
     async restore(ctx) {
       report(ctx.path);
@@ -51,8 +57,8 @@ export function reportChanges(): FileDriver {
 }
 
 /** Broadcasts a changed file to the session by its home path; files outside the home aren't the desktop's. */
-function report(storagePath?: string): void {
+function report(storagePath?: string, removed = false): void {
   const home = fsContext.get()?.homeDir;
   if (!home || !storagePath?.startsWith(`${home}/`)) return;
-  SESSION_STORE.broadcast(FILE_CHANGED, `~${storagePath.slice(home.length)}`);
+  SESSION_STORE.broadcast<FileChange>(FILE_CHANGED, { path: `~${storagePath.slice(home.length)}`, removed });
 }

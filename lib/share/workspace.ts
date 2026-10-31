@@ -47,18 +47,37 @@ export function fileRef<T>(path: string, encoding: FileRefEncoding = 'json'): Fi
   return (KEPT.get(keyOf(path, encoding)) ?? open(path, encoding)).state as FileRef<T>;
 }
 
+/** A change to a file anywhere in the session: an edit, or its removal. */
+export type FileChange = { path: string; removed: boolean };
+
 /**
- * Edits a referenced JSON file: what's changed in its content is saved, and changes made elsewhere
- * wait until the edits are saved, so they never undo them. Stops editing with the lifecycle it's
- * made in.
+ * Hears every change in a folder, whoever makes it, so what a window lists can follow what agents
+ * and other tabs do. Stops with the lifecycle it's made in.
+ *
+ * @param folder - The folder's home path (`~/…`).
+ * @param listener - Told of each change in it.
+ */
+export function watchFolder(folder: string, listener: (change: FileChange) => void): void {
+  listen();
+  const watcher = (change: FileChange) => {
+    if (change.path.startsWith(`${folder}/`)) listener(change);
+  };
+  WATCHERS.add(watcher);
+  onCleanup(() => WATCHERS.delete(watcher));
+}
+
+/**
+ * Edits a referenced file: what's changed in its content is saved, and changes made elsewhere wait
+ * until the edits are saved, so they never undo them. Stops editing with the lifecycle it's made in.
  *
  * @param path - The file's home path (`~/…`).
  * @param blank - What to edit while the file doesn't exist: the file is made by the first change,
  *   not by opening it, so a file whose absence means something keeps meaning it.
+ * @param encoding - How its content is held: parsed `json`, or `text`.
  * @returns The file's live reference, the same object `fileRef` gives every other caller.
  */
-export function edit<T>(path: string, blank?: T): FileRef<T> {
-  const kept = KEPT.get(keyOf(path, 'json')) ?? open(path, 'json');
+export function edit<T>(path: string, blank?: T, encoding: FileRefEncoding = 'json'): FileRef<T> {
+  const kept = KEPT.get(keyOf(path, encoding)) ?? open(path, encoding);
   kept.blank ??= blank;
   // Already read and not there, before anyone gave it a blank.
   if (kept.absent && kept.blank !== undefined) {
@@ -113,6 +132,9 @@ type Kept = {
 /** The files this desktop keeps, by encoding and path; the browser's only. */
 const KEPT = new Map<string, Kept>();
 
+/** What's watching the session's changes. */
+const WATCHERS = new Set<(change: FileChange) => void>();
+
 /** This desktop's workspace stream: one for every file it keeps. */
 let channel: ReturnType<typeof workspace> | undefined;
 
@@ -142,8 +164,9 @@ function listen(): void {
   const stream = workspace();
   channel = stream;
 
-  stream.answer('changed', (path) => {
+  stream.answer('changed', (path, removed) => {
     for (const kept of KEPT.values()) if (kept.path === path) void refresh(kept, true);
+    for (const watcher of WATCHERS) watcher({ path, removed: Boolean(removed) });
     return true;
   });
 

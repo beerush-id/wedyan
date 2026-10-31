@@ -5,7 +5,7 @@ import type { ActionMeta } from '@/lib/kernel/agent.h.js';
 import { DOC_ATTEMPTS, DOC_CLOSE, DOC_OPEN, DOC_UPDATE, documentPresence, partKey } from '@/lib/kernel/document.h.js';
 import type { StillAttempt, StillRequest } from '@/lib/kernel/stills.h.js';
 import { addAttempts, applyRequest } from './stills.js';
-import { edit, edited, type FileRef } from './workspace.js';
+import { edit, edited, type FileRef, type FileRefEncoding } from './workspace.js';
 
 /** An agent asking for a part of a document: what kind of part, which one, and who asks. */
 export type PartRequest = { part: string; id: string; actor: string };
@@ -28,6 +28,8 @@ export type BindingRules = {
 export type BindingOptions<T> = Partial<BindingRules> & {
   /** What to work on while the file doesn't exist; its first change makes the file. */
   blank?: T;
+  /** How its content is held: parsed `json`, the default, or `text`, like a script. */
+  encoding?: FileRefEncoding;
 };
 
 /** A document as a window works with it: its live content, and who is working on which part. */
@@ -67,9 +69,9 @@ const BOUND = new Map<string, Bound>();
  * @returns The live document.
  */
 export function createBinding<T>(path: string, options: BindingOptions<T> = {}): DocumentBinding<T> {
-  const { open, update, blank } = options;
+  const { open, update, blank, encoding } = options;
   const rules = open && update ? { open, update } : undefined;
-  const content = edit<T>(path, blank);
+  const content = edit<T>(path, blank, encoding);
   const presence = rules ? documentPresence(path) : undefined;
   const bound: Bound = { content, presence, rules, granted: new Map() };
   BOUND.set(path, bound);

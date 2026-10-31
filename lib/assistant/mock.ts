@@ -5,8 +5,8 @@ import type { MouseEvent, ReactNode } from 'react';
 import { listing as calendarListing } from '@/apps/calendar/views/library.js';
 import { listing as mailListing, nameOfPerson } from '@/apps/mail/views/library.js';
 import { edit, memoAt, memos, memosOf, newMemo, shortDate } from '@/apps/memo/views/library.js';
-import { newMotion, ROOT as MOTIONS_ROOT } from '@/apps/motions/views/library.js';
-import { animation } from '@/apps/motions/views/options.js';
+import { animation } from '@/apps/motions/views/library/DockOptions.js';
+import { newMotion, ROOT as MOTIONS_ROOT } from '@/apps/motions/views/motion.js';
 import { GENERATIVE, ROOT as PHOTOS_ROOT } from '@/apps/photos/views/library.js';
 import { generation } from '@/apps/photos/views/options.js';
 import { MODELS, settingsOf } from '@/lib/documents/generation.js';
@@ -260,7 +260,7 @@ export const generateImages: CommandHandle = async ({ event, signal }) => {
 export const generateMotion: CommandHandle = async ({ event, signal }) => {
   const ask = promptText(event) || NEW_MOTION;
   await pause(MOTION_STEP * MOTION_PHASES.length, signal);
-  const { cover, path } = keepMotion(ask);
+  const { cover, path } = await keepMotion(ask);
   return motionMade(ask, path, cover);
 };
 
@@ -525,9 +525,9 @@ const NEW_MOTION = 'A new motion';
  * @param ask - What it's of.
  * @returns Its cover, and where it's kept.
  */
-function keepMotion(ask: string): { cover: string; path: string } {
+async function keepMotion(ask: string): Promise<{ cover: string; path: string }> {
   const cover = pictureFor(crypto.randomUUID(), animation.aspect);
-  return { cover, path: newMotion(nameFrom(ask), animation.aspect, cover).path };
+  return { cover, path: (await newMotion(nameFrom(ask), animation.aspect, cover)).path };
 }
 
 /**
@@ -551,10 +551,10 @@ async function makeMotion(turn: Turn, prompt: string): Promise<void> {
     form.progress = (at + 1) / MOTION_PHASES.length;
   }
 
-  const { cover, path } = keepMotion(ask);
+  const { cover, path } = await keepMotion(ask);
   form.tiles.push({ value: 'cover', src: cover, alt: ask });
   form.phase = 'Done';
-  await say(turn, `It's in **${MOTIONS_ROOT.slice(1)}** as a draft. [Open it](${linkTo('motions', path)}).`);
+  await say(turn, `It's in **${MOTIONS_ROOT.slice(2)}** as a draft. [Open it](${linkTo('motions', path)}).`);
 }
 
 /**

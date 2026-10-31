@@ -874,6 +874,13 @@
   }
 }
 
+/* With nothing to list, the empty state sits in the middle of the window's content. */
+.wedyan-motions-empty {
+  box-sizing: border-box;
+  min-block-size: 100cqb;
+  justify-content: center;
+}
+
 .wedyan-motions-notice {
   color: var(--color-on-surface-variant);
   font-size: var(--font-label-md-size);

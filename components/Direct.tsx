@@ -50,21 +50,13 @@ export const DirectList = setup<DirectListProps>(
           {() =>
             props.groups().map((group, index) =>
               group.items.length || group.action ? (
-                <div key={group.label ?? index} role="group" aria-label={group.label} className="wedyan-direct-group">
-                  {group.label && (
-                    <div className="wedyan-direct-group-head">
-                      <span className="wedyan-direct-group-label" aria-hidden="true">
-                        {group.label}
-                      </span>
-                      {group.action?.()}
-                    </div>
-                  )}
+                <DirectSection key={group.label ?? index} label={group.label} action={group.action}>
                   {group.items.map((item) => (
                     <ListboxOption key={item.key} value={item.key} className="wedyan-direct-row">
-                      <DirectRow item={item} />
+                      <DirectRow title={item.title} description={item.description} picture={item.picture} icon={item.icon} />
                     </ListboxOption>
                   ))}
-                </div>
+                </DirectSection>
               ) : null
             )
           }
@@ -75,23 +67,62 @@ export const DirectList = setup<DirectListProps>(
   'DirectList'
 );
 
+/** The side of a Direct view whose rows each say whether they're picked, so it holds no value of its own. */
+export const DirectPanel = template<{ label: string; listLabel: string; children: ReactNode }>(
+  (props) => (
+    <WindowPanel role="navigation" aria-label={props.label} className="wedyan-direct-list">
+      <Listbox label={props.listLabel} required>
+        {props.children}
+      </Listbox>
+    </WindowPanel>
+  ),
+  'DirectPanel'
+);
+
+/** Rows of one kind, under their name, with what sits at the end of it. */
+export const DirectSection = template<{ label?: string; action?: () => ReactNode; children: ReactNode }>(
+  (props) => (
+    <div role="group" aria-label={props.label} className="wedyan-direct-group">
+      {props.label && (
+        <div className="wedyan-direct-group-head">
+          <span className="wedyan-direct-group-label" aria-hidden="true">
+            {props.label}
+          </span>
+          {props.action?.()}
+        </div>
+      )}
+      {props.children}
+    </div>
+  ),
+  'DirectSection'
+);
+
 /** A row's face: its picture, or its kind's icon on a tinted square, its title, and a line about it. */
-const DirectRow = template<{ item: DirectItem }>((props) => {
-  const { item } = props;
-  const Icon = item.icon;
+export const DirectRow = template<Omit<DirectItem, 'key'>>((props) => {
+  const Icon = props.icon;
   return (
     <>
-      {item.picture ? (
-        <img className="wedyan-direct-thumb" src={item.picture} alt="" />
+      {props.picture ? (
+        <img className="wedyan-direct-thumb" src={props.picture} alt="" />
       ) : (
         <span className="wedyan-direct-thumb" aria-hidden="true">
           {Icon && <Icon />}
         </span>
       )}
-      <span className="wedyan-direct-text" title={item.description ? `${item.title}\n${item.description}` : item.title}>
-        <span className="wedyan-direct-title">{item.title}</span>
-        {item.description && <span className="wedyan-direct-description">{item.description}</span>}
+      <span className="wedyan-direct-text" title={props.description ? `${props.title}\n${props.description}` : props.title}>
+        <span className="wedyan-direct-title">{props.title}</span>
+        {props.description && <span className="wedyan-direct-description">{props.description}</span>}
       </span>
     </>
   );
 }, 'DirectRow');
+
+/** What a Direct view shows in full, on its solid panel. */
+export const DirectContent = template<{ children: ReactNode }>(
+  (props) => (
+    <WindowPanel surface="solid" role="region" aria-label="Picked" className="wedyan-direct-content">
+      {props.children}
+    </WindowPanel>
+  ),
+  'DirectContent'
+);
