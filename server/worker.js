@@ -49,12 +49,12 @@ export class AirDurableLink {
 
 export default {
   async fetch(req, env) {
-    // Every call runs in its session's own Durable Object, so all of a session's live calls share
-    // one process and reach each other.
+    // Every call runs in its user's own Durable Object, so all of a user's live calls share one
+    // process and reach each other.
     if (env.DURABLE_LINK && worker.isCall(new URL(req.url))) {
-      const session = await worker.sessionOf(req);
-      if (!session) return new Response('No session: load the page first', { status: 401 });
-      return env.DURABLE_LINK.get(env.DURABLE_LINK.idFromName(session)).fetch(req);
+      const user = await worker.userOf(req);
+      if (!user) return new Response('No session: load the page first', { status: 401 });
+      return env.DURABLE_LINK.get(env.DURABLE_LINK.idFromName(user)).fetch(req);
     }
 
     // Use the explicit signal since Cloudflare uses request level signal

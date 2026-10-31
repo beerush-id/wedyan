@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { withContext } from '@airlib/react';
 import { waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import { shortIdOf } from '../../lib/server/session.js';
 import { VISITOR_LIMIT } from '../../lib/server/usage.js';
 import { isUsageLimit } from '../../lib/share/usage.js';
 import { wedyan } from '../../lib/share/wedyan.js';
@@ -55,12 +56,11 @@ describe('a desktop opening the conversation', () => {
     async () => {
       await withContext(async () => {
         const [session] = document.cookie.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/) ?? [];
+        const user = await shortIdOf(session as string);
         const day = new Date().toISOString().slice(0, 10);
         const past = ['chat', 'speech']
           .map(
-            (
-              kind,
-            ) => `INSERT INTO wedyan_usage (scope, kind, day, used) VALUES ('${session}', '${kind}', '${day}', 100000)
+            (kind) => `INSERT INTO wedyan_usage (scope, kind, day, used) VALUES ('${user}', '${kind}', '${day}', 100000)
         ON CONFLICT (scope, kind, day) DO UPDATE SET used = 100000`,
           )
           .join(';');

@@ -15,7 +15,7 @@ import { contentIndex } from '@/lib/memory/files.js';
 import { guardAgentFiles } from '@/lib/server/guard.js';
 import { isHomePath, picturePath, pictures } from '@/lib/server/images.js';
 import { seedHome } from '@/lib/server/seed.js';
-import { currentSession, homeOf, sessionOf } from '@/lib/server/session.js';
+import { currentSession, homeOf, shortIdOf, userOf } from '@/lib/server/session.js';
 import { MODELS, picturesOf, type ServerEnv, setupServer } from '@/lib/server/setup.js';
 import { ai } from '@/lib/share/ai.js';
 import { AI_ENDPOINT, FILES_ENDPOINT, httpTransport, WRPC, wsTransport } from './api.js';
@@ -53,7 +53,7 @@ IRPC_STORE.subscribe((event) => {
   log.error(error.message, error, ...(event.data ?? []));
 });
 
-/** The context key every call's session ID is kept under, for its session's live calls to find each other. */
+/** The context key every call's user is kept under, by short id, for their live calls to find each other. */
 const SESSION_KEY = 'sessionId';
 SESSION_STORE.key(SESSION_KEY);
 
@@ -63,9 +63,10 @@ SESSION_STORE.key(SESSION_KEY);
 const scopeToSession = async () => {
   const session = currentSession();
   if (!session) throw new Error('No session: load the page first');
-  setContext(SESSION_KEY, session);
-  fsContext.set(homeOf(session));
-  await seedHome(session);
+  const user = await shortIdOf(session);
+  setContext(SESSION_KEY, user);
+  fsContext.set(homeOf(user));
+  await seedHome(user);
 };
 wsRouter.use(scopeToSession);
 
@@ -100,7 +101,7 @@ const app = createApp(router, App, {
 export default {
   ...app,
   isCall,
-  sessionOf,
+  userOf,
   async fetch(request: Request, env?: ServerEnv, signal?: AbortSignal) {
     const url = new URL(request.url);
     if (url.pathname === AI_ENDPOINT) return models.fetch(request, await bindingsOf(env));
@@ -139,8 +140,8 @@ function isCall(url: URL): boolean {
  * @returns The file; 403 without a session, 400 for a path outside the home.
  */
 async function serveFile(request: Request, url: URL, env?: ServerEnv): Promise<Response> {
-  const session = await sessionOf(request);
-  if (!session) return new Response('Forbidden', { status: 403 });
+  const user = await userOf(request);
+  if (!user) return new Response('Forbidden', { status: 403 });
 
   let path: string;
   try {
@@ -151,7 +152,7 @@ async function serveFile(request: Request, url: URL, env?: ServerEnv): Promise<R
   if (!isHomePath(path)) return new Response('Bad Request', { status: 400 });
 
   const target = new URL(url);
-  target.pathname = picturePath(homeOf(session).homeDir, path);
+  target.pathname = picturePath(homeOf(user).homeDir, path);
   const scoped = new Request(target, request);
   const bindings = await bindingsOf(env);
 

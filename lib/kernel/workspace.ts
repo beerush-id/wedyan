@@ -1,6 +1,6 @@
 import { SESSION_STORE, stream } from '@irpclib/irpc';
 import type { FileDriver } from '@irpclib/r2-file/adapter';
-import { currentSession, homeOf } from '@/lib/server/session.js';
+import { fsContext } from '@irpclib/r2-file/context';
 import { kernel } from './package.js';
 import { type WorkspaceQueries, type WorkspaceState, workspace } from './workspace.h.js';
 
@@ -52,9 +52,7 @@ export function reportChanges(): FileDriver {
 
 /** Broadcasts a changed file to the session by its home path; files outside the home aren't the desktop's. */
 function report(storagePath?: string): void {
-  const session = currentSession();
-  if (!session || !storagePath) return;
-  const home = homeOf(session).homeDir;
-  if (!storagePath.startsWith(`${home}/`)) return;
+  const home = fsContext.get()?.homeDir;
+  if (!home || !storagePath?.startsWith(`${home}/`)) return;
   SESSION_STORE.broadcast(FILE_CHANGED, `~${storagePath.slice(home.length)}`);
 }

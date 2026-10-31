@@ -1,5 +1,6 @@
 import { list, write } from '@irpclib/r2-file';
 import { describe, expect, it } from 'vitest';
+import { shortIdOf } from '../../lib/server/session.js';
 import { imageUrl } from '../../lib/share/image.js';
 
 // A picture as the desktop shows one: an `<img src>` by its home path, resized by R2 Image on the
@@ -144,7 +145,7 @@ describe('any file by its home path', () => {
     expect(elsewhere.status).toBe(404);
 
     // Its storage path isn't an address: delivery opens only behind the session.
-    const direct = await fetch(`/users/${own}${path.slice(1)}`);
+    const direct = await fetch(`/users/${await shortIdOf(own as string)}${path.slice(1)}`);
     expect(direct.headers.get('content-type')).not.toBe('video/mp4');
   });
 });

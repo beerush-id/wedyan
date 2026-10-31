@@ -1,7 +1,7 @@
 import { createContextStore, withContext } from '@irpclib/irpc';
 import { COOKIE_JAR_WRITABLE, decodeCookies, setCookieContext, setScope } from '@irpclib/irpc/core';
 import { describe, expect, it, vi } from 'vitest';
-import { currentSession, homeOf, sessionOf } from '../../lib/server/session.js';
+import { currentSession, homeOf, shortIdOf, userOf } from '../../lib/server/session.js';
 import { userSession } from '../../lib/share/cookie.js';
 import { AirDurableLink, default as entry } from '../../server/worker.js';
 
@@ -9,7 +9,7 @@ import { AirDurableLink, default as entry } from '../../server/worker.js';
 const app = vi.hoisted(() => ({
   fetch: vi.fn(async (_request: Request, _env: unknown, _signal?: AbortSignal) => new Response('served')),
   isCall: (url: URL) => url.pathname.startsWith('/wrpc-'),
-  sessionOf: (_request: Request): Promise<string | undefined> => Promise.resolve(undefined),
+  userOf: (_request: Request): Promise<string | undefined> => Promise.resolve(undefined),
 }));
 vi.mock('../../dist/server/worker.js', () => ({ default: app }));
 vi.mock('@cloudflare/containers', () => ({ Container: class {} }));
@@ -49,16 +49,25 @@ describe('session', () => {
     expect(sessionWith(cookieFor('../../admin'))).toBeUndefined();
   });
 
-  it('confines a session to its own home, and nothing outside it', () => {
-    expect(homeOf(ID)).toEqual({ ownerId: ID, homeDir: `/users/${ID}`, accessRules: [] });
+  it('confines a user to their own home, and nothing outside it', () => {
+    expect(homeOf('a6f3')).toEqual({ ownerId: 'a6f3', homeDir: '/users/a6f3', accessRules: [] });
   });
 
-  it('reads a request’s session before any call’s scope exists', async () => {
+  it('names a user apart from their session: the same each time, safe in an address, and one way', async () => {
+    const user = await shortIdOf(ID);
+
+    expect(await shortIdOf(ID)).toBe(user);
+    expect(user).toMatch(/^[0-9a-f]{16}$/);
+    expect(ID.replaceAll('-', '')).not.toContain(user);
+    expect(await shortIdOf('7a2e4d3b-9c5f-4a8b-8d2e-3f4a5b6c7d8e')).not.toBe(user);
+  });
+
+  it('reads a request’s user before any call’s scope exists', async () => {
     const request = (cookie: string) => new Request('https://wedyan.test/', { headers: { cookie } });
 
-    expect(await sessionOf(request(cookieFor(ID)))).toBe(ID);
-    expect(await sessionOf(request(''))).toBeUndefined();
-    expect(await sessionOf(request(cookieFor('../../admin')))).toBeUndefined();
+    expect(await userOf(request(cookieFor(ID)))).toBe(await shortIdOf(ID));
+    expect(await userOf(request(''))).toBeUndefined();
+    expect(await userOf(request(cookieFor('../../admin')))).toBeUndefined();
   });
 });
 
@@ -85,30 +94,30 @@ describe('the Cloudflare entry', () => {
   /** A request carrying `cookie` to a path. */
   const to = (path: string, cookie = '') => new Request(`https://wedyan.test${path}`, { headers: { cookie } });
 
-  it('sends every call to the Durable Object named by its session', async () => {
-    app.sessionOf = sessionOf;
+  it('sends every call to the Durable Object named by its user, never by the session', async () => {
+    app.userOf = userOf;
     const { named, forwarded, env } = links();
 
     const response = await entry.fetch(to('/wrpc-files', cookieFor(ID)), env);
 
     expect(await response.text()).toBe('from the object');
-    expect(named).toEqual([ID]);
+    expect(named).toEqual([await shortIdOf(ID)]);
     expect(forwarded).toHaveLength(1);
   });
 
   it('gives two sessions two objects', async () => {
-    app.sessionOf = sessionOf;
+    app.userOf = userOf;
     const OTHER = '7a2e4d3b-9c5f-4a8b-8d2e-3f4a5b6c7d8e';
     const { named, env } = links();
 
     await entry.fetch(to('/wrpc-files', cookieFor(ID)), env);
     await entry.fetch(to('/wrpc-files', cookieFor(OTHER)), env);
 
-    expect(named).toEqual([ID, OTHER]);
+    expect(named).toEqual([await shortIdOf(ID), await shortIdOf(OTHER)]);
   });
 
   it('refuses a call without a session, reaching no object', async () => {
-    app.sessionOf = sessionOf;
+    app.userOf = userOf;
     const { named, env } = links();
 
     const response = await entry.fetch(to('/wrpc-files'), env);
@@ -118,7 +127,7 @@ describe('the Cloudflare entry', () => {
   });
 
   it('serves what isn’t a call on the worker', async () => {
-    app.sessionOf = sessionOf;
+    app.userOf = userOf;
     const { named, env } = links();
 
     const response = await entry.fetch(to('/images/~/cat.png?s=64', cookieFor(ID)), env);
