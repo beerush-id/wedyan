@@ -720,6 +720,40 @@ describe('agent loop', () => {
     expect(state).toMatchObject({ status: 'error', reason: 'meta chat request failed: 503' });
   });
 
+  it('says what a slow call is starting when the answer has said nothing, before it runs', async () => {
+    const drawing = { name: 'sys.image.generate', starting: 'Drawing that now.' };
+    const agents = { ...AGENTS, router: { ...AGENTS.router, tools: [drawing], handoffs: [] } };
+    mockVendor(calls({ id: 'c1', name: 'sys__image__generate', args: {} }), says('[[say]]Here it is.[[/say]]'));
+    const heard: string[] = [];
+    const { state, run } = setup({
+      agents,
+      resolve: async () => {
+        heard.push(...partsOf(state));
+        return { path: '~/made.webp' };
+      },
+    });
+
+    await run();
+
+    expect(heard).toEqual(['Drawing that now.']);
+    expect(partsOf(state)).toEqual(['Drawing that now.', 'Here it is.']);
+  });
+
+  it('adds nothing when the answer already spoke before a slow call', async () => {
+    const drawing = { name: 'sys.image.generate', starting: 'Drawing that now.' };
+    const agents = { ...AGENTS, router: { ...AGENTS.router, tools: [drawing], handoffs: [] } };
+    const turn = sse(
+      [{ content: '[[say]]On it.[[/say]]' }, { tool_calls: [toolCall('c1', 'sys__image__generate', {})] }],
+      'tool_calls',
+    );
+    mockVendor(turn, says('Done.'));
+    const { state, run } = setup({ agents, resolve: async () => ({ path: '~/made.webp' }) });
+
+    await run();
+
+    expect(partsOf(state)).toEqual(['On it.', 'Done.']);
+  });
+
   it('answers a call past the day’s limit as any answer, with nothing to handle', async () => {
     const said = 'You’ve reached today’s limit for this.';
     const refusing = {

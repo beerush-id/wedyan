@@ -211,13 +211,16 @@ export async function askRouter(system: string, request: IRPCData): Promise<stri
   return answerOnce(config.adapter, { ...router, system, tools: [] }, request);
 }
 
+/** A call an agent can make, and what the user hears while it runs, when it takes a while. */
+export type AgentTool = ChatTool & { starting?: string };
+
 /** One agent: a model, its system prompt (format and skill), its calls, and who it may hand off to. */
 export interface AgentProfile {
   name: string;
   model: string;
   system: string;
   /** Calls this agent may make, besides `handoff`. */
-  tools: ChatTool[];
+  tools: AgentTool[];
   /** Agents this one may hand the ask to; the loop offers `handoff` only when there are any. */
   handoffs?: string[];
   /** How hard its model reasons, in the provider's terms (`minimal`, `low`, …); the provider's default if unset. */
@@ -234,7 +237,7 @@ export interface AgentSkill {
   /** One line on what the skill is for, offered to whoever hands off. */
   description: string;
   system: string;
-  tools: ChatTool[];
+  tools: AgentTool[];
 }
 
 /** Everything needed to resume an ask after the turn it was taken on. */
@@ -291,6 +294,17 @@ export interface AgentLoopOptions {
   resume?: LoopSnapshot;
   /** Called after every completed turn. */
   onSnapshot?: (snapshot: LoopSnapshot) => void;
+}
+
+/**
+ * Says what a slow call is starting, when the answer hasn't said anything yet, so the user isn't left
+ * in silence while it runs. It's the kernel's to say: a model told to speak first tends to speak
+ * instead of making the call.
+ */
+function sayStarting(parts: AskPart[], calls: ToolCall[], tools: AgentTool[]): void {
+  if (parts.some((part) => part.type === 'text' && part.spoken)) return;
+  const starting = calls.map((call) => tools.find(({ name }) => name === call.name)?.starting).find(Boolean);
+  if (starting) parts.push({ type: 'text', chunks: [starting], text: starting, spoken: true });
 }
 
 /** The call an agent makes to pass the ask to another agent. */
@@ -428,6 +442,7 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
 
       const [handoff, ...extraHandoffs] = reply.toolCalls.filter((call) => call.name === HANDOFF);
       const calls = reply.toolCalls.filter((call) => call.name !== HANDOFF);
+      sayStarting(state.parts, calls, tools);
       // Already data the model reads; awaiting them again only widens their type to downloaded blobs.
       const results = (await Promise.all(calls.map((call) => resolveCall(options.resolve, call, agent.name)))).map(
         (result) => dataOf(result),

@@ -18,8 +18,9 @@ export function june(model: string): AgentProfile {
 const VOCABULARY = `- Text and layout: p, span, strong, em, small, code, pre, blockquote, ul, ol, li, h3, h4, h5, h6, hr, a (props href), dl, dt, dd, table, thead, tbody, tr, th, td, section
 - A widget's own parts, at its top level: card-media, card-header, card-title, card-description, card-body, card-actions
 - Cards inside a widget, for a set of things that are each their own card: card (props title, description; its content as children)
-- Data: list, list-item, description-list, stat (props label, value, change, trend: up | down | flat, caption), badge, chip, progress, meter, alert, empty-state, gallery, gallery-item
-- Media: image (props src, alt)
+- Data: list, list-item, description-list, stat (props label, value, change, trend: up | down | flat, caption), badge, chip, progress, meter, alert, empty-state
+- Pictures to look at, one or many: gallery (props label, items: a list of {value, src, alt, title}; value is the picture's path, src its path in the home, ~/… as given)
+- A small round picture of a person, only: avatar (props src, alt). Never use it for a picture to look at.
 - Structure: tab, tab-list, tab-button, tab-panel, accordion, accordion-button, accordion-panel, divider
 - Form fields: field, field-label, field-description, text-input, switch, radio-group, radio (props value)
 - Desktop forms, whole forms the desktop draws itself: onboarding (a new user's first form: it asks how to call them and what to call the assistant, and saves their profile)`;
