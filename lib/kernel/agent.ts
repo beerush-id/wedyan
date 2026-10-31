@@ -301,9 +301,9 @@ export interface AgentLoopOptions {
  * in silence while it runs. It's the kernel's to say: a model told to speak first tends to speak
  * instead of making the call.
  */
-function sayStarting(parts: AskPart[], calls: ToolCall[], tools: AgentTool[]): void {
+function sayStarting(parts: AskPart[], calls: string[], tools: AgentTool[]): void {
   if (parts.some((part) => part.type === 'text' && part.spoken)) return;
-  const starting = calls.map((call) => tools.find(({ name }) => name === call.name)?.starting).find(Boolean);
+  const starting = calls.map((call) => tools.find(({ name }) => name === call)?.starting).find(Boolean);
   if (starting) parts.push({ type: 'text', chunks: [starting], text: starting, spoken: true });
 }
 
@@ -443,7 +443,7 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
 
       const [handoff, ...extraHandoffs] = reply.toolCalls.filter((call) => call.name === HANDOFF);
       const calls = reply.toolCalls.filter((call) => call.name !== HANDOFF);
-      sayStarting(state.parts, calls, tools);
+      sayStarting(state.parts, calls.map(({ name }) => name), tools);
       // Already data the model reads; awaiting them again only widens their type to downloaded blobs.
       const results = (await Promise.all(calls.map((call) => resolveCall(options.resolve, call, agent.name)))).map(
         (result) => dataOf(result),
@@ -544,7 +544,11 @@ async function modelTurn(
   const writer = createPartWriter(parts, hooks);
   const parser = createMarkerParser(writer);
   let seen = 0;
+  let announced = 0;
   const unsubscribe = subscribe(live, () => {
+    // A call is named long before its arguments are written, so the wait is told as it starts.
+    const calling = live.data?.calling ?? [];
+    for (; announced < calling.length; announced += 1) sayStarting(parts, [calling[announced]], agent.tools);
     const chunks = live.data?.chunks ?? [];
     if (seen >= chunks.length) return;
     while (seen < chunks.length) {

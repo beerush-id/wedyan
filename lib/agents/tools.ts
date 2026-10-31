@@ -31,7 +31,9 @@ function packageTools(transport: IRPCTransport): Record<string, ChatTool> {
   );
 }
 
-const files = packageTools(fileTransport);
+const files: Record<string, AgentTool> = packageTools(fileTransport);
+// A long file is the slowest thing an agent writes, and nothing shows until it lands.
+files['r2-file.write'] = { ...files['r2-file.write'], starting: 'Writing that now.' };
 const memories = packageTools(memory.transport as IRPCTransport);
 
 /** The r2-file tools that only look: what agents use to find and read the user's files. */
