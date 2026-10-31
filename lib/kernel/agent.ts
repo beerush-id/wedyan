@@ -419,10 +419,11 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
             const action = { ...written, agent: agent.name };
             if (action.name !== 'ask_user') return actions.add(action, current);
             // Composed now, while the turn streams; the user is asked once their turn in the queue comes.
+            const intent = String(action.args);
             actions.add(
-              action,
+              { ...action, intent },
               current,
-              compose({ form: String(action.args) }).then(({ nodes }) => nodes),
+              compose({ form: intent }).then(({ nodes }) => nodes),
             );
           },
           onInvalid: (problem) => problems.push(problem),

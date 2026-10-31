@@ -107,6 +107,21 @@ describe('the dock’s list', () => {
     expect(widgets[0].children?.[0]).toMatchObject({ status: 'settled', form: { title: 'Trailer review' } });
   });
 
+  it('hands the dock a form an agent asked as a form it can send', () => {
+    const { widgets, sync } = list();
+    const asked = composed({ form: {}, formAction: 'ask.reply', once: true });
+
+    sync([answer('a1', [asked])]);
+
+    expect(widgets[0].important).toBe(true);
+    expect(widgets[0].children?.[0]).toMatchObject({
+      formAction: 'ask.reply',
+      once: true,
+      status: 'pending',
+      form: {},
+    });
+  });
+
   it('shows why an answer failed as words', () => {
     const { widgets, sync } = list();
 

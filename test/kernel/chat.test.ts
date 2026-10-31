@@ -6,7 +6,7 @@ import { fsContext } from '@irpclib/r2-file/context';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WidgetPart } from '../../lib/kernel/agent.h.js';
 import { setupKernel } from '../../lib/kernel/agent.js';
-import { type AgentMessage, type Conversation, conversation } from '../../lib/kernel/chat.h.js';
+import { type AgentMessage, ASK_REPLY, type Conversation, conversation } from '../../lib/kernel/chat.h.js';
 import {
   CONVERSATION_DEFAULTS,
   CONVERSATION_PATH,
@@ -309,6 +309,45 @@ describe('the conversation', () => {
     expect((await kept(owner))?.messages[0]).toMatchObject({ text: 'From the wrong home' });
   });
 
+  it('puts a form in the answer, ready to fill in with what sends it, and replies with what comes back', async () => {
+    const vendor = chatVendor(
+      [],
+      says('[[say]]Which time?[[/say]][[ask_user]]A text input named "time".[[/ask_user]]'),
+      says('{"role":"text-input"}'),
+      says('Booked for ten.'),
+    );
+    const who = newUser();
+
+    await asDesktop(who, async () => {
+      const desktop = conversation('tab-a');
+      const other = conversation('tab-b');
+      await until(() => desktop.data.ready && other.data.ready);
+      await desktop.ask('send', { text: 'Book it' });
+
+      const form = () => (last(other.data) as AgentMessage).parts.find((part) => part.type === 'widget') as WidgetPart;
+      await until(() => desktop.data.messages.length === 2 && !!form());
+      expect(form()).toMatchObject({
+        status: 'ready',
+        intent: 'A text input named "time".',
+        formAction: ASK_REPLY,
+        once: true,
+        form: {},
+      });
+      expect(form().nodes).toMatchObject([
+        { role: 'card-body', children: [{ role: 'text-input' }] },
+        { role: 'card-actions', children: [{ role: 'button', props: { type: 'submit' } }] },
+      ]);
+
+      // Any desktop of the session can answer it.
+      expect(await other.ask('ack', form().id, { time: '10:00' })).toBe(true);
+      await until(() => answered(desktop.data));
+
+      expect(JSON.stringify(messagesOf(vendor.bodies, vendor.bodies.length - 1))).toContain('10:00');
+      desktop.close();
+      other.close();
+    });
+  });
+
   it('keeps what the user picked into their words', async () => {
     chatVendor([], says('Done.'));
     const who = newUser();
@@ -366,21 +405,20 @@ describe('the conversation', () => {
 
     await asDesktop(who, async () => {
       const desktop = conversation('tab-a');
-      let asked = 0;
-      desktop.answer('ask_user', async () => {
-        asked += 1;
-        if (asked === 1) {
-          await desktop.ask('send', { text: 'Make it b, and hurry' });
-          return { pick: 'b' };
-        }
-        await desktop.ask('stop');
-        return { sure: true };
-      });
       await until(() => desktop.data.ready);
       await desktop.ask('send', { text: 'Pick one for me' });
       // The follow-up is appended after the answer it joined, so the answer is the second message.
       const answer = () => desktop.data.messages[1] as AgentMessage | undefined;
+      const forms = () => answer()?.parts.filter((part) => part.type === 'widget') ?? [];
+
+      await until(() => forms().length === 1);
+      await desktop.ask('send', { text: 'Make it b, and hurry' });
+      await until(() => forms().length === 2);
+      await desktop.ask('stop');
       await until(() => answer()?.status === 'stopped' && desktop.data.messages.length === 3);
+
+      // Said rather than filled in, the words still answered the form.
+      expect(forms()[0]).toMatchObject({ settled: expect.any(String), form: { said: 'Make it b, and hurry' } });
 
       expect(desktop.data.messages.map((message) => message.role)).toEqual(['user', 'agent', 'user']);
       expect(desktop.data.messages[2]).toMatchObject({ text: 'Make it b, and hurry', answer: answer()?.id });
@@ -403,26 +441,29 @@ describe('the conversation', () => {
 
     await asDesktop(who, async () => {
       const desktop = conversation('tab-a');
-      let confirm!: (reply: { sure: boolean }) => void;
-      desktop.answer('ask_user', () => new Promise((resolve) => (confirm = resolve)));
       await until(() => desktop.data.ready);
-
-      await desktop.ask('send', { text: 'Remove the cat from my sofa photo' });
-      await until(() => typeof confirm === 'function');
-      await desktop.ask('send', { text: 'Find me last week’s meeting transcript' });
       const answers = () =>
         desktop.data.messages.filter((message): message is AgentMessage => message.role === 'agent');
+      const form = () => answers()[0]?.parts.find((part): part is WidgetPart => part.type === 'widget');
+
+      await desktop.ask('send', { text: 'Remove the cat from my sofa photo' });
+      await until(() => !!form());
+      await desktop.ask('send', { text: 'Find me last week’s meeting transcript' });
       await until(() => answers()[1]?.status === 'done');
 
       // The cat is still waiting on the user while the transcript is answered.
       expect(answers()[0].status).toBe('running');
-      confirm({ sure: true });
+      expect(await desktop.ask('ack', form()?.id as string, { sure: true })).toBe(true);
       await until(() => answers()[0].status === 'done');
 
       const [cat, transcript] = desktop.data.messages.filter((message) => message.role === 'user');
       expect(answers()[0]).toMatchObject({
         to: cat.id,
-        parts: [{ text: 'Remove the cat?' }, { type: 'text', text: 'Removing the cat.' }],
+        parts: [
+          { text: 'Remove the cat?' },
+          { type: 'widget', formAction: ASK_REPLY, form: { sure: true }, settled: expect.any(String) },
+          { type: 'text', text: 'Removing the cat.' },
+        ],
       });
       expect(answers()[1]).toMatchObject({
         to: transcript.id,
@@ -446,20 +487,18 @@ describe('the conversation', () => {
 
     await asDesktop(who, async () => {
       const desktop = conversation('tab-a');
-      const waiting: Array<(reply: unknown) => void> = [];
-      desktop.answer('ask_user', () => new Promise((resolve) => waiting.push(resolve)));
       await until(() => desktop.data.ready);
       const answers = () =>
         desktop.data.messages.filter((message): message is AgentMessage => message.role === 'agent');
+      const formOf = (at: number) => answers()[at]?.parts.find((part): part is WidgetPart => part.type === 'widget');
 
       await desktop.ask('send', { text: 'First' });
-      await until(() => waiting.length === 1);
+      await until(() => !!formOf(0));
       await desktop.ask('send', { text: 'Second' });
-      await until(() => waiting.length === 2);
+      await until(() => !!formOf(1));
 
       await desktop.ask('stop', answers()[0].id);
-      waiting[0]({ a: true });
-      waiting[1]({ b: true });
+      await desktop.ask('ack', formOf(1)?.id as string, { b: true });
       await until(() => answers().every((message) => message.status !== 'running'));
 
       expect(answers().map((message) => message.status)).toEqual(['stopped', 'done']);

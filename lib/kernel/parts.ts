@@ -23,7 +23,7 @@ export interface PartWriter extends MarkerEvents {
 const QUOTE_LIMIT = 200;
 
 /** The name an ask of the user goes to the desktop under. */
-const USER_ASK = 'ask_user';
+export const USER_ASK = 'ask_user';
 
 /** Markers whose body is data, not text: it never shows as a text part. */
 const STRUCTURED = new Set(['widget', 'action', 'ask_app', USER_ASK]);

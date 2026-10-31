@@ -53,6 +53,9 @@ export type AgentMessage = AskState & {
   briefed?: string;
 };
 
+/** What a form an agent asks the user to fill in submits to: it replies, and runs no command. */
+export const ASK_REPLY = 'ask.reply';
+
 /** The action that hands a task to one of the user's experts; the conversation runs it, not the desktop. */
 export const WORK_ASSIGN = 'work.assign';
 

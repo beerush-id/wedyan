@@ -3,6 +3,7 @@ import { toast } from '@airlib/react-aui';
 import type { DockSubmitEvent, DockWidgetAction, DockWidgetEntry } from '@airlib/react-aui/desktop';
 import type { IRPCData } from '@irpclib/irpc';
 import type { MouseEvent, ReactNode } from 'react';
+import { ASK_REPLY } from '@/lib/kernel/chat.h.js';
 import { wedyan } from '@/lib/share/wedyan.js';
 import { isAppLink, requestLink, runCommand } from '@/lib/systems/registry.js';
 import { answerActions } from './actions.js';
@@ -80,7 +81,7 @@ export function openSession() {
     get waiting(): boolean {
       if (state.asking > 0 || state.pressing > 0) return true;
       return chat.data.messages.some(
-        (message) => message.role === 'agent' && !message.event && ['idle', 'running'].includes(message.status)
+        (message) => message.role === 'agent' && !message.event && ['idle', 'running'].includes(message.status),
       );
     },
 
@@ -98,8 +99,21 @@ export function openSession() {
      */
     run({ action, event, form, ctx, widget, widgetId }: DockWidgetAction): Promise<ReactNode> {
       return pressing(async (signal) => {
-        const acknowledge = (id: string, data: DockWidgetAction['form']) => ack(id, snapshot(data) as Record<string, IRPCData>);
-        const view = await runCommand(action, { event, form, ctx, signal, widget, widgetId, ack: acknowledge as never });
+        // A form an agent asked: what it holds is the reply, and there's no command to run.
+        if (action === ASK_REPLY)
+          return void (await ack(widgetId as string, snapshot(form) as Record<string, IRPCData>));
+
+        const acknowledge = (id: string, data: DockWidgetAction['form']) =>
+          ack(id, snapshot(data) as Record<string, IRPCData>);
+        const view = await runCommand(action, {
+          event,
+          form,
+          ctx,
+          signal,
+          widget,
+          widgetId,
+          ack: acknowledge as never,
+        });
         // The conversation settles its own widgets; only an answer drawn here stops waiting here.
         if ('at' in widget) widget.important = false;
         return view;

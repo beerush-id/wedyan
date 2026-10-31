@@ -69,6 +69,8 @@ export type AskAction = {
   ask?: true;
   /** The agent that wrote it, stamped by the loop; never sent to the desktop. */
   agent?: string;
+  /** What an `ask_user` form asks, in the agent's words, once `args` is the composed form. */
+  intent?: string;
 };
 
 /** The actor of what the assistant itself does, whatever the user named it. */

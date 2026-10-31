@@ -21,6 +21,7 @@ import { ARRIVAL_SEEDS, landed } from './arrivals.js';
 import {
   type ActionRecord,
   type AgentMessage,
+  ASK_REPLY,
   type Conversation,
   type ConversationMessage,
   type ConversationQueries,
@@ -35,6 +36,7 @@ import {
 } from './chat.h.js';
 import { DOC_ATTEMPTS, DOC_CLOSE, DOC_OPEN } from './document.h.js';
 import { kernel } from './package.js';
+import { USER_ASK } from './parts.js';
 
 /** The session's room the conversation lives in: one per user, whichever desktop opens it first. */
 export const CONVERSATION_ROOM = 'desktop.chat';
@@ -177,6 +179,9 @@ const WAKE_TEXT = '(The user is back.)';
 /** The words the agent telling of a finished job is given; the job is in the context. */
 const JOB_TEXT = '(A background job ended.)';
 
+/** What the button that sends a form says. */
+const SEND_LABEL = 'Send';
+
 /**
  * Builds the session's conversation room: the conversation, read from its current page, and what
  * the desktops ask of it. Answers run in the room side by side, each held until it is saved, so each
@@ -192,6 +197,8 @@ function createConversation({ hold }: RoomSetup) {
   const home = fsContext.get();
   const desktops = new Map<string, Desktop>();
   const presences = new Map<string, Presence>();
+  // Forms an answer is waiting on the user to fill in, by widget, with what takes the reply.
+  const forms = new Map<string, (reply: IRPCData | undefined) => void>();
   // Actions waiting for their desktop to come back, by its client ID.
   const waiting = new Map<string, Set<() => void>>();
   const running = new Map<string, Running>();
@@ -475,6 +482,37 @@ function createConversation({ hold }: RoomSetup) {
       list.add(back);
     });
 
+  /**
+   * Puts a form to the user, in the answer that asked: a widget like any other, so it comes back the
+   * same after a reload and any desktop can fill it in, with the agent waiting here until one does.
+   */
+  const askUser = (action: AskAction, message: AgentMessage, signal: AbortSignal) =>
+    new Promise<IRPCData | undefined>((resolve) => {
+      const id = crypto.randomUUID();
+      message.parts.push({
+        type: 'widget',
+        id,
+        status: 'ready',
+        intent: action.intent ?? '',
+        nodes: formNodes(action.args as IRPCData[]),
+        form: {},
+        formAction: ASK_REPLY,
+        once: true,
+      });
+      forms.set(id, resolve);
+      signal.addEventListener('abort', () => forms.delete(id) && resolve(undefined), { once: true });
+      keep();
+    });
+
+  /** Settles a widget with its facts, replying to the agent when it's a form one is waiting on. */
+  const settle = (widget: WidgetPart, form: Record<string, IRPCData>) => {
+    widget.form = form;
+    widget.settled = new Date().toISOString();
+    forms.get(widget.id)?.(form);
+    forms.delete(widget.id);
+    keep();
+  };
+
   const answer = async (origin: Origin, input: AskInput, before: ConversationMessage[]) => {
     data.messages.push(agentMessage(origin));
     // The stored element, so the loop writes into what the desktops see.
@@ -488,9 +526,10 @@ function createConversation({ hold }: RoomSetup) {
       await askWith({
         input: [...viewOf(before), ...toChatInput(input)],
         state: message,
-        // Work is handed out here, in the conversation; every other action runs on the desktop. A
+        // Forms and work are the conversation's own; every other action runs on the desktop. A
         // desktop away isn't waited for to take new attempts: the server keeps them itself.
         desktop: (action) => {
+          if (action.name === USER_ASK) return askUser(action, message, turn.controller.signal);
           if (action.name === WORK_ASSIGN) return assign(action.args, message, origin.client);
           if (action.name === DOC_ATTEMPTS && !desktops.has(origin.client)) return Promise.resolve(undefined);
           return onDesktop(origin.client, action);
@@ -601,6 +640,10 @@ function createConversation({ hold }: RoomSetup) {
         if (target) {
           words.answer = target.message.id;
           target.followUps.push(input.text);
+          // Said rather than filled in, as hands-free it would be: the answer's form is answered.
+          for (const part of target.message.parts) {
+            if (part.type === 'widget' && forms.has(part.id)) settle(part, { said: input.text });
+          }
           return true;
         }
 
@@ -637,9 +680,7 @@ function createConversation({ hold }: RoomSetup) {
         const widget = widgetOf(data.messages, id);
         // The first says what happened: a second press can't change it.
         if (!widget || widget.settled) return false;
-        widget.form = form;
-        widget.settled = new Date().toISOString();
-        keep();
+        settle(widget, form);
         return true;
       },
     },
@@ -828,6 +869,15 @@ function userMessage(input: AskInput, client: string): UserMessage {
     ...(input.context ? { context: input.context } : {}),
     ...(input.selections?.length ? { selections: input.selections } : {}),
   };
+}
+
+/** A form the composer drew as what the desktop's card holds: its fields, and what sends them. */
+function formNodes(fields: IRPCData[]): IRPCData[] {
+  const send = { role: 'button', props: { size: 'sm', variant: 'filled', type: 'submit' }, children: [SEND_LABEL] };
+  return [
+    { role: 'card-body', children: fields },
+    { role: 'card-actions', children: [send] },
+  ];
 }
 
 /** A widget of an answer on the live page, by its id. */

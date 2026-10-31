@@ -120,7 +120,7 @@ describe('agents', () => {
       expect(agent.system, agent.name).toContain('never as JSON');
       expect(agent.system, agent.name).not.toContain('$this.');
     }
-    expect(AGENTS.june.system).toContain('"state": "$this.FIELD"');
+    expect(AGENTS.june.system).toContain('"state": "$this.form.FIELD"');
   });
 
   it('onboards through the desktop’s onboarding form, never writing the profile itself', () => {

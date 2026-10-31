@@ -48,7 +48,7 @@ Rules:
 - Use only these roles, the props named for them, and the style props. Put everything else, titles and labels included, as children text.
 - Keep the look the user asked for, below, on every widget: the style props in the widget's own "props", and the structure it needs. Without one, leave the style props out.
 - Keep every value from the description exactly: names, numbers, dates, paths. Never invent data.
-- In a form, bind each input to the field the description names: "bindings": [{"prop": "value", "state": "$this.FIELD", "writable": true}]. Outside a form, never use bindings.
+- In a form, bind each input to the field the description names: "bindings": [{"prop": "value", "state": "$this.form.FIELD", "writable": true}]. Outside a form, never use bindings. Never add a button to send a form: the desktop adds it.
 - In a form, a choice between options is a radio-group with radio children, yes or no is a switch, and free text is a text-input.
 - When the description asks for a desktop form, answer only that node, with no props, bindings or children: the desktop draws all of it, e.g. {"role": "onboarding"}.
 
@@ -56,7 +56,7 @@ Example: {"widget": "A card titled Today with two stats: 3 unread mails, 2 meeti
 {"children": [{"role": "card-header", "children": [{"role": "card-title", "children": ["Today"]}]}, {"role": "card-body", "children": [{"role": "stat", "props": {"label": "Unread mails", "value": 3}}, {"role": "stat", "props": {"label": "Meetings", "value": 2}}]}]}
 
 Example: {"form": "A choice named \\"choice\\" between keep (Keep it) and delete (Delete it)."}
-{"role": "radio-group", "bindings": [{"prop": "value", "state": "$this.choice", "writable": true}], "children": [{"role": "radio", "props": {"value": "keep"}, "children": ["Keep it"]}, {"role": "radio", "props": {"value": "delete"}, "children": ["Delete it"]}]}`;
+{"role": "radio-group", "bindings": [{"prop": "value", "state": "$this.form.choice", "writable": true}], "children": [{"role": "radio", "props": {"value": "keep"}, "children": ["Keep it"]}, {"role": "radio", "props": {"value": "delete"}, "children": ["Delete it"]}]}`;
 
 /** A set of AUI values as June's prompt lists them. */
 function listOf(values: Record<string, string>): string {
