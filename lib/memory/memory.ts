@@ -17,6 +17,8 @@ export interface VectorStore {
   describe(): Promise<{ processedUpToDatetime?: number | string | Date }>;
   /** Drops entries by id; ids it doesn't hold are ignored. */
   deleteByIds(ids: string[]): Promise<unknown>;
+  /** Reads entries by id, without searching. */
+  getByIds?(ids: string[]): Promise<{ id: string; metadata?: Record<string, unknown> }[]>;
 }
 
 /** Turns texts into vectors, one per text, in order. */
