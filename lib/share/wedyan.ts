@@ -9,7 +9,8 @@ import { type CommandSuggestion, promptContext, runCommand } from '@/lib/systems
 import { createPlayer, openMicrophone, playClip, stopClip } from './audio.js';
 import { answerDocuments } from './binding.js';
 import { createHandsFree } from './hands-free.js';
-import { PROFILE_PATH, type UserProfile } from './profile.js';
+import { trackPresence } from './presence.js';
+import { IDLE_AFTER, PROFILE_PATH, type UserProfile } from './profile.js';
 import { createWidgets } from './widgets.js';
 import { fileRef } from './workspace.js';
 
@@ -43,7 +44,7 @@ export function wedyan() {
     hear: () => hear() as never,
     voice: (name) => voice(name) as never,
     voiceOf: () => fileRef<UserProfile>(PROFILE_PATH).data?.voice,
-    send: (text) => chat.ask('send', { text, context: promptContext() as unknown as Record<string, IRPCData> }),
+    send: (text) => chat.ask('send', { text, context: momentNow() }),
     clip: async (text, name) => {
       const { audio, type } = await speak(text, name);
       await playClip(audio, type);
@@ -52,9 +53,27 @@ export function wedyan() {
   });
   const { speech } = handsFree;
 
+  const presence =
+    typeof document === 'undefined'
+      ? undefined
+      : trackPresence({
+          events: document,
+          hidden: () => document.hidden,
+          idleAfter: () => fileRef<UserProfile>(PROFILE_PATH).data?.idleAfter ?? IDLE_AFTER,
+          report: (state) => void chat.ask('presence', state, momentNow()),
+        });
+  // Talking is input too, with nothing touched: hands-free, it's all the input there is.
+  subscribe(speech, () => {
+    if (speech.heard) presence?.heard();
+  });
+
+  let connected = false;
   const update = () => {
     sync(chat.data.messages);
     handsFree.sync(chat.data.messages);
+    if (connected || !chat.data.ready) return;
+    connected = true;
+    presence?.open();
   };
   subscribe(chat.data, update);
 
@@ -111,7 +130,7 @@ export function wedyan() {
 
     await chat.ask('send', {
       text: event.text,
-      context: promptContext() as unknown as Record<string, IRPCData>,
+      context: momentNow(),
       selections: event.selections as unknown as UserMessage['selections'],
     });
 
@@ -144,6 +163,25 @@ export function wedyan() {
     answer,
     chat,
   };
+}
+
+/** What the agents are told of this moment with the user's words: the desktop, and the time here. */
+function momentNow(): Record<string, IRPCData> {
+  return { ...promptContext(), time: localTime() } as unknown as Record<string, IRPCData>;
+}
+
+/**
+ * A time as the user's own clock reads it, with their offset from UTC, so "tomorrow" means theirs.
+ *
+ * @param now - The time.
+ * @returns It in ISO 8601, like `2026-10-31T09:00:00+07:00`.
+ */
+export function localTime(now = new Date()): string {
+  const offset = -now.getTimezoneOffset();
+  const local = new Date(now.getTime() + offset * 60_000).toISOString().slice(0, 19);
+  const hours = String(Math.trunc(Math.abs(offset) / 60)).padStart(2, '0');
+  const minutes = String(Math.abs(offset) % 60).padStart(2, '0');
+  return `${local}${offset < 0 ? '-' : '+'}${hours}:${minutes}`;
 }
 
 /** This tab's ID: the one it kept, or a new one, kept for its reloads. */

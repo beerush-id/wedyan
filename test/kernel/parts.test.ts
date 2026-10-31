@@ -172,6 +172,15 @@ describe('part writer', () => {
     expect(actions).toEqual([]);
   });
 
+  it('tells the agent when a widget or action is cut off, since its words may have led up to it', () => {
+    const { state, problems, feed, end } = setup();
+    feed('I can open a search for you with [[action name=app.open]]{"app":');
+    end();
+
+    expect(state.parts).toMatchObject([{ type: 'text', text: 'I can open a search for you with ' }]);
+    expect(problems).toEqual(['Your [[action]] was never closed, so it did nothing: finish what you were saying']);
+  });
+
   it('reports an ask_user with its form described, as an ask anchored like an action', () => {
     const { state, actions, feed, end } = setup();
     feed('[[say]]Which one?[[/say]]', '[[ask_user]] A choice named "choice" between keep and delete. [[/ask_user]]');

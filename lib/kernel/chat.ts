@@ -10,6 +10,7 @@ import {
 } from '@irpclib/irpc';
 import { type AsyncStore, getContextStore, mutable } from '@irpclib/irpc/core';
 import { exists, list, read, write } from '@irpclib/r2-file';
+import { fsContext } from '@irpclib/r2-file/context';
 import type { DocumentHeader } from '@/lib/documents/types.js';
 import { userPath } from '@/lib/memory/files.js';
 import { PROFILE_PATH, type UserProfile } from '@/lib/share/profile.js';
@@ -188,6 +189,7 @@ const JOB_TEXT = '(A background job ended.)';
  */
 function createConversation({ hold }: RoomSetup) {
   const data = mutable<Conversation>({ ready: false, page: 0, messages: [] });
+  const home = fsContext.get();
   const desktops = new Map<string, Desktop>();
   const presences = new Map<string, Presence>();
   // Actions waiting for their desktop to come back, by its client ID.
@@ -198,18 +200,19 @@ function createConversation({ hold }: RoomSetup) {
   let header: PageHeader = newHeader();
   // Saves one after another, so two answers ending together never write over each other's page.
   let saving: Promise<unknown> = Promise.resolve();
-  const persist = () => {
-    saving = saving.then(async () => {
-      await savePage(data, header);
-    });
+  const persist = (context = detachedContext()) => {
+    // Always into the home it was opened in, whoever asks: a conversation written into another
+    // home takes that home's conversation with it.
+    const save = () =>
+      withContext(context, () => {
+        if (home) fsContext.set(home);
+        return savePage(data, header);
+      });
+    saving = saving.then(save, save);
     return saving;
   };
-  // A save asked for by a call, in its own copy of the call's context, since the save may wait
-  // behind another past the end of that call.
-  const keep = (context = detachedContext()) => {
-    hold(withContext(context, persist)).catch((error: Error) =>
-      IRPC_STORE.error(error, [{ conversation: CONVERSATION_PATH }]),
-    );
+  const keep = () => {
+    hold(persist()).catch((error: Error) => IRPC_STORE.error(error, [{ conversation: CONVERSATION_PATH }]));
   };
 
   const loaded = hold(

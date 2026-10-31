@@ -280,6 +280,35 @@ describe('the conversation', () => {
     });
   });
 
+  it('saves a conversation only into its own home, even for a caller from another', async () => {
+    chatVendor([], says('Done.'));
+    const owner = newUser();
+    const stray = { ...newUser(), session: owner.session };
+
+    await asDesktop(stray, () => write('~/Desktop.chat', { messages: [{ text: 'what they had' }] } as never));
+
+    await asDesktop(owner, async () => {
+      const desktop = conversation('tab-a');
+      await until(() => desktop.data.ready);
+
+      await asDesktop(stray, async () => {
+        const other = conversation('tab-b');
+        await until(() => other.data.ready);
+        await other.ask('send', { text: 'From the wrong home' });
+        await until(() => other.data.messages.length === 2 && answered(other.data));
+        other.close();
+      });
+      await until(() => answered(desktop.data));
+      desktop.close();
+    });
+
+    const kept = async (who: typeof owner) =>
+      asDesktop(who, () => read<{ messages: { text?: string }[] }>('~/Desktop.chat', { encoding: 'json' }));
+    expect((await kept(stray))?.messages).toEqual([{ text: 'what they had' }]);
+    await until(() => true);
+    expect((await kept(owner))?.messages[0]).toMatchObject({ text: 'From the wrong home' });
+  });
+
   it('keeps what the user picked into their words', async () => {
     chatVendor([], says('Done.'));
     const who = newUser();

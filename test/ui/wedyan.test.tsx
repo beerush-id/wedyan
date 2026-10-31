@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { shortIdOf } from '../../lib/server/session.js';
 import { VISITOR_LIMIT } from '../../lib/server/usage.js';
 import { isUsageLimit } from '../../lib/share/usage.js';
-import { wedyan } from '../../lib/share/wedyan.js';
+import { localTime, wedyan } from '../../lib/share/wedyan.js';
 import { speak } from '../../lib/speech/speech.h.js';
 
 // The desktop opening its conversation: one call, its tab's ID kept for it.
@@ -26,6 +26,15 @@ describe('a desktop opening the conversation', () => {
       first.close();
       second.close();
     });
+  });
+
+  it('tells the time as the user’s clock reads it, and it’s the same moment', () => {
+    const now = new Date('2026-10-31T02:00:00Z');
+
+    const time = localTime(now);
+
+    expect(time).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}$/);
+    expect(new Date(time).getTime()).toBe(now.getTime());
   });
 
   it('gives the dock what it’s wired to', async () => {

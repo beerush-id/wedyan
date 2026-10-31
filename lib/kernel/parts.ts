@@ -132,7 +132,9 @@ export function createPartWriter(parts: AskPart[], hooks: PartWriterHooks): Part
     },
 
     discard(tag) {
-      if (!STRUCTURED.has(tag.type)) closeText();
+      if (!STRUCTURED.has(tag.type)) return closeText();
+      // Its text may have led up to it: dropped quietly, the answer just stops mid-sentence.
+      hooks.onInvalid(`Your [[${tag.type}]] was never closed, so it did nothing: finish what you were saying`);
     },
 
     flush,
