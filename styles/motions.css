@@ -871,32 +871,12 @@
   }
 }
 
-/* A render in progress: the first stage as the picture, the others small beneath it, then Cancel. */
+/* A render in progress: its stage, then Cancel. */
 .wedyan-motions-render {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--spacing-sm);
-}
-
-.wedyan-motions-render-foot {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-/*
- * The other stages of a render, small beside the first. They must stay on screen and painted,
- * since the browser only draws what it paints, but they needn't be big.
- */
-.wedyan-motions-render-lanes {
-  display: flex;
-  gap: var(--spacing-xs);
-
-  & > .aui-stage {
-    --aui-stage-radius: var(--radius-sm);
-    inline-size: 6rem;
-  }
 }
 
 /* With nothing to list, the empty state sits in the middle of the window's content. */
