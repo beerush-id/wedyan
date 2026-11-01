@@ -45,7 +45,7 @@ describe('agent loop', () => {
 
   it('ends after a turn without calls, streaming the answer into parts', async () => {
     const vendor = mockVendor(
-      says('[[say]]Hello.[[/say]] [[widget]]A badge', ' saying ok[[/widget]] Done.'),
+      says('[[narrate]]Hello.[[/narrate]] [[widget]]A badge', ' saying ok[[/widget]] Done.'),
       says('{"role":"badge","children":["ok"]}'),
     );
     const { state, run } = setup();
@@ -431,8 +431,8 @@ describe('agent loop', () => {
   it('runs actions one at a time, in order, each anchored after the part before it', async () => {
     mockVendor(
       says(
-        '[[say]]Let me open Photos[[/say]][[action name=app.open]]{"app":"photos"}[[/action]]',
-        '[[say]]then Motion.[[/say]][[action name=app.open]]{"app":"motion"}[[/action]]',
+        '[[narrate]]Let me open Photos[[/narrate]][[action name=app.open]]{"app":"photos"}[[/action]]',
+        '[[narrate]]then Motion.[[/narrate]][[action name=app.open]]{"app":"motion"}[[/action]]',
         '[[action name=desktop.tile]]{"windows":["photos","motion"]}[[/action]]',
       ),
     );
@@ -460,7 +460,7 @@ describe('agent loop', () => {
   });
 
   it('ends the ask only after its actions have run', async () => {
-    mockVendor(says('[[say]]Opening.[[/say]][[action name=app.open]]{}[[/action]]'));
+    mockVendor(says('[[narrate]]Opening.[[/narrate]][[action name=app.open]]{}[[/action]]'));
     let finish: (() => void) | undefined;
     const { state, run } = setup({
       act: () =>
@@ -536,9 +536,9 @@ describe('agent loop', () => {
     const vendor = mockVendor(
       says(
         '[[action name=app.open]]{"app":"motion"}[[/action]]',
-        '[[action name=desktop.tile]]{}[[/action]][[say]]Tiled.[[/say]]',
+        '[[action name=desktop.tile]]{}[[/action]][[narrate]]Tiled.[[/narrate]]',
       ),
-      says("[[say]]Motion isn't installed.[[/say]]"),
+      says("[[narrate]]Motion isn't installed.[[/narrate]]"),
     );
     const ran: string[] = [];
     const { state, run } = setup({
@@ -568,8 +568,8 @@ describe('agent loop', () => {
 
   it('does not run a call written as an action, and tells the model to call it', async () => {
     const vendor = mockVendor(
-      says('[[say]]Reading it.[[/say]][[action name=sys.fs.read]]{"path":"~/script.md"}[[/action]]'),
-      says('[[say]]Calling it properly now.[[/say]]'),
+      says('[[narrate]]Reading it.[[/narrate]][[action name=sys.fs.read]]{"path":"~/script.md"}[[/action]]'),
+      says('[[narrate]]Calling it properly now.[[/narrate]]'),
     );
     const acted: string[] = [];
     const { state, run } = setup({
@@ -664,7 +664,7 @@ describe('agent loop', () => {
   });
 
   it('treats commentary written without calls as the answer', async () => {
-    mockVendor(responses({ text: '[[say]]Morning, Nanang.[[/say]]', phase: 'commentary' }));
+    mockVendor(responses({ text: '[[narrate]]Morning, Nanang.[[/narrate]]', phase: 'commentary' }));
     const { state, run } = setup({ adapter: createTestAdapter('responses') });
 
     await run();
@@ -675,24 +675,27 @@ describe('agent loop', () => {
     ]);
   });
 
-  it('keeps commentary out of the answer when the turn makes calls', async () => {
-    mockVendor(
-      responses(
-        { text: 'Routing this.', phase: 'commentary' },
-        { call: { id: 'h1', name: 'handoff', args: { agent: 'photos', brief: 'Find the cat.' } } },
-      ),
-      responses({ text: '[[say]]Found it.[[/say]]' }),
+  it('shows commentary on a call turn and keeps it in the agent\'s own turns', async () => {
+    const drawing = { name: 'sys.image.generate', description: '', parameters: {} };
+    const agents = { ...AGENTS, router: { ...AGENTS.router, tools: [drawing], handoffs: [] } };
+    const vendor = mockVendor(
+      responses({ text: 'Drawing it.', phase: 'commentary' }, { call: { id: 'c1', name: 'sys__image__generate', args: {} } }),
+      responses({ text: '[[narrate]]Here it is.[[/narrate]]' }),
     );
-    const { state, run } = setup({ adapter: createTestAdapter('responses') });
+    const { state, run } = setup({
+      agents,
+      adapter: createTestAdapter('responses'),
+      resolve: async () => ({ path: '~/made.webp' }),
+    });
 
     await run();
 
-    expect(state).toMatchObject({ status: 'done', agent: 'photos' });
-    expect(partsOf(state)).toEqual(['Found it.']);
+    expect(partsOf(state)).toEqual(['Drawing it.', 'Here it is.']);
+    expect(JSON.stringify(vendor.bodies[1])).toContain('Drawing it.');
   });
 
   it('retries an empty turn once', async () => {
-    const vendor = mockVendor(responses(), responses({ text: '[[say]]Here.[[/say]]' }));
+    const vendor = mockVendor(responses(), responses({ text: '[[narrate]]Here.[[/narrate]]' }));
     const { state, run } = setup({ adapter: createTestAdapter('responses') });
 
     await run();
@@ -720,30 +723,39 @@ describe('agent loop', () => {
     expect(state).toMatchObject({ status: 'error', reason: 'meta chat request failed: 503' });
   });
 
-  it('says what a slow call is starting when the answer has said nothing, before it runs', async () => {
-    const drawing = { name: 'sys.image.generate', starting: 'Drawing that now.' };
-    const agents = { ...AGENTS, router: { ...AGENTS.router, tools: [drawing], handoffs: [] } };
-    mockVendor(calls({ id: 'c1', name: 'sys__image__generate', args: {} }), says('[[say]]Here it is.[[/say]]'));
-    const heard: string[] = [];
-    const { state, run } = setup({
-      agents,
-      resolve: async () => {
-        heard.push(...partsOf(state));
-        return { path: '~/made.webp' };
-      },
-    });
+  it('shows what an agent says as it hands over, read aloud', async () => {
+    mockVendor(
+      calls({ id: 'h1', name: 'handoff', args: { agent: 'photos', say: 'Sure, I will find it.', brief: 'Find it.' } }),
+      says('Found it.'),
+    );
+    const { state, run } = setup();
 
     await run();
 
-    expect(heard).toEqual(['Drawing that now.']);
-    expect(partsOf(state)).toEqual(['Drawing that now.', 'Here it is.']);
+    expect(partsOf(state)).toEqual(['Sure, I will find it.', 'Found it.']);
+    expect(state.parts[0]).toMatchObject({ spoken: true });
   });
 
-  it('adds nothing when the answer already spoke before a slow call', async () => {
-    const drawing = { name: 'sys.image.generate', starting: 'Drawing that now.' };
+  it('sends an agent that acts first back to work when it answers a handed job with words alone', async () => {
+    const agents = { ...AGENTS, photos: { ...AGENTS.photos, actsFirst: true } };
+    const vendor = mockVendor(
+      calls({ id: 'h1', name: 'handoff', args: { agent: 'photos', brief: 'Find it.' } }),
+      says('I will look for it.'),
+      says('It needs no call after all.'),
+    );
+    const { state, run } = setup({ agents });
+
+    await run();
+
+    expect(vendor.spy).toHaveBeenCalledTimes(3);
+    expect(partsOf(state)).toEqual(['I will look for it.', 'It needs no call after all.']);
+  });
+
+  it('times each step and places a call among the answer', async () => {
+    const drawing = { name: 'sys.image.generate', description: '', parameters: {} };
     const agents = { ...AGENTS, router: { ...AGENTS.router, tools: [drawing], handoffs: [] } };
     const turn = sse(
-      [{ content: '[[say]]On it.[[/say]]' }, { tool_calls: [toolCall('c1', 'sys__image__generate', {})] }],
+      [{ content: '[[narrate]]On it.[[/narrate]]' }, { tool_calls: [toolCall('c1', 'sys__image__generate', {})] }],
       'tool_calls',
     );
     mockVendor(turn, says('Done.'));
@@ -752,6 +764,12 @@ describe('agent loop', () => {
     await run();
 
     expect(partsOf(state)).toEqual(['On it.', 'Done.']);
+    expect(state.steps?.map(({ kind, name, after }) => [kind, name, after])).toEqual([
+      ['model', 'router', -1],
+      ['call', 'sys.image.generate', 0],
+      ['model', 'router', 0],
+    ]);
+    expect(state.steps?.every(({ ms }) => typeof ms === 'number')).toBe(true);
   });
 
   it('answers a call past the day’s limit as any answer, with nothing to handle', async () => {

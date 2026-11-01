@@ -6,6 +6,7 @@ import {
   type ChatTool,
   chatTurns,
   type ToolCall,
+  WEB_SEARCH,
 } from '@irpclib/ai-kit';
 import type { AIAdapter } from '@irpclib/ai-kit/worker';
 import { getAbortSignal, IRPC_STORE, type IRPCData, type IRPCRouter, setContext, stream } from '@irpclib/irpc';
@@ -17,6 +18,7 @@ import {
   type AskInput,
   type AskPart,
   type AskState,
+  type AskStep,
   actorOf,
   askSeed,
   askWedyan,
@@ -211,8 +213,6 @@ export async function askRouter(system: string, request: IRPCData): Promise<stri
   return answerOnce(config.adapter, { ...router, system, tools: [] }, request);
 }
 
-/** A call an agent can make, and what the user hears while it runs, when it takes a while. */
-export type AgentTool = ChatTool & { starting?: string };
 
 /** One agent: a model, its system prompt (format and skill), its calls, and who it may hand off to. */
 export interface AgentProfile {
@@ -220,9 +220,13 @@ export interface AgentProfile {
   model: string;
   system: string;
   /** Calls this agent may make, besides `handoff`. */
-  tools: AgentTool[];
+  tools: ChatTool[];
   /** Agents this one may hand the ask to; the loop offers `handoff` only when there are any. */
   handoffs?: string[];
+  /** Whether it can search the web itself, where the provider hosts that. */
+  webSearch?: boolean;
+  /** Whether a job handed to it starts with a call, so it can't promise the work and stop there. */
+  actsFirst?: boolean;
   /** How hard its model reasons, in the provider's terms (`minimal`, `low`, …); the provider's default if unset. */
   effort?: string;
   /** Takes a skill at handoff: its prompt and tools are added to this profile's for the rest of the ask. */
@@ -237,7 +241,7 @@ export interface AgentSkill {
   /** One line on what the skill is for, offered to whoever hands off. */
   description: string;
   system: string;
-  tools: AgentTool[];
+  tools: ChatTool[];
 }
 
 /** Everything needed to resume an ask after the turn it was taken on. */
@@ -296,15 +300,48 @@ export interface AgentLoopOptions {
   onSnapshot?: (snapshot: LoopSnapshot) => void;
 }
 
+/** How much of a call's arguments the record keeps: a file being written can be all of its content. */
+const ARGS_LIMIT = 500;
+
+/** A step of an answer being timed. */
+type StepTimer ={ step: AskStep; elapsed(): number; end(): void };
+
 /**
- * Says what a slow call is starting, when the answer hasn't said anything yet, so the user isn't left
- * in silence while it runs. It's the kernel's to say: a model told to speak first tends to speak
- * instead of making the call.
+ * Starts timing a step of an answer, in the answer itself, so its timing is kept with it.
+ *
+ * @param state - The answer.
+ * @param kind - What kind of step it is.
+ * @param name - What's running.
+ * @param agent - The agent it runs for.
+ * @returns The stored step, and what reads and ends its timing.
  */
-function sayStarting(parts: AskPart[], calls: string[], tools: AgentTool[]): void {
-  if (parts.some((part) => part.type === 'text' && part.spoken)) return;
-  const starting = calls.map((call) => tools.find(({ name }) => name === call)?.starting).find(Boolean);
-  if (starting) parts.push({ type: 'text', chunks: [starting], text: starting, spoken: true });
+function timeStep(state: AskState, kind: AskStep['kind'], name: string, agent: string): StepTimer {
+  state.steps ??= [];
+  state.steps.push({ kind, name, agent, after: state.parts.length - 1, started: new Date().toISOString() });
+  // Written through the stored element, so a reactive answer sees every later change.
+  const step = state.steps[state.steps.length - 1];
+  const start = performance.now();
+  const elapsed = () => Math.round(performance.now() - start);
+  return {
+    step,
+    elapsed,
+    end() {
+      step.ended = new Date().toISOString();
+      step.ms = elapsed();
+    },
+  };
+}
+
+/**
+ * What a call is working on, for the row that shows it.
+ *
+ * @param args - The call's arguments.
+ * @returns The path or query it's given, when it has one.
+ */
+function detailOf(args: unknown): string | undefined {
+  const { path, query } = (args ?? {}) as { path?: unknown; query?: unknown };
+  const detail = path ?? query;
+  return typeof detail === 'string' ? detail : undefined;
 }
 
 /** The call an agent makes to pass the ask to another agent. */
@@ -317,6 +354,10 @@ const DEFAULT_HANDOFF_LIMIT = 3;
 const DEFAULT_FORM_LIMIT = 3;
 
 /** What an agent is told when it would ask once more than that. */
+/** What an agent that acts first hears when it answered a handed job with words alone. */
+const NOT_ACTED =
+  'You were handed this job and made no call. Make the call now, or say plainly why none is needed. This note is between you and the system: the user never sees it, so never mention or apologize for it.';
+
 const TOO_MANY_FORMS =
   'You have asked the user enough in this answer: don’t ask again. Say in words what you still need, and stop.';
 
@@ -347,20 +388,22 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
   let history = resume ? [...resume.history] : [...asks];
   let turn = resume?.turn ?? 0;
   let handoffs = resume?.handoffs ?? 0;
+  let handed = false;
   const actions = createActionQueue(options.act, options.track);
   const problems: string[] = [];
   let forms = 0;
   const composer = options.composer ? agents[options.composer] : undefined;
   const compositions: Promise<void>[] = [];
-  const compose = (request: IRPCData) =>
-    composer
-      ? composeWidget(
-          adapter,
-          persona ? { ...composer, system: `${composer.system}\n\n${persona}` } : composer,
-          request,
-          signal,
-        )
-      : Promise.reject(new Error('No composer to draw widgets'));
+  const compose = (request: IRPCData) => {
+    if (!composer) return Promise.reject(new Error('No composer to draw widgets'));
+    const timer = timeStep(state, 'compose', composer.name, agent.name);
+    return composeWidget(
+      adapter,
+      persona ? { ...composer, system: `${composer.system}\n\n${persona}` } : composer,
+      request,
+      signal,
+    ).finally(timer.end);
+  };
 
   const end = (status: AskState['status'], reason?: string) => {
     state.status = status;
@@ -386,8 +429,21 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
       const system = voice ? `${agent.system}\n\n${voice}` : agent.system;
       const callable = new Set(tools.map((tool) => tool.name));
       let asked = false;
-      const take = () =>
-        modelTurn(adapter, { ...agent, system, tools }, history, state.parts, signal, {
+      // A call shows once it's named, long before its arguments are written.
+      const named = new Map<string, StepTimer[]>();
+      const announce = (name: string) => {
+        if (name === HANDOFF) return;
+        named.set(name, [...(named.get(name) ?? []), timeStep(state, 'call', name, agent.name)]);
+      };
+      // A search runs on the provider's side, inside the turn: it has no result to wait for here.
+      const searched = (query: string) => {
+        const timer = named.get(WEB_SEARCH)?.shift();
+        if (!timer) return;
+        timer.step.detail = query;
+        timer.end();
+      };
+      const turnWith = (timer: StepTimer) =>
+        modelTurn(adapter, { ...agent, system, tools }, history, state.parts, signal, timer, { announce, searched }, {
           onWidget: (part, intent) => {
             // The agent keeps speaking while its widget is composed; the part fills in place.
             compositions.push(
@@ -428,11 +484,17 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
           },
           onInvalid: (problem) => problems.push(problem),
         });
-      const isEmpty = (result: { text: string; toolCalls: ToolCall[] }) => !result.text && !result.toolCalls.length;
+      const take = () => {
+        const timer = timeStep(state, 'model', agent.name, agent.name);
+        return turnWith(timer).finally(timer.end);
+      };
+      const isEmpty =(result: { text: string; toolCalls: ToolCall[] }) => !result.text && !result.toolCalls.length;
       // An empty turn is usually a provider hiccup: one retry before giving up.
       let reply = await take();
       if (isEmpty(reply)) reply = await take();
       if (isEmpty(reply)) return end('error', `No answer from ${agent.model}`);
+      if (handed && agent.actsFirst && !reply.toolCalls.length) problems.push(NOT_ACTED);
+      handed = false;
 
       history.push({
         role: 'assistant',
@@ -443,11 +505,23 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
 
       const [handoff, ...extraHandoffs] = reply.toolCalls.filter((call) => call.name === HANDOFF);
       const calls = reply.toolCalls.filter((call) => call.name !== HANDOFF);
-      sayStarting(state.parts, calls.map(({ name }) => name), tools);
+      // What the agent tells the user as it hands the ask over: the handoff carries it, so it can't
+      // say it instead of making the call.
+      const said = String((handoff?.args as { say?: unknown } | undefined)?.say ?? '').trim();
+      if (said) state.parts.push({ type: 'text', chunks: [said], text: said, spoken: true });
+      const timedCall = (call: ToolCall) => {
+        const timer = named.get(call.name)?.shift() ?? timeStep(state, 'call', call.name, agent.name);
+        timer.step.detail = detailOf(call.args);
+        timer.step.args = JSON.stringify(call.args ?? {}).slice(0, ARGS_LIMIT);
+        return resolveCall(options.resolve, call, agent.name)
+          .then((result) => {
+            timer.step.resultChars = JSON.stringify(dataOf(result))?.length ?? 0;
+            return result;
+          })
+          .finally(timer.end);
+      };
       // Already data the model reads; awaiting them again only widens their type to downloaded blobs.
-      const results = (await Promise.all(calls.map((call) => resolveCall(options.resolve, call, agent.name)))).map(
-        (result) => dataOf(result),
-      );
+      const results = (await Promise.all(calls.map(timedCall))).map((result) => dataOf(result));
       for (const [index, call] of calls.entries()) history.push(toolTurn(call.id, results[index]));
       for (const call of extraHandoffs) history.push(toolTurn(call.id, { error: 'Only one handoff per turn' }));
       if (signal?.aborted) return end('stopped', 'Aborted');
@@ -485,10 +559,15 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
         const done = calls.map((call, index) => ({ name: call.name, args: call.args, result: results[index] }));
         history = [
           ...asks,
-          { role: 'user', type: 'object', data: { handoff: { from: agent.name, brief, results: done } } },
+          {
+            role: 'user',
+            type: 'object',
+            data: { handoff: { from: agent.name, ...(said ? { said } : {}), brief, results: done } },
+          },
         ];
         skill = targetSkill;
         agent = withSkill(target, skill);
+        handed = true;
         state.agent = agent.name;
         if (skill) state.skill = skill.name;
         else delete state.skill;
@@ -529,8 +608,7 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
 /**
  * Runs one model turn for the agent: feeds each streamed chunk through the marker parser into the
  * answer's parts, and returns the raw text and the calls the model made. Commentary the provider
- * kept apart stays out of the answer, unless the turn made no calls and wrote no answer: commentary
- * only accompanies calls, so on its own it is the answer.
+ * keeps apart is the agent telling the user what it's doing, so it streams into the answer too.
  */
 async function modelTurn(
   adapter: AIAdapter,
@@ -538,23 +616,33 @@ async function modelTurn(
   history: ChatMessage[],
   parts: AskPart[],
   signal: AbortSignal | undefined,
+  timer: StepTimer,
+  calls: { announce(call: string): void; searched(query: string): void },
   hooks: PartWriterHooks,
 ): Promise<{ text: string; toolCalls: ToolCall[] }> {
   const live = mutable<{ data?: ChatOutput }>({});
   const writer = createPartWriter(parts, hooks);
   const parser = createMarkerParser(writer);
   let seen = 0;
+  let heard = 0;
   let announced = 0;
+  let found = 0;
   const unsubscribe = subscribe(live, () => {
-    // A call is named long before its arguments are written, so the wait is told as it starts.
     const calling = live.data?.calling ?? [];
-    for (; announced < calling.length; announced += 1) sayStarting(parts, [calling[announced]], agent.tools);
+    for (; announced < calling.length; announced += 1) calls.announce(calling[announced]);
+    const searched = live.data?.searched ?? [];
+    for (; found < searched.length; found += 1) calls.searched(searched[found]);
+    const commentary = live.data?.commentary ?? [];
     const chunks = live.data?.chunks ?? [];
-    if (seen >= chunks.length) return;
-    while (seen < chunks.length) {
-      parser.push(chunks[seen]);
-      seen += 1;
-    }
+    const reasoned = live.data?.reasoning?.length;
+    const acted = calling.length || commentary.length || chunks.length;
+    if (reasoned || acted) timer.step.waitMs ??= timer.elapsed();
+    if (reasoned && acted) timer.step.reasoningMs ??= timer.elapsed() - (timer.step.waitMs ?? 0);
+    if (heard >= commentary.length && seen >= chunks.length) return;
+    timer.step.firstChunkMs ??= timer.elapsed();
+    timer.step.chunks = commentary.length + chunks.length;
+    for (; heard < commentary.length; heard += 1) parser.push(commentary[heard]);
+    for (; seen < chunks.length; seen += 1) parser.push(chunks[seen]);
     writer.flush();
   });
 
@@ -568,6 +656,7 @@ async function modelTurn(
           system: agent.system,
           tools: agent.tools,
           ...(agent.effort ? { reasoningEffort: agent.effort } : {}),
+          ...(agent.webSearch ? { webSearch: true } : {}),
         },
         {
           state: live,
@@ -578,17 +667,15 @@ async function modelTurn(
       );
     });
 
-    text = live.data?.text ?? (live.data?.chunks ?? []).join('');
-    const commentary = (live.data?.commentary ?? []).join('');
-    if (!text && !live.data?.toolCalls?.length && commentary) {
-      parser.push(commentary);
-      writer.flush();
-      text = commentary;
-    }
+    // Everything the agent said this turn, so its next turn knows it's been said.
+    const answer = live.data?.text ?? (live.data?.chunks ?? []).join('');
+    text = [(live.data?.commentary ?? []).join(''), answer].filter(Boolean).join('\n\n');
   } finally {
     unsubscribe();
     parser.end();
     writer.end();
+    const reasoning = (live.data?.reasoning ?? []).join('');
+    if (reasoning) timer.step.reasoning = reasoning;
   }
 
   // Plain copies: the calls go into history and to resolvers, not the reactive state.
@@ -796,6 +883,7 @@ function toolsOf(
                 },
               }
             : {}),
+          say: { type: 'string', description: 'What to tell the user as it\'s handed over, shown and read aloud, when there is something to tell.' },
           brief: { type: 'string', description: 'What the next agent must do, and what is already known.' },
         },
         required: ['agent', 'brief'],

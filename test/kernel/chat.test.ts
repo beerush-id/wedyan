@@ -132,7 +132,7 @@ describe('the conversation', () => {
   });
 
   it('streams an answer into the conversation, and keeps it in ~/Desktop.chat', async () => {
-    chatVendor([], says('[[say]]Hello, ', 'Nanang.[[/say]]'));
+    chatVendor([], says('[[narrate]]Hello, ', 'Nanang.[[/narrate]]'));
     const who = newUser();
 
     await asDesktop(who, async () => {
@@ -211,7 +211,7 @@ describe('the conversation', () => {
   it('gives the agents the last turns as lines, never their tool results or widget nodes', async () => {
     const vendor = chatVendor(
       [],
-      says('[[say]]Opening Motion.[[/say]][[action name=app.open]]{"app":"motion"}[[/action]]'),
+      says('[[narrate]]Opening Motion.[[/narrate]][[action name=app.open]]{"app":"motion"}[[/action]]'),
       says('[[widget]]A card titled Today[[/widget]]'),
       says('{"role":"card","props":{"title":"Today"}}'),
       says('Done.'),
@@ -312,7 +312,7 @@ describe('the conversation', () => {
   it('puts a form in the answer, ready to fill in with what sends it, and replies with what comes back', async () => {
     const vendor = chatVendor(
       [],
-      says('[[say]]Which time?[[/say]][[ask_user]]A text input named "time".[[/ask_user]]'),
+      says('[[narrate]]Which time?[[/narrate]][[ask_user]]A text input named "time".[[/ask_user]]'),
       says('{"role":"text-input"}'),
       says('Booked for ten.'),
     );
@@ -396,7 +396,7 @@ describe('the conversation', () => {
   it('joins words the router says continue a running answer to it, and stops an answer on stop', async () => {
     const vendor = chatVendor(
       [routesTo(0)],
-      says('[[say]]Which one?[[/say]][[ask_user]]A choice named "pick" between a and b.[[/ask_user]]'),
+      says('[[narrate]]Which one?[[/narrate]][[ask_user]]A choice named "pick" between a and b.[[/ask_user]]'),
       says('[{"role":"radio-group"}]'),
       says('[[ask_user]]A yes or no named "sure".[[/ask_user]]'),
       says('[{"role":"switch"}]'),
@@ -432,10 +432,10 @@ describe('the conversation', () => {
   it('answers a new request side by side with one still waiting, each tied to its own words', async () => {
     chatVendor(
       [routesTo('new')],
-      says('[[say]]Remove the cat?[[/say]][[ask_user]]A yes or no named "sure".[[/ask_user]]'),
+      says('[[narrate]]Remove the cat?[[/narrate]][[ask_user]]A yes or no named "sure".[[/ask_user]]'),
       says('[{"role":"switch"}]'),
-      says('[[say]]Here is last week’s meeting transcript.[[/say]]'),
-      says('[[say]]Removing the cat.[[/say]]'),
+      says('[[narrate]]Here is last week’s meeting transcript.[[/narrate]]'),
+      says('[[narrate]]Removing the cat.[[/narrate]]'),
     );
     const who = newUser();
 
@@ -997,7 +997,7 @@ describe('the conversation', () => {
       const vendor = chatVendor(
         [],
         says('Rendering it.'),
-        says('[[say]]Welcome back, the render is done.[[/say]][[action name=app.open]]{"app":"motion"}[[/action]]'),
+        says('[[narrate]]Welcome back, the render is done.[[/narrate]][[action name=app.open]]{"app":"motion"}[[/action]]'),
       );
       const who = newUser();
 
@@ -1141,7 +1141,7 @@ describe('the conversation', () => {
     /** The assistant's answer handing out these tasks of one batch, each as its own action. */
     const handsOut = (...tasks: Array<{ agent: string; goal: string; object: { path: string } }>) =>
       says(
-        `[[say]]On it.[[/say]]${tasks
+        `[[narrate]]On it.[[/narrate]]${tasks
           .map((task) => `[[action name=work.assign]]${JSON.stringify({ title: 'Lantern River', ...task })}[[/action]]`)
           .join('')}`,
       );

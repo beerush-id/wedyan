@@ -91,7 +91,7 @@ describe('askWedyan', () => {
   });
 
   it('streams the ask to the caller and settles when it ends', async () => {
-    mockVendor(says('[[say]]Good ', 'morning.[[/say]]'));
+    mockVendor(says('[[narrate]]Good ', 'morning.[[/narrate]]'));
 
     const final = await withContext(() => askWedyan({ text: 'Hi' }));
 
@@ -100,7 +100,7 @@ describe('askWedyan', () => {
   });
 
   it('asks the caller to run each action by name, with its anchor', async () => {
-    mockVendor(says('[[say]]Opening Photos.[[/say]][[action name=app.open]]{"app":"photos"}[[/action]]'));
+    mockVendor(says('[[narrate]]Opening Photos.[[/narrate]][[action name=app.open]]{"app":"photos"}[[/action]]'));
     const runs: unknown[] = [];
 
     const final = await withContext(async () => {
@@ -194,7 +194,7 @@ describe('askWedyan', () => {
   it('asks the user through the form the composer makes, and gives the model the form’s fields', async () => {
     const widget = { role: 'radio-group', bindings: [{ prop: 'value', state: '$this.choice', writable: true }] };
     const vendor = mockVendor(
-      says('[[say]]Which one?[[/say]][[ask_user]]A choice named "choice" between orange and grey.[[/ask_user]]'),
+      says('[[narrate]]Which one?[[/narrate]][[ask_user]]A choice named "choice" between orange and grey.[[/ask_user]]'),
       says(JSON.stringify(widget)),
       says('The orange one, then.'),
     );
@@ -249,7 +249,7 @@ describe('askWedyan', () => {
       form(),
       composed(),
       form(),
-      says('[[say]]I still need a time for it.[[/say]]'),
+      says('[[narrate]]I still need a time for it.[[/narrate]]'),
     );
     const asked = vi.fn(() => ({ time: 'whenever' }));
 

@@ -1,7 +1,6 @@
 import type { ChatTool } from '@irpclib/ai-kit';
 import { type IRPCData, IRPCRouter, type IRPCTransport } from '@irpclib/irpc';
 import { transport as fileTransport } from '@irpclib/r2-file';
-import type { AgentTool } from '../kernel/agent.js';
 import { WORK_ASSIGN } from '../kernel/chat.h.js';
 import { DOC_CLOSE, DOC_OPEN, DOC_UPDATE } from '../kernel/document.h.js';
 import { memory } from '../memory/memory.h.js';
@@ -31,9 +30,7 @@ function packageTools(transport: IRPCTransport): Record<string, ChatTool> {
   );
 }
 
-const files: Record<string, AgentTool> = packageTools(fileTransport);
-// A long file is the slowest thing an agent writes, and nothing shows until it lands.
-files['r2-file.write'] = { ...files['r2-file.write'], starting: 'Writing that now.' };
+const files = packageTools(fileTransport);
 const memories = packageTools(memory.transport as IRPCTransport);
 
 /** The r2-file tools that only look: what agents use to find and read the user's files. */
@@ -68,7 +65,6 @@ export const TOOLS = {
   },
   imageEdit: {
     name: 'sys.image.edit',
-    starting: 'Working on that now.',
     description: 'Edits a photo as described, inside the mask when one is given. Writes a new file next to it.',
     parameters: object(
       {
@@ -81,7 +77,6 @@ export const TOOLS = {
   },
   imageGenerate: {
     name: 'sys.image.generate',
-    starting: 'Drawing that now.',
     description:
       'Generates one image from a description and keeps it in the user’s drive, in the folder you name. Returns its path.',
     parameters: object(
@@ -95,7 +90,6 @@ export const TOOLS = {
   },
   stillGenerate: {
     name: 'sys.still.generate',
-    starting: 'Drawing that now.',
     description:
       'Makes new attempts of a still: a generated image kept as an editable source, with its prompt, settings, references and every attempt. Creates the still when it doesn’t exist yet. What you pass is written into it first, then its attempts are made and added to its history. To change a still (an expression, a pose, a detail), pass its prompt with the change and the still itself as a reference, so it stays the same subject. Returns each new attempt with an address to show it at (url), and a link that opens the still (open): show the attempts on a card, the pictures with an Open link.',
     parameters: object(
@@ -114,7 +108,7 @@ export const TOOLS = {
       ['path'],
     ),
   },
-} satisfies Record<string, AgentTool>;
+} satisfies Record<string, ChatTool>;
 
 export const ACTIONS = {
   open: { name: 'app.open', args: '{"app": string, "file"?: string}', does: 'Opens an app, optionally with a file.' },

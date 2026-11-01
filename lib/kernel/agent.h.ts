@@ -106,6 +106,41 @@ export type ActionOutcome = {
   error?: string;
 };
 
+/**
+ * One step of an answer and how long it took, kept to measure where the time goes: `model` is a turn
+ * of a model, `call` a tool it called, `compose` a widget or form being drawn.
+ */
+export type AskStep = {
+  kind: 'model' | 'call' | 'compose';
+  /** The agent for a model turn, the tool for a call, the composer for a composition. */
+  name: string;
+  /** The agent it ran for. */
+  agent: string;
+  /** What a call works on: the path or query it was given. */
+  detail?: string;
+  /** A call's arguments, as JSON, cut to what's worth keeping. */
+  args?: string;
+  /** How big a call's result was, in characters of JSON. */
+  resultChars?: number;
+  /** What a model reasoned this turn: kept to read later, never given back to a model. */
+  reasoning?: string;
+  /** Where it falls in the answer: after the part at this index (`-1`: before any part). */
+  after: number;
+  started: string;
+  /** Unset while it's running. */
+  ended?: string;
+  /** How long it took, in milliseconds. */
+  ms?: number;
+  /** How long a model took to send anything: the provider's wait, which isn't the model's work. */
+  waitMs?: number;
+  /** How long a model reasoned before its first words or call, in milliseconds. */
+  reasoningMs?: number;
+  /** How long a model took to send its first words, in milliseconds. */
+  firstChunkMs?: number;
+  /** How many chunks a model's words arrived in. */
+  chunks?: number;
+};
+
 /** The live state of one ask, streamed to the client. */
 export interface AskState {
   status: 'idle' | 'running' | 'done' | 'stopped' | 'error';
@@ -119,6 +154,8 @@ export interface AskState {
   turn: number;
   /** The answer so far. */
   parts: AskPart[];
+  /** Each step taken so far, with its timing. */
+  steps?: AskStep[];
 }
 
 /**

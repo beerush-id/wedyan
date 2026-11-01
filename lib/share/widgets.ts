@@ -1,6 +1,6 @@
 import { mutable } from '@airlib/react';
 import type { DockWidgetEntry, DockWidgetPart } from '@airlib/react-aui/desktop';
-import type { AskPart, WidgetPart } from '@/lib/kernel/agent.h.js';
+import type { AskPart, AskStep, WidgetPart } from '@/lib/kernel/agent.h.js';
 import type { AgentMessage, ConversationMessage, UserMessage } from '@/lib/kernel/chat.h.js';
 
 /** How a user's words are drawn, as the desktop draws what's just been sent. */
@@ -66,13 +66,26 @@ function newAnswer(id: string): AnswerEntry {
   return { entry, parts, waiting };
 }
 
-/** What an answer shows so far, as the dock's parts: a widget only once it's composed, whole. */
+/**
+ * What an answer shows so far, as the dock's parts: its words, each call where it fell among them,
+ * and a widget only once it's composed, whole.
+ */
 function shownParts(message: AgentMessage): DockWidgetPart[] {
-  const parts = message.parts.flatMap((part): DockWidgetPart[] => {
-    if (part.type === 'text') return [{ type: 'text', text: part.text ?? part.chunks.join('') }];
-    return part.status === 'ready' ? [dockWidget(part)] : [];
+  const calls = (message.steps ?? []).filter(({ kind }) => kind === 'call');
+  const rowsAfter = (index: number) => calls.filter(({ after }) => after === index).map(callRow);
+  const parts = message.parts.flatMap((part, index): DockWidgetPart[] => {
+    const rows = rowsAfter(index);
+    if (part.type === 'text') return [{ type: 'text', text: part.text ?? part.chunks.join('') }, ...rows];
+    return part.status === 'ready' ? [dockWidget(part), ...rows] : rows;
   });
-  return message.status === 'error' && message.reason ? [...parts, { type: 'text', text: message.reason }] : parts;
+  const shown = [...rowsAfter(-1), ...parts];
+  return message.status === 'error' && message.reason ? [...shown, { type: 'text', text: message.reason }] : shown;
+}
+
+/** A call as a row of its answer: what it is, what it's working on, and how long it took. */
+function callRow({ name, detail, ms }: AskStep): DockWidgetPart {
+  const call = detail ? `${name} ${detail}` : name;
+  return { type: 'text', text: `\`${call}\` ${ms === undefined ? '…' : `${ms} ms`}` };
 }
 
 /** A composed widget as the dock takes it. */

@@ -30,7 +30,7 @@ const STRUCTURED = new Set(['widget', 'action', 'ask_app', USER_ASK]);
 
 /**
  * Translates the model's markers into the answer's parts. Text outside markers and `show` become
- * silent text parts, `say` a spoken one; their text streams as chunks. A `widget` describes what to
+ * silent text parts, `narrate` a spoken one; their text streams as chunks. A `widget` describes what to
  * show in plain words: when it closes, a pending widget part takes its place and goes to `onWidget`
  * with the description. An `action`, an `ask_app` and an `ask_user` (the form described in plain
  * words) go to `onAction`, anchored after the part before it, the asks marked as waiting for a reply.
@@ -116,7 +116,7 @@ export function createPartWriter(parts: AskPart[], hooks: PartWriterHooks): Part
 
     open(tag) {
       closeText();
-      if (!STRUCTURED.has(tag.type)) openText(tag.type === 'say', true);
+      if (!STRUCTURED.has(tag.type)) openText(tag.type === 'narrate', true);
     },
 
     body(_tag, chunk) {

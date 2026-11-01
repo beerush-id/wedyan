@@ -100,7 +100,7 @@ describe('agents', () => {
 
   it('teaches every answering agent the response format', () => {
     for (const agent of ANSWERING) {
-      expect(agent.system, agent.name).toContain('[[say]]');
+      expect(agent.system, agent.name).toContain('[[narrate]]');
       expect(agent.system, agent.name).toContain('never that it is done');
     }
   });
@@ -158,7 +158,7 @@ describe('agents', () => {
   it('routes a photo ask to Lita with the photos skill, who then works with its prompt and tools', async () => {
     const vendor = mockVendor(
       calls({ id: 'h1', name: 'handoff', args: { agent: 'lita', skill: 'photos', brief: 'Find the cat photo.' } }),
-      says('[[say]]Here it is.[[/say]]'),
+      says('[[narrate]]Here it is.[[/narrate]]'),
     );
     const state = mutable<AskState>({ status: 'idle', agent: '', turn: 0, parts: [] });
     const adapter = new AIAdapter().use(
@@ -280,7 +280,7 @@ describe('user agents', () => {
   it('stamps each action with the agent that wrote it, so the user’s own agent acts as itself', async () => {
     const vendor = mockVendor(
       calls({ id: 'h1', name: 'handoff', args: { agent: KAI.path, brief: 'Open Motion.' } }),
-      says('[[say]]On it.[[/say]][[action name=app.open]]{"app":"motions"}[[/action]]'),
+      says('[[narrate]]On it.[[/narrate]][[action name=app.open]]{"app":"motions"}[[/action]]'),
     );
     const state = mutable<AskState>({ status: 'idle', agent: '', turn: 0, parts: [] });
     const acted: AskAction[] = [];

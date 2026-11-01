@@ -42,10 +42,10 @@ describe('part writer', () => {
 
   it('turns say into a spoken text part that streams before it closes', () => {
     const { state, feed, end } = setup();
-    feed('[[say]]Two things ');
+    feed('[[narrate]]Two things ');
     expect(state.parts).toEqual([{ type: 'text', chunks: ['Two things '], spoken: true }]);
 
-    feed('finished.[[/say]]');
+    feed('finished.[[/narrate]]');
     expect(state.parts[0]).toEqual({
       type: 'text',
       chunks: ['Two things ', 'finished.'],
@@ -65,7 +65,7 @@ describe('part writer', () => {
 
   it('pushes one chunk per fed chunk, however the parser split it', () => {
     const { state, feed, end } = setup();
-    feed('[[say]]a [', 'x] b[[/say]]');
+    feed('[[narrate]]a [', 'x] b[[/narrate]]');
     end();
 
     expect((state.parts[0] as { chunks: string[] }).chunks).toEqual(['a ', '[x] b']);
@@ -94,7 +94,7 @@ describe('part writer', () => {
 
   it('splits text around markers into separate parts, in order', () => {
     const { state, feed, end } = setup();
-    feed('Intro [[say]]Hi.[[/say]] middle [[widget]]A card[[/widget]] outro');
+    feed('Intro [[narrate]]Hi.[[/narrate]] middle [[widget]]A card[[/widget]] outro');
     end();
 
     expect(state.parts.map((part) => [part.type, part.type === 'text' ? part.text : part.status])).toEqual([
@@ -108,7 +108,7 @@ describe('part writer', () => {
 
   it('drops whitespace-only text between markers', () => {
     const { state, feed, end } = setup();
-    feed('[[say]]A.[[/say]]\n\n  [[say]]B.[[/say]]\n');
+    feed('[[narrate]]A.[[/narrate]]\n\n  [[narrate]]B.[[/narrate]]\n');
     end();
 
     expect(state.parts.map((part) => (part as { text: string }).text)).toEqual(['A.', 'B.']);
@@ -116,8 +116,8 @@ describe('part writer', () => {
 
   it('reports an action anchored after the part before it', () => {
     const { state, actions, feed, end } = setup();
-    feed('[[say]]Opening Photos[[/say]][[action name=app.open]]{"app":"photos"}[[/action]]');
-    feed('[[say]]then Motion.[[/say]][[action name=app.open]]{"app":"motion"}[[/action]]');
+    feed('[[narrate]]Opening Photos[[/narrate]][[action name=app.open]]{"app":"photos"}[[/action]]');
+    feed('[[narrate]]then Motion.[[/narrate]][[action name=app.open]]{"app":"motion"}[[/action]]');
     end();
 
     expect(state.parts).toHaveLength(2);
@@ -159,7 +159,7 @@ describe('part writer', () => {
 
   it('keeps the text of a say cut off by the end of the stream, and drops a cut-off widget or action', () => {
     const { state, actions, feed, end } = setup();
-    feed('[[say]]Half a sen');
+    feed('[[narrate]]Half a sen');
     end();
 
     expect(state.parts).toEqual([{ type: 'text', chunks: ['Half a sen'], text: 'Half a sen', spoken: true }]);
@@ -183,7 +183,7 @@ describe('part writer', () => {
 
   it('reports an ask_user with its form described, as an ask anchored like an action', () => {
     const { state, actions, feed, end } = setup();
-    feed('[[say]]Which one?[[/say]]', '[[ask_user]] A choice named "choice" between keep and delete. [[/ask_user]]');
+    feed('[[narrate]]Which one?[[/narrate]]', '[[ask_user]] A choice named "choice" between keep and delete. [[/ask_user]]');
     end();
 
     expect(state.parts).toHaveLength(1);
