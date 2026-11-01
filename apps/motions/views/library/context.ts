@@ -4,7 +4,8 @@ import { parentOf } from '@/lib/documents/paths.js';
 import { type FileRow, rowsOf } from '@/lib/documents/rows.js';
 import { dfs } from '@/lib/share/dfs.js';
 import { LOUNGE, LOUNGE_EVENT } from '../../../../lib/kernel/workspace.h.js';
-import { ROOT } from '../motion.js';
+import { openMotion } from '../composer/index.js';
+import { animation, newMotion, ROOT } from '../motion.js';
 import { changesListing, type LibraryView, listingOf, orderOf } from './listing.js';
 
 /** A library window's state: where it is, how it shows it, and what's picked. */
@@ -23,6 +24,8 @@ export type LibraryState = {
   /** One project's path while picking one, and the checked paths while picking several. */
   picked: string | string[] | null;
   several: boolean;
+  /** Whether a new motion is on its way, so it's only made once. */
+  creating: boolean;
   /** Read by the listing, which is asked for again as it changes: after a failure, or for what nobody here holds. */
   asked: number;
 };
@@ -51,6 +54,7 @@ export function createLibrary() {
     previewShown: false,
     picked: null,
     several: false,
+    creating: false,
     asked: 0,
   });
 
@@ -115,6 +119,18 @@ export function createLibrary() {
 
     add,
     drop,
+
+    /** Starts a new motion and opens it; the listing hears of it as it does of any new file. */
+    async create() {
+      if (state.creating) return;
+      state.creating = true;
+      try {
+        const { path } = await newMotion('New motion', animation.aspect, '');
+        openMotion(path);
+      } finally {
+        state.creating = false;
+      }
+    },
 
     /** Goes into a folder. */
     enter({ path, name }: { path: string; name: string }) {

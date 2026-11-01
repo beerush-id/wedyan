@@ -3,7 +3,6 @@ import { Button, EmptyState, GalleryItem, Spinner } from '@airlib/react-aui';
 import { IRPC_STATUS } from '@irpclib/irpc';
 import { BROWSE_CLASS, WedyanGallery, WedyanGalleryRow } from '@/components/WedyanGallery.js';
 import type { FileRow } from '@/lib/documents/rows.js';
-import { focusPrompt } from '@/lib/systems/focus.js';
 import { openMotion } from '../composer/index.js';
 import { AddIcon, ProjectsIcon } from '../icons.js';
 import { libraryCtx, type MotionLibrary } from './context.js';
@@ -17,7 +16,7 @@ const LOADING = 'Loading your motions';
 
 /** What's listed as tiles or rows, the picked one's preview beside; or why there's nothing to list. */
 export const LibrarySheet = setup(() => {
-  const { state, items, rows, enter } = libraryCtx.get() as MotionLibrary;
+  const { state, items, rows, enter, create } = libraryCtx.get() as MotionLibrary;
   const pending = () => items.status === IRPC_STATUS.PENDING;
 
   /** A row opens where it belongs: a folder here, a project in a window of its own. */
@@ -47,7 +46,7 @@ export const LibrarySheet = setup(() => {
                 );
               }
               return (
-                <Button size="sm" variant="filled" onClick={focusPrompt}>
+                <Button size="sm" variant="filled" disabled={$use(() => state.creating)} onClick={create}>
                   <AddIcon />
                   <span>New motion</span>
                 </Button>

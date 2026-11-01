@@ -1,6 +1,6 @@
 import { Show, setup } from '@airlib/react';
 import { deleteConfirm } from '@/components/confirm.js';
-import { DeleteIcon, DownloadIcon, ShareIcon } from '@/components/icons.js';
+import { DeleteIcon } from '@/components/icons.js';
 import { type SelectionAction, SelectionActions } from '@/components/SelectionActions.js';
 import { openMotion } from '../composer/index.js';
 import { ComposeIcon, DirectIcon, EditIcon } from '../icons.js';
@@ -32,10 +32,6 @@ export const LibrarySelection = setup(() => {
           ]
         : []),
       ...(state.several ? [] : [[{ label: 'Rename', icon: <EditIcon />, run: () => Object.assign(state, { previewShown: true, renaming: true }) }]]),
-      [
-        { label: 'Share', icon: <ShareIcon /> },
-        { label: 'Download', icon: <DownloadIcon /> },
-      ],
       [{ label: 'Delete', icon: <DeleteIcon />, run: remove, confirm: deleteConfirm(paths().length, 'item', 'items', 'your drive') }],
     ];
   };

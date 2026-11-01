@@ -1,11 +1,10 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
-import { $bind, Show, Snippet, setup } from '@airlib/react';
+import { $bind, $use, Show, Snippet, setup } from '@airlib/react';
 import { Button, Divider, Toggle, Tooltip } from '@airlib/react-aui';
 import { WindowControls, WindowTitle, WindowToolbar } from '@airlib/react-aui/desktop';
 import { ArrowLeft } from '@airlib/react-aui/icons';
 import { PreviewPanelIcon } from '@/components/icons.js';
-import { WedyanGalleryLayoutToggle, WedyanGallerySearch } from '@/components/WedyanGallery.js';
-import { focusPrompt } from '@/lib/systems/focus.js';
+import { WedyanGalleryLayoutToggle } from '@/components/WedyanGallery.js';
 import { AddIcon, NewFolderIcon, SidebarCloseIcon, SidebarOpenIcon } from '../icons.js';
 import { newFolder, ROOT } from '../motion.js';
 import { libraryCtx, type MotionLibrary } from './context.js';
@@ -14,7 +13,7 @@ import { LibrarySelection } from './Selection.js';
 
 /** The library's toolbar: where it is, what can be done with what's picked, and how it's shown. */
 export const LibraryToolbar = setup(() => {
-  const { state, up, add } = libraryCtx.get() as MotionLibrary;
+  const { state, up, add, create } = libraryCtx.get() as MotionLibrary;
   const inFolder = () => state.activeView === 'all' && state.folder !== ROOT;
   const title = () => (inFolder() ? state.trail.at(-1)?.name : VIEW_LABELS[state.activeView]);
 
@@ -46,10 +45,7 @@ export const LibraryToolbar = setup(() => {
       </WindowTitle>
       <LibrarySelection />
       <WindowControls>
-        <WedyanGallerySearch query={$bind(state, 'query')} />
-        <Divider orientation="vertical" variant="ghost" size="sm" />
-        {/* Starting a motion is asking Wedyan for one, so it puts the caret in the prompt, the dock's tools for it beside. */}
-        <Button aria-label="New motion" size="sm" variant="text" className={AUI_CLASS.CONTROL_ICON} onClick={focusPrompt}>
+        <Button aria-label="New motion" size="sm" variant="text" className={AUI_CLASS.CONTROL_ICON} disabled={$use(() => state.creating)} onClick={create}>
           <AddIcon />
           <Tooltip>New motion</Tooltip>
         </Button>
