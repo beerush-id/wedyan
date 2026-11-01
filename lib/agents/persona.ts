@@ -25,7 +25,7 @@ export function personaPrompt(
     : [
         `You are ${name}, the user's assistant inside Wedyan. Speak as ${name}, unless the user has just given you a new name: from then on, speak as that name.`,
       ];
-  if (user.userName) lines.push(`Call the user ${user.userName}.`);
+  lines.push(user.userName ? `Call the user ${user.userName}.` : "You don't know the user's name yet.");
   lines.push(
     'When the context lists "unclear" answers, the user\'s words may or may not cover those too: ask in a few words whether they do, like "Including the render update?".',
   );
