@@ -150,17 +150,33 @@ export const newStage = (project: Project, stages: FileRow[]): string => {
 };
 
 /**
- * Gives a stage a script of its own, a Markdown file beside its project's, headed by the stage's name.
+ * Gives a stage a script of its own.
  *
  * @param project - The project's path.
  * @param stage - The stage.
  * @returns When it's written.
  */
 export const newScript = async (project: string, stage: StageDocument): Promise<void> => {
-  const path = `${parentOf(project)}/${newId()}.md`;
-  await dfs.write(path, `## ${stage.name}\n`, { metadata: { title: `${stage.name} script` } });
-  stage.script = nameOf(path);
+  stage.script = await writeScript(project, stage.name);
 };
+
+/**
+ * Gives a project its script.
+ *
+ * @param project - The project's path.
+ * @param motion - The project's `.motion`.
+ * @returns When it's written.
+ */
+export const newMotionScript = async (project: string, motion: MotionDocument): Promise<void> => {
+  motion.script = { path: await writeScript(project, motion.name) };
+};
+
+/** Writes a script, a Markdown file in its project's folder headed by what it's for, and names it. */
+async function writeScript(project: string, name: string): Promise<string> {
+  const path = `${parentOf(project)}/${newId()}.md`;
+  await dfs.write(path, `## ${name}\n`, { metadata: { title: `${name} script` } });
+  return nameOf(path);
+}
 
 /**
  * A new empty stage of a project: its size, its casts, its starting tracks, at 30 frames a second.

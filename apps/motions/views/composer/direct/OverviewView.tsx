@@ -1,15 +1,22 @@
 import { $use, setup } from '@airlib/react';
-import { EmptyState } from '@airlib/react-aui';
+import { Button, EmptyState } from '@airlib/react-aui';
 import { DirectContent } from '@/components/Direct.js';
 import { ScriptIcon } from '../../icons.js';
-import { duration, length, shortDate } from '../../motion.js';
+import { duration, length, newMotionScript, shortDate } from '../../motion.js';
 import { type Composer, composerCtx } from '../context.js';
 import { ScriptAbout } from './ScriptAbout.js';
 import { ScriptPane } from './ScriptPane.js';
 
-/** The project itself: its whole script, beside its cover, what it is, and where it stands. */
+/**
+ * The project itself: its whole script, beside its cover, what it is, and where it stands. A project
+ * without a script says so, and offers to write one.
+ */
 export const OverviewView = setup(() => {
   const composer = composerCtx.get() as Composer;
+
+  const write = () => {
+    if (composer.motion) void newMotionScript(composer.path, composer.motion);
+  };
 
   return () => {
     if (composer.activeView !== 'overview') return null;
@@ -25,6 +32,13 @@ export const OverviewView = setup(() => {
             {() => (
               <EmptyState title="No script yet" description="This motion has no script.">
                 <EmptyState.Snippet for="icon">{() => <ScriptIcon />}</EmptyState.Snippet>
+                <EmptyState.Snippet for="action">
+                  {() => (
+                    <Button size="sm" variant="filled" onClick={write}>
+                      Write its script
+                    </Button>
+                  )}
+                </EmptyState.Snippet>
               </EmptyState>
             )}
           </ScriptPane.Snippet>
