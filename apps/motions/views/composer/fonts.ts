@@ -17,7 +17,7 @@ const LOADED = new Map<string, Promise<unknown>>();
  * @param text - The words: a family comes in parts by alphabet, and only theirs is fetched.
  * @returns When it's loaded; nothing for words in the stage's own font.
  */
-export function loadFont({ fontFamily, fontWeight = 400, fontStyle = 'normal' }: FontStyle, text = ''): Promise<unknown> | undefined {
+export function loadFont({ fontFamily, fontWeight = 400, fontStyle = 'normal' }: FontStyle = {}, text = ''): Promise<unknown> | undefined {
   if (!fontFamily) return;
   const font = `${fontStyle} ${fontWeight} 16px "${fontFamily}"`;
   const key = `${font}:${text}`;

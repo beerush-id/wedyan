@@ -1,4 +1,4 @@
-import { For, mutable, Snippet, setup, template } from '@airlib/react';
+import { effect, For, mutable, Snippet, setup, template } from '@airlib/react';
 import { StageClip } from '@airlib/react-aui';
 import type { Timeline, TimelineSegment } from '@airlib/react/timeline';
 import type { ReactNode } from 'react';
@@ -122,8 +122,13 @@ const ImageClipView = template<{ segment: TimelineSegment<ImageClip> }>(
 );
 
 /** A title clip: its words in their CSS, filling its box, in a font the stage waits for. */
-const TitleClipView = template<{ segment: TimelineSegment<TitleClip> }>(
-  (props) => (
+const TitleClipView = setup<{ segment: TimelineSegment<TitleClip> }>((props) => {
+  // A paused stage draws no frame, so a font set then loads here; `draw` is what a frame waits on.
+  effect.client(() => {
+    void loadFont(props.segment.props.style, props.segment.props.text);
+  });
+
+  return () => (
     // React freezes the object it's given as a style: the clip's own stays the clip's to change.
     <StageClip
       segment={props.segment}
@@ -132,9 +137,8 @@ const TitleClipView = template<{ segment: TimelineSegment<TitleClip> }>(
     >
       {props.segment.props.text}
     </StageClip>
-  ),
-  'TitleClipView'
-);
+  );
+}, 'TitleClipView');
 
 /**
  * An HTML clip: its one element in its box — an image when it names `img`, else a box — with its

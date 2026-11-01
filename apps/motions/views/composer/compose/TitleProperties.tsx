@@ -1,6 +1,6 @@
-import { $bind, $static, type AnyType, setup } from '@airlib/react';
+import { $bind, type AnyType, effect, setup } from '@airlib/react';
 import type { TimelineSegment } from '@airlib/react/timeline';
-import { Stepper, StepperInput, TextInput, Toggle, ToggleGroup, Tooltip } from '@airlib/react-aui';
+import { SegmentGroup, Stepper, StepperInput, TextInput, Toggle, ToggleGroup, Tooltip } from '@airlib/react-aui';
 import {
   FormatAlignCenterIcon,
   FormatAlignLeftIcon,
@@ -15,7 +15,7 @@ import { FontPicker } from './FontPicker.js';
 
 /** The picked title's words and how they're set, each bound to the clip's own CSS. */
 export const TitleProperties = setup<{ clip: TimelineSegment<TitleClip> }>((props) => {
-  $static(() => {
+  effect(() => {
     if (!props.clip.props.style) {
       props.clip.props.style = {};
     }
@@ -42,24 +42,20 @@ export const TitleProperties = setup<{ clip: TimelineSegment<TitleClip> }>((prop
               <StepperInput aria-label="Size" />
               <Tooltip>Size</Tooltip>
             </Stepper>
-            <ToggleGroup aria-label="Weight" size="xs" value={$bind(style, 'fontWeight')}>
-              <Toggle value="bold" aria-label="Bold">
+            <SegmentGroup aria-label="Format" size="xs" value={style}>
+              <Toggle name="fontWeight" value="bold" aria-label="Bold">
                 <FormatBoldIcon />
                 <Tooltip>Bold</Tooltip>
               </Toggle>
-            </ToggleGroup>
-            <ToggleGroup aria-label="Slant" size="xs" value={$bind(style, 'fontStyle')}>
-              <Toggle value="italic" aria-label="Italic">
+              <Toggle name="fontStyle" value="italic" aria-label="Italic">
                 <FormatItalicIcon />
                 <Tooltip>Italic</Tooltip>
               </Toggle>
-            </ToggleGroup>
-            <ToggleGroup aria-label="Decoration" size="xs" value={$bind(style, 'textDecoration')}>
-              <Toggle value="underline" aria-label="Underline">
+              <Toggle name="textDecoration" value="underline" aria-label="Underline">
                 <FormatUnderlinedIcon />
                 <Tooltip>Underline</Tooltip>
               </Toggle>
-            </ToggleGroup>
+            </SegmentGroup>
           </div>
           <div className="wedyan-compose-property-row">
             <span>Align</span>
@@ -81,7 +77,7 @@ export const TitleProperties = setup<{ clip: TimelineSegment<TitleClip> }>((prop
           <div className="wedyan-compose-property-row">
             <span>Color</span>
             <div>
-              <TextInput type="color" size="sm" value={$bind(style, 'color')} />
+              <TextInput type="color" size="xs" value={$bind(style, 'color')} />
             </div>
           </div>
         </fieldset>
