@@ -80,6 +80,8 @@ const files = createFileWorker({
   public: DELIVERED_FILES,
   // A file can change at its path, so nothing keeps it but the asking browser, by its ETag.
   cache: { browserTtl: 0, edgeTtl: 0 },
+  // Files are named by id: what they're called is what a search looks through.
+  indexableKeys: ['title'],
   extension: fileRows,
 })
   .use(contentIndex())

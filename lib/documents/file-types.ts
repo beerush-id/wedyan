@@ -32,7 +32,11 @@ fileModule.hook(writeStub, (req) => {
   const type = FILE_TYPES[extension];
   if (!type) return;
   if (typeof data === 'string') assertDocument(path, data);
-  req.args[2] = { ...options, type, metadata: { ...options?.metadata, ...(extension === 'motion' ? flagsOf(data) : {}) } };
+  req.args[2] = {
+    ...options,
+    type,
+    metadata: { ...options?.metadata, ...titleOf(data), ...(extension === 'motion' ? flagsOf(data) : {}) },
+  };
 });
 
 // A document or a text file is words, whoever reads it: unencoded, a read gives a link to download,
@@ -58,6 +62,22 @@ function assertDocument(path: string, text: string): void {
     JSON.parse(text);
   } catch (cause) {
     throw new HandlerError('EINVAL', `${path} is not valid JSON, nothing was written: ${(cause as Error).message}`);
+  }
+}
+
+/**
+ * What a document is called, as file metadata: files are named by id, so this is what a search by
+ * name finds.
+ *
+ * @param data - The document, as an object, or as text as an agent writes it.
+ * @returns Its title, when it has a name.
+ */
+function titleOf(data: unknown): { title?: string } {
+  try {
+    const { name } = (typeof data === 'string' ? JSON.parse(data) : data) as { name?: unknown };
+    return typeof name === 'string' ? { title: name } : {};
+  } catch {
+    return {};
   }
 }
 
