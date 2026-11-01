@@ -77,6 +77,8 @@ const WedyanDesktop = setup<{ children?: ReactNode }>((props) => {
       promptLabel={PROMPT_LABEL}
       placeholder="Ask anything"
       shortcut={SHORTCUT}
+      answersLabel="Show chat"
+      answers={$bind(session.answers, 'open')}
       voiceLabel="Voice input"
       submitLabel="Send"
       busyLabel="Thinking"
@@ -95,6 +97,7 @@ const WedyanDesktop = setup<{ children?: ReactNode }>((props) => {
       label="Answers"
       widgets={session.widgets}
       waiting={$use(() => session.waiting)}
+      open={$bind(session.answers, 'open')}
       onaction={session.run}
       onlink={session.link}
       allowsLink={isAppLink}

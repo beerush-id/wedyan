@@ -27,6 +27,7 @@ export function openSession() {
   const pressed = new Set<AbortController>();
   const state = mutable({ asking: 0, pressing: 0 });
   const prompt = mutable({ text: '' });
+  const answers = mutable({ open: false });
 
   answerActions(answer as never);
 
@@ -59,6 +60,7 @@ export function openSession() {
   return {
     state,
     prompt,
+    answers,
     widgets,
     speech,
 
