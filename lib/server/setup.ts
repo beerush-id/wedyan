@@ -15,6 +15,7 @@ import { setupConversation } from '@/lib/kernel/chat.js';
 import '@/lib/documents/file-types.js';
 import '@/lib/kernel/account.js';
 import '@/lib/kernel/document.js';
+import { setupFonts } from '@/lib/kernel/fonts.js';
 import { embedWith, setupMemory, type VectorStore } from '@/lib/memory/memory.js';
 import { AGENT_EXTENSION, type AgentFile } from '@/lib/share/agents.js';
 import {
@@ -40,6 +41,8 @@ export type ServerEnv = FileWorkerEnv & {
   MUSE_API_KEY?: string;
   /** Baseten's key; with it, Spark Open takes over routing and composing. */
   BASETEN_API_KEY?: string;
+  /** Google's key, which lists Google Fonts. */
+  GOOGLE_API_KEY?: string;
   /** The picture resizer: R2 Image's container, which runs only where Wedyan is deployed. */
   RESIZER?: ImageWorkerEnv['RESIZER'];
   /** The picture resizer in development: R2 Image's image running locally. */
@@ -64,6 +67,7 @@ export function setupServer(env: ServerEnv): void {
     baseten: env.BASETEN_API_KEY ?? globalThis.process?.env?.BASETEN_API_KEY,
   };
   if (process.env.NODE_ENV === 'production') setupUsage(env.DB as never);
+  setupFonts(env.GOOGLE_API_KEY ?? globalThis.process?.env?.GOOGLE_API_KEY);
   const adapter = withModels(MODELS, keys);
   setupKernel({
     adapter,
