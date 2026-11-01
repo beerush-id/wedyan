@@ -2,8 +2,8 @@
 const FONT_SHEETS = 'https://fonts.googleapis.com/css';
 const STYLES = [100, 200, 300, 400, 500, 600, 700, 800, 900].flatMap((weight) => [weight, `${weight}i`]).join(',');
 
-/** A title's font as CSS sets it. */
-export type FontStyle = { fontFamily?: unknown; fontWeight?: unknown; fontStyle?: unknown };
+/** A title's font as CSS sets it, among whatever other values it has. */
+export type FontStyle = { fontFamily?: unknown; fontWeight?: unknown; fontStyle?: unknown; [property: string]: unknown };
 
 /** The fonts this page has loaded, each once, by what it was asked for. */
 const LOADED = new Map<string, Promise<unknown>>();

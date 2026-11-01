@@ -890,6 +890,11 @@
     min-block-size: 0;
   }
 
+  /* The dock's extension floats over the panel's foot, so the last lanes scroll up clear of it. */
+  & .aui-timeline-body {
+    padding-block-end: calc(var(--aui-dock-float-block-size, 0px) + var(--spacing-sm));
+  }
+
   /*
    * Every head is a rounded piece of frosted glass: the corner and the ruler across the top, so the
    * lanes blur under them as they scroll up, and each track's name down the side, so the clips blur

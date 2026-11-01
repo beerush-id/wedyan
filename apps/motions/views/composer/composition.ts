@@ -27,19 +27,18 @@ export const TRACK_CLIPS: Record<string, string[]> = {
 /** A picture filling its box: its address, and how it fills the box — cropped to cover it, the default, or fitted inside. */
 export type ImageClip = MotionBox & { src?: string; fit?: 'cover' | 'contain' };
 
-/** Words on a title track, set by their CSS, filling the clip's box. */
-export type TitleClip = MotionBox & { text?: string; style?: Record<string, string | number> };
+/** Words on a title track, filling the clip's box. Every other value is its CSS. */
+export type TitleClip = MotionBox & { text?: string; [property: string]: unknown };
 
 /**
- * One element on an HTML track, in its box: which element, HTML or SVG, its words, its fixed
- * attributes and CSS, any other value as what keyframes can move — CSS on HTML, e.g. `borderRadius`,
- * an attribute on SVG, e.g. `r` — and the elements nested inside it.
+ * One element on an HTML track: which element, HTML or SVG, its words, its fixed attributes, and the
+ * elements nested inside it. Every other value is what it looks like, all in one place: CSS on HTML,
+ * e.g. `borderRadius`, an attribute on SVG, e.g. `r`.
  */
 export type HtmlClip = MotionBox & {
   element?: string;
   text?: string;
   attrs?: Record<string, string | number>;
-  style?: Record<string, string | number>;
   children?: ClipNode[];
   [property: string]: unknown;
 };

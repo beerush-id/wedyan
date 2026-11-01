@@ -1,8 +1,8 @@
-import { $bind, effect, setup, Show } from '@airlib/react';
+import { $bind, effect, setup, Show, template } from '@airlib/react';
 import { Select, Stepper, StepperAdjuster, StepperInput, TextInput, Tooltip } from '@airlib/react-aui';
 import { HeightIcon, OpacityIcon, RadiusIcon, RotateIcon, ScaleIcon, WidthIcon, XIcon, YIcon } from '../../icons.js';
 import { type Composer, composerCtx, type Picked } from '../context.js';
-import { type Group, Groups, KeyedStyle } from './Groups.js';
+import { type Group, Groups, KeyedLine } from './Groups.js';
 
 /** The box's values in named groups, as the panel lays them out. */
 const BOX_GROUPS: Group[] = [
@@ -51,7 +51,7 @@ export const LayerProperties = setup(() => {
         {(image) => <PictureSource image={image} />}
       </Show>
       <Groups groups={BOX_GROUPS} />
-      <Show when={html}>{(box) => <BoxStyle key={box.id} box={box} />}</Show>
+      <Show when={html}>{(box) => <BoxStyle key={box.id} />}</Show>
     </div>
   );
 }, 'LayerProperties');
@@ -79,20 +79,14 @@ const PictureSource = setup<{ image: Picked }>((props) => {
   );
 }, 'PictureSource');
 
-/** How a box is filled and rounded, each keyed on its own, on its own CSS. */
-const BoxStyle = setup<{ box: Picked }>((props) => {
-  effect(() => {
-    if (!props.box.props.style) {
-      props.box.props.style = {};
-    }
-  });
-
-  return ({ box: { props: values } }) => (
+/** How a box is filled and rounded, each keyed on its own. */
+const BoxStyle = template(
+  () => (
     <>
-      <KeyedStyle group={FILL} style={values.style}>
+      <KeyedLine group={FILL}>
         {(value, edit) => <TextInput type="color" size="xs" value={value} onInput={edit} />}
-      </KeyedStyle>
-      <KeyedStyle group={RADIUS} style={values.style}>
+      </KeyedLine>
+      <KeyedLine group={RADIUS}>
         {(value, edit) => (
           <Stepper size="xs" label="Radius" step={1} min={0} value={value} onInput={edit}>
             <StepperAdjuster rate={2}>
@@ -102,7 +96,8 @@ const BoxStyle = setup<{ box: Picked }>((props) => {
             <Tooltip>Radius</Tooltip>
           </Stepper>
         )}
-      </KeyedStyle>
+      </KeyedLine>
     </>
-  );
-}, 'BoxStyle');
+  ),
+  'BoxStyle',
+);

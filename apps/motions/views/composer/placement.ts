@@ -135,15 +135,13 @@ export function placeTitle(timeline: Timeline, stage: StageProps, at: Placement)
     y: Math.round(stage.height * 0.4),
     width: Math.round(stage.width * 0.8),
     height: Math.round(stage.height * 0.2),
-    style: {
-      display: 'grid',
-      alignItems: 'center',
-      textAlign: 'center',
-      color: '#ffffff',
-      fontSize: Math.round(stage.height * 0.08),
-      fontWeight: 'bold',
-      lineHeight: 1.1,
-    },
+    display: 'grid',
+    alignItems: 'center',
+    textAlign: 'center',
+    color: '#ffffff',
+    fontSize: Math.round(stage.height * 0.08),
+    fontWeight: 'bold',
+    lineHeight: 1.1,
   };
   return place(timeline, 'title', at, { type: 'title', name: 'Title', duration: TEXT_SECONDS }, props);
 }
@@ -163,7 +161,7 @@ export function placeBox(timeline: Timeline, stage: StageProps, at: Placement): 
     y: Math.round(stage.height * 0.72),
     width: Math.round(stage.width * 0.4),
     height: Math.round(stage.height * 0.12),
-    style: { background: '#ffffff' },
+    background: '#ffffff',
     borderRadius: Math.round(stage.height * 0.02),
   };
   return place(timeline, 'html', at, { type: 'html', name: 'Box', duration: TEXT_SECONDS }, props);

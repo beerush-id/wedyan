@@ -53,7 +53,7 @@
           {
             "id": "demo-h1",
             "options": { "type": "html", "name": "Shade", "meta": {}, "speed": 1, "duration": 2.5, "startFrame": 0 },
-            "props": { "x": 0, "y": 0, "width": 1920, "height": 1080, "style": { "background": "linear-gradient(90deg, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.78) 55%, rgba(0, 0, 0, 0.55) 100%)" } }
+            "props": { "x": 0, "y": 0, "width": 1920, "height": 1080,"background": "linear-gradient(90deg, rgba(0, 0, 0, 0.88) 0%, rgba(0, 0, 0, 0.78) 55%, rgba(0, 0, 0, 0.55) 100%)" }
           }
         ]
       },
@@ -64,7 +64,7 @@
           {
             "id": "demo-t1",
             "options": { "type": "title", "name": "An AI in every tab.", "speed": 1, "duration": 2.3, "startFrame": 6 },
-            "props": { "text": "An AI in every tab.", "x": 140, "y": 345, "width": 1640, "height": 130, "style": { "display": "grid", "alignItems": "center", "whiteSpace": "nowrap", "color": "#ffffff", "fontSize": 104, "fontWeight": 800, "lineHeight": 1.1, "letterSpacing": "-2px" } },
+            "props": { "text": "An AI in every tab.", "x": 140, "y": 345, "width": 1640, "height": 130,"display": "grid", "alignItems": "center", "whiteSpace": "nowrap", "color": "#ffffff", "fontSize": 104, "fontWeight": 800, "lineHeight": 1.1, "letterSpacing": "-2px" },
             "scenes": [
               { "id": "demo-t1-k1", "options": { "atFrame": 0, "meta": { "ease": "power2.out" } }, "data": { "opacity": 0, "y": 389 } },
               { "id": "demo-t1-k2", "options": { "atFrame": 9, "meta": { "ease": "power2.inOut" } }, "data": { "opacity": 1, "y": 345 } },
@@ -80,7 +80,7 @@
           {
             "id": "demo-t2",
             "options": { "type": "title", "name": "None of them talk.", "speed": 1, "duration": 1.6, "startFrame": 27 },
-            "props": { "text": "None of them talk.", "x": 140, "y": 475, "width": 1640, "height": 130, "style": { "display": "grid", "alignItems": "center", "whiteSpace": "nowrap", "color": "#ffffff", "fontSize": 104, "fontWeight": 800, "lineHeight": 1.1, "letterSpacing": "-2px" } },
+            "props": { "text": "None of them talk.", "x": 140, "y": 475, "width": 1640, "height": 130,"display": "grid", "alignItems": "center", "whiteSpace": "nowrap", "color": "#ffffff", "fontSize": 104, "fontWeight": 800, "lineHeight": 1.1, "letterSpacing": "-2px" },
             "scenes": [
               { "id": "demo-t2-k1", "options": { "atFrame": 0, "meta": { "ease": "power2.out" } }, "data": { "opacity": 0, "y": 519 } },
               { "id": "demo-t2-k2", "options": { "atFrame": 9, "meta": { "ease": "power2.inOut" } }, "data": { "opacity": 1, "y": 475 } },
@@ -96,7 +96,7 @@
           {
             "id": "demo-t3",
             "options": { "type": "title", "name": "You are the glue.", "speed": 1, "duration": 0.9, "startFrame": 48 },
-            "props": { "text": "You are the glue.", "x": 140, "y": 605, "width": 1640, "height": 130, "style": { "display": "grid", "alignItems": "center", "whiteSpace": "nowrap", "color": "#f6b38a", "fontSize": 104, "fontWeight": 800, "lineHeight": 1.1, "letterSpacing": "-2px" } },
+            "props": { "text": "You are the glue.", "x": 140, "y": 605, "width": 1640, "height": 130,"display": "grid", "alignItems": "center", "whiteSpace": "nowrap", "color": "#f6b38a", "fontSize": 104, "fontWeight": 800, "lineHeight": 1.1, "letterSpacing": "-2px" },
             "scenes": [
               { "id": "demo-t3-k1", "options": { "atFrame": 0, "meta": { "ease": "power2.out" } }, "data": { "opacity": 0, "y": 649 } },
               { "id": "demo-t3-k2", "options": { "atFrame": 9, "meta": { "ease": "power2.inOut" } }, "data": { "opacity": 1, "y": 605 } },
@@ -117,18 +117,19 @@
               "y": 244,
               "width": 924,
               "height": 592,
-              "style": { "background": "#fff7ef", "borderRadius": "32px" },
+              "background": "#fff7ef",
+              "borderRadius": "32px",
               "children": [
                 {
                   "id": "demo-h2-title",
                   "name": "Title",
-                  "props": { "text": "Promo.mp4", "x": 0, "y": 0, "width": 924, "height": 72, "style": { "display": "grid", "alignItems": "center", "textAlign": "center", "whiteSpace": "nowrap", "color": "#2a0a18", "fontSize": 36, "fontWeight": 600, "lineHeight": 1 } },
+                  "props": { "text": "Promo.mp4", "x": 0, "y": 0, "width": 924, "height": 72,"display": "grid", "alignItems": "center", "textAlign": "center", "whiteSpace": "nowrap", "color": "#2a0a18", "fontSize": 36, "fontWeight": 600, "lineHeight": 1 },
                   "scenes": []
                 },
                 {
                   "id": "demo-h2-picture",
                   "name": "Promo picture",
-                  "props": { "element": "img", "attrs": { "src": "/~/Motions/g01/g01a2.webp" }, "x": 8, "y": 72, "width": 908, "height": 512, "style": { "objectFit": "cover", "borderRadius": "8px 8px 24px 24px" } },
+                  "props": { "element": "img", "attrs": { "src": "/~/Motions/g01/g01a2.webp" }, "x": 8, "y": 72, "width": 908, "height": 512,"objectFit": "cover", "borderRadius": "8px 8px 24px 24px" },
                   "scenes": [
                     { "id": "demo-h2-picture-k1", "atFrame": 12, "meta": { "ease": "power2.out" }, "data": { "opacity": 0 } },
                     { "id": "demo-h2-picture-k2", "atFrame": 24, "data": { "opacity": 1 } }
@@ -152,7 +153,7 @@
           {
             "id": "demo-h4",
             "options": { "type": "html", "name": "Shape", "meta": {}, "speed": 1, "duration": 7, "startFrame": 90 },
-            "props": { "x": 850, "y": 430, "width": 220, "height": 220, "borderRadius": 59, "style": { "background": "#b0004c", "boxShadow": "0 24px 120px rgba(176, 0, 76, 0.35)" } },
+            "props": { "x": 850, "y": 430, "width": 220, "height": 220,"background": "#b0004c", "borderRadius": 59, "boxShadow": "0 24px 120px rgba(176, 0, 76, 0.35)" },
             "scenes": [
               { "id": "demo-h4-k1", "options": { "atFrame": 0, "meta": { "ease": "power2.out" } }, "data": { "x": 850, "y": 430, "width": 220, "height": 220, "borderRadius": 59, "opacity": 0 } },
               { "id": "demo-h4-k2", "options": { "atFrame": 24, "meta": { "ease": "power2.inOut" } }, "data": { "x": 840, "y": 420, "width": 240, "height": 240, "borderRadius": 65, "opacity": 1 } },
@@ -204,7 +205,7 @@
           {
             "id": "demo-t5",
             "options": { "type": "title", "name": "Ask Wedyan", "speed": 1, "duration": 0.5, "startFrame": 147 },
-            "props": { "text": "Ask Wedyan", "x": 796, "y": 932, "width": 420, "height": 72, "style": { "display": "grid", "alignItems": "center", "whiteSpace": "nowrap", "color": "#fff7ef", "fontSize": 40, "fontWeight": 500, "lineHeight": 1 } },
+            "props": { "text": "Ask Wedyan", "x": 796, "y": 932, "width": 420, "height": 72,"display": "grid", "alignItems": "center", "whiteSpace": "nowrap", "color": "#fff7ef", "fontSize": 40, "fontWeight": 500, "lineHeight": 1 },
             "scenes": [
               { "id": "demo-t5-k1", "options": { "atFrame": 0, "meta": { "ease": "power2.out" } }, "data": { "opacity": 0 } },
               { "id": "demo-t5-k2", "options": { "atFrame": 6, "meta": { "ease": "power2.inOut" } }, "data": { "opacity": 1 } },
@@ -215,7 +216,7 @@
           {
             "id": "demo-t6",
             "options": { "type": "title", "name": "Render my promo and open it.", "speed": 1, "duration": 1.2, "startFrame": 168 },
-            "props": { "text": "Render my promo and open it.", "x": 400, "y": 500, "width": 1120, "height": 180, "style": { "display": "grid", "alignItems": "center", "whiteSpace": "nowrap", "color": "#fff7ef", "fontSize": 64, "fontWeight": 600, "lineHeight": 1.1, "letterSpacing": "-1px" } },
+            "props": { "text": "Render my promo and open it.", "x": 400, "y": 500, "width": 1120, "height": 180,"display": "grid", "alignItems": "center", "whiteSpace": "nowrap", "color": "#fff7ef", "fontSize": 64, "fontWeight": 600, "lineHeight": 1.1, "letterSpacing": "-1px" },
             "scenes": [
               { "id": "demo-t6-k1", "options": { "atFrame": 0, "meta": { "ease": "power2.out" } }, "data": { "opacity": 0, "y": 516 } },
               { "id": "demo-t6-k2", "options": { "atFrame": 9, "meta": { "ease": "power2.inOut" } }, "data": { "opacity": 1, "y": 500 } },
@@ -226,7 +227,7 @@
           {
             "id": "demo-t7",
             "options": { "type": "title", "name": "Rendering promo", "speed": 1, "duration": 1, "startFrame": 210 },
-            "props": { "text": "Rendering promo", "x": 704, "y": 470, "width": 596, "height": 64, "style": { "display": "grid", "alignItems": "center", "whiteSpace": "nowrap", "color": "#fff7ef", "fontSize": 40, "fontWeight": 600, "lineHeight": 1 } },
+            "props": { "text": "Rendering promo", "x": 704, "y": 470, "width": 596, "height": 64,"display": "grid", "alignItems": "center", "whiteSpace": "nowrap", "color": "#fff7ef", "fontSize": 40, "fontWeight": 600, "lineHeight": 1 },
             "scenes": [
               { "id": "demo-t7-k1", "options": { "atFrame": 0, "meta": { "ease": "power2.out" } }, "data": { "opacity": 0 } },
               { "id": "demo-t7-k2", "options": { "atFrame": 6, "meta": { "ease": "power2.inOut" } }, "data": { "opacity": 1 } },
@@ -237,7 +238,7 @@
           {
             "id": "demo-t8",
             "options": { "type": "title", "name": "Wedyan. One workspace, one tab.", "speed": 1, "duration": 0.7, "startFrame": 279 },
-            "props": { "text": "Wedyan. One workspace, one tab.", "x": 160, "y": 610, "width": 1600, "height": 90, "style": { "display": "grid", "alignItems": "center", "textAlign": "center", "whiteSpace": "nowrap", "color": "#fff7ef", "fontSize": 56, "fontWeight": 600, "lineHeight": 1.1, "letterSpacing": "-0.5px" } },
+            "props": { "text": "Wedyan. One workspace, one tab.", "x": 160, "y": 610, "width": 1600, "height": 90,"display": "grid", "alignItems": "center", "textAlign": "center", "whiteSpace": "nowrap", "color": "#fff7ef", "fontSize": 56, "fontWeight": 600, "lineHeight": 1.1, "letterSpacing": "-0.5px" },
             "scenes": [
               { "id": "demo-t8-k1", "options": { "atFrame": 0, "meta": { "ease": "power2.out" } }, "data": { "opacity": 0, "y": 626 } },
               { "id": "demo-t8-k2", "options": { "atFrame": 9, "meta": { "ease": "power2.inOut" } }, "data": { "opacity": 1, "y": 610 } },
@@ -253,7 +254,7 @@
           {
             "id": "demo-t9",
             "options": { "type": "title", "name": "Promo ready", "speed": 1, "duration": 1.5, "startFrame": 234 },
-            "props": { "text": "Promo ready", "x": 704, "y": 470, "width": 596, "height": 64, "style": { "display": "grid", "alignItems": "center", "whiteSpace": "nowrap", "color": "#fff7ef", "fontSize": 40, "fontWeight": 600, "lineHeight": 1 } },
+            "props": { "text": "Promo ready", "x": 704, "y": 470, "width": 596, "height": 64,"display": "grid", "alignItems": "center", "whiteSpace": "nowrap", "color": "#fff7ef", "fontSize": 40, "fontWeight": 600, "lineHeight": 1 },
             "scenes": [
               { "id": "demo-t9-k1", "options": { "atFrame": 0, "meta": { "ease": "power2.out" } }, "data": { "opacity": 0, "x": 704 } },
               { "id": "demo-t9-k2", "options": { "atFrame": 6, "meta": { "ease": "power2.inOut" } }, "data": { "opacity": 1, "x": 704 } },

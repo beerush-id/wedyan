@@ -1,7 +1,7 @@
 import { effect, For, mutable, Snippet, setup, template } from '@airlib/react';
 import { StageClip } from '@airlib/react-aui';
 import type { Timeline, TimelineSegment } from '@airlib/react/timeline';
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import {
   type AudioClip,
   type ClipNode,
@@ -30,10 +30,10 @@ const SVG_CAMEL = new Set(['preserveAspectRatio', 'viewBox', 'gradientUnits', 'p
 const SVG_SIZED = new Set(['image', 'rect', 'foreignObject', 'use', 'svg']);
 
 /** Clip values that aren't attributes of an SVG element, nor CSS of an HTML one. */
-const ELEMENT_SKIP = new Set(['element', 'text', 'attrs', 'style', 'children']);
+const ELEMENT_SKIP = new Set(['element', 'text', 'attrs', 'children']);
 
-/** What of an element's own CSS keyframes can move. */
-const KEYED_STYLE = ['fontSize', 'color', 'background', 'borderRadius'];
+/** What a keyframe can set that the clip itself may not have, so it's cleared once nothing sets it. */
+const KEYED_CSS = ['fontSize', 'color', 'background', 'borderRadius'];
 
 /** Clip values that aren't props a widget's keyframes move. */
 const WIDGET_SKIP = new Set(['widget', 'params', 'text', 'style']);
@@ -130,17 +130,16 @@ const ImageClipView = template<{ segment: TimelineSegment<ImageClip> }>(
 const TitleClipView = setup<{ segment: TimelineSegment<TitleClip> }>((props) => {
   // A paused stage draws no frame, so a font set then loads here; `draw` is what a frame waits on.
   effect.client(() => {
-    void loadFont(props.segment.props.style, props.segment.props.text);
+    void loadFont(props.segment.props, props.segment.props.text);
   });
 
   return () => (
-    // React freezes the object it's given as a style: the clip's own stays the clip's to change.
     <StageClip
       segment={props.segment}
-      style={{ ...props.segment.props.style }}
+      style={cssOf(props.segment.props)}
       draw={({ element, values }) => {
-        drawKeyedStyle(element as HTMLElement, values as HtmlClip);
-        return loadFont((values as TitleClip).style, (values as TitleClip).text);
+        drawCss(element as HTMLElement, values as HtmlClip);
+        return loadFont(values as TitleClip, (values as TitleClip).text);
       }}
     >
       {props.segment.props.text}
@@ -154,7 +153,7 @@ const TitleClipView = setup<{ segment: TimelineSegment<TitleClip> }>((props) => 
  * its CSS each frame, and each frame reaches what's nested from here.
  */
 const HtmlClipView = template<{ segment: TimelineSegment<HtmlClip> }>((props) => {
-  const { element, attrs, style, text, children } = props.segment.props;
+  const { element, attrs, text, children } = props.segment.props;
   const image = element === 'img';
   return (
     <StageClip
@@ -162,10 +161,9 @@ const HtmlClipView = template<{ segment: TimelineSegment<HtmlClip> }>((props) =>
       segment={props.segment}
       {...attrs}
       crossOrigin={image ? 'anonymous' : undefined}
-      style={{ ...style }}
+      style={cssOf(props.segment.props)}
       draw={({ element: node, values, frame }) => {
         drawCss(node as HTMLElement, values as HtmlClip);
-        drawKeyedStyle(node as HTMLElement, values as HtmlClip);
         drawNodes(node, props.segment, (values as HtmlClip).children, frame);
         return Promise.all(fontsOf((values as HtmlClip).children));
       }}
@@ -188,17 +186,18 @@ const HtmlClipView = template<{ segment: TimelineSegment<HtmlClip> }>((props) =>
 const ClipNodeView = setup<{ node: ClipNode }>((props) => {
   // As a title's: a paused stage draws no frame, so a font set then loads here.
   effect.client(() => {
-    const { style, text } = props.node.props;
-    if (text !== undefined) void loadFont(style, text);
+    const { text } = props.node.props;
+    if (text !== undefined) void loadFont(props.node.props, text);
   });
 
   return () => {
-    const { element, attrs, style, text, children, x, y, width, height } = props.node.props;
+    const { element, attrs, text, children, x, y, width, height } = props.node.props;
+    const style = cssOf(props.node.props);
     const Element = (element ?? 'div') as 'div';
     const placed = x !== undefined || y !== undefined;
-    const box = { ...(placed ? { position: 'absolute', left: x ?? 0, top: y ?? 0 } : {}), width, height } as const;
+    const box = { ...(placed ? { position: 'absolute', left: x ?? 0, top: y ?? 0 } : {}), width, height } as CSSProperties;
     const id = props.node.id;
-    if (element === 'img') return <Element {...attrs} data-node={id} crossOrigin="anonymous" style={{ ...style, ...box }} />;
+    if (element === 'img') return <img alt="" {...attrs} data-node={id} crossOrigin="anonymous" style={{ ...style, ...box }} />;
     return (
       <Element {...attrs} data-node={id} style={{ ...style, ...box }}>
         {text}
@@ -276,21 +275,20 @@ const PainterClipView = template<{ segment: TimelineSegment<PainterClip> }>(
  */
 function drawCss(node: HTMLElement, clip: HtmlClip): void {
   drawValues(node, clip);
+  for (const key of KEYED_CSS) {
+    if (clip[key] === undefined) (node.style as unknown as Record<string, string>)[key] = '';
+  }
 }
 
 /**
- * Draws what keyframes can move of an element's own CSS, which goes back to that CSS once nothing
- * keys it. Its CSS is otherwise fixed, set when it renders.
+ * What of a clip's values React sets as its CSS when it renders, before its first frame: everything
+ * but what it is, what it holds, and the box the stage places.
  *
- * @param node - The element.
- * @param clip - Its values at the frame.
+ * @param clip - The clip's values.
+ * @returns Its CSS, a new object, as React freezes the one it's given.
  */
-function drawKeyedStyle(node: HTMLElement, clip: HtmlClip): void {
-  for (const key of KEYED_STYLE) {
-    const value = clip[key] ?? clip.style?.[key];
-    if (value === undefined) (node.style as unknown as Record<string, string>)[key] = '';
-    else drawValues(node, { [key]: value });
-  }
+function cssOf(clip: HtmlClip): CSSProperties {
+  return Object.fromEntries(Object.entries(clip).filter(([key]) => !MOTION_KEYS.has(key) && !ELEMENT_SKIP.has(key)));
 }
 
 /**
@@ -301,8 +299,8 @@ function drawKeyedStyle(node: HTMLElement, clip: HtmlClip): void {
  */
 function fontsOf(nodes: ClipNode[] | undefined): unknown[] {
   return (nodes ?? []).flatMap((node) => {
-    const { style, text, children } = node.props;
-    return [...(text === undefined ? [] : [loadFont(style, text)]), ...fontsOf(children)];
+    const { text, children } = node.props;
+    return [...(text === undefined ? [] : [loadFont(node.props, text)]), ...fontsOf(children)];
   });
 }
 
@@ -341,8 +339,7 @@ function drawNodes(parent: Element, host: TimelineSegment, nodes: ClipNode[] | u
       }
       if (width !== undefined) element.style.width = `${width}px`;
       if (height !== undefined) element.style.height = `${height}px`;
-      drawValues(element, values);
-      drawKeyedStyle(element, values);
+      drawCss(element, values);
     }
 
     drawNodes(element, host, values.children, frame);

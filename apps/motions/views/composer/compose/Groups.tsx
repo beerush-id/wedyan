@@ -83,32 +83,27 @@ const GroupView = setup<{ group: Group }>((props) => {
   );
 }, 'GroupView');
 
-/** One CSS value keyframes can move: its name beside its input, its keyframes above that. */
-export const KeyedStyle = setup<{
+/** One value on a line of its own: its name beside its input, its keyframes above that. */
+export const KeyedLine = setup<{
   group: KeyedGroup & { label: string };
-  style: Record<string, unknown>;
   children: (value: AnyType, edit: () => void) => ReactNode;
 }>((props) => {
-  const reading = createReading(
-    composerCtx.get() as Composer,
-    () => props.group.fields,
-    () => props.style,
-  );
+  const reading = createReading(composerCtx.get() as Composer, () => props.group.fields);
 
-  return ({ group, style, children }) => (
+  return ({ group, children }) => (
     <fieldset aria-label={group.label} className="wedyan-compose-property-group">
       <div className="wedyan-compose-property-head">
         <Keyframes group={group} reading={reading} />
       </div>
       <div className="wedyan-compose-property-row pis-sm">
         <span>{group.label}</span>
-        <KeyedValue name={group.fields[0].key} reading={reading} own={style}>
+        <KeyedValue name={group.fields[0].key} reading={reading}>
           {children}
         </KeyedValue>
       </div>
     </fieldset>
   );
-}, 'KeyedStyle');
+}, 'KeyedLine');
 
 /**
  * A group's keyframes at the playhead: the diamond, filled while the group has a keyframe there,
@@ -229,20 +224,18 @@ const FieldView = template<{ field: Field; reading: Reading }>(
 export const KeyedValue = setup<{
   name: string;
   reading: Reading;
-  /** Where the value lives with no keyframes, when it isn't what's picked's `props`. */
-  own?: Record<string, unknown>;
   children: (value: AnyType, edit: () => void) => ReactNode;
 }>(() => {
   const composer = composerCtx.get() as Composer;
 
-  return ({ name, reading, own, children }) => {
+  return ({ name, reading, children }) => {
     void composer.edits;
     const clip = composer.hostClip() as TimelineSegment;
     const keyed = composer.picked() as Picked;
     const at = clipFrame(clip, (composer.timeline as Timeline).state.frame);
-    const holder = holderOf(keyed, name, at, own);
+    const holder = holderOf(keyed, name, at);
     const edit = () => {
-      if (!holder) setValue(clip, keyed, at, name, reading[name] as number | string, own);
+      if (!holder) setValue(clip, keyed, at, name, reading[name] as number | string);
       composer.edited();
     };
 

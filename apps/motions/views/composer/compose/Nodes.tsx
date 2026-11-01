@@ -11,9 +11,9 @@ import { type Composer, composerCtx } from '../context.js';
 import { addNode, findNode, moveNode } from '../nodes.js';
 
 /** What a new element starts as, within what holds it, in stage units. */
-const NEW_BOX: HtmlClip = { x: 40, y: 40, width: 240, height: 160, style: { background: '#ffffff' } };
-const NEW_TEXT: HtmlClip = { x: 40, y: 40, text: 'Text', style: { color: '#ffffff', fontSize: 48 } };
-const NEW_IMAGE: HtmlClip = { element: 'img', x: 40, y: 40, width: 240, height: 160, attrs: {}, style: { objectFit: 'cover' } };
+const NEW_BOX: HtmlClip = { x: 40, y: 40, width: 240, height: 160, background: '#ffffff' };
+const NEW_TEXT: HtmlClip = { x: 40, y: 40, text: 'Text', color: '#ffffff', fontSize: 48 };
+const NEW_IMAGE: HtmlClip = { element: 'img', x: 40, y: 40, width: 240, height: 160, attrs: {}, objectFit: 'cover' };
 
 /** How a dragged row names itself to the row it's let go on. */
 const NODE_DRAG = 'application/x-wedyan-node';

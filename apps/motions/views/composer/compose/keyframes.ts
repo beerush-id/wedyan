@@ -14,18 +14,13 @@ export type Reading = Record<string, number | string | undefined>;
 
 /**
  * What the playhead reads for some values: candidates, shown until something holds them. Each is the
- * value of the keyframes there, else of `own`, to the field's own step rather than a tweened fraction.
+ * value there, to the field's own step rather than a tweened fraction.
  *
  * @param composer - The window's composer.
  * @param fields - The values.
- * @param own - Where these values live on what's picked, when it isn't its `props`.
  * @returns The reading, live as the playhead and the values move.
  */
-export function createReading(
-  composer: Composer,
-  fields: () => KeyedField[],
-  own?: () => Record<string, unknown> | undefined,
-): Reading {
+export function createReading(composer: Composer, fields: () => KeyedField[]): Reading {
   return derived.as(() => {
     void composer.edits;
     const reading: Reading = {};
@@ -33,9 +28,8 @@ export function createReading(
     const clip = composer.hostClip();
     if (!clip) return reading;
     const sampled = sampleClip(clip, (composer.timeline as Timeline).state.frame, composer.picked());
-    const base = own?.();
     for (const { key, fallback, step } of fields()) {
-      reading[key] = shown(sampled[key] ?? base?.[key] ?? fallback, step);
+      reading[key] = shown(sampled[key] ?? fallback, step);
     }
     return reading;
   });
@@ -55,16 +49,10 @@ function shown(value: unknown, step = 1): number | string | undefined {
  * @param keyed - The clip, or an element in it.
  * @param key - The value.
  * @param at - The frame, in the clip's content.
- * @param own - Where it lives with no keyframes.
  * @returns What holds it, when something does.
  */
-export function holderOf(
-  keyed: Picked,
-  key: string,
-  at: number,
-  own: Record<string, unknown> = keyed.props,
-): Record<string, unknown> | undefined {
-  const holder = keyed.scenes.length ? keyed.scenes.find((scene) => scene.atFrame === at)?.data : own;
+export function holderOf(keyed: Picked, key: string, at: number): Record<string, unknown> | undefined {
+  const holder = keyed.scenes.length ? keyed.scenes.find((scene) => scene.atFrame === at)?.data : keyed.props;
   return holder && key in holder ? holder : undefined;
 }
 
@@ -77,18 +65,10 @@ export function holderOf(
  * @param at - The frame, in the clip's content.
  * @param key - The value.
  * @param value - What it is.
- * @param own - Where it lives with no keyframes.
  */
-export function setValue(
-  clip: TimelineSegment,
-  keyed: Picked,
-  at: number,
-  key: string,
-  value: number | string,
-  own: Record<string, unknown> = keyed.props,
-): void {
+export function setValue(clip: TimelineSegment, keyed: Picked, at: number, key: string, value: number | string): void {
   if (keyed.scenes.length) setKeyframe(clip, keyed, at, { [key]: value });
-  else own[key] = value;
+  else keyed.props[key] = value;
 }
 
 /**
