@@ -59,7 +59,7 @@ export const Properties = setup(() => {
         </TabList>
         <TabPanel name="layer">
           <Show
-            when={() => hasBox(composer.pickedClip())}
+            when={() => hasBox(composer.hostClip())}
             fallback={() => <NothingPicked kind="clip" icon={PropertiesIcon} />}
           >
             {() => <LayerProperties />}
@@ -67,7 +67,7 @@ export const Properties = setup(() => {
         </TabPanel>
         <TabPanel name="audio">
           <Show
-            when={() => soundOf(composer.pickedClip())}
+            when={() => soundOf(composer.hostClip())}
             fallback={() => <NothingPicked kind="sound" icon={SoundIcon} />}
           >
             {(clip) => <SoundProperties clip={clip} />}
@@ -75,7 +75,7 @@ export const Properties = setup(() => {
         </TabPanel>
         <TabPanel name="text">
           <Show
-            when={() => titleOf(composer.pickedClip())}
+            when={() => titleOf(composer.hostClip())}
             fallback={() => <NothingPicked kind="text" icon={TextIcon} />}
           >
             {(clip) => <TitleProperties clip={clip} />}

@@ -1,4 +1,4 @@
-import { createContext, effect, mutable } from '@airlib/react';
+import { type AnyType, createContext, effect, mutable } from '@airlib/react';
 import type { Timeline, TimelineSegment } from '@airlib/react/timeline';
 import type { PersonTab } from '@/apps/lounge/views/session.js';
 import { isGenerative } from '@/lib/documents/generation.js';
@@ -8,11 +8,14 @@ import type { GenerativeDocument, MotionDocument, StageDocument } from '@/lib/do
 import { LOUNGE, LOUNGE_EVENT } from '@/lib/kernel/workspace.h.js';
 import { dfs } from '@/lib/share/dfs.js';
 import { documentAt, follow, type Project } from '../motion.js';
-import type { HtmlClip } from './composition.js';
-import { findNode, nodeClip } from './nodes.js';
+import type { HtmlClip, NodeKeyframe } from './composition.js';
+import { findNode } from './nodes.js';
 
 /** What a project window opens with: which project, and whether it opens in Direct. */
 export type ComposerData = { path: string; direct: boolean };
+
+/** What's being edited: a clip, or an element in it. Each holds its own values and keyframes. */
+export type Picked = { name?: string; props: Record<string, AnyType>; scenes: NodeKeyframe[] };
 
 /** What Direct shows beside its list. */
 export type DirectView = 'overview' | 'stage' | 'asset' | 'cast';
@@ -77,8 +80,13 @@ export type Composer = {
   pathOf(written: string): string;
   /** The clip picked on the timeline, when it's the only one. */
   hostClip(): TimelineSegment | undefined;
-  /** What's being edited: the element picked inside the clip, read like a clip, else the clip. */
-  pickedClip(): TimelineSegment | undefined;
+  /** What's being edited: the element picked inside the clip, else the clip. Its time is the clip's. */
+  picked(): Picked | undefined;
+  /**
+   * Shows an edit to a clip: on what reads its keyframes, and on the stage, which draws a frame only
+   * as the timeline reaches it, so while paused it draws the frame again.
+   */
+  edited(): void;
   /** The clip picked, when it's the only one and shows a generated image, video or sound. */
   generativeClip(): (GenerativeSource & { segment: TimelineSegment }) | undefined;
   /** The asset picked, when it's generated. */
@@ -176,14 +184,20 @@ export function createComposer(path: string, direct: boolean): Composer {
         }
       },
 
-      pickedClip() {
+      picked() {
         const host = composer.hostClip();
         const found = host && composer.node && findNode((host.props as HtmlClip).children, composer.node);
-        return found ? nodeClip(host, found.node) : host;
+        return found ? found.node : host;
+      },
+
+      edited() {
+        composer.edits += 1;
+        const { timeline } = composer;
+        if (timeline && timeline.status !== 'playing') void timeline.scrub(timeline.frame);
       },
 
       generativeClip() {
-        const segment = composer.pickedClip();
+        const segment = composer.hostClip();
         const source = segment?.meta?.source;
         if (!segment || typeof source !== 'string') return;
         const found = follow(path, source);

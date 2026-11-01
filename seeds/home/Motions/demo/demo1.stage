@@ -122,7 +122,8 @@
                 {
                   "id": "demo-h2-title",
                   "name": "Title",
-                  "props": { "text": "Promo.mp4", "x": 0, "y": 0, "width": 924, "height": 72, "style": { "display": "grid", "alignItems": "center", "textAlign": "center", "whiteSpace": "nowrap", "color": "#2a0a18", "fontSize": 36, "fontWeight": 600, "lineHeight": 1 } }
+                  "props": { "text": "Promo.mp4", "x": 0, "y": 0, "width": 924, "height": 72, "style": { "display": "grid", "alignItems": "center", "textAlign": "center", "whiteSpace": "nowrap", "color": "#2a0a18", "fontSize": 36, "fontWeight": 600, "lineHeight": 1 } },
+                  "scenes": []
                 },
                 {
                   "id": "demo-h2-picture",

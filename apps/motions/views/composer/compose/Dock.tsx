@@ -68,11 +68,11 @@ export const ComposeSubject = setup(() => {
   return () => {
     const generated = composer.generativeClip();
     if (generated) return <GeneratedTile source={generated.source} />;
-    const segment = composer.pickedClip();
+    const segment = composer.hostClip();
     if (!segment) return null;
     return (
       <SubjectTile
-        name={segment.name ?? 'Clip'}
+        name={composer.picked()?.name ?? 'Clip'}
         picture={segment.meta?.thumbnail as string | undefined}
         glyph={LANE_GLYPHS[segment.track.type ?? ''] ?? DraftIcon}
       />

@@ -1,92 +1,124 @@
 import { sampleSegment } from '@airlib/aria';
 import type { TimelineSegment } from '@airlib/react/timeline';
+import type { Picked } from '../context.js';
 
-/** A group of values keyed together: the fields it keys, and what each reads as when unset. */
-export type KeyedGroup = { fields: { key: string; fallback?: number }[] };
+/** A group of values keyed together: the fields it keys. */
+export type KeyedGroup = { fields: { key: string }[] };
 
 /**
- * Writes a keyed value of a clip — of its box or its sound — at a timeline frame. A value no
- * keyframe animates is the clip's own; an animated one goes into the keyframe at that frame, or a
- * new keyframe there.
+ * What holds a value at a frame of the clip, to change it there: the keyframe there that sets it.
+ * Without one, the value there is only a reading.
  *
- * @param segment - The clip's segment.
- * @param key - The value to write.
- * @param value - What it becomes.
- * @param frame - The timeline frame it's written at, held within the clip.
+ * @param keyed - The clip, or an element in it.
+ * @param key - The value.
+ * @param at - The frame, in the clip's content.
+ * @returns What holds it, when something does.
  */
-export function writeValue(segment: TimelineSegment, key: string, value: number, frame: number): void {
-  if (!segment.scenes.some((scene) => key in scene.data)) {
-    segment.props[key] = value;
-    return;
-  }
-
-  const at = clipFrame(segment, frame);
-  const scene = segment.scenes.find((each) => each.atFrame === at);
-  if (scene) scene.data[key] = value;
-  else addKeyframe(segment, at, { [key]: value });
+export function holderOf(keyed: Picked, key: string, at: number): Record<string, unknown> | undefined {
+  return keyed.scenes.find((scene) => scene.atFrame === at && key in scene.data)?.data;
 }
 
 /**
- * Keys a group of a clip's values at a frame of the clip, or unkeys it: a keyframe there that sets
- * any of the group's values gives them up, and goes once what it still sets changes nothing;
- * otherwise the group's values as they are there are keyed, into the keyframe there or a new one.
+ * Keys a group of values at a frame of the clip, or unkeys it: a keyframe there that sets any of the
+ * group's values gives them up, and goes once what it still sets changes nothing; otherwise the
+ * reading is keyed, into the keyframe there or a new one.
  *
- * @param segment - The clip's segment.
+ * @param clip - The clip, whose time the frame is read on.
+ * @param keyed - What holds the values: the clip, or an element in it.
  * @param group - The group.
  * @param at - The frame, in the clip's content.
+ * @param reading - The group's values to key, by key.
  */
-export function toggleKeyframe(segment: TimelineSegment, group: KeyedGroup, at: number): void {
-  const scene = segment.scenes.find((each) => each.atFrame === at);
+export function toggleKeyframe(
+  clip: TimelineSegment,
+  keyed: Picked,
+  group: KeyedGroup,
+  at: number,
+  reading: Record<string, number | undefined>,
+): void {
+  const scene = keyed.scenes.find((each) => each.atFrame === at);
   if (scene && group.fields.some((field) => field.key in scene.data)) {
     for (const field of group.fields) delete scene.data[field.key];
-    dropIfIdle(segment, scene);
+    dropIfIdle(clip, keyed, scene);
     return;
   }
 
-  const sampled = sampleSegment(segment, timelineFrame(segment, at)) as Record<string, number | undefined>;
   const values: Record<string, number> = {};
-  for (const { key, fallback } of group.fields) {
-    const value = sampled[key] ?? fallback;
+  for (const { key } of group.fields) {
+    const value = reading[key];
     if (value !== undefined) values[key] = value;
   }
-  if (scene) Object.assign(scene.data, values);
-  else addKeyframe(segment, at, values);
+  setKeyframe(clip, keyed, at, values);
 }
 
 /**
- * Takes a keyframe off a clip when it changes nothing: when, without it, the clip already has every
- * value it sets at its frame.
+ * Makes values a fact at a frame of the clip: into the keyframe there, or a new one.
+ *
+ * @param clip - The clip, whose time the frame is read on.
+ * @param keyed - What holds them: the clip, or an element in it.
+ * @param at - The frame, in the clip's content.
+ * @param values - The values, by key.
  */
-function dropIfIdle(segment: TimelineSegment, scene: TimelineSegment['scenes'][number]): void {
+export function setKeyframe(clip: TimelineSegment, keyed: Picked, at: number, values: Record<string, number>): void {
+  const scene = keyed.scenes.find((each) => each.atFrame === at);
+  if (scene) Object.assign(scene.data, values);
+  else addKeyframe(clip, keyed, at, values);
+}
+
+/**
+ * Takes a keyframe off when it changes nothing: when, without it, every value it sets is already
+ * that at its frame.
+ */
+function dropIfIdle(clip: TimelineSegment, keyed: Picked, scene: Picked['scenes'][number]): void {
   const { atFrame, meta } = scene;
   const data = { ...scene.data };
-  segment.removeScene(scene);
+  removeScene(clip, keyed, scene);
 
-  const sampled = sampleSegment(segment, timelineFrame(segment, atFrame)) as Record<string, unknown>;
+  const sampled = sampleSegment(clip, timelineFrame(clip, atFrame), keyed) as Record<string, unknown>;
   const changes = Object.entries(data).some(([key, value]) =>
     typeof value === 'number' ? Math.abs(Number(sampled[key] ?? value) - value) > 1e-6 : sampled[key] !== value,
   );
-  if (!changes) return;
-
-  segment.addScene({ atFrame, meta }, data);
-  segment.sortScenes();
+  if (changes) insertScene(clip, keyed, atFrame, meta, data);
 }
 
 /**
- * Adds a keyframe to a clip. It takes every animated value the clip has at that frame, so the values
- * it doesn't set keep their course through it, then the given ones, and the ease of the one before.
+ * Adds a keyframe. It takes every animated value at that frame, so the values it doesn't set keep
+ * their course through it, then the given ones, and the ease of the one before.
  */
-function addKeyframe(segment: TimelineSegment, at: number, values: Record<string, number>): void {
-  const sampled = sampleSegment(segment, timelineFrame(segment, at)) as Record<string, number>;
+function addKeyframe(clip: TimelineSegment, keyed: Picked, at: number, values: Record<string, number>): void {
+  const sampled = sampleSegment(clip, timelineFrame(clip, at), keyed) as Record<string, number>;
   const data: Record<string, number> = {};
-  for (const each of segment.scenes) {
+  for (const each of keyed.scenes) {
     for (const name of Object.keys(each.data)) data[name] = sampled[name];
   }
   Object.assign(data, values);
 
-  const before = segment.scenes.findLast((each) => each.atFrame < at);
-  segment.addScene({ atFrame: at, meta: before?.meta ? { ...before.meta } : undefined }, data);
-  segment.sortScenes();
+  const before = keyed.scenes.findLast((each) => each.atFrame < at);
+  insertScene(clip, keyed, at, before?.meta ? { ...before.meta } : undefined, data);
+}
+
+/** Puts a keyframe in its place: a clip's through its timeline, an element's straight into its list. */
+function insertScene(
+  clip: TimelineSegment,
+  keyed: Picked,
+  atFrame: number,
+  meta: Record<string, unknown> | undefined,
+  data: Record<string, unknown>,
+): void {
+  if (keyed === clip) {
+    clip.addScene({ atFrame, meta }, data);
+    clip.sortScenes();
+    return;
+  }
+
+  const { scenes } = keyed;
+  scenes.splice(scenes.findLastIndex((each) => each.atFrame < atFrame) + 1, 0, { id: crypto.randomUUID(), atFrame, meta, data });
+}
+
+/** Takes a keyframe out: a clip's through its timeline, an element's straight out of its list. */
+function removeScene(clip: TimelineSegment, keyed: Picked, scene: Picked['scenes'][number]): void {
+  if (keyed === clip) clip.removeScene(scene as never);
+  else keyed.scenes.splice(keyed.scenes.indexOf(scene), 1);
 }
 
 /**
@@ -114,17 +146,18 @@ export function timelineFrame(segment: TimelineSegment, at: number): number {
 }
 
 /**
- * The frames, in a clip's content and in order, of its keyframes that set any of some values and
+ * The frames, in a clip's content and in order, of the keyframes that set any of some values and
  * fall within the clip: a split clip's halves share their keyframes, each showing its own stretch.
  *
- * @param segment - The clip's segment.
+ * @param clip - The clip.
+ * @param keyed - What holds the keyframes: the clip, or an element in it.
  * @param keys - The values.
  * @returns The frames.
  */
-export function keyedFrames(segment: TimelineSegment, keys: string[]): number[] {
-  const first = clipFrame(segment, segment.startFrame);
-  const last = clipFrame(segment, segment.endFrame);
-  return segment.scenes
+export function keyedFrames(clip: TimelineSegment, keyed: Picked, keys: string[]): number[] {
+  const first = clipFrame(clip, clip.startFrame);
+  const last = clipFrame(clip, clip.endFrame);
+  return keyed.scenes
     .filter((scene) => scene.atFrame >= first && scene.atFrame <= last && keys.some((key) => key in scene.data))
     .map((scene) => scene.atFrame)
     .sort((a, b) => a - b);

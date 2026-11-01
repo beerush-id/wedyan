@@ -1,10 +1,10 @@
 import { sampleSegment } from '@airlib/aria';
-import { $bind, $static, setup, Snippet } from '@airlib/react';
-import type { Timeline } from '@airlib/react/timeline';
+import { $bind, derived, setup, Snippet, template } from '@airlib/react';
+import type { Timeline, TimelineSegment } from '@airlib/react/timeline';
 import { Slider, Stepper, StepperInput, Tooltip } from '@airlib/react-aui';
 import type { FC } from 'react';
-import { type Composer, composerCtx } from '../context.js';
-import { clipFrame, keyedFrames, timelineFrame, toggleKeyframe, writeValue } from './keyframes.js';
+import { type Composer, composerCtx, type Picked } from '../context.js';
+import { clipFrame, holderOf, keyedFrames, setKeyframe, timelineFrame, toggleKeyframe } from './keyframes.js';
 
 /**
  * A value of a clip its keyframes can animate: its name, its glyph, what it reads as when the clip
@@ -24,48 +24,81 @@ export type Field = {
 /** Values of a clip laid out, and keyed, together under one name. */
 export type Group = { label: string; fields: Field[] };
 
+/** A group's values as the playhead reads them, by key. */
+type Reading = Record<string, number | undefined>;
+
 /** A clip's keyed values, a group under its name for each, keyed together. */
-export const Groups = setup<{ groups: Group[] }>((props) => {
-  return () => (
+export const Groups = template<{ groups: Group[] }>(
+  ({ groups }) => (
     <div className="wedyan-compose-properties-fields">
-      {props.groups.map((group) => (
-        <fieldset key={group.label} aria-label={group.label} className="wedyan-compose-property-group">
-          <div className="wedyan-compose-property-head">
-            <span className="wedyan-compose-property-label" aria-hidden="true">
-              {group.label}
-            </span>
-            <Keyframes group={group} />
-          </div>
-          <div className="wedyan-compose-property-body">
-            {group.fields.map((field) => (
-              <FieldView key={field.key} field={field} />
-            ))}
-          </div>
-        </fieldset>
+      {groups.map((group) => (
+        <GroupView key={group.label} group={group} />
       ))}
     </div>
+  ),
+  'Groups',
+);
+
+/**
+ * A group of values at the playhead. It holds their reading: what the playhead reads there, for the
+ * keyframe diamond and its fields to make a fact.
+ */
+const GroupView = setup<{ group: Group }>((props) => {
+  const composer = composerCtx.get() as Composer;
+
+  // To each field's own step rather than a tweened fraction. This runs once more as the pick clears,
+  // before the panel goes.
+  const reading = derived.as(() => {
+    void composer.edits;
+    const values: Reading = {};
+    const clip = composer.hostClip();
+    if (!clip) return values;
+    const sampled = sampleSegment(clip, (composer.timeline as Timeline).state.frame, composer.picked());
+    for (const { key, fallback, step } of props.group.fields) {
+      const value = (sampled[key] ?? fallback) as number | undefined;
+      values[key] = value === undefined ? value : toStep(value, step);
+    }
+    return values;
+  });
+
+  return ({ group }) => (
+    <fieldset aria-label={group.label} className="wedyan-compose-property-group">
+      <div className="wedyan-compose-property-head">
+        <span className="wedyan-compose-property-label" aria-hidden="true">
+          {group.label}
+        </span>
+        <Keyframes group={group} reading={reading} />
+      </div>
+      <div className="wedyan-compose-property-body">
+        {group.fields.map((field) => (
+          <FieldView key={field.key} field={field} reading={reading} />
+        ))}
+      </div>
+    </fieldset>
   );
-}, 'Groups');
+}, 'GroupView');
 
 /**
  * A group's keyframes at the playhead: the diamond, filled while the group has a keyframe there,
- * adds one with the values it has now or takes it off; either side, a step to the keyframe before
- * or after, inert while there's none.
+ * adds one with the reading or takes it off; either side, a step to the keyframe before or after,
+ * inert while there's none.
  */
-const Keyframes = setup<{ group: Group }>((props) => {
+const Keyframes = setup<{ group: Group; reading: Reading }>((props) => {
   const composer = composerCtx.get() as Composer;
 
   return () => (
     <Snippet>
       {() => {
         void composer.edits;
-        const segment = composer.pickedClip();
+        const clip = composer.hostClip();
         const timeline = composer.timeline as Timeline;
-        if (!segment) return null;
+        if (!clip) return null;
+        const keyed = composer.picked() as Picked;
         const { group } = props;
-        const at = clipFrame(segment, timeline.state.frame);
+        const at = clipFrame(clip, timeline.state.frame);
         const frames = keyedFrames(
-          segment,
+          clip,
+          keyed,
           group.fields.map((field) => field.key),
         );
         const before = frames.findLast((frame) => frame < at);
@@ -78,7 +111,7 @@ const Keyframes = setup<{ group: Group }>((props) => {
               data-dir="before"
               aria-label={`${group.label}: previous keyframe`}
               disabled={before === undefined}
-              onClick={() => before !== undefined && void timeline.scrub(timelineFrame(segment, before))}
+              onClick={() => before !== undefined && void timeline.scrub(timelineFrame(clip, before))}
             />
             <button
               type="button"
@@ -86,8 +119,8 @@ const Keyframes = setup<{ group: Group }>((props) => {
               aria-label={`${group.label}: keyframe`}
               aria-pressed={frames.includes(at)}
               onClick={() => {
-                toggleKeyframe(segment, group, at);
-                edited(composer);
+                toggleKeyframe(clip, keyed, group, at, props.reading);
+                composer.edited();
               }}
             />
             <button
@@ -96,7 +129,7 @@ const Keyframes = setup<{ group: Group }>((props) => {
               data-dir="after"
               aria-label={`${group.label}: next keyframe`}
               disabled={after === undefined}
-              onClick={() => after !== undefined && void timeline.scrub(timelineFrame(segment, after))}
+              onClick={() => after !== undefined && void timeline.scrub(timelineFrame(clip, after))}
             />
           </span>
         );
@@ -105,56 +138,42 @@ const Keyframes = setup<{ group: Group }>((props) => {
   );
 }, 'Keyframes');
 
-/** One value of the picked clip: its number, and a slider beside it when it has a range. */
-const FieldView = setup<{ field: Field }>((props) => {
+/**
+ * One value at the playhead: its number, and a slider beside it when it has a range. It manages the
+ * value of the keyframe there. Until that holds it, it shows the reading, and a write to that makes
+ * it a fact: the keyframe, which holds it from then on.
+ */
+const FieldView = setup<{ field: Field; reading: Reading }>(() => {
   const composer = composerCtx.get() as Composer;
-  // A field is the panel's own constant, never data.
-  const { key, fallback, step, label, icon: Icon, min, max, range } = $static(() => props.field);
-  const digits = Math.max(0, -Math.floor(Math.log10(step)));
 
-  // Read at the playhead, to the field's own step rather than a tweened fraction, and written there.
-  const field = {
-    get value() {
-      void composer.edits;
-      const segment = composer.pickedClip();
-      const value =
-        segment &&
-        ((sampleSegment(segment, (composer.timeline as Timeline).state.frame) as Record<string, number | undefined>)[
-          key
-        ] ??
-          fallback);
-      return value === undefined ? value : Number(value.toFixed(digits));
-    },
-    set value(value: number | undefined) {
-      const segment = composer.pickedClip();
-      if (value === undefined || !segment) return;
-      writeValue(segment, key, value, (composer.timeline as Timeline).state.frame);
-      edited(composer);
-    },
+  return ({ field: { key, label, icon: Icon, step, min, max, range }, reading }) => {
+    void composer.edits;
+    const clip = composer.hostClip() as TimelineSegment;
+    const keyed = composer.picked() as Picked;
+    const at = clipFrame(clip, (composer.timeline as Timeline).state.frame);
+    const holder = holderOf(keyed, key, at);
+    const value = $bind((holder ?? reading) as Record<string, number>, key);
+    const edit = () => {
+      if (!holder) setKeyframe(clip, keyed, at, { [key]: reading[key] as number });
+      composer.edited();
+    };
+
+    return (
+      <>
+        {range && (
+          <Slider size="xs" aria-label={label} min={range[0]} max={range[1]} step={step} value={value} onInput={edit} />
+        )}
+        <Stepper size="xs" label={label} step={step} min={min} max={max} value={value} onInput={edit}>
+          <Icon />
+          <StepperInput aria-label={label} />
+          <Tooltip>{label}</Tooltip>
+        </Stepper>
+      </>
+    );
   };
-
-  return () => (
-    <>
-      {range && (
-        <Slider size="xs" aria-label={label} min={range[0]} max={range[1]} step={step} value={$bind(field, 'value')} />
-      )}
-      <Stepper size="xs" label={label} step={step} min={min} max={max} value={$bind(field, 'value')}>
-        <Icon />
-        <StepperInput aria-label={label} />
-        <Tooltip>{label}</Tooltip>
-      </Stepper>
-    </>
-  );
 }, 'FieldView');
 
-/**
- * Shows an edit to a clip: on what reads its keyframes, and on the stage, which draws a frame only
- * as the timeline reaches it, so while paused it draws the frame again.
- *
- * @param composer - The window's composer.
- */
-export function edited(composer: Composer): void {
-  composer.edits += 1;
-  const { timeline } = composer;
-  if (timeline && timeline.status !== 'playing') void timeline.scrub(timeline.frame);
+/** A value as a field shows it: to the field's own step. */
+function toStep(value: number, step: number): number {
+  return Number(value.toFixed(Math.max(0, -Math.floor(Math.log10(step)))));
 }

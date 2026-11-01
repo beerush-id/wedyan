@@ -53,7 +53,7 @@ export type NodeKeyframe = { id: string; atFrame: number; meta?: Record<string, 
  * box, when set, is within what holds it; without one, it flows. It has no time of its own: its
  * keyframes count from its host's start, so trimming or moving the host takes it along.
  */
-export type ClipNode = { id: string; name?: string; props: HtmlClip; scenes?: NodeKeyframe[] };
+export type ClipNode = { id: string; name?: string; props: HtmlClip; scenes: NodeKeyframe[] };
 
 /**
  * An AUI widget on an HTML track, in its box: which widget, its props as `params`, its words, its

@@ -64,9 +64,9 @@ export const TimelinePanel = setup(() => {
   const pickedKeyframes = () => {
     void composer.edits;
     if (!composer.node) return;
-    const clip = composer.pickedClip();
+    const clip = composer.hostClip() as TimelineSegment;
     const rate = (composer.timeline as Timeline).frameRate;
-    return clip?.scenes.map((scene) => timelineFrame(clip, scene.atFrame) / rate);
+    return composer.picked()?.scenes.map((scene) => timelineFrame(clip, scene.atFrame) / rate);
   };
 
   const laneCommand = (event: CustomEvent<TimelineLaneCommand>) => {

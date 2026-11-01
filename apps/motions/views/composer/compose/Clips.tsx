@@ -18,7 +18,6 @@ import {
   type WidgetClip,
 } from '../composition.js';
 import { loadFont } from '../fonts.js';
-import { nodeClip } from '../nodes.js';
 import { PAINTERS } from '../painters.js';
 import { WIDGETS } from '../widgets.js';
 
@@ -184,9 +183,10 @@ const ClipNodeView = setup<{ node: ClipNode }>((props) => {
     const Element = (element ?? 'div') as 'div';
     const placed = x !== undefined || y !== undefined;
     const box = { ...(placed ? { position: 'absolute', left: x ?? 0, top: y ?? 0 } : {}), width, height } as const;
-    if (element === 'img') return <Element {...attrs} crossOrigin="anonymous" style={{ ...style, ...box }} />;
+    const id = props.node.id;
+    if (element === 'img') return <Element {...attrs} data-node={id} crossOrigin="anonymous" style={{ ...style, ...box }} />;
     return (
-      <Element {...attrs} style={{ ...style, ...box }}>
+      <Element {...attrs} data-node={id} style={{ ...style, ...box }}>
         {text}
         <For each={() => [...(children ?? [])]}>{(node) => <ClipNodeView node={node} />}</For>
       </Element>
@@ -268,16 +268,17 @@ function drawCss(node: HTMLElement, clip: HtmlClip): void {
  * Draws what's nested in an element for a frame: each node's values at the frame, on the element
  * that shows it. A node inherits the rest from what holds it, as the DOM does.
  *
- * @param parent - The element they're nested in, whose element children are theirs, in order.
+ * @param parent - The element they're nested in.
  * @param host - The clip they're under, whose time they keep.
  * @param nodes - The nodes.
  * @param frame - The timeline frame.
  */
 function drawNodes(parent: Element, host: TimelineSegment, nodes: ClipNode[] | undefined, frame: number): void {
-  nodes?.forEach((node, index) => {
-    const element = parent.children[index] as HTMLElement | SVGElement | undefined;
+  nodes?.forEach((node) => {
+    // By id, not place: a frame can land between a reorder and its render.
+    const element = parent.querySelector<HTMLElement | SVGElement>(`:scope > [data-node="${node.id}"]`);
     if (!element) return;
-    const values = sampleSegment(nodeClip(host, node), frame) as HtmlClip;
+    const values = sampleSegment(host, frame, node) as HtmlClip;
     const { x, y, width, height, scale = 1, rotate = 0, opacity = 1 } = values;
 
     element.style.transform = `rotate(${rotate}deg) scale(${scale})`;

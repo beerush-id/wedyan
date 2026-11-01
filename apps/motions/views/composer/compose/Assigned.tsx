@@ -7,7 +7,7 @@ import { AssigneeAvatar } from './assignment.js';
 export const Assigned = setup(() => {
   const composer = composerCtx.get() as Composer;
   const agent = () => {
-    const segment = composer.pickedClip();
+    const segment = composer.hostClip();
     return segment && clipAssignee(composer, segment);
   };
 

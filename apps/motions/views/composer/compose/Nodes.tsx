@@ -3,16 +3,22 @@ import { $bind, For, setup, template } from '@airlib/react';
 import type { TimelineSegment } from '@airlib/react/timeline';
 import { Button, Toggle, ToggleGroup, Tooltip } from '@airlib/react-aui';
 import { ImageIcon, ShapesIcon, TitleIcon } from '@airlib/react-aui/icons';
+import type { DragEvent } from 'react';
 import { DeleteIcon } from '@/components/icons.js';
 import { AddIcon, LayerIcon, TextIcon } from '../../icons.js';
 import type { ClipNode, HtmlClip } from '../composition.js';
 import { type Composer, composerCtx } from '../context.js';
-import { addNode, findNode } from '../nodes.js';
-import { edited } from './Groups.js';
+import { addNode, findNode, moveNode } from '../nodes.js';
 
 /** What a new element starts as, within what holds it, in stage units. */
 const NEW_BOX: HtmlClip = { x: 40, y: 40, width: 240, height: 160, style: { background: '#ffffff' } };
 const NEW_TEXT: HtmlClip = { x: 40, y: 40, text: 'Text', style: { color: '#ffffff', fontSize: 48 } };
+
+/** How a dragged row names itself to the row it's let go on. */
+const NODE_DRAG = 'application/x-wedyan-node';
+
+/** Where a dragged row lands against the row under it, for the row to show. */
+const LANDING = { FRONT: 'front', BEHIND: 'behind' };
 
 /**
  * The elements of the picked clip, as a tree. Picking one is picking what's edited, as picking a
@@ -24,10 +30,10 @@ export const Nodes = setup(() => {
 
   // A new element goes inside what's picked, and is picked. A picture holds nothing, so it goes in the clip.
   const add = (name: string, props: HtmlClip) => {
-    const picked = (composer.pickedClip() as TimelineSegment<HtmlClip>).props;
+    const picked = (composer.picked() as ClipNode).props;
     const parent = picked.element === 'img' ? host().props : picked;
     composer.node = addNode(parent, name, structuredClone(props)).id;
-    edited(composer);
+    composer.edited();
   };
 
   const remove = () => {
@@ -35,7 +41,7 @@ export const Nodes = setup(() => {
     if (!found) return;
     found.siblings.splice(found.siblings.indexOf(found.node), 1);
     composer.node = '';
-    edited(composer);
+    composer.edited();
   };
 
   return () => (
@@ -62,7 +68,7 @@ export const Nodes = setup(() => {
           <NodeIcon clip={host().props} />
           {host().name}
         </Toggle>
-        <For each={() => [...(host().props.children ?? [])]}>{(node) => <NodeRow node={node} depth={1} />}</For>
+        <For each={() => frontFirst(host().props.children)}>{(node) => <NodeRow node={node} depth={1} />}</For>
       </ToggleGroup>
     </div>
   );
@@ -75,15 +81,59 @@ const NodeIcon = template<{ clip: HtmlClip }>(({ clip }) => {
   return clip.element && clip.element !== 'div' ? <ShapesIcon /> : <LayerIcon />;
 }, 'NodeIcon');
 
-/** One element's row, in from the edge by how deep it sits, and the rows of what's nested in it. */
+/**
+ * One element's row, in from the edge by how deep it sits, and the rows of what's nested in it. It
+ * drags: let go on the top half of a row to land in front of it, the bottom half to land behind.
+ */
 const NodeRow = setup<{ node: ClipNode; depth: number }>((props) => {
+  const composer = composerCtx.get() as Composer;
+
+  const start = (event: DragEvent<HTMLButtonElement>) => {
+    event.dataTransfer.setData(NODE_DRAG, props.node.id);
+    event.dataTransfer.effectAllowed = 'move';
+  };
+
+  const over = (event: DragEvent<HTMLButtonElement>) => {
+    if (!event.dataTransfer.types.includes(NODE_DRAG)) return;
+    event.preventDefault();
+    const row = event.currentTarget;
+    const { top, height } = row.getBoundingClientRect();
+    row.dataset.landing = event.clientY < top + height / 2 ? LANDING.FRONT : LANDING.BEHIND;
+  };
+
+  const leave = (event: DragEvent<HTMLButtonElement>) => {
+    delete event.currentTarget.dataset.landing;
+  };
+
+  const drop = (event: DragEvent<HTMLButtonElement>) => {
+    const row = event.currentTarget;
+    const front = row.dataset.landing === LANDING.FRONT;
+    delete row.dataset.landing;
+    const host = composer.hostClip() as TimelineSegment<HtmlClip>;
+    moveNode(host.props.children, event.dataTransfer.getData(NODE_DRAG), props.node.id, front);
+    composer.edited();
+  };
+
   return () => (
     <>
-      <Toggle value={props.node.id} style={{ '--wedyan-node-depth': props.depth } as never}>
+      <Toggle
+        value={props.node.id}
+        draggable
+        style={{ '--wedyan-node-depth': props.depth } as never}
+        onDragStart={start}
+        onDragOver={over}
+        onDragLeave={leave}
+        onDrop={drop}
+      >
         <NodeIcon clip={props.node.props} />
         {props.node.name ?? 'Element'}
       </Toggle>
-      <For each={() => [...(props.node.props.children ?? [])]}>{(node) => <NodeRow node={node} depth={props.depth + 1} />}</For>
+      <For each={() => frontFirst(props.node.props.children)}>{(node) => <NodeRow node={node} depth={props.depth + 1} />}</For>
     </>
   );
 }, 'NodeRow');
+
+/** Nodes as the tree lists them, frontmost first, as the timeline lists its tracks. */
+function frontFirst(nodes?: ClipNode[]): ClipNode[] {
+  return [...(nodes ?? [])].reverse();
+}

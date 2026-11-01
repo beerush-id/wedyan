@@ -547,6 +547,15 @@
     & > .aui-icon {
       flex: none;
     }
+
+    /* Where a dragged row would land: a line along this row's top or bottom edge. */
+    &[data-landing='front'] {
+      box-shadow: inset 0 2px 0 var(--color-primary);
+    }
+
+    &[data-landing='behind'] {
+      box-shadow: inset 0 -2px 0 var(--color-primary);
+    }
   }
 }
 

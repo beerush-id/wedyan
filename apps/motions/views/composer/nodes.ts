@@ -1,4 +1,3 @@
-import type { TimelineSegment } from '@airlib/react/timeline';
 import type { ClipNode, HtmlClip } from './composition.js';
 
 /**
@@ -17,54 +16,20 @@ export function findNode(nodes: ClipNode[] | undefined, id: string): { node: Cli
 }
 
 /**
- * A node as a clip: its own values and keyframes on its host's timing, so whatever reads and keys a
- * clip does the same to a node. It starts, ends, trims and plays at its host's speed, with it.
+ * Moves a node beside another, into that one's list when it's elsewhere. Later in a list is nearer
+ * the front, as the DOM paints it. A node can't move into what it holds.
  *
- * @param host - The clip it's under.
- * @param node - The node.
- * @returns The node, read and written like a clip.
+ * @param nodes - The clip's nodes.
+ * @param id - The node that moves.
+ * @param target - The node it moves beside.
+ * @param front - Whether it lands in front of the target rather than behind it.
  */
-export function nodeClip(host: TimelineSegment, node: ClipNode): TimelineSegment {
-  const clip = {
-    id: node.id,
-    type: 'html',
-    get name() {
-      return node.name;
-    },
-    props: node.props,
-    get track() {
-      return host.track;
-    },
-    get timeline() {
-      return host.timeline;
-    },
-    get scenes() {
-      node.scenes ??= [];
-      return node.scenes;
-    },
-    get startFrame() {
-      return host.startFrame;
-    },
-    get endFrame() {
-      return host.endFrame;
-    },
-    get offsetFrame() {
-      return host.offsetFrame;
-    },
-    get speed() {
-      return host.speed;
-    },
-    addScene(options: { atFrame: number; meta?: Record<string, unknown> }, data: Record<string, unknown>) {
-      clip.scenes.push({ id: crypto.randomUUID(), atFrame: options.atFrame, meta: options.meta, data });
-    },
-    removeScene(scene: ClipNode['scenes'] extends (infer K)[] | undefined ? K : never) {
-      clip.scenes.splice(clip.scenes.indexOf(scene), 1);
-    },
-    sortScenes() {
-      clip.scenes.sort((a, b) => a.atFrame - b.atFrame);
-    },
-  };
-  return clip as unknown as TimelineSegment;
+export function moveNode(nodes: ClipNode[] | undefined, id: string, target: string, front: boolean): void {
+  const moving = findNode(nodes, id);
+  const beside = findNode(nodes, target);
+  if (!moving || !beside || id === target || findNode(moving.node.props.children, target)) return;
+  const [node] = moving.siblings.splice(moving.siblings.indexOf(moving.node), 1);
+  beside.siblings.splice(beside.siblings.indexOf(beside.node) + (front ? 1 : 0), 0, node);
 }
 
 /**
@@ -73,10 +38,11 @@ export function nodeClip(host: TimelineSegment, node: ClipNode): TimelineSegment
  * @param parent - The values of what it goes under.
  * @param name - What it's called.
  * @param props - Its values.
- * @returns The node, as kept.
+ * @returns The node.
  */
 export function addNode(parent: HtmlClip, name: string, props: HtmlClip): ClipNode {
-  parent.children ??= [];
-  parent.children.push({ id: crypto.randomUUID(), name, props, scenes: [] });
-  return parent.children[parent.children.length - 1];
+  const node = { id: crypto.randomUUID(), name, props, scenes: [] };
+  if (parent.children) parent.children.push(node);
+  else parent.children = [node];
+  return node;
 }
