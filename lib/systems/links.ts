@@ -32,8 +32,23 @@ export function previewLink(src: string, type: 'image' | 'video' | 'audio', name
 export function previewTarget(link: string): PreviewTarget {
   const [target, query] = linkTarget(link).split('?');
   const params = new URLSearchParams(query);
-  const type = params.get('type') as 'image' | 'video' | 'audio' | null;
-  return type ? { src: target, type, name: params.get('name') ?? undefined } : target;
+  const type = (params.get('type') as 'image' | 'video' | 'audio' | null) ?? mediaOf(target);
+  if (!type) return target;
+  const name = params.get('name') ?? target.slice(target.lastIndexOf('/') + 1);
+  return { src: target.startsWith('~/') ? `/~${target.slice(1)}` : target, type, name };
+}
+
+/**
+ * What a file is by its name, when it's a picture, a video or a sound: a path alone can say that
+ * much, so a link needs no more to show one.
+ *
+ * @param path - The file's path.
+ * @returns Its kind, or undefined for anything else.
+ */
+function mediaOf(path: string): 'image' | 'video' | 'audio' | undefined {
+  if (/\.(webp|png|jpe?g|gif|avif)$/i.test(path)) return 'image';
+  if (/\.(mp4|webm|mov)$/i.test(path)) return 'video';
+  return /\.(mp3|wav|m4a|ogg)$/i.test(path) ? 'audio' : undefined;
 }
 
 /**

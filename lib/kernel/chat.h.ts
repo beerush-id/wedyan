@@ -132,6 +132,8 @@ export type ConversationQueries = {
   [name: string]: (...args: any[]) => any;
   send: (input: AskInput) => boolean;
   stop: (answer?: string) => boolean;
+  /** Starts the conversation over: what's running stops, and what was said is kept on a page of its own. */
+  clear: () => boolean;
   page: (page: number) => ConversationMessage[] | undefined;
   presence: (presence: Presence, context?: AskInput['context']) => boolean;
   finished: (job: FinishedJob) => boolean;

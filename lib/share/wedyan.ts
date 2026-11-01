@@ -36,7 +36,7 @@ export function wedyan() {
   const chat = conversation.later();
   if (isBrowser()) answerDocuments(chat);
 
-  const { widgets, sync } = createWidgets((message) => ({
+  const { widgets, sync, clear } = createWidgets((message) => ({
     ...userTurn({ text: message.text, selections: message.selections ?? [] } as never),
     id: message.id,
   }));
@@ -113,11 +113,17 @@ export function wedyan() {
 
   let latest: DockSubmitEvent | undefined;
 
+  /** Starts the conversation over, here and on every desktop. */
+  const clearChat = async () => {
+    await chat.ask('clear');
+    clear();
+  };
+
   /** Runs a command picked into a prompt: its bubble and what it draws are local, nothing sends or keeps them. */
   const command = async (name: string, event: DockSubmitEvent): Promise<void> => {
     widgets.push(userTurn(event));
     try {
-      const view = await runCommand(name, { event: { ...event, context: promptContext() }, signal: event.signal });
+      const view = await runCommand(name, { event: { ...event, context: promptContext(), clearChat }, signal: event.signal });
       if (view !== undefined && view !== null) widgets.push(commandResult(view));
     } catch (error) {
       if (!event.signal.aborted) widgets.push(commandResult((error as Error).message));

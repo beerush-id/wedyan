@@ -129,6 +129,7 @@ kernel.construct(conversation, (client) => {
       );
       state.answer('send', (input) => member.ask('send', input, client));
       state.answer('stop', (answer) => member.ask('stop', answer));
+      state.answer('clear', () => member.ask('clear'));
       state.answer('page', (page) => member.ask('page', page));
       state.answer('presence', (presence, context) => member.ask('presence', presence, client, context));
       state.answer('finished', (job) => member.ask('finished', job, client));
@@ -205,13 +206,13 @@ function createConversation({ hold }: RoomSetup) {
   // Saves one after another, so two answers ending together never write over each other's page.
   let saving: Promise<unknown> = Promise.resolve();
   const lastPage: HeldPage = {};
-  const persist = (context = detachedContext()) => {
+  const persist = (context = detachedContext(), cleared = false) => {
     // Always into the home it was opened in, whoever asks: a conversation written into another
     // home takes that home's conversation with it.
     const save = () =>
       withContext(context, () => {
         if (home) fsContext.set(home);
-        return savePage(data, header, lastPage);
+        return savePage(data, header, lastPage, cleared);
       });
     saving = saving.then(save, save);
     return saving;
@@ -661,6 +662,13 @@ function createConversation({ hold }: RoomSetup) {
         for (const [id, turn] of running) if (!answer || id === answer) turn.controller.abort();
         return true;
       },
+      // A fresh start: what's running stops, and everything said moves to a page of its own, kept.
+      clear: async () => {
+        await loaded;
+        for (const turn of running.values()) turn.controller.abort();
+        await persist(undefined, true);
+        return true;
+      },
       page: async (page: number) => (await readPage(page))?.messages,
       presence: async (presence: Presence, client: string, context?: AskInput['context']) => {
         await loaded;
@@ -982,8 +990,9 @@ async function readPage(page?: number): Promise<ConversationPage | undefined> {
  * @param data - The conversation.
  * @param header - The page's header.
  * @param last - The last numbered page, held so shifting never reads it again.
+ * @param cleared - Moves every message to a numbered page of its own, for a fresh start.
  */
-async function savePage(data: Conversation, header: PageHeader, last: HeldPage): Promise<void> {
+async function savePage(data: Conversation, header: PageHeader, last: HeldPage, cleared = false): Promise<void> {
   const pageOf = (page: number, messages: ConversationMessage[]): ConversationPage => ({
     type: 'chat',
     version: 1,
@@ -1000,18 +1009,18 @@ async function savePage(data: Conversation, header: PageHeader, last: HeldPage):
   const messages = JSON.parse(JSON.stringify(data.messages)) as ConversationMessage[];
   let excess = bytes(pageOf(data.page, messages)) - config.pageBytes;
 
-  if (excess > 0) {
+  if (excess > 0 || cleared) {
     // Never past the latest turn, nor an answer still being written: it keeps changing, so it stays.
     const writing = messages.findIndex((message) => message.role === 'agent' && isWriting(message));
-    const limit = Math.min(messages.length - 2, writing === -1 ? messages.length : writing);
-    let cut = 0;
+    const limit = cleared ? messages.length : Math.min(messages.length - 2, writing === -1 ? messages.length : writing);
+    let cut = cleared ? limit : 0;
     for (; cut < limit && excess > 0; cut += 1) excess -= bytes(messages[cut]) + 1;
 
     if (cut > 0) {
       const older = messages.slice(0, cut);
       last.messages ??= data.page ? ((await readPage(data.page))?.messages ?? []) : [];
       const joined = [...last.messages, ...older];
-      const fits = data.page > 0 && bytes(pageOf(data.page, joined)) <= config.pageBytes;
+      const fits = !cleared && data.page > 0 && bytes(pageOf(data.page, joined)) <= config.pageBytes;
       const page = fits ? data.page : data.page + 1;
       const kept = fits ? joined : older;
       await write(pagePath(page), pageOf(page, kept) as never);
