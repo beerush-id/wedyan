@@ -515,6 +515,46 @@
   font-size: var(--font-label-md-size);
 }
 
+/* The picked clip's elements: their tree, each row in by how deep it sits, its own padding the panel's. */
+.wedyan-compose-prompt:has(> .wedyan-compose-nodes) {
+  padding: 0;
+  overflow: hidden;
+}
+
+.wedyan-compose-nodes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  block-size: 100%;
+  min-block-size: 0;
+  padding: var(--spacing-sm);
+
+  /* The list scrolls under the heading and its actions, which stay. */
+  & .aui-toggle-group {
+    display: flex;
+    flex: 1;
+    min-block-size: 0;
+    overflow: auto;
+  }
+
+  & .aui-toggle {
+    flex: none;
+    inline-size: 100%;
+    justify-content: start;
+    padding-inline-start: calc(var(--spacing-sm) + var(--wedyan-node-depth, 0) * var(--spacing-md));
+    white-space: nowrap;
+
+    & > .aui-icon {
+      flex: none;
+    }
+  }
+}
+
+.wedyan-compose-nodes-actions {
+  display: inline-flex;
+  gap: var(--spacing-xs);
+}
+
 /* The sources while files are held over them, ready to be dropped in. */
 .wedyan-compose-sources[data-dropping] {
   outline: 2px dashed var(--color-primary);

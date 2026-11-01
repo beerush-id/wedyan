@@ -8,6 +8,8 @@ import type { GenerativeDocument, MotionDocument, StageDocument } from '@/lib/do
 import { LOUNGE, LOUNGE_EVENT } from '@/lib/kernel/workspace.h.js';
 import { dfs } from '@/lib/share/dfs.js';
 import { documentAt, follow, type Project } from '../motion.js';
+import type { HtmlClip } from './composition.js';
+import { findNode, nodeClip } from './nodes.js';
 
 /** What a project window opens with: which project, and whether it opens in Direct. */
 export type ComposerData = { path: string; direct: boolean };
@@ -41,6 +43,8 @@ export type Composer = {
   timeline?: Timeline;
   /** The clips picked on it, by id. */
   clips: string[];
+  /** The element picked inside the picked clip, by id; empty, the clip itself. */
+  node: string;
   /** Whether dragging on the timeline snaps clips and the playhead to what's near. */
   snap: boolean;
   /** Counts edits to keyframes, which aren't observed, for what reads them. */
@@ -71,7 +75,9 @@ export type Composer = {
   readonly stage: StageDocument | undefined;
   /** Where a path written in the project leads. Stages live beside their `.motion`, so theirs too. */
   pathOf(written: string): string;
-  /** The clip picked, when it's the only one. */
+  /** The clip picked on the timeline, when it's the only one. */
+  hostClip(): TimelineSegment | undefined;
+  /** What's being edited: the element picked inside the clip, read like a clip, else the clip. */
   pickedClip(): TimelineSegment | undefined;
   /** The clip picked, when it's the only one and shows a generated image, video or sound. */
   generativeClip(): (GenerativeSource & { segment: TimelineSegment }) | undefined;
@@ -116,6 +122,7 @@ export function createComposer(path: string, direct: boolean): Composer {
       viewMode: 'preview',
       sidebar: true,
       clips: [],
+      node: '',
       snap: false,
       edits: 0,
       status: '',
@@ -161,12 +168,18 @@ export function createComposer(path: string, direct: boolean): Composer {
 
       pathOf: (written) => resolvePath(path, written),
 
-      pickedClip() {
+      hostClip() {
         const { timeline, clips } = composer;
         if (!timeline || clips.length !== 1) return;
         for (const track of timeline.tracks) {
           for (const segment of track.segments) if (segment.id === clips[0]) return segment;
         }
+      },
+
+      pickedClip() {
+        const host = composer.hostClip();
+        const found = host && composer.node && findNode((host.props as HtmlClip).children, composer.node);
+        return found ? nodeClip(host, found.node) : host;
       },
 
       generativeClip() {

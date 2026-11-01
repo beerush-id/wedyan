@@ -112,46 +112,34 @@
           {
             "id": "demo-h2",
             "options": { "type": "html", "name": "Window", "meta": {}, "speed": 1, "duration": 1.5, "startFrame": 240 },
-            "props": { "x": 1920, "y": 244, "width": 924, "height": 592, "style": { "background": "#fff7ef", "borderRadius": "32px" } },
+            "props": {
+              "x": 1920,
+              "y": 244,
+              "width": 924,
+              "height": 592,
+              "style": { "background": "#fff7ef", "borderRadius": "32px" },
+              "children": [
+                {
+                  "id": "demo-h2-title",
+                  "name": "Title",
+                  "props": { "text": "Promo.mp4", "x": 0, "y": 0, "width": 924, "height": 72, "style": { "display": "grid", "alignItems": "center", "textAlign": "center", "whiteSpace": "nowrap", "color": "#2a0a18", "fontSize": 36, "fontWeight": 600, "lineHeight": 1 } }
+                },
+                {
+                  "id": "demo-h2-picture",
+                  "name": "Promo picture",
+                  "props": { "element": "img", "attrs": { "src": "/~/Motions/g01/g01a2.webp" }, "x": 8, "y": 72, "width": 908, "height": 512, "style": { "objectFit": "cover", "borderRadius": "8px 8px 24px 24px" } },
+                  "scenes": [
+                    { "id": "demo-h2-picture-k1", "atFrame": 12, "meta": { "ease": "out" }, "data": { "opacity": 0 } },
+                    { "id": "demo-h2-picture-k2", "atFrame": 24, "data": { "opacity": 1 } }
+                  ]
+                }
+              ]
+            },
             "scenes": [
               { "id": "demo-h2-k1", "options": { "atFrame": 0, "meta": { "ease": "in-out" } }, "data": { "x": 1920 } },
               { "id": "demo-h2-k2", "options": { "atFrame": 18, "meta": { "ease": "in-out" } }, "data": { "x": 900 } },
               { "id": "demo-h2-k3", "options": { "atFrame": 30, "meta": { "ease": "in" } }, "data": { "x": 900 } },
               { "id": "demo-h2-k4", "options": { "atFrame": 45 }, "data": { "x": 1920 } }
-            ]
-          }
-        ]
-      },
-      {
-        "id": "demo-window-picture",
-        "options": { "type": "html", "name": "Window picture", "meta": {} },
-        "segments": [
-          {
-            "id": "demo-h3",
-            "options": { "type": "html", "name": "Promo picture", "meta": { "thumbnail": "/~/Motions/g01/g01a2.webp" }, "speed": 1, "duration": 1.5, "startFrame": 240 },
-            "props": { "element": "img", "attrs": { "src": "/~/Motions/g01/g01a2.webp" }, "x": 1928, "y": 316, "width": 908, "height": 512, "style": { "objectFit": "cover", "borderRadius": "8px 8px 24px 24px" } },
-            "scenes": [
-              { "id": "demo-h3-k1", "options": { "atFrame": 0, "meta": { "ease": "in-out" } }, "data": { "x": 1928 } },
-              { "id": "demo-h3-k2", "options": { "atFrame": 18, "meta": { "ease": "in-out" } }, "data": { "x": 908 } },
-              { "id": "demo-h3-k3", "options": { "atFrame": 30, "meta": { "ease": "in" } }, "data": { "x": 908 } },
-              { "id": "demo-h3-k4", "options": { "atFrame": 45 }, "data": { "x": 1928 } }
-            ]
-          }
-        ]
-      },
-      {
-        "id": "demo-window-title",
-        "options": { "type": "title", "name": "Window title", "meta": {} },
-        "segments": [
-          {
-            "id": "demo-t4",
-            "options": { "type": "title", "name": "Promo.mp4", "speed": 1, "duration": 1.5, "startFrame": 240 },
-            "props": { "text": "Promo.mp4", "x": 1920, "y": 244, "width": 924, "height": 72, "style": { "display": "grid", "alignItems": "center", "textAlign": "center", "whiteSpace": "nowrap", "color": "#2a0a18", "fontSize": 36, "fontWeight": 600, "lineHeight": 1 } },
-            "scenes": [
-              { "id": "demo-t4-k1", "options": { "atFrame": 0, "meta": { "ease": "in-out" } }, "data": { "x": 1920 } },
-              { "id": "demo-t4-k2", "options": { "atFrame": 18, "meta": { "ease": "in-out" } }, "data": { "x": 900 } },
-              { "id": "demo-t4-k3", "options": { "atFrame": 30, "meta": { "ease": "in" } }, "data": { "x": 900 } },
-              { "id": "demo-t4-k4", "options": { "atFrame": 45 }, "data": { "x": 1920 } }
             ]
           }
         ]

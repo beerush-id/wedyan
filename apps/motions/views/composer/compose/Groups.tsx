@@ -153,7 +153,7 @@ const FieldView = setup<{ field: Field }>((props) => {
  *
  * @param composer - The window's composer.
  */
-function edited(composer: Composer): void {
+export function edited(composer: Composer): void {
   composer.edits += 1;
   const { timeline } = composer;
   if (timeline && timeline.status !== 'playing') void timeline.scrub(timeline.frame);

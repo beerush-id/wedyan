@@ -9,7 +9,6 @@ import {
   CodeIcon,
   DraftIcon,
   MovieIcon,
-  ShapesIcon,
   TitleIcon,
 } from '@airlib/react-aui/icons';
 import type { FC, ReactNode } from 'react';
@@ -23,7 +22,6 @@ const LANE_GLYPHS: Record<string, FC> = {
   audio: AudioFileIcon,
   title: TitleIcon,
   html: CodeIcon,
-  svg: ShapesIcon,
   painter: AutoAwesomeIcon,
 };
 

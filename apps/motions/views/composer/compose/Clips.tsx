@@ -1,9 +1,11 @@
+import { sampleSegment } from '@airlib/aria';
 import { effect, For, mutable, Snippet, setup, template } from '@airlib/react';
 import { StageClip } from '@airlib/react-aui';
 import type { Timeline, TimelineSegment } from '@airlib/react/timeline';
 import type { ReactNode } from 'react';
 import {
   type AudioClip,
+  type ClipNode,
   type HtmlClip,
   type ImageClip,
   MOTION_KEYS,
@@ -16,6 +18,7 @@ import {
   type WidgetClip,
 } from '../composition.js';
 import { loadFont } from '../fonts.js';
+import { nodeClip } from '../nodes.js';
 import { PAINTERS } from '../painters.js';
 import { WIDGETS } from '../widgets.js';
 
@@ -28,7 +31,7 @@ const SVG_CAMEL = new Set(['preserveAspectRatio', 'viewBox', 'gradientUnits', 'p
 const SVG_SIZED = new Set(['image', 'rect', 'foreignObject', 'use', 'svg']);
 
 /** Clip values that aren't attributes of an SVG element, nor CSS of an HTML one. */
-const ELEMENT_SKIP = new Set(['element', 'text', 'attrs', 'style']);
+const ELEMENT_SKIP = new Set(['element', 'text', 'attrs', 'style', 'children']);
 
 /** Clip values that aren't props a widget's keyframes move. */
 const WIDGET_SKIP = new Set(['widget', 'params', 'text', 'style']);
@@ -141,25 +144,55 @@ const TitleClipView = setup<{ segment: TimelineSegment<TitleClip> }>((props) => 
 }, 'TitleClipView');
 
 /**
- * An HTML clip: its one element in its box — an image when it names `img`, else a box — with its
- * fixed CSS and words, and every other value written to its CSS each frame.
+ * An HTML clip: its one element in its box, a box unless it names another, HTML or SVG, with its
+ * fixed attributes, CSS and words, and the elements nested in it. Every other value is written to
+ * its CSS each frame, and each frame reaches what's nested from here.
  */
 const HtmlClipView = template<{ segment: TimelineSegment<HtmlClip> }>((props) => {
-  const { element, attrs, style, text } = props.segment.props;
+  const { element, attrs, style, text, children } = props.segment.props;
   const image = element === 'img';
   return (
     <StageClip
-      as={image ? 'img' : 'div'}
+      as={(element ?? 'div') as 'div'}
       segment={props.segment}
-      src={image ? String(attrs?.src ?? '') : undefined}
+      {...attrs}
       crossOrigin={image ? 'anonymous' : undefined}
       style={style}
-      draw={({ element: node, values }) => drawCss(node as HTMLElement, values as HtmlClip)}
+      draw={({ element: node, values, frame }) => {
+        drawCss(node as HTMLElement, values as HtmlClip);
+        drawNodes(node, props.segment, (values as HtmlClip).children, frame);
+      }}
     >
-      {image ? undefined : text}
+      {image ? undefined : (
+        <>
+          {text}
+          <For each={() => [...(children ?? [])]}>{(node) => <ClipNodeView node={node} />}</For>
+        </>
+      )}
     </StageClip>
   );
 }, 'HtmlClipView');
+
+/**
+ * An element nested in a clip, and what's nested in it. It's drawn once from what it is, in its own
+ * box, as a paused stage draws no frame for what was just added; its motion reaches its element each
+ * frame from its host's `draw`, never through a render.
+ */
+const ClipNodeView = setup<{ node: ClipNode }>((props) => {
+  return () => {
+    const { element, attrs, style, text, children, x, y, width, height } = props.node.props;
+    const Element = (element ?? 'div') as 'div';
+    const placed = x !== undefined || y !== undefined;
+    const box = { ...(placed ? { position: 'absolute', left: x ?? 0, top: y ?? 0 } : {}), width, height } as const;
+    if (element === 'img') return <Element {...attrs} crossOrigin="anonymous" style={{ ...style, ...box }} />;
+    return (
+      <Element {...attrs} style={{ ...style, ...box }}>
+        {text}
+        <For each={() => [...(children ?? [])]}>{(node) => <ClipNodeView node={node} />}</For>
+      </Element>
+    );
+  };
+}, 'ClipNodeView');
 
 /**
  * A widget clip: the AUI widget it names in its box, with its props and words. Each frame its
@@ -228,6 +261,52 @@ const PainterClipView = template<{ segment: TimelineSegment<PainterClip> }>(
  * @param clip - The clip's values at the frame.
  */
 function drawCss(node: HTMLElement, clip: HtmlClip): void {
+  drawValues(node, clip);
+}
+
+/**
+ * Draws what's nested in an element for a frame: each node's values at the frame, on the element
+ * that shows it. A node inherits the rest from what holds it, as the DOM does.
+ *
+ * @param parent - The element they're nested in, whose element children are theirs, in order.
+ * @param host - The clip they're under, whose time they keep.
+ * @param nodes - The nodes.
+ * @param frame - The timeline frame.
+ */
+function drawNodes(parent: Element, host: TimelineSegment, nodes: ClipNode[] | undefined, frame: number): void {
+  nodes?.forEach((node, index) => {
+    const element = parent.children[index] as HTMLElement | SVGElement | undefined;
+    if (!element) return;
+    const values = sampleSegment(nodeClip(host, node), frame) as HtmlClip;
+    const { x, y, width, height, scale = 1, rotate = 0, opacity = 1 } = values;
+
+    element.style.transform = `rotate(${rotate}deg) scale(${scale})`;
+    element.style.opacity = String(opacity);
+    if (element instanceof SVGElement) {
+      element.style.transformBox = 'fill-box';
+      element.style.transformOrigin = 'center';
+      for (const [key, value] of Object.entries(values)) {
+        if (ELEMENT_SKIP.has(key) || ['scale', 'rotate', 'opacity'].includes(key) || value === undefined) continue;
+        const name = SVG_CAMEL.has(key) ? key : key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
+        if (element.getAttribute(name) !== String(value)) element.setAttribute(name, String(value));
+      }
+    } else {
+      if (x !== undefined || y !== undefined) {
+        element.style.position = 'absolute';
+        element.style.left = `${x ?? 0}px`;
+        element.style.top = `${y ?? 0}px`;
+      }
+      if (width !== undefined) element.style.width = `${width}px`;
+      if (height !== undefined) element.style.height = `${height}px`;
+      drawValues(element, values);
+    }
+
+    drawNodes(element, host, values.children, frame);
+  });
+}
+
+/** Writes an element's CSS for a frame: every value beyond its box and motion. */
+function drawValues(node: HTMLElement, clip: HtmlClip): void {
   for (const [key, value] of Object.entries(clip)) {
     if (MOTION_KEYS.has(key) || ELEMENT_SKIP.has(key) || value === undefined) continue;
     const text = typeof value === 'number' && !UNITLESS.has(key) ? `${value}px` : String(value);

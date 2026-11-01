@@ -4,7 +4,7 @@ import { PAINTERS } from './painters.js';
 
 /**
  * A project's composition is a timeline snapshot: hydrate it and the one timeline plays every
- * clip. Each track is a host of one kind — `video`, `audio`, `title`, `html`, `svg`, `painter` —
+ * clip. Each track is a host of one kind — `video`, `audio`, `title`, `html`, `painter` —
  * and takes only its own kinds of clip; a painter track's clips are named by their painter. Each segment is a clip; its `type` names what it is, its
  * `props` are its own values, and its scenes are keyframes whose `data` holds the values it has at
  * that moment, eased into the next keyframe by the scene's `meta.ease`. The snapshot's own `props`
@@ -20,8 +20,7 @@ export const TRACK_CLIPS: Record<string, string[]> = {
   video: ['video', 'image'],
   audio: ['audio'],
   title: ['title'],
-  html: ['html', 'widget'],
-  svg: ['svg'],
+  html: ['html', 'svg', 'widget'],
   painter: Object.keys(PAINTERS),
 };
 
@@ -32,16 +31,29 @@ export type ImageClip = MotionBox & { src?: string; fit?: 'cover' | 'contain' };
 export type TitleClip = MotionBox & { text?: string; style?: Record<string, string | number> };
 
 /**
- * One HTML element on an HTML track, in its box: which element, its words, its fixed attributes
- * and CSS, and any other value as a CSS property keyframes can move, e.g. `borderRadius`.
+ * One element on an HTML track, in its box: which element, HTML or SVG, its words, its fixed
+ * attributes and CSS, any other value as what keyframes can move — CSS on HTML, e.g. `borderRadius`,
+ * an attribute on SVG, e.g. `r` — and the elements nested inside it.
  */
 export type HtmlClip = MotionBox & {
   element?: string;
   text?: string;
   attrs?: Record<string, string | number>;
   style?: Record<string, string | number>;
+  children?: ClipNode[];
   [property: string]: unknown;
 };
+
+/** One keyframe of a nested element: where it sits in its host's content, how it eases, and its values. */
+export type NodeKeyframe = { id: string; atFrame: number; meta?: Record<string, unknown>; data: Record<string, unknown> };
+
+/**
+ * An element nested in a clip or in another of these. It inherits from what holds it as the DOM
+ * does: it moves, scales and fades with it, and its own values and keyframes adjust from there. Its
+ * box, when set, is within what holds it; without one, it flows. It has no time of its own: its
+ * keyframes count from its host's start, so trimming or moving the host takes it along.
+ */
+export type ClipNode = { id: string; name?: string; props: HtmlClip; scenes?: NodeKeyframe[] };
 
 /**
  * An AUI widget on an HTML track, in its box: which widget, its props as `params`, its words, its

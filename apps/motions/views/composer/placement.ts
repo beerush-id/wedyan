@@ -7,7 +7,7 @@ import type { AudioClip, HtmlClip, ImageClip, StageProps, SvgClip, TitleClip, Vi
 import type { Composer } from './context.js';
 
 /** The tracks a stage can be given, by type, and what each is called. */
-export const TRACK_NAMES = { video: 'Video', audio: 'Audio', title: 'Title', html: 'HTML', svg: 'SVG' };
+export const TRACK_NAMES = { video: 'Video', audio: 'Audio', title: 'Title', html: 'HTML' };
 
 export type TrackType = keyof typeof TRACK_NAMES;
 
@@ -187,7 +187,7 @@ export function placeShape(timeline: Timeline, stage: StageProps, at: Placement)
     attrs: { fill: 'none', stroke: '#ffffff' },
     strokeWidth: Math.max(2, Math.round(r * 0.04)),
   };
-  return place(timeline, 'svg', at, { type: 'svg', name: 'Shape', duration: TEXT_SECONDS }, props);
+  return place(timeline, 'html', at, { type: 'svg', name: 'Shape', duration: TEXT_SECONDS }, props);
 }
 
 /**

@@ -7,6 +7,7 @@ import { ComposeIcon } from '../../icons.js';
 import { type Composer, composerCtx } from '../context.js';
 import { mediaLoader } from '../media.js';
 import { Clips } from './Clips.js';
+import { Nodes } from './Nodes.js';
 import { Prompt } from './Prompt.js';
 import { Properties } from './Properties.js';
 import { Rendering } from './Rendering.js';
@@ -51,8 +52,8 @@ const ComposeStage = setup(() => {
   const timeline = createTimeline({ source: composition });
   const size = () => composition.props;
 
-  Object.assign(composer, { timeline, clips: [], snap: false, status: '', rendering: false });
-  onCleanup(() => Object.assign(composer, { clips: [], status: '', rendering: false }));
+  Object.assign(composer, { timeline, clips: [], node: '', snap: false, status: '', rendering: false });
+  onCleanup(() => Object.assign(composer, { clips: [], node: '', status: '', rendering: false }));
 
   return () => (
     <div
@@ -80,6 +81,16 @@ const ComposeStage = setup(() => {
             composer.generativeClip() && (
               <WindowPanel role="region" aria-label="Prompt" className="wedyan-compose-group wedyan-compose-prompt">
                 <Prompt />
+              </WindowPanel>
+            )
+          }
+        </Snippet>
+        {/* What's nested in the picked clip, in the same place, while an HTML clip is picked. */}
+        <Snippet>
+          {() =>
+            composer.hostClip()?.type === 'html' && (
+              <WindowPanel role="region" aria-label="Elements" className="wedyan-compose-group wedyan-compose-prompt">
+                <Nodes />
               </WindowPanel>
             )
           }

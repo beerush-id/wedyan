@@ -8,14 +8,17 @@ import { buffers } from '../media.js';
 import { ASSET_DRAG, addTrack, placeBox, placeOnStage, placeShape, placeTitle, TRACK_NAMES, type TrackType } from '../placement.js';
 import { clipAssignee } from './assignee.js';
 import { AssigneeAvatar } from './assignment.js';
+import { timelineFrame } from './keyframes.js';
 
 const TRACK_KINDS = Object.entries(TRACK_NAMES).map(([name, label]) => ({ name, label: `${label} track` }));
 
 /** What an empty spot on a track offers, by the track's type: a new clip of its kind there. */
 const LANE_COMMANDS: Record<string, { name: string; label: string }[]> = {
   title: [{ name: 'add-title', label: 'Add title here' }],
-  html: [{ name: 'add-box', label: 'Add box here' }],
-  svg: [{ name: 'add-shape', label: 'Add shape here' }],
+  html: [
+    { name: 'add-box', label: 'Add box here' },
+    { name: 'add-shape', label: 'Add shape here' },
+  ],
 };
 
 /** What each lane command puts at its point. */
@@ -57,6 +60,15 @@ export const TimelinePanel = setup(() => {
     if (asset) placeOnStage(composer, asset, { track, frame });
   };
 
+  // A picked node's keyframes, in seconds, on its host; with a clip picked, the ruler marks the clip's itself.
+  const pickedKeyframes = () => {
+    void composer.edits;
+    if (!composer.node) return;
+    const clip = composer.pickedClip();
+    const rate = (composer.timeline as Timeline).frameRate;
+    return clip?.scenes.map((scene) => timelineFrame(clip, scene.atFrame) / rate);
+  };
+
   const laneCommand = (event: CustomEvent<TimelineLaneCommand>) => {
     const { name, track, frame } = event.detail;
     const placer = LANE_PLACERS[name];
@@ -77,6 +89,7 @@ export const TimelinePanel = setup(() => {
         autofocus
         progress={buffering}
         playheadLabel="Playhead"
+        keyframes={pickedKeyframes}
         zoom={56}
         laneCommands={(track) => LANE_COMMANDS[track.type ?? '']}
         onlanecommand={laneCommand}
