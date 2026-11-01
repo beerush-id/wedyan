@@ -1,4 +1,4 @@
-import { isSegmentMuted, renderVideo, sampleSegment, type VideoMediaLoader, type VideoRenderProgress, type VideoStageAria } from '@airlib/aria';
+import { isSegmentMuted, renderVideo, type VideoMediaLoader, type VideoRenderProgress, type VideoStageAria } from '@airlib/aria';
 import type { Timeline, TimelineSegment } from '@airlib/react/timeline';
 import {
   AudioBufferSource,
@@ -11,6 +11,7 @@ import {
   QUALITY_HIGH,
 } from 'mediabunny';
 import type { ClipSound } from './composition.js';
+import { sampleClip } from './sampling.js';
 
 /** What a finished render made. */
 export type RenderedVideo = { file: Blob; frames: number; seconds: number };
@@ -121,7 +122,7 @@ export async function mixSound(timeline: Timeline, media: VideoMediaLoader): Pro
       node.buffer = sound;
       node.connect(panner).connect(gain).connect(mix.destination);
       for (let frame = segment.startFrame; frame <= segment.endFrame; frame++) {
-        const levels = sampleSegment(segment, frame) as ClipSound;
+        const levels = sampleClip(segment, frame) as ClipSound;
         gain.gain.setValueAtTime(levels.volume ?? volume, secondsAt(frame));
         panner.pan.setValueAtTime(levels.pan ?? pan, secondsAt(frame));
       }

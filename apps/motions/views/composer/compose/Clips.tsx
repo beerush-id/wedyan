@@ -1,4 +1,3 @@
-import { sampleSegment } from '@airlib/aria';
 import { effect, For, mutable, Snippet, setup, template } from '@airlib/react';
 import { StageClip } from '@airlib/react-aui';
 import type { Timeline, TimelineSegment } from '@airlib/react/timeline';
@@ -19,6 +18,7 @@ import {
 } from '../composition.js';
 import { loadFont } from '../fonts.js';
 import { PAINTERS } from '../painters.js';
+import { sampleClip } from '../sampling.js';
 import { WIDGETS } from '../widgets.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -135,7 +135,12 @@ const TitleClipView = setup<{ segment: TimelineSegment<TitleClip> }>((props) => 
     <StageClip
       segment={props.segment}
       style={{ ...props.segment.props.style }}
-      draw={({ values }) => loadFont((values as TitleClip).style, (values as TitleClip).text)}
+      draw={({ element, values }) => {
+        const { style, text, fontSize, color } = values as TitleClip & { fontSize?: number; color?: string };
+        // What keyframes move: the rest of its CSS is fixed. Unkeyed, these go back to that.
+        drawValues(element as HTMLElement, { fontSize: fontSize ?? style?.fontSize, color: color ?? style?.color });
+        return loadFont(style, text);
+      }}
     >
       {props.segment.props.text}
     </StageClip>
@@ -278,7 +283,7 @@ function drawNodes(parent: Element, host: TimelineSegment, nodes: ClipNode[] | u
     // By id, not place: a frame can land between a reorder and its render.
     const element = parent.querySelector<HTMLElement | SVGElement>(`:scope > [data-node="${node.id}"]`);
     if (!element) return;
-    const values = sampleSegment(host, frame, node) as HtmlClip;
+    const values = sampleClip(host, frame, node) as HtmlClip;
     const { x, y, width, height, scale = 1, rotate = 0, opacity = 1 } = values;
 
     element.style.transform = `rotate(${rotate}deg) scale(${scale})`;

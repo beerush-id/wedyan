@@ -7,6 +7,7 @@ import { download } from '@/lib/systems/download.js';
 import { type Composer, composerCtx } from '../context.js';
 import { type RenderedVideo, renderMp4 } from '../export.js';
 import { mediaLoader } from '../media.js';
+import { sampleClip } from '../sampling.js';
 import { Clips } from './Clips.js';
 
 /** A render's media: the files themselves, at their own sharpness. */
@@ -56,6 +57,7 @@ export const Rendering = setup(() => {
         height={composition.props.height}
         capture
         media={renderMedia}
+        sample={sampleClip}
         controls={false}
         controller={(controller) => {
           stage = controller;

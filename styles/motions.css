@@ -679,8 +679,35 @@
   }
 }
 
+/* One value on one line: its name, what edits it, and its keyframes right beside that. */
+.wedyan-compose-property-value {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  padding-inline-start: var(--spacing-sm);
+  border: 0;
+
+  & > .wedyan-compose-property-label {
+    flex: none;
+    margin-inline-end: auto;
+  }
+
+  & > .aui-slider {
+    flex: 1;
+    min-inline-size: 0;
+  }
+
+  & > .aui-stepper {
+    flex: none;
+    inline-size: 4.5rem;
+  }
+}
+
 /* A value's field wherever it sits: its glyph in from the edge, its number at the end. */
-:is(.wedyan-compose-property-body, .wedyan-compose-property-row) > .aui-stepper {
+:is(.wedyan-compose-property-body, .wedyan-compose-property-row, .wedyan-compose-property-value) > .aui-stepper {
   gap: var(--spacing-xs);
   padding-inline: var(--spacing-sm);
 

@@ -1,9 +1,52 @@
-import { sampleSegment } from '@airlib/aria';
-import type { TimelineSegment } from '@airlib/react/timeline';
-import type { Picked } from '../context.js';
+import { derived } from '@airlib/react';
+import type { Timeline, TimelineSegment } from '@airlib/react/timeline';
+import type { Composer, Picked } from '../context.js';
+import { sampleClip, toHex } from '../sampling.js';
+
+/** A value keyframes can move: what it reads as when unset, and the step it shows to. */
+export type KeyedField = { key: string; fallback?: number; step?: number };
 
 /** A group of values keyed together: the fields it keys. */
-export type KeyedGroup = { fields: { key: string }[] };
+export type KeyedGroup = { fields: KeyedField[] };
+
+/** A group's values as the playhead reads them, by key. */
+export type Reading = Record<string, number | string | undefined>;
+
+/**
+ * What the playhead reads for some values: candidates, shown until something holds them. Each is the
+ * value of the keyframes there, else of `own`, to the field's own step rather than a tweened fraction.
+ *
+ * @param composer - The window's composer.
+ * @param fields - The values.
+ * @param own - Where these values live on what's picked, when it isn't its `props`.
+ * @returns The reading, live as the playhead and the values move.
+ */
+export function createReading(
+  composer: Composer,
+  fields: () => KeyedField[],
+  own?: () => Record<string, unknown> | undefined,
+): Reading {
+  return derived.as(() => {
+    void composer.edits;
+    const reading: Reading = {};
+    // This runs once more as the pick clears, before the panel goes.
+    const clip = composer.hostClip();
+    if (!clip) return reading;
+    const sampled = sampleClip(clip, (composer.timeline as Timeline).state.frame, composer.picked());
+    const base = own?.();
+    for (const { key, fallback, step } of fields()) {
+      reading[key] = shown(sampled[key] ?? base?.[key] ?? fallback, step);
+    }
+    return reading;
+  });
+}
+
+/** A value as a field shows it: a number to its step, a colour as `#rrggbb`. */
+function shown(value: unknown, step = 1): number | string | undefined {
+  if (typeof value === 'number') return Number(value.toFixed(Math.max(0, -Math.floor(Math.log10(step)))));
+  if (typeof value === 'string' && value.startsWith('rgb')) return toHex(value);
+  return value as string | undefined;
+}
 
 /**
  * What holds a value at a frame of the clip, to change it there: the keyframe there, or with no
@@ -12,15 +55,21 @@ export type KeyedGroup = { fields: { key: string }[] };
  * @param keyed - The clip, or an element in it.
  * @param key - The value.
  * @param at - The frame, in the clip's content.
+ * @param own - Where it lives with no keyframes.
  * @returns What holds it, when something does.
  */
-export function holderOf(keyed: Picked, key: string, at: number): Record<string, unknown> | undefined {
-  const holder = keyed.scenes.length ? keyed.scenes.find((scene) => scene.atFrame === at)?.data : keyed.props;
+export function holderOf(
+  keyed: Picked,
+  key: string,
+  at: number,
+  own: Record<string, unknown> = keyed.props,
+): Record<string, unknown> | undefined {
+  const holder = keyed.scenes.length ? keyed.scenes.find((scene) => scene.atFrame === at)?.data : own;
   return holder && key in holder ? holder : undefined;
 }
 
 /**
- * Makes a reading a fact where it belongs: with keyframes, a point at that frame for whoever reads
+ * Makes one value a fact where it belongs: with keyframes, a point at that frame for whoever reads
  * them; with none, there's no between to deal with, so it's a value of its own.
  *
  * @param clip - The clip, whose time the frame is read on.
@@ -28,10 +77,18 @@ export function holderOf(keyed: Picked, key: string, at: number): Record<string,
  * @param at - The frame, in the clip's content.
  * @param key - The value.
  * @param value - What it is.
+ * @param own - Where it lives with no keyframes.
  */
-export function setValue(clip: TimelineSegment, keyed: Picked, at: number, key: string, value: number): void {
+export function setValue(
+  clip: TimelineSegment,
+  keyed: Picked,
+  at: number,
+  key: string,
+  value: number | string,
+  own: Record<string, unknown> = keyed.props,
+): void {
   if (keyed.scenes.length) setKeyframe(clip, keyed, at, { [key]: value });
-  else keyed.props[key] = value;
+  else own[key] = value;
 }
 
 /**
@@ -50,7 +107,7 @@ export function toggleKeyframe(
   keyed: Picked,
   group: KeyedGroup,
   at: number,
-  reading: Record<string, number | undefined>,
+  reading: Reading,
 ): void {
   const scene = keyed.scenes.find((each) => each.atFrame === at);
   if (scene && group.fields.some((field) => field.key in scene.data)) {
@@ -59,7 +116,7 @@ export function toggleKeyframe(
     return;
   }
 
-  const values: Record<string, number> = {};
+  const values: Record<string, number | string> = {};
   for (const { key } of group.fields) {
     const value = reading[key];
     if (value !== undefined) values[key] = value;
@@ -75,7 +132,7 @@ export function toggleKeyframe(
  * @param at - The frame, in the clip's content.
  * @param values - The values, by key.
  */
-function setKeyframe(clip: TimelineSegment, keyed: Picked, at: number, values: Record<string, number>): void {
+function setKeyframe(clip: TimelineSegment, keyed: Picked, at: number, values: Record<string, number | string>): void {
   const scene = keyed.scenes.find((each) => each.atFrame === at);
   if (scene) Object.assign(scene.data, values);
   else addKeyframe(clip, keyed, at, values);
@@ -90,27 +147,17 @@ function dropIfIdle(clip: TimelineSegment, keyed: Picked, scene: Picked['scenes'
   const data = { ...scene.data };
   removeScene(clip, keyed, scene);
 
-  const sampled = sampleSegment(clip, timelineFrame(clip, atFrame), keyed) as Record<string, unknown>;
+  const sampled = sampleClip(clip, timelineFrame(clip, atFrame), keyed) as Record<string, unknown>;
   const changes = Object.entries(data).some(([key, value]) =>
     typeof value === 'number' ? Math.abs(Number(sampled[key] ?? value) - value) > 1e-6 : sampled[key] !== value,
   );
   if (changes) insertScene(clip, keyed, atFrame, meta, data);
 }
 
-/**
- * Adds a keyframe. It takes every animated value at that frame, so the values it doesn't set keep
- * their course through it, then the given ones, and the ease of the one before.
- */
-function addKeyframe(clip: TimelineSegment, keyed: Picked, at: number, values: Record<string, number>): void {
-  const sampled = sampleSegment(clip, timelineFrame(clip, at), keyed) as Record<string, number>;
-  const data: Record<string, number> = {};
-  for (const each of keyed.scenes) {
-    for (const name of Object.keys(each.data)) data[name] = sampled[name];
-  }
-  Object.assign(data, values);
-
+/** Adds a keyframe with the given values and the ease of the one before. */
+function addKeyframe(clip: TimelineSegment, keyed: Picked, at: number, values: Record<string, number | string>): void {
   const before = keyed.scenes.findLast((each) => each.atFrame < at);
-  insertScene(clip, keyed, at, before?.meta ? { ...before.meta } : undefined, data);
+  insertScene(clip, keyed, at, before?.meta ? { ...before.meta } : undefined, values);
 }
 
 /** Puts a keyframe in its place: a clip's through its timeline, an element's straight into its list. */

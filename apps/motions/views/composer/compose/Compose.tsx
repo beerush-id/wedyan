@@ -6,6 +6,7 @@ import type { StageDocument } from '@/lib/documents/types.js';
 import { ComposeIcon } from '../../icons.js';
 import { type Composer, composerCtx } from '../context.js';
 import { mediaLoader } from '../media.js';
+import { sampleClip, watchKeyframes } from '../sampling.js';
 import { Clips } from './Clips.js';
 import { Nodes } from './Nodes.js';
 import { Prompt } from './Prompt.js';
@@ -51,6 +52,7 @@ const ComposeStage = setup(() => {
   // The timeline controls the stage's composition in place: every edit lands in the document.
   const timeline = createTimeline({ source: composition });
   const size = () => composition.props;
+  watchKeyframes(composition);
 
   Object.assign(composer, { timeline, clips: [], node: '', snap: false, status: '', rendering: false });
   onCleanup(() => Object.assign(composer, { clips: [], node: '', status: '', rendering: false }));
@@ -67,7 +69,7 @@ const ComposeStage = setup(() => {
         <WindowPanel surface="solid" role="region" aria-label="Preview" className="wedyan-compose-preview">
           <Show when={() => !composer.rendering} fallback={() => <Rendering />}>
             {() => (
-              <Stage label={composer.stage?.name} timeline={timeline} width={size().width} height={size().height} media={previewMedia} labels={STAGE_LABELS}>
+              <Stage label={composer.stage?.name} timeline={timeline} width={size().width} height={size().height} media={previewMedia} sample={sampleClip} labels={STAGE_LABELS}>
                 <Clips timeline={timeline} />
               </Stage>
             )}
