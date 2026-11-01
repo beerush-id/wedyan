@@ -408,7 +408,7 @@ const PersonalityForm = setup(() => {
         </Button>
       </GenerationGroup>
       <GenerationGroup label="Settings" card>
-        <div className="wedyan-compose-property-row">
+        <div className="wedyan-compose-property-row pi-sm">
           <span>Model</span>
           <Select size="xs" label="Model" options={models} value={$bind(personality, 'model')}>
             <Select.Snippet for="trigger">{(value) => <span>{models[value as string]}</span>}</Select.Snippet>

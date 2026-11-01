@@ -46,7 +46,7 @@ export const Nodes = setup(() => {
 
   return () => (
     <div className="wedyan-compose-nodes">
-      <div className="wedyan-compose-property-head">
+      <div className="wedyan-compose-property-head pi-sm">
         <span className="wedyan-compose-property-label">Elements</span>
         <span className="wedyan-compose-nodes-actions">
           <Button aria-label="Add box" size="xs" variant="text" className={AUI_CLASS.CONTROL_ICON} onClick={() => add('Box', NEW_BOX)}>

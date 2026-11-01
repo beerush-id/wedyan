@@ -68,7 +68,7 @@ const GroupView = setup<{ group: Group }>((props) => {
 
   return ({ group }) => (
     <fieldset aria-label={group.label} className="wedyan-compose-property-group">
-      <div className="wedyan-compose-property-head">
+      <div className="wedyan-compose-property-head pi-sm">
         <span className="wedyan-compose-property-label" aria-hidden="true">
           {group.label}
         </span>

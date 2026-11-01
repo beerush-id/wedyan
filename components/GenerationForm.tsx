@@ -49,7 +49,7 @@ export const GenerationForm = setup(() => {
 export const GenerationGroup = template<{ label: string; card?: boolean; children?: ReactNode }>(
   ({ label, card, children }) => (
     <div role="group" aria-label={label} className="wedyan-compose-property-group">
-      <div className="wedyan-compose-property-head">
+      <div className="wedyan-compose-property-head pi-sm">
         <span className="wedyan-compose-property-label" aria-hidden="true">
           {label}
         </span>
@@ -101,21 +101,21 @@ const settingsGroup = (source: GenerativeDocument) => {
     'Settings',
     <>
       {source.type === 'sound' && (
-        <div className="wedyan-compose-property-row">
+        <div className="wedyan-compose-property-row pi-sm">
           <span>Kind</span>
           <Select size="xs" label="Kind" options={SOUND_KINDS} value={$bind(source, 'kind')}>
             <Select.Snippet for="trigger">{(value) => <span>{SOUND_KINDS[value as SoundDocument['kind']]}</span>}</Select.Snippet>
           </Select>
         </div>
       )}
-      <div className="wedyan-compose-property-row">
+      <div className="wedyan-compose-property-row pi-sm">
         <span>Model</span>
         <Select size="xs" label="Model" options={models} value={$bind(settings, 'model')}>
           <Select.Snippet for="trigger">{(value) => <span>{models[value as string]}</span>}</Select.Snippet>
         </Select>
       </div>
       {source.type !== 'sound' && (
-        <div className="wedyan-compose-property-row">
+        <div className="wedyan-compose-property-row pi-sm">
           <span>Aspect ratio</span>
           <Select size="xs" label="Aspect ratio" options={ASPECTS} value={$bind(settings, 'aspect')}>
             <Select.Snippet for="trigger">{(value) => <span>{value as string}</span>}</Select.Snippet>
@@ -123,7 +123,7 @@ const settingsGroup = (source: GenerativeDocument) => {
         </div>
       )}
       {source.type === 'still' && (
-        <div className="wedyan-compose-property-row">
+        <div className="wedyan-compose-property-row pi-sm">
           <span>Batch size</span>
           <Stepper
             size="xs"
@@ -137,7 +137,7 @@ const settingsGroup = (source: GenerativeDocument) => {
         </div>
       )}
       {source.type !== 'still' && (
-        <div className="wedyan-compose-property-row">
+        <div className="wedyan-compose-property-row pi-sm">
           <span>Seconds</span>
           <Stepper
             size="xs"

@@ -26,12 +26,12 @@ export const SoundProperties = setup<{ clip: TimelineSegment<ClipSound> }>(() =>
   return ({ clip: { props } }) => (
     <div className="wedyan-compose-properties-fields">
       <fieldset aria-label="Sound" className="wedyan-compose-property-group">
-        <div className="wedyan-compose-property-head">
+        <div className="wedyan-compose-property-head pis-sm">
           <span className="wedyan-compose-property-label" aria-hidden="true">
             Sound
           </span>
         </div>
-        <div className="wedyan-compose-property-row">
+        <div className="wedyan-compose-property-row pis-sm">
           <span id="wedyan-compose-mute">Mute</span>
           <Switch size="xs" aria-labelledby="wedyan-compose-mute" checked={$bind(props, 'muted')} />
         </div>

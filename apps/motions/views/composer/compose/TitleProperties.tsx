@@ -50,7 +50,7 @@ export const TitleProperties = setup<{ clip: TimelineSegment<TitleClip> }>((prop
       <div className="wedyan-compose-properties-fields">
         <TextInput size="sm" label="Words" multiline rows={3} value={$bind(props, 'text')} />
         <fieldset aria-label="Font" className="wedyan-compose-property-group">
-          <div className="wedyan-compose-property-head">
+          <div className="wedyan-compose-property-head pi-sm">
             <span className="wedyan-compose-property-label" aria-hidden="true">
               Font
             </span>
@@ -58,7 +58,7 @@ export const TitleProperties = setup<{ clip: TimelineSegment<TitleClip> }>((prop
           <div className="wedyan-compose-property-row">
             <FontPicker value={$bind(style, 'fontFamily')} />
           </div>
-          <div className="wedyan-compose-property-row">
+          <div className="wedyan-compose-property-row pis-sm">
             <span>Format</span>
             <SegmentGroup aria-label="Format" size="xs" value={style}>
               <Toggle name="fontWeight" value="bold" aria-label="Bold">
@@ -75,7 +75,7 @@ export const TitleProperties = setup<{ clip: TimelineSegment<TitleClip> }>((prop
               </Toggle>
             </SegmentGroup>
           </div>
-          <div className="wedyan-compose-property-row">
+          <div className="wedyan-compose-property-row pis-sm">
             <span>Align</span>
             <ToggleGroup aria-label="Align" size="xs" value={$bind(style, 'textAlign')} required>
               <Toggle value="left" aria-label="Left">
@@ -129,7 +129,7 @@ const KeyedStyle = setup<{
       <div className="wedyan-compose-property-head">
         <Keyframes group={group} reading={reading} />
       </div>
-      <div className="wedyan-compose-property-row">
+      <div className="wedyan-compose-property-row pis-sm">
         <span>{group.label}</span>
         <KeyedValue name={group.fields[0].key} reading={reading} own={style}>
           {children}
