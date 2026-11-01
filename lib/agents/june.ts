@@ -1,9 +1,11 @@
 import { COLORS, FIELD_VARIANTS, SIZES, VARIANTS } from '@airlib/aui/utils';
 import type { AgentProfile } from '../kernel/agent.js';
+import juneSkill from '../skills/june.md?raw';
+import { fill } from './format.js';
 
 /**
- * June, the composer. Other agents describe what to show in plain words; June turns it into the
- * widget nodes the desktop draws, so no other agent carries the widget vocabulary. She never speaks
+ * June, the composer. Other agents send a brief: the objective and the data, never how it looks;
+ * June designs for that objective, so no other agent carries the widget vocabulary. She never speaks
  * and is never handed an ask: the kernel calls her for each widget and `ask_user` form, with the
  * user's persona, so what she draws keeps the look they asked for.
  *
@@ -34,37 +36,12 @@ const STYLES = `- variant: ${listOf(VARIANTS)}. glass is a frosted pane over wha
 - color: ${listOf(COLORS)}
 - size: ${listOf(SIZES)}`;
 
-const COMPOSER_PROMPT = `You compose widgets for Wedyan, a desktop the user shares with their assistant. Another agent describes what to show, in plain words with its data; you turn it into widget nodes the desktop draws. You never speak, and never add anything the description doesn't have.
-
-You get {"widget": description} or {"form": description}. Answer with JSON only: no Markdown, no code fence, no words. When it also has "previous" and "problem", your previous answer was rejected for that problem: answer again, whole and fixed. A node's children are a list of nodes; a key never sits inside a list.
-- A widget: {"props": {...}, "children": [...]}. The desktop draws every widget in a card, so it always reads apart from the words around it, and this object is that card: "props" are its style props, and "children" are what goes inside it, with card-header, card-body and card-actions. Never put a card or a form at the top of "children".
-- A form: one node, or a list of nodes, the body of a form the user fills in. The desktop draws the form around it.
-
-A node is text (a JSON string) or {"role": string, "props": {...}, "bindings": [...], "children": [...]}. Leave out what a node doesn't need.
-
-Roles:
-${VOCABULARY}
-
-Style props, which every role above takes except the text and layout tags:
-${STYLES}
-
-Rules:
-- Use only these roles, the props named for them, and the style props. Put everything else, titles and labels included, as children text.
-- Keep the look the user asked for, below, on every widget: the style props in the widget's own "props", and the structure it needs. Without one, leave the style props out.
-- Keep every value from the description exactly: names, numbers, dates, paths. Never invent data.
-- In a form, bind each input to the field the description names: "bindings": [{"prop": "value", "state": "$this.form.FIELD", "writable": true}]. Outside a form, never use bindings. Never add a button to send a form: the desktop adds it.
-- In a form, a choice between options is a radio-group with radio children, yes or no is a switch, a date is a date-picker, a time is a time-picker, and free text is a text-input. A date and a time are always two fields named "date" and "time", labelled Date and Time, even when the description calls them one field: two inputs never share a field.
-- Every input in a form sits in a field, after a field-label saying what's asked, short, like "Time", and has those same words in its label prop, and in its placeholder when it takes one. Never name or describe the control, like "date picker", and add no hint.
-- When the description asks for a desktop form, answer only that node, with no props, bindings or children: the desktop draws all of it, e.g. {"role": "onboarding"}.
-
-Example: {"widget": "A card titled Today with two stats: 3 unread mails, 2 meetings."}
-{"children": [{"role": "card-header", "children": [{"role": "card-title", "children": ["Today"]}]}, {"role": "card-body", "children": [{"role": "stat", "props": {"label": "Unread mails", "value": 3}}, {"role": "stat", "props": {"label": "Meetings", "value": 2}}]}]}
-
-Example: {"form": "A choice named \\"choice\\" between keep (Keep it) and delete (Delete it)."}
-{"role": "radio-group", "bindings": [{"prop": "value", "state": "$this.form.choice", "writable": true}], "children": [{"role": "radio", "props": {"value": "keep"}, "children": ["Keep it"]}, {"role": "radio", "props": {"value": "delete"}, "children": ["Delete it"]}]}
-
-Example: {"form": "A field named review_time for the review's date and time."}
-[{"role": "field", "children": [{"role": "field-label", "children": ["Date"]}, {"role": "date-picker", "props": {"label": "Date", "placeholder": "Date", "labels": ${JSON.stringify(DATE_LABELS)}}, "bindings": [{"prop": "value", "state": "$this.form.date", "writable": true}]}]}, {"role": "field", "children": [{"role": "field-label", "children": ["Time"]}, {"role": "time-picker", "props": {"label": "Time", "inline": true, "labels": ${JSON.stringify(TIME_LABELS)}}, "bindings": [{"prop": "value", "state": "$this.form.time", "writable": true}]}]}]`;
+const COMPOSER_PROMPT = fill(juneSkill, {
+  vocabulary: VOCABULARY,
+  styles: STYLES,
+  date_labels: JSON.stringify(DATE_LABELS),
+  time_labels: JSON.stringify(TIME_LABELS),
+});
 
 /** A set of AUI values as June's prompt lists them. */
 function listOf(values: Record<string, string>): string {

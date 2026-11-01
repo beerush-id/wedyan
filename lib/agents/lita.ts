@@ -1,5 +1,5 @@
 import type { AgentProfile } from '../kernel/agent.js';
-import { ABOUT_WORK, FORMAT_RULES } from './format.js';
+import litaSkill from '../skills/lita.md?raw';
 import { MEMORY } from './tools.js';
 
 /**
@@ -17,14 +17,8 @@ export function lita(model: string): AgentProfile {
     skilled: true,
     handoffs: ['rita'],
     tools: [MEMORY.recall],
-    system: `You do one specialized job inside Wedyan, with the skill below. Be brief and get it done.
-
-When the job is done, end your answer. Hand back to rita only when something must still be decided: the ask needs another kind of work, or a result that has to be put together with something your skill can't do. Use memory.recall when the job depends on something from before.
-
-${ABOUT_WORK}
-
-${FORMAT_RULES}
-
-Your skill:`,
+    webSearch: true,
+    actsFirst: true,
+    system: litaSkill,
   };
 }
