@@ -2,7 +2,6 @@ import { $bind, setup } from '@airlib/react';
 import { Listbox, ListboxOption } from '@airlib/react-aui';
 import { WindowSidebar, WindowSidebarLabel, WindowSidebarPanel } from '@airlib/react-aui/desktop';
 import { ClockIcon } from '@airlib/react-aui/icons';
-import { FavoritesIcon } from '@/components/icons.js';
 import { GenerativeIcon, ProjectsIcon } from '../icons.js';
 import { libraryCtx, type MotionLibrary } from './context.js';
 import { VIEW_LABELS } from './listing.js';
@@ -19,10 +18,6 @@ export const LibrarySidebar = setup(() => {
           <ListboxOption value="recent">
             <ClockIcon />
             <span>{VIEW_LABELS.recent}</span>
-          </ListboxOption>
-          <ListboxOption value="favourite">
-            <FavoritesIcon />
-            <span>{VIEW_LABELS.favourite}</span>
           </ListboxOption>
           <ListboxOption value="generative">
             <GenerativeIcon />

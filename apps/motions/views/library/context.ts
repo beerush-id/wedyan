@@ -5,7 +5,7 @@ import { type FileRow, rowsOf } from '@/lib/documents/rows.js';
 import { dfs } from '@/lib/share/dfs.js';
 import { LOUNGE, LOUNGE_EVENT } from '../../../../lib/kernel/workspace.h.js';
 import { openMotion } from '../composer/index.js';
-import { animation, newMotion, ROOT } from '../motion.js';
+import { animation, destination, newMotion, ROOT } from '../motion.js';
 import { changesListing, type LibraryView, listingOf, orderOf } from './listing.js';
 
 /** A library window's state: where it is, how it shows it, and what's picked. */
@@ -96,6 +96,14 @@ export function createLibrary() {
     }
   });
 
+  // What's gathered from every folder is in none of them, so there it's Motions itself.
+  effect(() => {
+    destination.folder = state.activeView === 'all' ? state.folder : ROOT;
+    return () => {
+      destination.folder = ROOT;
+    };
+  });
+
   // Each place starts with nothing picked and nothing searched.
   effect(() => {
     void [state.activeView, state.folder];
@@ -120,12 +128,12 @@ export function createLibrary() {
     add,
     drop,
 
-    /** Starts a new motion and opens it; the listing hears of it as it does of any new file. */
+    /** Starts a new motion where the window is and opens it; the listing hears of it as it does of any new file. */
     async create() {
       if (state.creating) return;
       state.creating = true;
       try {
-        const { path } = await newMotion('New motion', animation.aspect, '');
+        const { path } = await newMotion('New motion', animation.aspect, '', destination.folder);
         openMotion(path);
       } finally {
         state.creating = false;

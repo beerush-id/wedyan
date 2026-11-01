@@ -6,12 +6,11 @@ import type { FileRow } from '@/lib/documents/rows.js';
 import { duration, MOTION_FILE, ROOT, shortDate } from '../motion.js';
 
 /** The places down the library's side. */
-export type LibraryView = 'recent' | 'favourite' | 'generative' | 'all';
+export type LibraryView = 'recent' | 'generative' | 'all';
 
 /** The places down the side, with their names. */
 export const VIEW_LABELS: Record<LibraryView, string> = {
   recent: 'Recents',
-  favourite: 'Favorites',
   generative: 'Generative',
   all: 'All motions',
 };
@@ -20,7 +19,7 @@ export const VIEW_LABELS: Record<LibraryView, string> = {
 const RECENT_COUNT = 10;
 
 /** Every project, from every folder. */
-const PROJECTS = { recursive: true, filter: { type: FILE_TYPES.motion } };
+export const PROJECTS = { recursive: true, filter: { type: FILE_TYPES.motion } };
 
 /**
  * What a place asks `list` for: only what it shows.

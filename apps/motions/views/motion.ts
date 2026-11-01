@@ -11,6 +11,9 @@ export { documentAt, follow } from '@/lib/share/documents.js';
 /** How Motions animates a new motion: set from the dock, read when a prompt is sent. */
 export const animation = mutable({ model: 'standard', aspect: '16:9', seconds: 6 });
 
+/** Where a new motion goes: set by the library as it moves, read by whatever makes one. */
+export const destination = mutable({ folder: '~/Motions' });
+
 /** A project: the `.motion` and where it is. */
 export type Project = { path: string; document: MotionDocument };
 
@@ -110,11 +113,12 @@ const STARTING_TRACKS: TrackType[] = ['audio', 'video', 'html', 'title'];
  * @param name - What it's called.
  * @param aspect - Its aspect ratio, e.g. `16:9`.
  * @param cover - Its cover's address.
+ * @param parent - The folder its own folder goes in.
  * @returns The new project, once it's written.
  */
-export const newMotion = async (name: string, aspect: string, cover: string): Promise<Project> => {
+export const newMotion = async (name: string, aspect: string, cover: string, parent = ROOT): Promise<Project> => {
   const id = newId();
-  const folder = `${ROOT}/${id}`;
+  const folder = `${parent}/${id}`;
   const path = `${folder}/${id}.motion`;
   const document: MotionDocument = {
     ...newHeader(path, '.motion'),
