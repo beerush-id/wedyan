@@ -4,6 +4,7 @@ import type { FileRow } from '@/lib/documents/rows.js';
 import type { MotionDocument, PersonaDocument, StageDocument } from '@/lib/documents/types.js';
 import { dfs } from '@/lib/share/dfs.js';
 import { LOUNGE, LOUNGE_EVENT } from '../../../lib/kernel/workspace.h.js';
+import { TRACK_NAMES, type TrackType } from './composer/placement.js';
 
 export { documentAt, follow } from '@/lib/share/documents.js';
 
@@ -99,6 +100,9 @@ const STAGE_SIZES: Record<string, { width: number; height: number }> = {
   '1:1': { width: 1080, height: 1080 },
 };
 
+/** The tracks a stage starts with, one of each kind: later ones draw over earlier ones. */
+const STARTING_TRACKS: TrackType[] = ['audio', 'video', 'html', 'title'];
+
 /**
  * Starts a new project in its own folder, with one empty stage at its aspect ratio. Its folder and
  * file are named by its id; what it's called is its document's, and can change.
@@ -159,7 +163,7 @@ export const newScript = async (project: string, stage: StageDocument): Promise<
 };
 
 /**
- * A new empty stage of a project: its size, its casts, at 30 frames a second.
+ * A new empty stage of a project: its size, its casts, its starting tracks, at 30 frames a second.
  *
  * @param id - Its id, which names its file.
  * @param folder - The folder it goes in.
@@ -181,7 +185,11 @@ function stageAt(id: string, folder: string, name: string, project: MotionDocume
       id: crypto.randomUUID(),
       options: { frameRate: 30 },
       props: STAGE_SIZES[project.aspect] ?? STAGE_SIZES['16:9'],
-      tracks: [],
+      tracks: STARTING_TRACKS.map((type) => ({
+        id: crypto.randomUUID(),
+        options: { type, name: `${TRACK_NAMES[type]} 1`, meta: {} },
+        segments: [],
+      })),
     },
   };
 }
