@@ -1,7 +1,7 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
-import { $bind, For, setup, template } from '@airlib/react';
+import { $bind, For, setup, Show, template } from '@airlib/react';
 import type { TimelineSegment } from '@airlib/react/timeline';
-import { Button, Toggle, ToggleGroup, Tooltip } from '@airlib/react-aui';
+import { Button, TextInput, Toggle, ToggleGroup, Tooltip } from '@airlib/react-aui';
 import { ImageIcon, ShapesIcon, TitleIcon } from '@airlib/react-aui/icons';
 import type { DragEvent } from 'react';
 import { DeleteIcon } from '@/components/icons.js';
@@ -13,6 +13,7 @@ import { addNode, findNode, moveNode } from '../nodes.js';
 /** What a new element starts as, within what holds it, in stage units. */
 const NEW_BOX: HtmlClip = { x: 40, y: 40, width: 240, height: 160, style: { background: '#ffffff' } };
 const NEW_TEXT: HtmlClip = { x: 40, y: 40, text: 'Text', style: { color: '#ffffff', fontSize: 48 } };
+const NEW_IMAGE: HtmlClip = { element: 'img', x: 40, y: 40, width: 240, height: 160, attrs: {}, style: { objectFit: 'cover' } };
 
 /** How a dragged row names itself to the row it's let go on. */
 const NODE_DRAG = 'application/x-wedyan-node';
@@ -57,12 +58,19 @@ export const Nodes = setup(() => {
             <TextIcon />
             <Tooltip>Add text</Tooltip>
           </Button>
+          <Button aria-label="Add image" size="xs" variant="text" className={AUI_CLASS.CONTROL_ICON} onClick={() => add('Image', NEW_IMAGE)}>
+            <ImageIcon />
+            <Tooltip>Add image</Tooltip>
+          </Button>
           <Button aria-label="Remove element" size="xs" variant="text" className={AUI_CLASS.CONTROL_ICON} onClick={remove}>
             <DeleteIcon />
             <Tooltip>Remove element</Tooltip>
           </Button>
         </span>
       </div>
+      <Show when={() => findNode(host().props.children, composer.node)?.node}>
+        {(node) => <TextInput size="xs" label="Name" value={$bind(node, 'name')} />}
+      </Show>
       <ToggleGroup aria-label="Elements" size="xs" orientation="vertical" required value={$bind(composer, 'node')}>
         <Toggle value="">
           <NodeIcon clip={host().props} />

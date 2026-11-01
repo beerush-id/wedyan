@@ -1,5 +1,4 @@
 import { $bind, type AnyType, effect, setup } from '@airlib/react';
-import type { TimelineSegment } from '@airlib/react/timeline';
 import {
   SegmentGroup,
   Stepper,
@@ -19,24 +18,21 @@ import {
   FormatUnderlinedIcon,
   TitleIcon,
 } from '@airlib/react-aui/icons';
-import type { ReactNode } from 'react';
-import type { TitleClip } from '../composition.js';
-import { type Composer, composerCtx } from '../context.js';
+import type { Picked } from '../context.js';
 import { FontPicker } from './FontPicker.js';
-import { Keyframes, KeyedValue } from './Groups.js';
-import { createReading, type KeyedField } from './keyframes.js';
+import { KeyedStyle } from './Groups.js';
 
-/** How big a title's words are: on its own, with no relation to their colour. */
+/** How big the words are: on its own, with no relation to their colour. */
 const SIZE = { label: 'Size', fields: [{ key: 'fontSize', step: 1 }] };
 
-/** What colour a title's words are. */
+/** What colour the words are. */
 const COLOR = { label: 'Color', fields: [{ key: 'color' }] };
 
 /**
- * The picked title's words and how they're set, each bound to the clip's own CSS. What has a between
- * is keyed on its own; the rest of how it's set doesn't move.
+ * Picked words and how they're set, on a title or an element, each bound to its own CSS. What has a
+ * between is keyed on its own; the rest of how it's set doesn't move.
  */
-export const TitleProperties = setup<{ clip: TimelineSegment<TitleClip> }>((props) => {
+export const TextProperties = setup<{ clip: Picked }>((props) => {
   effect(() => {
     if (!props.clip.props.style) {
       props.clip.props.style = {};
@@ -110,31 +106,4 @@ export const TitleProperties = setup<{ clip: TimelineSegment<TitleClip> }>((prop
       </div>
     );
   };
-}, 'TitleProperties');
-
-/** One CSS value of a title that keyframes can move: its name beside its input, its keyframes above that. */
-const KeyedStyle = setup<{
-  group: { label: string; fields: KeyedField[] };
-  style: Record<string, unknown>;
-  children: (value: AnyType, edit: () => void) => ReactNode;
-}>((props) => {
-  const reading = createReading(
-    composerCtx.get() as Composer,
-    () => props.group.fields,
-    () => props.style,
-  );
-
-  return ({ group, style, children }) => (
-    <fieldset aria-label={group.label} className="wedyan-compose-property-group">
-      <div className="wedyan-compose-property-head">
-        <Keyframes group={group} reading={reading} />
-      </div>
-      <div className="wedyan-compose-property-row pis-sm">
-        <span>{group.label}</span>
-        <KeyedValue name={group.fields[0].key} reading={reading} own={style}>
-          {children}
-        </KeyedValue>
-      </div>
-    </fieldset>
-  );
-}, 'KeyedStyle');
+}, 'TextProperties');

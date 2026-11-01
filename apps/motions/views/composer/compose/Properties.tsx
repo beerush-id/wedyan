@@ -4,12 +4,12 @@ import { EmptyState, TabButton, TabList, TabPanel, Tabs } from '@airlib/react-au
 import { WindowPanel } from '@airlib/react-aui/desktop';
 import type { FC } from 'react';
 import { LayerIcon, PropertiesIcon, SoundIcon, TextIcon } from '../../icons.js';
-import type { ClipSound, TitleClip } from '../composition.js';
-import { type Composer, composerCtx } from '../context.js';
+import type { ClipSound } from '../composition.js';
+import { type Composer, composerCtx, type Picked } from '../context.js';
 import { Assigned } from './Assigned.js';
 import { LayerProperties } from './LayerProperties.js';
 import { SoundProperties } from './SoundProperties.js';
-import { TitleProperties } from './TitleProperties.js';
+import { TextProperties } from './TextProperties.js';
 
 /** A clip with a box: a sound has none. */
 const hasBox = (segment?: TimelineSegment) => !!segment && segment.type !== 'audio';
@@ -18,9 +18,8 @@ const hasBox = (segment?: TimelineSegment) => !!segment && segment.type !== 'aud
 const soundOf = (segment?: TimelineSegment) =>
   segment?.type === 'video' || segment?.type === 'audio' ? (segment as TimelineSegment<ClipSound>) : undefined;
 
-/** The picked clip when it has words: a title. */
-const titleOf = (segment?: TimelineSegment) =>
-  segment?.type === 'title' ? (segment as TimelineSegment<TitleClip>) : undefined;
+/** What's picked when it has words: a title, or an element holding text. */
+const wordsOf = (picked?: Picked) => (picked?.props.text === undefined ? undefined : picked);
 
 /** What a tab says while no clip it's for is picked. */
 const NothingPicked = template<{ kind: string; icon: FC }>(
@@ -33,8 +32,9 @@ const NothingPicked = template<{ kind: string; icon: FC }>(
 );
 
 /**
- * The picked clip's properties, by kind on tabs: Layer holds its box, Audio its sound, and Text a
- * title's words and how they're set. Each tab shows its panel while the picked clip has what it's for.
+ * What's picked's properties, by kind on tabs: Layer holds its box, Audio a clip's sound, and Text
+ * words and how they're set, on a title or an element. Each tab shows its panel while what's picked
+ * has what it's for.
  */
 export const Properties = setup(() => {
   const composer = composerCtx.get() as Composer;
@@ -75,10 +75,10 @@ export const Properties = setup(() => {
         </TabPanel>
         <TabPanel name="text">
           <Show
-            when={() => titleOf(composer.hostClip())}
+            when={() => wordsOf(composer.picked())}
             fallback={() => <NothingPicked kind="text" icon={TextIcon} />}
           >
-            {(clip) => <TitleProperties clip={clip} />}
+            {(clip) => <TextProperties key={clip.id} clip={clip} />}
           </Show>
         </TabPanel>
       </Tabs>

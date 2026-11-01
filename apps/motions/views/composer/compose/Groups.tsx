@@ -83,12 +83,39 @@ const GroupView = setup<{ group: Group }>((props) => {
   );
 }, 'GroupView');
 
+/** One CSS value keyframes can move: its name beside its input, its keyframes above that. */
+export const KeyedStyle = setup<{
+  group: KeyedGroup & { label: string };
+  style: Record<string, unknown>;
+  children: (value: AnyType, edit: () => void) => ReactNode;
+}>((props) => {
+  const reading = createReading(
+    composerCtx.get() as Composer,
+    () => props.group.fields,
+    () => props.style,
+  );
+
+  return ({ group, style, children }) => (
+    <fieldset aria-label={group.label} className="wedyan-compose-property-group">
+      <div className="wedyan-compose-property-head">
+        <Keyframes group={group} reading={reading} />
+      </div>
+      <div className="wedyan-compose-property-row pis-sm">
+        <span>{group.label}</span>
+        <KeyedValue name={group.fields[0].key} reading={reading} own={style}>
+          {children}
+        </KeyedValue>
+      </div>
+    </fieldset>
+  );
+}, 'KeyedStyle');
+
 /**
  * A group's keyframes at the playhead: the diamond, filled while the group has a keyframe there,
  * adds one with the reading or takes it off; either side, a step to the keyframe before or after,
  * inert while there's none; and on a keyframe, its ease.
  */
-export const Keyframes = setup<{ group: KeyedGroup & { label: string }; reading: Reading }>((props) => {
+const Keyframes = setup<{ group: KeyedGroup & { label: string }; reading: Reading }>((props) => {
   const composer = composerCtx.get() as Composer;
 
   return () => (

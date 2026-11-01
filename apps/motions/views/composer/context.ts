@@ -15,7 +15,7 @@ import { findNode } from './nodes.js';
 export type ComposerData = { path: string; direct: boolean };
 
 /** What's being edited: a clip, or an element in it. Each holds its own values and keyframes. */
-export type Picked = { name?: string; props: Record<string, AnyType>; scenes: NodeKeyframe[] };
+export type Picked = { id: string; name?: string; props: Record<string, AnyType>; scenes: NodeKeyframe[] };
 
 /** What Direct shows beside its list. */
 export type DirectView = 'overview' | 'stage' | 'asset' | 'cast';

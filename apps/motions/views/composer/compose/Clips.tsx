@@ -32,6 +32,9 @@ const SVG_SIZED = new Set(['image', 'rect', 'foreignObject', 'use', 'svg']);
 /** Clip values that aren't attributes of an SVG element, nor CSS of an HTML one. */
 const ELEMENT_SKIP = new Set(['element', 'text', 'attrs', 'style', 'children']);
 
+/** What of an element's own CSS keyframes can move. */
+const KEYED_STYLE = ['fontSize', 'color', 'background', 'borderRadius'];
+
 /** Clip values that aren't props a widget's keyframes move. */
 const WIDGET_SKIP = new Set(['widget', 'params', 'text', 'style']);
 
@@ -136,10 +139,8 @@ const TitleClipView = setup<{ segment: TimelineSegment<TitleClip> }>((props) => 
       segment={props.segment}
       style={{ ...props.segment.props.style }}
       draw={({ element, values }) => {
-        const { style, text, fontSize, color } = values as TitleClip & { fontSize?: number; color?: string };
-        // What keyframes move: the rest of its CSS is fixed. Unkeyed, these go back to that.
-        drawValues(element as HTMLElement, { fontSize: fontSize ?? style?.fontSize, color: color ?? style?.color });
-        return loadFont(style, text);
+        drawKeyedStyle(element as HTMLElement, values as HtmlClip);
+        return loadFont((values as TitleClip).style, (values as TitleClip).text);
       }}
     >
       {props.segment.props.text}
@@ -161,10 +162,12 @@ const HtmlClipView = template<{ segment: TimelineSegment<HtmlClip> }>((props) =>
       segment={props.segment}
       {...attrs}
       crossOrigin={image ? 'anonymous' : undefined}
-      style={style}
+      style={{ ...style }}
       draw={({ element: node, values, frame }) => {
         drawCss(node as HTMLElement, values as HtmlClip);
+        drawKeyedStyle(node as HTMLElement, values as HtmlClip);
         drawNodes(node, props.segment, (values as HtmlClip).children, frame);
+        return Promise.all(fontsOf((values as HtmlClip).children));
       }}
     >
       {image ? undefined : (
@@ -183,6 +186,12 @@ const HtmlClipView = template<{ segment: TimelineSegment<HtmlClip> }>((props) =>
  * frame from its host's `draw`, never through a render.
  */
 const ClipNodeView = setup<{ node: ClipNode }>((props) => {
+  // As a title's: a paused stage draws no frame, so a font set then loads here.
+  effect.client(() => {
+    const { style, text } = props.node.props;
+    if (text !== undefined) void loadFont(style, text);
+  });
+
   return () => {
     const { element, attrs, style, text, children, x, y, width, height } = props.node.props;
     const Element = (element ?? 'div') as 'div';
@@ -270,6 +279,34 @@ function drawCss(node: HTMLElement, clip: HtmlClip): void {
 }
 
 /**
+ * Draws what keyframes can move of an element's own CSS, which goes back to that CSS once nothing
+ * keys it. Its CSS is otherwise fixed, set when it renders.
+ *
+ * @param node - The element.
+ * @param clip - Its values at the frame.
+ */
+function drawKeyedStyle(node: HTMLElement, clip: HtmlClip): void {
+  for (const key of KEYED_STYLE) {
+    const value = clip[key] ?? clip.style?.[key];
+    if (value === undefined) (node.style as unknown as Record<string, string>)[key] = '';
+    else drawValues(node, { [key]: value });
+  }
+}
+
+/**
+ * The fonts some nested elements' words are set in, for a frame to wait on.
+ *
+ * @param nodes - The nodes.
+ * @returns What's loading.
+ */
+function fontsOf(nodes: ClipNode[] | undefined): unknown[] {
+  return (nodes ?? []).flatMap((node) => {
+    const { style, text, children } = node.props;
+    return [...(text === undefined ? [] : [loadFont(style, text)]), ...fontsOf(children)];
+  });
+}
+
+/**
  * Draws what's nested in an element for a frame: each node's values at the frame, on the element
  * that shows it. A node inherits the rest from what holds it, as the DOM does.
  *
@@ -305,6 +342,7 @@ function drawNodes(parent: Element, host: TimelineSegment, nodes: ClipNode[] | u
       if (width !== undefined) element.style.width = `${width}px`;
       if (height !== undefined) element.style.height = `${height}px`;
       drawValues(element, values);
+      drawKeyedStyle(element, values);
     }
 
     drawNodes(element, host, values.children, frame);

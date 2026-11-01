@@ -1,6 +1,8 @@
-import { template } from '@airlib/react';
-import { HeightIcon, OpacityIcon, RotateIcon, ScaleIcon, WidthIcon, XIcon, YIcon } from '../../icons.js';
-import { type Group, Groups } from './Groups.js';
+import { $bind, effect, setup, Show } from '@airlib/react';
+import { Select, Stepper, StepperAdjuster, StepperInput, TextInput, Tooltip } from '@airlib/react-aui';
+import { HeightIcon, OpacityIcon, RadiusIcon, RotateIcon, ScaleIcon, WidthIcon, XIcon, YIcon } from '../../icons.js';
+import { type Composer, composerCtx, type Picked } from '../context.js';
+import { type Group, Groups, KeyedStyle } from './Groups.js';
 
 /** The box's values in named groups, as the panel lays them out. */
 const BOX_GROUPS: Group[] = [
@@ -26,5 +28,81 @@ const BOX_GROUPS: Group[] = [
   },
 ];
 
-/** The picked clip's box and how it moves, each value shown at the playhead. */
-export const LayerProperties = template(() => <Groups groups={BOX_GROUPS} />, 'LayerProperties');
+/** What fills a box: on its own, with no relation to its corners. */
+const FILL = { label: 'Fill', fields: [{ key: 'background' }] };
+
+/** How round a box's corners are. */
+const RADIUS = { label: 'Radius', fields: [{ key: 'borderRadius', step: 1 }] };
+
+/** What can be picked as a picture: what the project holds that's drawn from one file. */
+const PICTURE_KINDS = new Set(['image', 'still']);
+
+/**
+ * What's picked's box and how it moves, each value shown at the playhead; for what's HTML, how it's
+ * filled and rounded, and which picture it shows when it's an image.
+ */
+export const LayerProperties = setup(() => {
+  const composer = composerCtx.get() as Composer;
+  const html = () => (composer.hostClip()?.type === 'html' ? composer.picked() : undefined);
+
+  return () => (
+    <div className="wedyan-compose-properties-fields">
+      <Show when={() => (html()?.props.element === 'img' ? html() : undefined)}>
+        {(image) => <PictureSource image={image} />}
+      </Show>
+      <Groups groups={BOX_GROUPS} />
+      <Show when={html}>{(box) => <BoxStyle key={box.id} box={box} />}</Show>
+    </div>
+  );
+}, 'LayerProperties');
+
+/** Which of the project's pictures an image shows. It's the image's to manage, so it makes what holds that. */
+const PictureSource = setup<{ image: Picked }>((props) => {
+  const composer = composerCtx.get() as Composer;
+
+  effect(() => {
+    if (!props.image.props.attrs) {
+      props.image.props.attrs = {};
+    }
+  });
+
+  const options = () =>
+    Object.fromEntries(
+      composer.assets.filter((asset) => PICTURE_KINDS.has(asset.kind) && asset.src).map((asset) => [asset.src, asset.name]),
+    );
+
+  return ({ image: { props: values } }) => (
+    <div className="wedyan-compose-property-row pis-sm">
+      <span>Picture</span>
+      <Select size="xs" label="Picture" placeholder="None" options={options()} value={$bind(values.attrs, 'src')} />
+    </div>
+  );
+}, 'PictureSource');
+
+/** How a box is filled and rounded, each keyed on its own, on its own CSS. */
+const BoxStyle = setup<{ box: Picked }>((props) => {
+  effect(() => {
+    if (!props.box.props.style) {
+      props.box.props.style = {};
+    }
+  });
+
+  return ({ box: { props: values } }) => (
+    <>
+      <KeyedStyle group={FILL} style={values.style}>
+        {(value, edit) => <TextInput type="color" size="xs" value={value} onInput={edit} />}
+      </KeyedStyle>
+      <KeyedStyle group={RADIUS} style={values.style}>
+        {(value, edit) => (
+          <Stepper size="xs" label="Radius" step={1} min={0} value={value} onInput={edit}>
+            <StepperAdjuster rate={2}>
+              <RadiusIcon />
+            </StepperAdjuster>
+            <StepperInput aria-label="Radius" />
+            <Tooltip>Radius</Tooltip>
+          </Stepper>
+        )}
+      </KeyedStyle>
+    </>
+  );
+}, 'BoxStyle');
