@@ -28,7 +28,10 @@ kernel.construct(fontFamilies, async (query) => {
     throw error;
   });
   const wanted = query.toLowerCase();
-  return (await listed).filter((family) => family.toLowerCase().includes(wanted)).slice(0, FONT_CHOICES);
+  return (await listed)
+    .filter((family) => family.toLowerCase().includes(wanted))
+    .slice(0, FONT_CHOICES)
+    .sort((a, b) => a.localeCompare(b));
 });
 
 /** Asks Google for every family's name. */
