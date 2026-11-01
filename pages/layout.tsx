@@ -3,6 +3,7 @@ import { ToastHost } from '@airlib/react-aui';
 import { Desktop, DesktopClock, DesktopWidgets, Dock, DockWidgets, WindowHost } from '@airlib/react-aui/desktop';
 import type { ReactNode } from 'react';
 import { AnswerActions, TurnActions } from '@/components/AnswerActions.js';
+import { ConfirmHost } from '@/components/ConfirmHost.js';
 import { Splash } from '@/components/Splash.js';
 import { openSession, sessionCtx } from '@/lib/assistant/session.js';
 import { BOOT_STAT } from '@/lib/systems/boot.js';
@@ -107,6 +108,7 @@ const WedyanDesktop = setup<{ children?: ReactNode }>((props) => {
       <DockWidgets.Snippet for="after">{(widget) => <TurnActions widget={widget} />}</DockWidgets.Snippet>
     </DockWidgets>
     <ToastHost closeLabel="Dismiss" />
+    <ConfirmHost />
     {props.children}
   </Desktop>
   );
