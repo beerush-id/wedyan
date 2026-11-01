@@ -1,0 +1,24 @@
+{
+  "type": "motion",
+  "version": 1,
+  "id": "demo",
+  "name": "Wedyan demo",
+  "created": "2026-11-01T09:00:00Z",
+  "updated": "2026-11-01T09:00:00Z",
+  "author": { "kind": "agent", "ask": "Compose a 10 second demo film for Wedyan: one shape turning from the logo into the dock, a conversation and a widget." },
+  "tags": ["demo", "hackathon"],
+  "description": "A 10s film: the problem, then one shape going from logo to dock to conversation to widget.",
+  "aspect": "16:9",
+  "cover": "/~/Motions/g01/g01a2.webp",
+  "status": "draft",
+  "length": 10,
+  "script": {
+    "path": "demot1.md",
+    "revisions": [],
+    "histories": [
+      { "id": "h1", "ask": "Compose a 10 second demo film for Wedyan: one shape turning from the logo into the dock, a conversation and a widget.", "model": "best", "effort": "high", "created": "2026-11-01T09:00:00Z" }
+    ]
+  },
+  "casts": [],
+  "assets": ["../g01/g01a2.webp", "../g01/g01a5.mp3"]
+}
