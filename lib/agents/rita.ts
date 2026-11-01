@@ -27,10 +27,11 @@ export function rita(
     tools: [],
     handoffs: ['wendy', 'lita', ...agents.map((agent) => agent.name)],
     holdsConversation: true,
+    actsByCall: true,
     system: fill(ritaSkill, {
       skills: skills.map((skill) => `- ${skill.name}: ${skill.description}`).join('\n'),
       own_agents: agents.map((agent) => `- ${agent.name}: ${agent.title}, ${agent.description}`).join('\n'),
-      actions: specList([ACTIONS.open, ACTIONS.focus, ACTIONS.tile]),
+      actions: specList([ACTIONS.open, ACTIONS.close, ACTIONS.focus, ACTIONS.tile, ACTIONS.windowRun]),
     }),
   };
 }

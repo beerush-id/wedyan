@@ -10,6 +10,7 @@ import {
 } from '@irpclib/ai-kit';
 import type { AIAdapter } from '@irpclib/ai-kit/worker';
 import { getAbortSignal, IRPC_STORE, type IRPCData, type IRPCRouter, setContext, stream } from '@irpclib/irpc';
+import { fsContext } from '@irpclib/r2-file/context';
 import { logger } from '../logger.js';
 import { isUsageLimit } from '../share/usage.js';
 import {
@@ -46,6 +47,9 @@ export type SysAsk = { agent: string; desktop: (action: AskAction) => Promise<Ca
 
 /** What a model is told when a call gives it binary content, which it can't read. */
 const BINARY = 'That is binary content: read it with an encoding, like "text" or "base64"';
+
+/** The tool that reads a file. */
+const FILE_READ = 'r2-file.read';
 
 /**
  * A call's result as a model reads it: data as it is, and a downloaded blob as a note on how to
@@ -188,7 +192,9 @@ export async function askWith(options: AskOptions): Promise<void> {
         // The mapping and the stub come from the same package, so they always agree.
         const tool = router.toolOf(call.name);
         const args = router.argsOf(call.name, call.args as Record<string, unknown>);
-        if (tool && args) return (await tool.pkg.call(tool.spec.name, ...args)) as CallResult;
+        // With no encoding a read is a download, which only a browser can load and a model couldn't use.
+        if (call.name === FILE_READ && !JSON.stringify(args?.[1] ?? '').includes('encoding')) return { error: BINARY };
+        if (tool && args) return inHomePaths((await tool.pkg.call(tool.spec.name, ...args)) as CallResult);
       }
       return sys[call.name]?.(call.args, { agent: options.state.agent, desktop: options.desktop });
     },
@@ -228,6 +234,8 @@ export interface AgentProfile {
   handoffs?: string[];
   /** Holds the whole conversation, so every other agent can work from only what it's handed. */
   holdsConversation?: boolean;
+  /** Acts through the `act` call, so it can't say something is happening without doing it. */
+  actsByCall?: boolean;
   /** Whether it can search the web itself, where the provider hosts that. */
   webSearch?: boolean;
   /** Whether a job handed to it starts with a call, so it can't promise the work and stop there. */
@@ -354,6 +362,9 @@ function detailOf(args: unknown): string | undefined {
 /** The call an agent makes to pass the ask to another agent. */
 export const HANDOFF = 'handoff';
 
+/** The call an agent makes to do something on the desktop: what it says and what it does are one. */
+export const ACT = 'act';
+
 const DEFAULT_TURN_LIMIT = 12;
 const DEFAULT_HANDOFF_LIMIT = 3;
 
@@ -391,24 +402,31 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
 
   let skill = resume?.skill ? skills[resume.skill] : undefined;
   let agent = withSkill(agents[resume?.agent ?? options.entry], skill);
-  const asks = resume ? [...resume.asks] : chatTurns(options.input);
+  const given = resume ? [...resume.asks] : chatTurns(options.input);
+  const asks = given.map(withoutCommands);
   const held = (profile: AgentProfile) => (profile.holdsConversation ? (options.conversation ?? []) : []);
   let history = resume ? [...resume.history] : [...held(agent), ...asks];
   let turn = resume?.turn ?? 0;
   let handoffs = resume?.handoffs ?? 0;
   let handed = false;
+  // The user was told as the ask was handed over, so the next agent's opening words would say it again.
+  let told = false;
   const actions = createActionQueue(options.act, options.track);
   const problems: string[] = [];
   let forms = 0;
   const composer = options.composer ? agents[options.composer] : undefined;
   const compositions: Promise<void>[] = [];
-  const compose = (request: IRPCData) => {
+  // What a widget can open on the desktop. Commands stay out until they say what they do and take:
+  // a name alone drew buttons that had nothing to do with the card.
+  const { links } = given.map(contextOf).find(Boolean) ?? {};
+  const reach = links ? { links } : {};
+  const compose = (request: Record<string, IRPCData>) => {
     if (!composer) return Promise.reject(new Error('No composer to draw widgets'));
     const timer = timeStep(state, 'compose', composer.name, agent.name);
     return composeWidget(
       adapter,
       persona ? { ...composer, system: `${composer.system}\n\n${persona}` } : composer,
-      request,
+      { ...request, ...reach },
       signal,
     ).finally(timer.end);
   };
@@ -450,7 +468,7 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
       // A call shows once it's named, long before its arguments are written.
       const named = new Map<string, StepTimer[]>();
       const announce = (name: string) => {
-        if (name === HANDOFF) return;
+        if (name === HANDOFF || name === ACT) return;
         named.set(name, [...(named.get(name) ?? []), timeStep(state, 'call', name, agent.name)]);
       };
       // A search runs on the provider's side, inside the turn: it has no result to wait for here.
@@ -484,7 +502,7 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
         );
       };
       const turnWith = (timer: StepTimer) =>
-        modelTurn(adapter, { ...agent, system, tools }, history, state.parts, signal, timer, { announce, searched, handing: (args) => tell(drafted(args)) }, {
+        modelTurn(adapter, { ...agent, system, tools }, history, state.parts, signal, timer, { announce, searched, handing: (args) => tell(drafted(args)), quiet: handed && told }, {
           onWidget: (part, intent) => {
             // The agent keeps speaking while its widget is composed; the part fills in place.
             compositions.push(
@@ -524,8 +542,20 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
       });
 
       const [handoff, ...extraHandoffs] = reply.toolCalls.filter((call) => call.name === HANDOFF);
-      const calls = reply.toolCalls.filter((call) => call.name !== HANDOFF);
-      tell(String((handoff?.args as { say?: unknown } | undefined)?.say ?? '').trim());
+      const acting = reply.toolCalls.find((call) => call.name === ACT);
+      const calls = reply.toolCalls.filter((call) => call.name !== HANDOFF && call.name !== ACT);
+      tell(String(((handoff ?? acting)?.args as { say?: unknown } | undefined)?.say ?? '').trim());
+      // What it does as it speaks: part of the call, so it can't say it and not do it.
+      const queueAlong = (call: ToolCall) => {
+        const { actions: along } = (call.args ?? {}) as { actions?: unknown };
+        for (const { name, args } of Array.isArray(along) ? (along as AskAction[]) : []) {
+          queue({ name, args: args ?? null, after: state.parts.length - 1 });
+        }
+      };
+      if (acting) {
+        queueAlong(acting);
+        history.push(toolTurn(acting.id, { done: true }));
+      }
       const timedCall = (call: ToolCall) => {
         const timer = named.get(call.name)?.shift() ?? timeStep(state, 'call', call.name, agent.name);
         timer.step.detail = detailOf(call.args);
@@ -575,12 +605,8 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
         const passed = timeStep(state, 'handoff', target.name, agent.name);
         passed.step.args = JSON.stringify(handoff.args ?? {}).slice(0, ARGS_LIMIT);
         passed.end();
-        // What it does itself as it hands over: part of the call, so it can't say it and not do it.
-        const { actions: alongside, brief: written } = (handoff.args ?? {}) as { actions?: unknown; brief?: unknown };
-        for (const { name, args } of Array.isArray(alongside) ? (alongside as AskAction[]) : []) {
-          queue({ name, args: args ?? null, after: state.parts.length - 1 });
-        }
-        const brief = String(written ?? '');
+        queueAlong(handoff);
+        const brief = String((handoff.args as { brief?: unknown })?.brief ?? '');
         const done = calls.map((call, index) => ({ name: call.name, args: call.args, result: results[index] }));
         history = [
           ...held(target),
@@ -602,6 +628,7 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
         skill = targetSkill;
         agent = withSkill(target, skill);
         handed = true;
+        told = !!said;
         state.agent = agent.name;
         if (skill) state.skill = skill.name;
         else delete state.skill;
@@ -610,7 +637,7 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
       }
 
       // The ask is only over once what it said it would do has happened, and what it showed is drawn.
-      const ending = !reply.toolCalls.length && !followUps.length;
+      const ending = !followUps.length && reply.toolCalls.length === (acting ? 1 : 0);
       const finished = Promise.all([actions.settle(), ...compositions]).then(() => undefined);
       if (ending && !(await settled(finished, signal))) return end('stopped', 'Aborted');
 
@@ -640,6 +667,38 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
 }
 
 /**
+ * A tool's result with its paths in the home form the agents write them in: where a file really is
+ * in storage names the user, and is never theirs to see.
+ *
+ * @param result - What the tool returned.
+ * @returns The result, its paths as `~/…`.
+ */
+function inHomePaths(result: CallResult): CallResult {
+  const home = fsContext.get()?.homeDir;
+  if (!home || !result || typeof result !== 'object' || result instanceof Blob) return result;
+  return JSON.parse(JSON.stringify(result).replaceAll(`${home}/`, '~/')) as CallResult;
+}
+
+/** The desktop's context a turn carries, if it's that turn. */
+function contextOf(turn: ChatMessage): Record<string, IRPCData> | undefined {
+  return (turn.data as { context?: Record<string, IRPCData> } | undefined)?.context;
+}
+
+/**
+ * A turn as the agents read it. The desktop's command list is for what's drawn: agents can't run it,
+ * and what they're never given they can't recite to the user.
+ *
+ * @param turn - The turn.
+ * @returns The turn, without the list when it carried one.
+ */
+function withoutCommands(turn: ChatMessage): ChatMessage {
+  const context = contextOf(turn);
+  if (!context?.commands) return turn;
+  const { commands: _, ...rest } = context;
+  return { ...turn, data: { ...(turn.data as Record<string, IRPCData>), context: rest } };
+}
+
+/**
  * Runs one model turn for the agent: feeds each streamed chunk through the marker parser into the
  * answer's parts, and returns the raw text and the calls the model made. Commentary the provider
  * keeps apart is the agent telling the user what it's doing, so it streams into the answer too.
@@ -651,7 +710,7 @@ async function modelTurn(
   parts: AskPart[],
   signal: AbortSignal | undefined,
   timer: StepTimer,
-  calls: { announce(call: string): void; searched(query: string): void; handing(args: string): void },
+  calls: { announce(call: string): void; searched(query: string): void; handing(args: string): void; quiet: boolean },
   hooks: PartWriterHooks,
 ): Promise<{ text: string; toolCalls: ToolCall[] }> {
   const live = mutable<{ data?: ChatOutput }>({});
@@ -675,7 +734,7 @@ async function modelTurn(
     if (heard < commentary.length || seen < chunks.length) {
       timer.step.firstChunkMs ??= timer.elapsed();
       timer.step.chunks = commentary.length + chunks.length;
-      for (; heard < commentary.length; heard += 1) parser.push(commentary[heard]);
+      for (; heard < commentary.length; heard += 1) if (!calls.quiet) parser.push(commentary[heard]);
       for (; seen < chunks.length; seen += 1) parser.push(chunks[seen]);
       writer.flush();
     }
@@ -703,6 +762,9 @@ async function modelTurn(
         },
       );
     });
+
+    // Held back as a repeat, but with no call it was the agent's whole answer.
+    if (calls.quiet && !live.data?.calling?.length) for (const line of live.data?.commentary ?? []) parser.push(line);
 
     // Everything the agent said this turn, so its next turn knows it's been said.
     const answer = live.data?.text ?? (live.data?.chunks ?? []).join('');
@@ -802,8 +864,8 @@ function composedOf(text: string): Composed {
   let parsed: unknown;
   try {
     parsed = JSON.parse(text.trim().replace(/^```(?:json)?\s*|\s*```$/g, ''));
-  } catch {
-    throw new Error(`The composer's answer isn't JSON: ${summaryOf(text)}`);
+  } catch (error) {
+    throw new Error(`The composer's answer isn't JSON (${messageOf(error)}): ${summaryOf(text)}`);
   }
   const { children, role, ...declared } = (parsed ?? {}) as Record<string, IRPCData> & { role?: unknown };
   const widget = !Array.isArray(parsed) && !role && Array.isArray(children);
@@ -913,8 +975,33 @@ function toolsOf(
 ): ChatTool[] {
   if (!agent.handoffs?.length) return agent.tools;
   const skilled = agent.handoffs.some((name) => agents[name]?.skilled) && Object.keys(skills).length > 0;
+  const actions = {
+    type: 'array',
+    description: 'The actions to run on the desktop, in order.',
+    items: {
+      type: 'object',
+      properties: { name: { type: 'string' }, args: { type: 'object' } },
+      required: ['name'],
+    },
+  };
   return [
     ...agent.tools,
+    ...(agent.actsByCall
+      ? [
+          {
+            name: ACT,
+            description: 'Does something on the desktop now, and tells the user. Ends your turn.',
+            parameters: {
+              type: 'object',
+              properties: {
+                say: { type: 'string', description: 'What to tell the user, shown and read aloud.' },
+                actions,
+              },
+              required: ['say', 'actions'],
+            },
+          },
+        ]
+      : []),
     {
       name: HANDOFF,
       description: 'Pass this ask to an agent better suited to it. Ends your turn.',
@@ -932,15 +1019,7 @@ function toolsOf(
               }
             : {}),
           say: { type: 'string', description: 'What to tell the user as it\'s handed over, shown and read aloud, when there is something to tell.' },
-          actions: {
-            type: 'array',
-            description: 'Actions to run on the desktop right away as it\'s handed over, in order.',
-            items: {
-              type: 'object',
-              properties: { name: { type: 'string' }, args: { type: 'object' } },
-              required: ['name'],
-            },
-          },
+          actions,
           brief: {
             type: 'string',
             description: 'Only facts from the conversation the next agent can\'t see. Never the ask itself or what to do. Empty when there are none.',
@@ -985,7 +1064,9 @@ async function resolveCall(resolve: AgentLoopOptions['resolve'], call: ToolCall,
  */
 export function toChatInput(input: AskInput): ChatMessage[] {
   const words: ChatMessage = { role: 'user', type: 'text', text: input.text };
-  return input.context ? [{ role: 'user', type: 'object', data: { context: input.context } }, words] : [words];
+  const picked = (input.selections as Array<Record<string, IRPCData>> | undefined)?.map(({ type, value, label }) => ({ type, value, label }));
+  const known = { ...(input.context ? { context: input.context } : {}), ...(picked?.length ? { picked } : {}) };
+  return Object.keys(known).length ? [{ role: 'user', type: 'object', data: known }, words] : [words];
 }
 
 /** The tool turn that answers a call. */
