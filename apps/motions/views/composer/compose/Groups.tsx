@@ -4,7 +4,7 @@ import type { Timeline, TimelineSegment } from '@airlib/react/timeline';
 import { Slider, Stepper, StepperInput, Tooltip } from '@airlib/react-aui';
 import type { FC } from 'react';
 import { type Composer, composerCtx, type Picked } from '../context.js';
-import { clipFrame, holderOf, keyedFrames, setKeyframe, timelineFrame, toggleKeyframe } from './keyframes.js';
+import { clipFrame, holderOf, keyedFrames, setValue, timelineFrame, toggleKeyframe } from './keyframes.js';
 
 /**
  * A value of a clip its keyframes can animate: its name, its glyph, what it reads as when the clip
@@ -139,9 +139,9 @@ const Keyframes = setup<{ group: Group; reading: Reading }>((props) => {
 }, 'Keyframes');
 
 /**
- * One value at the playhead: its number, and a slider beside it when it has a range. It manages the
- * value of the keyframe there. Until that holds it, it shows the reading, and a write to that makes
- * it a fact: the keyframe, which holds it from then on.
+ * One value at the playhead: its number, and a slider beside it when it has a range. It binds to what
+ * holds the value there. Until something does, it shows the reading, and a write to that makes it a
+ * fact, held from then on.
  */
 const FieldView = setup<{ field: Field; reading: Reading }>(() => {
   const composer = composerCtx.get() as Composer;
@@ -154,7 +154,7 @@ const FieldView = setup<{ field: Field; reading: Reading }>(() => {
     const holder = holderOf(keyed, key, at);
     const value = $bind((holder ?? reading) as Record<string, number>, key);
     const edit = () => {
-      if (!holder) setKeyframe(clip, keyed, at, { [key]: reading[key] as number });
+      if (!holder) setValue(clip, keyed, at, key, reading[key] as number);
       composer.edited();
     };
 

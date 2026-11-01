@@ -6,8 +6,8 @@ import type { Picked } from '../context.js';
 export type KeyedGroup = { fields: { key: string }[] };
 
 /**
- * What holds a value at a frame of the clip, to change it there: the keyframe there that sets it.
- * Without one, the value there is only a reading.
+ * What holds a value at a frame of the clip, to change it there: the keyframe there, or with no
+ * keyframes at all, its own values. Without one that sets it, the value there is only a reading.
  *
  * @param keyed - The clip, or an element in it.
  * @param key - The value.
@@ -15,7 +15,23 @@ export type KeyedGroup = { fields: { key: string }[] };
  * @returns What holds it, when something does.
  */
 export function holderOf(keyed: Picked, key: string, at: number): Record<string, unknown> | undefined {
-  return keyed.scenes.find((scene) => scene.atFrame === at && key in scene.data)?.data;
+  const holder = keyed.scenes.length ? keyed.scenes.find((scene) => scene.atFrame === at)?.data : keyed.props;
+  return holder && key in holder ? holder : undefined;
+}
+
+/**
+ * Makes a reading a fact where it belongs: with keyframes, a point at that frame for whoever reads
+ * them; with none, there's no between to deal with, so it's a value of its own.
+ *
+ * @param clip - The clip, whose time the frame is read on.
+ * @param keyed - What holds it: the clip, or an element in it.
+ * @param at - The frame, in the clip's content.
+ * @param key - The value.
+ * @param value - What it is.
+ */
+export function setValue(clip: TimelineSegment, keyed: Picked, at: number, key: string, value: number): void {
+  if (keyed.scenes.length) setKeyframe(clip, keyed, at, { [key]: value });
+  else keyed.props[key] = value;
 }
 
 /**
@@ -59,7 +75,7 @@ export function toggleKeyframe(
  * @param at - The frame, in the clip's content.
  * @param values - The values, by key.
  */
-export function setKeyframe(clip: TimelineSegment, keyed: Picked, at: number, values: Record<string, number>): void {
+function setKeyframe(clip: TimelineSegment, keyed: Picked, at: number, values: Record<string, number>): void {
   const scene = keyed.scenes.find((each) => each.atFrame === at);
   if (scene) Object.assign(scene.data, values);
   else addKeyframe(clip, keyed, at, values);
