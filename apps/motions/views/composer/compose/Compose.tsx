@@ -1,8 +1,7 @@
-import { $static, onCleanup, Show, Snippet, setup } from '@airlib/react';
-import { createTimeline } from '@airlib/react/timeline';
+import { effect, history, Show, Snippet, setup, untrack } from '@airlib/react';
+import { createTimeline, type Timeline } from '@airlib/react/timeline';
 import { EmptyState, Stage } from '@airlib/react-aui';
 import { WindowPanel } from '@airlib/react-aui/desktop';
-import type { StageDocument } from '@/lib/documents/types.js';
 import { ComposeIcon } from '../../icons.js';
 import { type Composer, composerCtx } from '../context.js';
 import { mediaLoader } from '../media.js';
@@ -47,18 +46,40 @@ export const Compose = setup(() => {
 const ComposeStage = setup(() => {
   const composer = composerCtx.get() as Composer;
 
-  // Compose shows one stage for as long as it's open: another is picked from Direct, which closes it.
-  const composition = $static(() => composer.stage?.composition) as StageDocument['composition'];
-  // The timeline controls the stage's composition in place: every edit lands in the document.
-  const timeline = createTimeline({ source: composition });
-  const size = () => composition.props;
-  watchKeyframes(composition);
+  // The timeline controls the stage's composition in place: every edit lands in the document. Each
+  // stage opened gets its own, and its own record of what's been done to it.
+  effect(() => {
+    const stage = composer.stage;
+    if (!stage) return;
+    const { composition } = stage;
+    const stageHistory = untrack(() => {
+      const timeline = createTimeline({ source: composition });
+      const made = history(stage, { group: true });
+      watchKeyframes(composition);
+      Object.assign(composer, { timeline, stageHistory: made, clips: [], node: '', snap: false, status: '', rendering: false });
+      return made;
+    });
+    return () => {
+      stageHistory.destroy();
+      Object.assign(composer, { stageHistory: undefined, clips: [], node: '', status: '', rendering: false });
+    };
+  });
 
-  Object.assign(composer, { timeline, clips: [], node: '', snap: false, status: '', rendering: false });
-  onCleanup(() => Object.assign(composer, { clips: [], node: '', status: '', rendering: false }));
+  // On this window, not the page, and never inside a text field, which keeps its own undo.
+  const undoKeys = (event: KeyboardEvent) => {
+    if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 'z') return;
+    if ((event.target as Element).closest('input, textarea, [contenteditable]')) return;
+    event.preventDefault();
+    if (event.shiftKey) composer.redo();
+    else composer.undo();
+  };
+  const listen = (root: HTMLDivElement | null) => root?.addEventListener('keydown', undoKeys, true);
+  const timeline = () => composer.timeline as Timeline;
+  const size = () => timeline().props;
 
   return () => (
     <div
+      ref={listen}
       className="wedyan-compose"
       data-shape={size().height > size().width ? 'portrait' : 'landscape'}
       style={{ '--wedyan-stage-ratio': `${size().width} / ${size().height}`, '--wedyan-stage-aspect': size().width / size().height } as never}
@@ -69,8 +90,8 @@ const ComposeStage = setup(() => {
         <WindowPanel surface="solid" role="region" aria-label="Preview" className="wedyan-compose-preview">
           <Show when={() => !composer.rendering} fallback={() => <Rendering />}>
             {() => (
-              <Stage label={composer.stage?.name} timeline={timeline} width={size().width} height={size().height} media={previewMedia} sample={sampleClip} labels={STAGE_LABELS}>
-                <Clips timeline={timeline} />
+              <Stage key={timeline().id} label={composer.stage?.name} timeline={timeline()} width={size().width} height={size().height} media={previewMedia} sample={sampleClip} labels={STAGE_LABELS}>
+                <Clips timeline={timeline()} />
               </Stage>
             )}
           </Show>

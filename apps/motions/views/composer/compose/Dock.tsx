@@ -12,7 +12,7 @@ import {
   TitleIcon,
 } from '@airlib/react-aui/icons';
 import type { FC, ReactNode } from 'react';
-import { LoopIcon, PauseIcon, PlayIcon, SnapIcon, SplitIcon, ToEndIcon, ToStartIcon } from '../../icons.js';
+import { LoopIcon, PauseIcon, PlayIcon, RedoIcon, SnapIcon, SplitIcon, ToEndIcon, ToStartIcon, UndoIcon } from '../../icons.js';
 import { type Composer, composerCtx } from '../context.js';
 import { GeneratedTile, RegenerateOptions, SubjectTile } from '../dock/Regenerate.js';
 
@@ -42,6 +42,7 @@ export const ComposeDock = setup(() => {
         </Show>
         <Transport timeline={timeline} />
         <Divider orientation="vertical" size="sm" className="wedyan-motions-options-divider" />
+        <UndoRedo />
         <Toggle aria-label="Snap" size="sm" className={AUI_CLASS.CONTROL_ICON} pressed={$bind(composer, 'snap')}>
           <SnapIcon />
           <Tooltip>Snap</Tooltip>
@@ -112,6 +113,38 @@ const Transport = template<{ timeline: Timeline }>(({ timeline }) => {
     </>
   );
 }, 'Transport');
+
+/** Taking back what was done to the stage, and putting it back, each inert with nothing to do. */
+const UndoRedo = setup(() => {
+  const composer = composerCtx.get() as Composer;
+
+  return () => (
+    <>
+      <Button
+        aria-label="Undo"
+        size="sm"
+        variant="text"
+        className={AUI_CLASS.CONTROL_ICON}
+        disabled={!composer.stageHistory?.canBackward}
+        onClick={composer.undo}
+      >
+        <UndoIcon />
+        <Tooltip>Undo (⌘Z)</Tooltip>
+      </Button>
+      <Button
+        aria-label="Redo"
+        size="sm"
+        variant="text"
+        className={AUI_CLASS.CONTROL_ICON}
+        disabled={!composer.stageHistory?.canForward}
+        onClick={composer.redo}
+      >
+        <RedoIcon />
+        <Tooltip>Redo (⇧⌘Z)</Tooltip>
+      </Button>
+    </>
+  );
+}, 'UndoRedo');
 
 /**
  * Moves the playhead to where a clip starts, on any track: the nearest start before it, or after it.

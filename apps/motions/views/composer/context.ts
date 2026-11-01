@@ -1,4 +1,4 @@
-import { type AnyType, createContext, effect, mutable } from '@airlib/react';
+import { type AnyType, createContext, effect, type history, mutable } from '@airlib/react';
 import type { Timeline, TimelineSegment } from '@airlib/react/timeline';
 import type { PersonTab } from '@/apps/lounge/views/session.js';
 import { isGenerative } from '@/lib/documents/generation.js';
@@ -44,6 +44,8 @@ export type Composer = {
   sidebar: boolean;
   /** The timeline of the stage Compose last opened; only Compose and its dock read it. */
   timeline?: Timeline;
+  /** What's been done to the stage open in Compose, to undo and redo. */
+  stageHistory?: ReturnType<typeof history>;
   /** The clips picked on it, by id. */
   clips: string[];
   /** The element picked inside the picked clip, by id; empty, the clip itself. */
@@ -87,6 +89,10 @@ export type Composer = {
    * as the timeline reaches it, so while paused it draws the frame again.
    */
   edited(): void;
+  /** Takes back the last change to the stage, and shows it. */
+  undo(): void;
+  /** Puts back what was taken back, and shows it. */
+  redo(): void;
   /** The clip picked, when it's the only one and shows a generated image, video or sound. */
   generativeClip(): (GenerativeSource & { segment: TimelineSegment }) | undefined;
   /** The asset picked, when it's generated. */
@@ -194,6 +200,16 @@ export function createComposer(path: string, direct: boolean): Composer {
         composer.edits += 1;
         const { timeline } = composer;
         if (timeline && timeline.status !== 'playing') void timeline.scrub(timeline.frame);
+      },
+
+      undo() {
+        composer.stageHistory?.backward();
+        composer.edited();
+      },
+
+      redo() {
+        composer.stageHistory?.forward();
+        composer.edited();
       },
 
       generativeClip() {
