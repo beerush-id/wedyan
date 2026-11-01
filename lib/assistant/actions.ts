@@ -1,7 +1,7 @@
 import type { WindowInstance } from '@airlib/react-aui/desktop';
 import { SYSTEM } from '@/lib/systems/boot.js';
 import { linkTo } from '@/lib/systems/links.js';
-import { requestLink } from '@/lib/systems/registry.js';
+import { requestLink, runCommand } from '@/lib/systems/registry.js';
 
 /** Registers an answer to what the server asks of the desktop, by name. */
 type Answering = (name: string, handler: (args: never) => unknown) => unknown;
@@ -22,14 +22,19 @@ export function answerActions(answer: Answering): void {
     SYSTEM?.window.arrangeWindows('tile', document.querySelector<HTMLElement>('.aui-desktop'), windowsOf(apps));
   });
   answer('desktop.focus', ({ app }: { app: string }) => windowsOf([app]).at(-1)?.focus());
+  answer('desktop.close', ({ window }: { window: string }) => SYSTEM?.windows.get(window)?.close());
+  answer('window.run', async ({ window, command, args }: { window: string; command: string; args?: Record<string, unknown> }) => {
+    const { signal } = new AbortController();
+    await runCommand(`system.window[${window}].${command}`, { event: new Event('window.run'), signal, form: args ?? {} });
+  });
 }
 
 /**
  * The open windows of some apps.
  *
  * @param apps - The apps, by name.
- * @returns Their windows, oldest first.
+ * @returns Their windows, oldest first, an app's project windows among them.
  */
 function windowsOf(apps: string[]): WindowInstance[] {
-  return [...(SYSTEM?.windows.values() ?? [])].filter((window) => apps.includes(window.app.name));
+  return [...(SYSTEM?.windows.values() ?? [])].filter(({ app }) => apps.some((name) => app.name === name || app.name.startsWith(`${name}-`)));
 }

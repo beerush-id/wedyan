@@ -1,4 +1,3 @@
-import { canCaptureVideo } from '@airlib/aria';
 import { AUI_CLASS } from '@airlib/aui/utils';
 import { $bind, setup, Show, Snippet } from '@airlib/react';
 import { Button, Divider, Toggle, ToggleGroup, Tooltip } from '@airlib/react-aui';
@@ -8,9 +7,6 @@ import { ComposeIcon, DirectIcon, RenderIcon, SidebarCloseIcon, SidebarOpenIcon 
 import { assigneeAt } from './compose/assignee.js';
 import { AssigneeAvatar } from './compose/assignment.js';
 import { type Composer, composerCtx } from './context.js';
-
-/** Where turning HTML-in-Canvas on lives, for people whose Chrome doesn't have it yet. */
-const CAPTURE_FLAG = 'chrome://flags/#canvas-draw-element';
 
 /** The project window's toolbar: the side panel, the two modes, and what it's showing. */
 export const ComposerToolbar = setup(() => {
@@ -76,16 +72,6 @@ const CastTabs = setup(() => {
 const ComposeActions = setup(() => {
   const composer = composerCtx.get() as Composer;
 
-  const render = () => {
-    if (!canCaptureVideo()) {
-      composer.status = `Rendering needs HTML-in-Canvas: open ${CAPTURE_FLAG} in Chrome, enable it, and relaunch.`;
-      return;
-    }
-    composer.status = '';
-    composer.timeline?.pause();
-    composer.rendering = true;
-  };
-
   return () => (
     <>
       <Snippet>
@@ -103,7 +89,7 @@ const ComposeActions = setup(() => {
       </Snippet>
       <Snippet>
         {() => (
-          <Button size="sm" variant="filled" disabled={composer.rendering} onClick={render}>
+          <Button size="sm" variant="filled" disabled={composer.rendering} onClick={composer.render}>
             <RenderIcon />
             <span>Render</span>
           </Button>

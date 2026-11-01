@@ -63,7 +63,7 @@ export type CommandInput = {
  * What a command does. The widget is only wiring: whatever a command needs — a check, a confirm
  * before something destructive — is its own to do. It's code, so its result is what it draws.
  */
-export type CommandHandle = (input: CommandInput) => ReactNode | Promise<ReactNode>;
+export type CommandHandle = (input: CommandInput) => ReactNode | Promise<ReactNode | void> | void;
 
 /** A command that offers itself in `/`, with how it shows there. */
 export type CommandEntry = {
@@ -75,6 +75,12 @@ export type CommandEntry = {
   icon?: string | ReactNode;
   /** What `@` offers once this command comes before it, e.g. the apps after `/open`. */
   contexts?: () => DockSuggestion[];
+  /** What it does, as an agent reads it; only a command with this is offered to agents. */
+  does?: string;
+  /** What it takes in `form`, as an agent reads it, e.g. `{"stage": string}`. */
+  takes?: string;
+  /** Leaves it out of `/`: a window's command is mostly a bridge for agents, not something the user runs. */
+  unlisted?: boolean;
   handle: CommandHandle;
 };
 
@@ -99,8 +105,18 @@ export type WedyanApp = AUIAppEntry & {
   linkHandle?: Record<string, LinkHandle>;
 };
 
+/** A command as an agent reads it. */
+export type AgentCommand = { name: string; does: string; takes?: string };
+
 /** A window as anything outside the system sees it: plain data, nothing to reach back in through. */
-export type WindowFacts = { id: string; app: string; name?: string; title: string; data?: unknown };
+export type WindowFacts = {
+  id: string;
+  app: string;
+  name?: string;
+  title: string;
+  data?: unknown;
+  commands?: AgentCommand[];
+};
 
 /** What the desktop looks like at a moment, as plain data, for what a request is about. */
 export type PromptContext = {
@@ -118,6 +134,8 @@ export type PromptEvent = DockSubmitEvent & {
   context: PromptContext;
   /** Runs the command picked into it, when there is one. */
   command?: () => Promise<ReactNode>;
+  /** Starts the conversation over. */
+  clearChat?: () => Promise<unknown>;
 };
 
 /** A `/` suggestion: a command, by its full name. */
@@ -131,12 +149,15 @@ export type CommandSuggestion = DockSuggestion & { type: 'command'; name: string
  * @param input - What it's called with; `form` and `ctx` start empty without a widget.
  * @returns What the command drew.
  */
-export async function runCommand(name: string, input: Pick<CommandInput, 'event' | 'signal'> & Partial<CommandInput>): Promise<ReactNode> {
+export async function runCommand(
+  name: string,
+  input: Pick<CommandInput, 'event' | 'signal'> & Partial<CommandInput>,
+): Promise<ReactNode> {
   const handle = handleOf(commandAt(name));
   if (!handle) throw new Error(`${name} isn't registered.`);
   const result = await handle({ ...newWidgetState(), ...input });
   input.signal.throwIfAborted();
-  return result;
+  return result as never;
 }
 
 /**
@@ -147,6 +168,18 @@ export async function runCommand(name: string, input: Pick<CommandInput, 'event'
  */
 export function keepWindow(win: WindowInstance, options: Omit<AUIOpenOptions, 'data'>): void {
   opened.set(win.id, options);
+}
+
+/**
+ * Gives an open window what it can do, for as long as it's open. A window attaches them itself, from
+ * inside, because they act on what only it holds.
+ *
+ * @param win - The window.
+ * @param commands - Its commands, at `system.window[id].name`.
+ */
+export function attachCommands(win: WindowInstance, commands: Commands): void {
+  const options = opened.get(win.id);
+  if (options) options.commands = commands;
 }
 
 /**
@@ -201,7 +234,9 @@ export function promptContext(): PromptContext {
     commands: [
       ...Object.keys(COMMANDS).map((key) => `system.${key}`),
       ...apps.flatMap((app) => Object.keys(app.commands ?? {}).map((key) => `system.${app.manifest.name}.${key}`)),
-      ...windows.flatMap((each) => Object.keys(opened.get(each.id)?.commands ?? {}).map((key) => `system.window[${each.id}].${key}`)),
+      ...windows.flatMap((each) =>
+        Object.keys(opened.get(each.id)?.commands ?? {}).map((key) => `system.window[${each.id}].${key}`),
+      ),
     ],
     links: apps.flatMap((app) => Object.keys(app.linkHandle ?? {})),
   };
@@ -291,7 +326,7 @@ function handleOf(command?: Command): CommandHandle | undefined {
  */
 function offered(commands: Commands | undefined, prefix: string, group: string): CommandSuggestion[] {
   return Object.entries(commands ?? {}).flatMap(([key, command]) => {
-    if (typeof command === 'function') return [];
+    if (typeof command === 'function' || command.unlisted) return [];
     const { handle: _, ...entry } = command;
     const name = `${prefix}.${key}`;
     return [{ ...entry, type: 'command' as const, name, value: name, label: command.label ?? key, group }];
@@ -306,7 +341,22 @@ function offered(commands: Commands | undefined, prefix: string, group: string):
  */
 function factsOf(instance: WindowInstance): WindowFacts {
   const { id, app, name, title, data } = instance;
-  return { id, app: app.name, name, title, data: data && snapshot(data) };
+  const commands = agentCommands(opened.get(id)?.commands);
+  return { id, app: app.name, name, title, data: data && snapshot(data), ...(commands.length ? { commands } : {}) };
+}
+
+/**
+ * The commands of a scope that agents can run.
+ *
+ * @param commands - The scope's commands.
+ * @returns Each one that says what it does.
+ */
+function agentCommands(commands: Commands | undefined): AgentCommand[] {
+  return Object.entries(commands ?? {}).flatMap(([name, command]) =>
+    typeof command !== 'function' && command.does
+      ? [{ name, does: command.does, ...(command.takes ? { takes: command.takes } : {}) }]
+      : [],
+  );
 }
 
 /**
@@ -328,6 +378,7 @@ function schemeOf(link: string): string | undefined {
 function linkHandleOf(scheme?: string): LinkHandle | undefined {
   if (!scheme) return undefined;
   const claims = installedApps().filter((app) => app.linkHandle?.[scheme]);
-  if (claims.length > 1) console.warn(`[Wedyan] "${scheme}:" links are claimed by more than one app; the first keeps them.`);
+  if (claims.length > 1)
+    console.warn(`[Wedyan] "${scheme}:" links are claimed by more than one app; the first keeps them.`);
   return claims[0]?.linkHandle?.[scheme];
 }

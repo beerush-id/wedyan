@@ -127,6 +127,16 @@ export const ACTIONS = {
   },
   tile: { name: 'desktop.tile', args: '{"apps": string[]}', does: 'Places the apps’ windows side by side.' },
   focus: { name: 'desktop.focus', args: '{"app": string}', does: 'Brings an app’s window to the front.' },
+  close: {
+    name: 'desktop.close',
+    args: '{"window": string}',
+    does: 'Closes an open window, by the `id` it has on the desktop.',
+  },
+  windowRun: {
+    name: 'window.run',
+    args: '{"window": string, "command": string, "args"?: object}',
+    does: 'Runs one of an open window’s `commands` on that window, by the window’s `id`. It says if it failed.',
+  },
   workAssign: {
     name: WORK_ASSIGN,
     args: '{"title": string, "agent": string, "goal": string, "object": {"path": string, "part"?: string, "id"?: string}}',

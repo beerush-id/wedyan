@@ -1,3 +1,4 @@
+import { canCaptureVideo } from '@airlib/aria';
 import { type AnyType, createContext, effect, type history, mutable } from '@airlib/react';
 import type { Timeline, TimelineSegment } from '@airlib/react/timeline';
 import type { PersonTab } from '@/apps/lounge/views/session.js';
@@ -99,6 +100,8 @@ export type Composer = {
   generativeAsset(): GenerativeSource | undefined;
   /** Makes a generated document again; nothing in Motions generates yet, so it says so. */
   generate(generated: GenerativeSource): void;
+  /** Starts rendering the stage open in Compose, or says in `status` why it can't. */
+  render(): void;
   /**
    * Puts a row this desktop is adding in the listing, which needs no asking again for it: the
    * project only holds a file once it's saved, so a listing can't have it yet.
@@ -113,6 +116,9 @@ export type Composer = {
 
 /** The composer of the window a part is in. */
 export const composerCtx = createContext<Composer>();
+
+/** Where turning HTML-in-Canvas on lives, for people whose Chrome doesn't have it yet. */
+const CAPTURE_FLAG = 'chrome://flags/#canvas-draw-element';
 
 /** Where a project window's listing looks, narrowed to what the project holds. */
 const HOME = '~';
@@ -181,6 +187,16 @@ export function createComposer(path: string, direct: boolean): Composer {
       },
 
       pathOf: (written) => resolvePath(path, written),
+
+      render() {
+        if (!canCaptureVideo()) {
+          composer.status = `Rendering needs HTML-in-Canvas: open ${CAPTURE_FLAG} in Chrome, enable it, and relaunch.`;
+          return;
+        }
+        composer.status = '';
+        composer.timeline?.pause();
+        composer.rendering = true;
+      },
 
       hostClip() {
         const { timeline, clips } = composer;

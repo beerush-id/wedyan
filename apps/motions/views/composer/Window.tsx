@@ -3,6 +3,8 @@ import { isFrontWindow, Window, WindowBody, type WindowRenderProps } from '@airl
 import type { FC } from 'react';
 import { dfs } from '@/lib/share/dfs.js';
 import type { FileRefEncoding } from '@/lib/share/workspace.js';
+import { attachCommands } from '@/lib/systems/public.js';
+import { composerCommands } from './commands.js';
 import { Compose } from './compose/Compose.js';
 import { ComposeDock, ComposeSubject } from './compose/Dock.js';
 import { type ComposerData, composerCtx, createComposer } from './context.js';
@@ -31,6 +33,7 @@ export function ComposerWindow({ instance }: WindowRenderProps) {
   const { path, direct } = instance.data as ComposerData;
   const composer = createComposer(path, direct);
   composerCtx.set(composer);
+  attachCommands(instance, composerCommands(composer));
 
   // The dock sits outside the window, so what it shows is made here, reading this composer.
   const docked = (Part: FC) =>
