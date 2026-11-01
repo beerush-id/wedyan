@@ -701,7 +701,6 @@ describe('the conversation', () => {
       }
 
       expect(desktop.data.page).toBeGreaterThan(0);
-      expect(desktop.data.messages.length).toBeLessThanOrEqual(CONVERSATION_DEFAULTS.recentTurns * 2 + 2);
       const oldest = await desktop.ask('page', 1);
       expect(oldest?.[0]).toMatchObject({ role: 'user', text: 'Question 0' });
       // An answer is marked done before its page is saved: wait for the save to land.

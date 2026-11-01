@@ -108,11 +108,12 @@ export type ActionOutcome = {
 
 /**
  * One step of an answer and how long it took, kept to measure where the time goes: `model` is a turn
- * of a model, `call` a tool it called, `compose` a widget or form being drawn.
+ * of a model, `call` a tool it called, `compose` a widget or form being drawn, `handoff` an ask being
+ * passed on, with what it was passed with.
  */
 export type AskStep = {
-  kind: 'model' | 'call' | 'compose';
-  /** The agent for a model turn, the tool for a call, the composer for a composition. */
+  kind: 'model' | 'call' | 'compose' | 'handoff';
+  /** The agent for a model turn, the tool for a call, the composer for a composition, who takes a handoff. */
   name: string;
   /** The agent it ran for. */
   agent: string;

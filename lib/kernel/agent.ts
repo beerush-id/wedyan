@@ -130,6 +130,8 @@ kernel.construct(askWedyan, (input) =>
 
 /** One ask to run with the kernel's setup: what the agents read, where the answer goes, and its desktop. */
 export interface AskOptions {
+  /** The conversation before the ask, for the agent that holds it. */
+  conversation?: ChatMessage[];
   input: ChatInput;
   /** The answer's live state, mutated in place as it runs. */
   state: AskState;
@@ -176,6 +178,7 @@ export async function askWith(options: AskOptions): Promise<void> {
     skills,
     persona,
     limits,
+    conversation: options.conversation,
     input: options.input,
     state: options.state,
     // Tools are the server's: a package tool or a `sys.*` call. The desktop is reached by actions and asks.
@@ -223,6 +226,8 @@ export interface AgentProfile {
   tools: ChatTool[];
   /** Agents this one may hand the ask to; the loop offers `handoff` only when there are any. */
   handoffs?: string[];
+  /** Holds the whole conversation, so every other agent can work from only what it's handed. */
+  holdsConversation?: boolean;
   /** Whether it can search the web itself, where the provider hosts that. */
   webSearch?: boolean;
   /** Whether a job handed to it starts with a call, so it can't promise the work and stop there. */
@@ -272,6 +277,8 @@ export interface AgentLoopOptions {
    * composer's so the look they asked for never does either.
    */
   persona?: string;
+  /** The conversation before the ask, read only by the agent that holds it. */
+  conversation?: ChatMessage[];
   input: ChatInput;
   /** Mutated in place as the ask runs. */
   state: AskState;
@@ -385,7 +392,8 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
   let skill = resume?.skill ? skills[resume.skill] : undefined;
   let agent = withSkill(agents[resume?.agent ?? options.entry], skill);
   const asks = resume ? [...resume.asks] : chatTurns(options.input);
-  let history = resume ? [...resume.history] : [...asks];
+  const held = (profile: AgentProfile) => (profile.holdsConversation ? (options.conversation ?? []) : []);
+  let history = resume ? [...resume.history] : [...held(agent), ...asks];
   let turn = resume?.turn ?? 0;
   let handoffs = resume?.handoffs ?? 0;
   let handed = false;
@@ -429,6 +437,16 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
       const system = voice ? `${agent.system}\n\n${voice}` : agent.system;
       const callable = new Set(tools.map((tool) => tool.name));
       let asked = false;
+      // What the agent did on the desktop this turn, so whoever it hands to doesn't do it again.
+      const acted: IRPCData[] = [];
+      // What the agent tells the user as it hands the ask over: the handoff carries it, so it can't
+      // say it instead of making the call. The user hears it as soon as it's written, brief or no brief.
+      let said = '';
+      const tell = (words: string) => {
+        if (said || !words) return;
+        said = words;
+        state.parts.push({ type: 'text', chunks: [words], text: words, spoken: true });
+      };
       // A call shows once it's named, long before its arguments are written.
       const named = new Map<string, StepTimer[]>();
       const announce = (name: string) => {
@@ -442,8 +460,31 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
         timer.step.detail = query;
         timer.end();
       };
+      const queue = (written: AskAction) => {
+        // A call written as an action would run with its result lost: the model must call it.
+        if (callable.has(written.name)) {
+          problems.push(`${written.name} is a call, not an action: call it as a tool to get its result`);
+          return;
+        }
+        if (written.name === 'ask_user' && ++forms > formLimit) {
+          problems.push(TOO_MANY_FORMS);
+          return;
+        }
+        if (written.ask) asked = true;
+        else acted.push({ action: written.name, args: written.args });
+        // Stamped now: by the time it runs, the ask may have been handed to another agent.
+        const action = { ...written, agent: agent.name };
+        if (action.name !== 'ask_user') return actions.add(action, current);
+        // Composed now, while the turn streams; the user is asked once their turn in the queue comes.
+        const intent = String(action.args);
+        actions.add(
+          { ...action, intent },
+          current,
+          compose({ form: intent }).then(({ nodes }) => nodes),
+        );
+      };
       const turnWith = (timer: StepTimer) =>
-        modelTurn(adapter, { ...agent, system, tools }, history, state.parts, signal, timer, { announce, searched }, {
+        modelTurn(adapter, { ...agent, system, tools }, history, state.parts, signal, timer, { announce, searched, handing: (args) => tell(drafted(args)) }, {
           onWidget: (part, intent) => {
             // The agent keeps speaking while its widget is composed; the part fills in place.
             compositions.push(
@@ -460,28 +501,7 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
               ),
             );
           },
-          onAction: (written) => {
-            // A call written as an action would run with its result lost: the model must call it.
-            if (callable.has(written.name)) {
-              problems.push(`${written.name} is a call, not an action: call it as a tool to get its result`);
-              return;
-            }
-            if (written.name === 'ask_user' && ++forms > formLimit) {
-              problems.push(TOO_MANY_FORMS);
-              return;
-            }
-            if (written.ask) asked = true;
-            // Stamped now: by the time it runs, the ask may have been handed to another agent.
-            const action = { ...written, agent: agent.name };
-            if (action.name !== 'ask_user') return actions.add(action, current);
-            // Composed now, while the turn streams; the user is asked once their turn in the queue comes.
-            const intent = String(action.args);
-            actions.add(
-              { ...action, intent },
-              current,
-              compose({ form: intent }).then(({ nodes }) => nodes),
-            );
-          },
+          onAction: queue,
           onInvalid: (problem) => problems.push(problem),
         });
       const take = () => {
@@ -505,10 +525,7 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
 
       const [handoff, ...extraHandoffs] = reply.toolCalls.filter((call) => call.name === HANDOFF);
       const calls = reply.toolCalls.filter((call) => call.name !== HANDOFF);
-      // What the agent tells the user as it hands the ask over: the handoff carries it, so it can't
-      // say it instead of making the call.
-      const said = String((handoff?.args as { say?: unknown } | undefined)?.say ?? '').trim();
-      if (said) state.parts.push({ type: 'text', chunks: [said], text: said, spoken: true });
+      tell(String((handoff?.args as { say?: unknown } | undefined)?.say ?? '').trim());
       const timedCall = (call: ToolCall) => {
         const timer = named.get(call.name)?.shift() ?? timeStep(state, 'call', call.name, agent.name);
         timer.step.detail = detailOf(call.args);
@@ -555,14 +572,31 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
 
       if (target && handoff) {
         handoffs += 1;
-        const brief = String((handoff.args as { brief?: unknown })?.brief ?? '');
+        const passed = timeStep(state, 'handoff', target.name, agent.name);
+        passed.step.args = JSON.stringify(handoff.args ?? {}).slice(0, ARGS_LIMIT);
+        passed.end();
+        // What it does itself as it hands over: part of the call, so it can't say it and not do it.
+        const { actions: alongside, brief: written } = (handoff.args ?? {}) as { actions?: unknown; brief?: unknown };
+        for (const { name, args } of Array.isArray(alongside) ? (alongside as AskAction[]) : []) {
+          queue({ name, args: args ?? null, after: state.parts.length - 1 });
+        }
+        const brief = String(written ?? '');
         const done = calls.map((call, index) => ({ name: call.name, args: call.args, result: results[index] }));
         history = [
+          ...held(target),
           ...asks,
           {
             role: 'user',
             type: 'object',
-            data: { handoff: { from: agent.name, ...(said ? { said } : {}), brief, results: done } },
+            data: {
+              handoff: {
+                from: agent.name,
+                ...(said ? { said } : {}),
+                ...(acted.length ? { acted } : {}),
+                brief,
+                results: done,
+              },
+            },
           },
         ];
         skill = targetSkill;
@@ -617,7 +651,7 @@ async function modelTurn(
   parts: AskPart[],
   signal: AbortSignal | undefined,
   timer: StepTimer,
-  calls: { announce(call: string): void; searched(query: string): void },
+  calls: { announce(call: string): void; searched(query: string): void; handing(args: string): void },
   hooks: PartWriterHooks,
 ): Promise<{ text: string; toolCalls: ToolCall[] }> {
   const live = mutable<{ data?: ChatOutput }>({});
@@ -638,12 +672,15 @@ async function modelTurn(
     const acted = calling.length || commentary.length || chunks.length;
     if (reasoned || acted) timer.step.waitMs ??= timer.elapsed();
     if (reasoned && acted) timer.step.reasoningMs ??= timer.elapsed() - (timer.step.waitMs ?? 0);
-    if (heard >= commentary.length && seen >= chunks.length) return;
-    timer.step.firstChunkMs ??= timer.elapsed();
-    timer.step.chunks = commentary.length + chunks.length;
-    for (; heard < commentary.length; heard += 1) parser.push(commentary[heard]);
-    for (; seen < chunks.length; seen += 1) parser.push(chunks[seen]);
-    writer.flush();
+    if (heard < commentary.length || seen < chunks.length) {
+      timer.step.firstChunkMs ??= timer.elapsed();
+      timer.step.chunks = commentary.length + chunks.length;
+      for (; heard < commentary.length; heard += 1) parser.push(commentary[heard]);
+      for (; seen < chunks.length; seen += 1) parser.push(chunks[seen]);
+      writer.flush();
+    }
+    const handing = calling.indexOf(HANDOFF);
+    if (handing >= 0) calls.handing((live.data?.drafts?.[handing] ?? []).join(''));
   });
 
   let text = '';
@@ -681,6 +718,17 @@ async function modelTurn(
   // Plain copies: the calls go into history and to resolvers, not the reactive state.
   const toolCalls = JSON.parse(JSON.stringify(live.data?.toolCalls ?? [])) as ToolCall[];
   return { text, toolCalls };
+}
+
+/**
+ * What a handoff still being written tells the user, once those words are whole.
+ *
+ * @param args - The call's arguments so far, as raw JSON.
+ * @returns Its `say`; empty until the value is complete.
+ */
+function drafted(args: string): string {
+  const [, say] = /"say"\s*:\s*("(?:[^"\\]|\\.)*")/.exec(args) ?? [];
+  return say ? String(JSON.parse(say)).trim() : '';
 }
 
 /**
@@ -884,7 +932,19 @@ function toolsOf(
               }
             : {}),
           say: { type: 'string', description: 'What to tell the user as it\'s handed over, shown and read aloud, when there is something to tell.' },
-          brief: { type: 'string', description: 'What the next agent must do, and what is already known.' },
+          actions: {
+            type: 'array',
+            description: 'Actions to run on the desktop right away as it\'s handed over, in order.',
+            items: {
+              type: 'object',
+              properties: { name: { type: 'string' }, args: { type: 'object' } },
+              required: ['name'],
+            },
+          },
+          brief: {
+            type: 'string',
+            description: 'Only facts from the conversation the next agent can\'t see. Never the ask itself or what to do. Empty when there are none.',
+          },
         },
         required: ['agent', 'brief'],
       },

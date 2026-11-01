@@ -26,6 +26,7 @@ export function rita(
     model,
     tools: [],
     handoffs: ['wendy', 'lita', ...agents.map((agent) => agent.name)],
+    holdsConversation: true,
     system: fill(ritaSkill, {
       skills: skills.map((skill) => `- ${skill.name}: ${skill.description}`).join('\n'),
       own_agents: agents.map((agent) => `- ${agent.name}: ${agent.title}, ${agent.description}`).join('\n'),

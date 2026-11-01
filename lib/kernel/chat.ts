@@ -46,13 +46,11 @@ export { CONVERSATION_PATH };
 /** How the conversation keeps its pages, what the agents read of it, and how it waits and briefs. */
 export type ConversationConfig = {
   /**
-   * Largest a page grows, in UTF-8 bytes, before its older messages move to a numbered page. The
+   * Largest a page grows, in UTF-8 bytes, before its oldest messages shift to a numbered page. The
    * default is about half of what D1 keeps inline, so the answer that tips it over still stays inline.
    */
   pageBytes: number;
-  /** How many past turns the agents read, a turn being the user's words and Wedyan's answer. */
-  recentTurns: number;
-  /** Longest stretch of an answer's text kept in its line of the agents' view. */
+  /** Longest stretch of an answer's text kept when an agent is told of it in passing. */
   lineText: number;
   /** How long, in ms, an answer's actions wait for the desktop that sent its words to come back. */
   clientWait: number;
@@ -81,7 +79,6 @@ export type ConversationConfig = {
 /** The conversation's settings when none are given. */
 export const CONVERSATION_DEFAULTS: Readonly<ConversationConfig> = {
   pageBytes: 256 * 1024,
-  recentTurns: 4,
   lineText: 300,
   clientWait: 60_000,
   briefAfter: 10 * 60_000,
@@ -207,13 +204,14 @@ function createConversation({ hold }: RoomSetup) {
   let header: PageHeader = newHeader();
   // Saves one after another, so two answers ending together never write over each other's page.
   let saving: Promise<unknown> = Promise.resolve();
+  const lastPage: HeldPage = {};
   const persist = (context = detachedContext()) => {
     // Always into the home it was opened in, whoever asks: a conversation written into another
     // home takes that home's conversation with it.
     const save = () =>
       withContext(context, () => {
         if (home) fsContext.set(home);
-        return savePage(data, header);
+        return savePage(data, header, lastPage);
       });
     saving = saving.then(save, save);
     return saving;
@@ -526,7 +524,8 @@ function createConversation({ hold }: RoomSetup) {
 
     try {
       await askWith({
-        input: [...viewOf(before), ...toChatInput(input)],
+        conversation: viewOf(before),
+        input: toChatInput(input),
         state: message,
         // Forms and work are the conversation's own; every other action runs on the desktop. A
         // desktop away isn't waited for to take new attempts: the server keeps them itself.
@@ -916,17 +915,28 @@ function agentMessage({ to, event, task }: Origin): AgentMessage {
 }
 
 /**
- * What the agents read of the conversation before the ask: the last few turns, one line each, as
- * Wedyan answered them in plain words. No tool results and no widget nodes: what was shown is the
+ * The conversation before the ask, for the agent that holds it: every message on the page, whole,
+ * as Wedyan answered it in plain words. No tool results and no widget nodes: what was shown is the
  * agents' own description of it.
  */
 function viewOf(messages: ConversationMessage[]): ChatMessage[] {
-  const lines = messages.slice(-config.recentTurns * 2).map(lineOf);
+  const lines = messages.map((message) => entryOf(message));
   return lines.length ? [{ role: 'user', type: 'object', data: { conversation: lines } }] : [];
 }
 
-/** One message as a line of the agents' view. */
+/** One message as a short line, for telling of it in passing. */
 function lineOf(message: ConversationMessage): string {
+  return entryOf(message, config.lineText);
+}
+
+/**
+ * One message as a line an agent reads.
+ *
+ * @param message - The message.
+ * @param limit - The most of an answer's text to keep; all of it when unset.
+ * @returns The line.
+ */
+function entryOf(message: ConversationMessage, limit = Infinity): string {
   if (message.role === 'user') return `user: ${message.text}`;
   const said = message.parts
     .flatMap((part) => (part.type === 'text' ? [part.text ?? part.chunks.join('')] : []))
@@ -939,7 +949,7 @@ function lineOf(message: ConversationMessage): string {
     .filter((action) => action.status !== 'done')
     .map((action) => `${call(action)} (${action.error ?? action.status})`);
   return [
-    `wedyan: ${said ? `said "${said.length > config.lineText ? `${said.slice(0, config.lineText)}…` : said}"` : 'said nothing'}`,
+    `wedyan: ${said ? `said "${said.length > limit ? `${said.slice(0, limit)}…` : said}"` : 'said nothing'}`,
     shown.length ? `showed: ${shown.join('; ')}` : '',
     done.length ? `did: ${done.join(', ')}` : '',
     undone.length ? `didn't: ${undone.join(', ')}` : '',
@@ -954,21 +964,26 @@ function newHeader(): PageHeader {
   return { id: crypto.randomUUID(), created: new Date().toISOString() };
 }
 
+/** The last numbered page's messages, kept by the room once it has needed them. */
+type HeldPage = { messages?: ConversationMessage[] };
+
 /** A conversation page, the current one when unset; `undefined` when there is none yet. */
 async function readPage(page?: number): Promise<ConversationPage | undefined> {
   return (await read<ConversationPage>(pagePath(page), { encoding: 'json' })) ?? undefined;
 }
 
 /**
- * Keeps the conversation: writes its current page and, once it outgrows `config.pageBytes`, first moves
- * its older messages to the next numbered page, keeping the turns the agents read on the current
- * one. The numbered page is written before the current one shrinks, so a failure between the two
- * repeats a page rather than losing one.
+ * Keeps the conversation: writes its current page and, once it outgrows `config.pageBytes`, first
+ * shifts only as many of its oldest messages as it takes to fit onto the last numbered page, which
+ * starts the next one when it's full. So the current page always holds as much as fits, never a
+ * fresh start. The numbered page is written before the current one shrinks, so a failure between
+ * the two repeats messages rather than losing them.
  *
  * @param data - The conversation.
  * @param header - The page's header.
+ * @param last - The last numbered page, held so shifting never reads it again.
  */
-async function savePage(data: Conversation, header: PageHeader): Promise<void> {
+async function savePage(data: Conversation, header: PageHeader, last: HeldPage): Promise<void> {
   const pageOf = (page: number, messages: ConversationMessage[]): ConversationPage => ({
     type: 'chat',
     version: 1,
@@ -981,18 +996,29 @@ async function savePage(data: Conversation, header: PageHeader): Promise<void> {
     ...(data.away ? { away: data.away } : {}),
     ...(data.work?.length ? { work: JSON.parse(JSON.stringify(data.work)) as WorkTask[] } : {}),
   });
+  const bytes = (value: unknown) => new TextEncoder().encode(JSON.stringify(value)).length;
   const messages = JSON.parse(JSON.stringify(data.messages)) as ConversationMessage[];
-  const keep = config.recentTurns * 2;
+  let excess = bytes(pageOf(data.page, messages)) - config.pageBytes;
 
-  // Never past an answer still being written: it keeps changing, so it stays on the current page.
-  const writing = messages.findIndex((message) => message.role === 'agent' && isWriting(message));
-  const cut = Math.min(messages.length - keep, writing === -1 ? messages.length : writing);
+  if (excess > 0) {
+    // Never past the latest turn, nor an answer still being written: it keeps changing, so it stays.
+    const writing = messages.findIndex((message) => message.role === 'agent' && isWriting(message));
+    const limit = Math.min(messages.length - 2, writing === -1 ? messages.length : writing);
+    let cut = 0;
+    for (; cut < limit && excess > 0; cut += 1) excess -= bytes(messages[cut]) + 1;
 
-  if (new TextEncoder().encode(JSON.stringify(pageOf(data.page, messages))).length > config.pageBytes && cut > 0) {
-    const older = messages.slice(0, cut);
-    await write(pagePath(data.page + 1), pageOf(data.page + 1, older) as never);
-    data.page += 1;
-    data.messages.splice(0, older.length);
+    if (cut > 0) {
+      const older = messages.slice(0, cut);
+      last.messages ??= data.page ? ((await readPage(data.page))?.messages ?? []) : [];
+      const joined = [...last.messages, ...older];
+      const fits = data.page > 0 && bytes(pageOf(data.page, joined)) <= config.pageBytes;
+      const page = fits ? data.page : data.page + 1;
+      const kept = fits ? joined : older;
+      await write(pagePath(page), pageOf(page, kept) as never);
+      last.messages = kept;
+      data.page = page;
+      data.messages.splice(0, cut);
+    }
   }
 
   await write(CONVERSATION_PATH, pageOf(data.page, JSON.parse(JSON.stringify(data.messages))) as never);

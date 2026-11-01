@@ -11,6 +11,7 @@ export const AGENTS: Record<string, AgentProfile> = {
     name: 'assistant',
     model: 'assistant-m',
     system: 'Assist.',
+    holdsConversation: true,
     tools: [
       { name: 'sys.fs.read', description: 'Reads a file' },
       { name: 'files.read', description: 'Reads a file, as a package tool' },
