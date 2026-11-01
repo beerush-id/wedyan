@@ -1,5 +1,6 @@
+import { sampleSegment } from '@airlib/aria';
 import { $bind, $static, Show, Snippet, setup } from '@airlib/react';
-import { sampleSegment, type Timeline, type TimelineSegment } from '@airlib/react/timeline';
+import type { Timeline, TimelineSegment } from '@airlib/react/timeline';
 import {
   EmptyState,
   Slider,

@@ -1,5 +1,5 @@
-import { isSegmentMuted, renderVideo, type VideoMediaLoader, type VideoRenderProgress, type VideoStageAria } from '@airlib/aria';
-import { sampleSegment, type Timeline, type TimelineSegment } from '@airlib/react/timeline';
+import { isSegmentMuted, renderVideo, sampleSegment, type VideoMediaLoader, type VideoRenderProgress, type VideoStageAria } from '@airlib/aria';
+import type { Timeline, TimelineSegment } from '@airlib/react/timeline';
 import {
   AudioBufferSource,
   BufferTarget,

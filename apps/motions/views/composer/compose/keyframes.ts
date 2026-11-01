@@ -1,4 +1,5 @@
-import { sampleSegment, type TimelineSegment } from '@airlib/react/timeline';
+import { sampleSegment } from '@airlib/aria';
+import type { TimelineSegment } from '@airlib/react/timeline';
 
 /** A group of values keyed together: the fields it keys, and what each reads as when unset. */
 export type KeyedGroup = { fields: { key: string; fallback?: number }[] };

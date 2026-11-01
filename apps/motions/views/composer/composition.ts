@@ -1,4 +1,5 @@
-import type { MotionBox, TimelineSnapshot } from '@airlib/react/timeline';
+import type { MotionBox } from '@airlib/aria';
+import type { TimelineSnapshot } from '@airlib/react/timeline';
 import { PAINTERS } from './painters.js';
 
 /**
