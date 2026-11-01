@@ -157,9 +157,9 @@ const HtmlClipView = template<{ segment: TimelineSegment<HtmlClip> }>((props) =>
  * keyframed values go onto a live copy of its props, so only the widget redraws.
  */
 const WidgetClipView = setup<{ segment: TimelineSegment<WidgetClip> }>((props) => {
-  const { widget, params, text, style } = $static(() => props.segment.props);
+  const { widget, params, text, style } = $static(() => ({ ...props.segment.props }));
   const Widget = WIDGETS[widget ?? ''];
-  const shown = mutable<Record<string, unknown>>({ ...params });
+  const shown = mutable<Record<string, unknown>>($static(() => ({ ...params })));
 
   const draw = ({ values }: { values: Record<string, unknown> }) => {
     for (const [key, value] of Object.entries(values)) {
