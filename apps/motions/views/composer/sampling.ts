@@ -1,4 +1,3 @@
-import { EASES } from '@airlib/aria';
 import { subscribe } from '@airlib/react';
 import type { TimelineSegment } from '@airlib/react/timeline';
 import gsap from 'gsap';
@@ -36,7 +35,8 @@ export function watchKeyframes(composition: object): void {
 
 /**
  * Reads values at a timeline frame. Every value follows its own points: it holds the first until
- * then, eases between each pair by the earlier one's `meta.ease`, and holds the last from there. A
+ * then, eases between each pair by the earlier one's `meta.ease`, any GSAP ease, and holds the last
+ * from there. A
  * value no keyframe sets is what `props` says. Keyframes stay data; this is who deals with what's
  * between them.
  *
@@ -103,7 +103,7 @@ function play(scenes: Picked['scenes']): Playback {
         {
           value: to.data[key] as Slot['value'],
           duration: to.atFrame - from.atFrame,
-          ease: EASES[(from.meta?.ease as string) ?? 'linear'] ?? EASES.linear,
+          ease: (from.meta?.ease as string) ?? 'none',
           immediateRender: false,
           lazy: false,
         },

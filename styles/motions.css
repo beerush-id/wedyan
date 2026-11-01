@@ -488,15 +488,11 @@
   }
 }
 
-/*
- * A group's name and its keyframes on one line, in from the edge as far as the fields' own content,
- * clear of their rounded ends.
- */
+/* A group's name and its keyframes on one line. */
 .wedyan-compose-property-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-inline: var(--spacing-sm);
 }
 
 .wedyan-compose-property-label {
@@ -505,13 +501,12 @@
   font-weight: 500;
 }
 
-/* A setting on one line: its name, in from the edge as the group's is, and its control at the end. */
+/* A setting on one line: its name, and its control at the end. */
 .wedyan-compose-property-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--spacing-sm);
-  padding-inline: var(--spacing-sm);
   font-size: var(--font-label-md-size);
 }
 
@@ -587,7 +582,30 @@
  */
 .wedyan-compose-keyframes {
   display: flex;
+  flex: 1;
   align-items: center;
+  justify-content: flex-end;
+  min-inline-size: 0;
+
+  /* A keyframe's ease: small words right before the marks, since it's the keyframe's. */
+  & > .aui-select-trigger {
+    display: flex;
+    gap: 2px;
+    align-items: center;
+    inline-size: auto;
+    min-inline-size: 0;
+    padding-inline: var(--spacing-xs);
+    box-shadow: none;
+    font-size: var(--font-label-sm-size);
+
+    &::before {
+      display: none;
+    }
+
+    & > .aui-select-caret {
+      --aui-icon-size: 0.75rem;
+    }
+  }
 
   & > button {
     display: grid;
@@ -679,39 +697,12 @@
   }
 }
 
-/* One value on one line: its name, what edits it, and its keyframes right beside that. */
-.wedyan-compose-property-value {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  min-inline-size: 0;
-  margin: 0;
-  padding: 0;
-  padding-inline-start: var(--spacing-sm);
-  border: 0;
-
-  & > .wedyan-compose-property-label {
-    flex: none;
-    margin-inline-end: auto;
-  }
-
-  & > .aui-slider {
-    flex: 1;
-    min-inline-size: 0;
-  }
-
-  & > .aui-stepper {
-    flex: none;
-    inline-size: 4.5rem;
-  }
-}
-
 /* A value's field wherever it sits: its glyph in from the edge, its number at the end. */
-:is(.wedyan-compose-property-body, .wedyan-compose-property-row, .wedyan-compose-property-value) > .aui-stepper {
+:is(.wedyan-compose-property-body, .wedyan-compose-property-row) > .aui-stepper {
   gap: var(--spacing-xs);
   padding-inline: var(--spacing-sm);
 
-  & > .aui-icon {
+  & > :is(.aui-icon, .aui-stepper-adjuster) {
     --aui-icon-size: 0.875rem;
     flex: none;
     color: var(--color-on-surface-variant);

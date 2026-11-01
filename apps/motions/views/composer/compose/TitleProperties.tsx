@@ -1,6 +1,15 @@
 import { $bind, type AnyType, effect, setup } from '@airlib/react';
 import type { TimelineSegment } from '@airlib/react/timeline';
-import { SegmentGroup, Stepper, StepperInput, TextInput, Toggle, ToggleGroup, Tooltip } from '@airlib/react-aui';
+import {
+  SegmentGroup,
+  Stepper,
+  StepperAdjuster,
+  StepperInput,
+  TextInput,
+  Toggle,
+  ToggleGroup,
+  Tooltip,
+} from '@airlib/react-aui';
 import {
   FormatAlignCenterIcon,
   FormatAlignLeftIcon,
@@ -14,7 +23,7 @@ import type { ReactNode } from 'react';
 import type { TitleClip } from '../composition.js';
 import { type Composer, composerCtx } from '../context.js';
 import { FontPicker } from './FontPicker.js';
-import { KeyedValue, ValueRow } from './Groups.js';
+import { Keyframes, KeyedValue } from './Groups.js';
 import { createReading, type KeyedField } from './keyframes.js';
 
 /** How big a title's words are: on its own, with no relation to their colour. */
@@ -87,7 +96,9 @@ export const TitleProperties = setup<{ clip: TimelineSegment<TitleClip> }>((prop
         <KeyedStyle group={SIZE} style={style}>
           {(value, edit) => (
             <Stepper size="xs" label="Size" step={1} min={1} value={value} onInput={edit}>
-              <TitleIcon />
+              <StepperAdjuster rate={2}>
+                <TitleIcon />
+              </StepperAdjuster>
               <StepperInput aria-label="Size" />
               <Tooltip>Size</Tooltip>
             </Stepper>
@@ -101,7 +112,7 @@ export const TitleProperties = setup<{ clip: TimelineSegment<TitleClip> }>((prop
   };
 }, 'TitleProperties');
 
-/** One CSS value of a title that keyframes can move, under its own name and diamond. */
+/** One CSS value of a title that keyframes can move: its name beside its input, its keyframes above that. */
 const KeyedStyle = setup<{
   group: { label: string; fields: KeyedField[] };
   style: Record<string, unknown>;
@@ -114,10 +125,16 @@ const KeyedStyle = setup<{
   );
 
   return ({ group, style, children }) => (
-    <ValueRow group={group} reading={reading}>
-      <KeyedValue name={group.fields[0].key} reading={reading} own={style}>
-        {children}
-      </KeyedValue>
-    </ValueRow>
+    <fieldset aria-label={group.label} className="wedyan-compose-property-group">
+      <div className="wedyan-compose-property-head">
+        <Keyframes group={group} reading={reading} />
+      </div>
+      <div className="wedyan-compose-property-row">
+        <span>{group.label}</span>
+        <KeyedValue name={group.fields[0].key} reading={reading} own={style}>
+          {children}
+        </KeyedValue>
+      </div>
+    </fieldset>
   );
 }, 'KeyedStyle');

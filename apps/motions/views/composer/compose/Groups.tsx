@@ -1,6 +1,6 @@
-import { $bind, type AnyType, setup, Snippet, template } from '@airlib/react';
+import { $bind, type AnyType, effect, setup, Snippet, template } from '@airlib/react';
 import type { Timeline, TimelineSegment } from '@airlib/react/timeline';
-import { Slider, Stepper, StepperInput, Tooltip } from '@airlib/react-aui';
+import { Select, Slider, Stepper, StepperAdjuster, StepperInput, Tooltip } from '@airlib/react-aui';
 import type { FC, ReactNode } from 'react';
 import { type Composer, composerCtx, type Picked } from '../context.js';
 import {
@@ -17,7 +17,8 @@ import {
 
 /**
  * A value of a clip its keyframes can animate: its name, its glyph, what it reads as when the clip
- * doesn't set it, and how it steps. One with a `range` is also dragged along a slider across it.
+ * doesn't set it, how it steps, and how many steps a pixel of a drag moves. One with a `range` is
+ * also dragged along a slider across it.
  */
 export type Field = {
   key: string;
@@ -25,6 +26,7 @@ export type Field = {
   icon: FC;
   fallback?: number;
   step: number;
+  rate?: number;
   min?: number;
   max?: number;
   range?: [number, number];
@@ -32,6 +34,18 @@ export type Field = {
 
 /** Values of a clip laid out, and keyed, together under one name. */
 export type Group = { label: string; fields: Field[] };
+
+/** The GSAP eases a keyframe's picker offers, by what they're called. */
+const EASES = {
+  none: 'Linear',
+  'power2.in': 'Ease in',
+  'power2.out': 'Ease out',
+  'power2.inOut': 'Ease in and out',
+  'expo.out': 'Expo out',
+  'back.out': 'Back',
+  'elastic.out': 'Elastic',
+  'bounce.out': 'Bounce',
+};
 
 /** A clip's keyed values, a group under its name for each, keyed together. */
 export const Groups = template<{ groups: Group[] }>(
@@ -52,48 +66,29 @@ export const Groups = template<{ groups: Group[] }>(
 const GroupView = setup<{ group: Group }>((props) => {
   const reading = createReading(composerCtx.get() as Composer, () => props.group.fields);
 
-  return ({ group }) =>
-    group.fields.length === 1 ? (
-      <ValueRow group={group} reading={reading}>
-        <FieldView field={group.fields[0]} reading={reading} />
-      </ValueRow>
-    ) : (
-      <fieldset aria-label={group.label} className="wedyan-compose-property-group">
-        <div className="wedyan-compose-property-head">
-          <span className="wedyan-compose-property-label" aria-hidden="true">
-            {group.label}
-          </span>
-          <Keyframes group={group} reading={reading} />
-        </div>
-        <div className="wedyan-compose-property-body">
-          {group.fields.map((field) => (
-            <FieldView key={field.key} field={field} reading={reading} />
-          ))}
-        </div>
-      </fieldset>
-    );
-}, 'GroupView');
-
-/** A group of one value on one line: its name, what edits it, and its keyframes beside that. */
-export const ValueRow = template<{ group: KeyedGroup & { label: string }; reading: Reading; children: ReactNode }>(
-  ({ group, reading, children }) => (
-    <fieldset aria-label={group.label} className="wedyan-compose-property-value">
-      <span className="wedyan-compose-property-label" aria-hidden="true">
-        {group.label}
-      </span>
-      {children}
-      <Keyframes group={group} reading={reading} />
+  return ({ group }) => (
+    <fieldset aria-label={group.label} className="wedyan-compose-property-group">
+      <div className="wedyan-compose-property-head">
+        <span className="wedyan-compose-property-label" aria-hidden="true">
+          {group.label}
+        </span>
+        <Keyframes group={group} reading={reading} />
+      </div>
+      <div className="wedyan-compose-property-body">
+        {group.fields.map((field) => (
+          <FieldView key={field.key} field={field} reading={reading} />
+        ))}
+      </div>
     </fieldset>
-  ),
-  'ValueRow',
-);
+  );
+}, 'GroupView');
 
 /**
  * A group's keyframes at the playhead: the diamond, filled while the group has a keyframe there,
  * adds one with the reading or takes it off; either side, a step to the keyframe before or after,
- * inert while there's none.
+ * inert while there's none; and on a keyframe, its ease.
  */
-const Keyframes = setup<{ group: KeyedGroup & { label: string }; reading: Reading }>((props) => {
+export const Keyframes = setup<{ group: KeyedGroup & { label: string }; reading: Reading }>((props) => {
   const composer = composerCtx.get() as Composer;
 
   return () => (
@@ -113,8 +108,10 @@ const Keyframes = setup<{ group: KeyedGroup & { label: string }; reading: Readin
         );
         const before = frames.findLast((frame) => frame < at);
         const after = frames.find((frame) => frame > at);
+        const point = frames.includes(at) ? keyed.scenes.find((scene) => scene.atFrame === at) : undefined;
         return (
           <span className="wedyan-compose-keyframes">
+            {point && <EasePicker key={point.id} scene={point} label={`${group.label}: ease`} />}
             <button
               type="button"
               className="wedyan-compose-keyframe-step"
@@ -148,9 +145,34 @@ const Keyframes = setup<{ group: KeyedGroup & { label: string }; reading: Readin
   );
 }, 'Keyframes');
 
+/** The ease of the point at the playhead: how its values leave it for their next points. */
+const EasePicker = setup<{ scene: Picked['scenes'][number]; label: string }>((props) => {
+  const composer = composerCtx.get() as Composer;
+
+  // It's a point's ease to manage, and a point needn't have any `meta` yet.
+  effect(() => {
+    if (!props.scene.meta) {
+      props.scene.meta = {};
+    }
+  });
+
+  return ({ scene, label }) => (
+    <Select
+      size="xs"
+      variant="text"
+      label={label}
+      options={EASES}
+      value={$bind(scene.meta as Record<string, AnyType>, 'ease')}
+      onchange={composer.edited}
+    >
+      <Select.Snippet for="trigger">{(ease) => EASES[(ease ?? 'none') as keyof typeof EASES] ?? ease}</Select.Snippet>
+    </Select>
+  );
+}, 'EasePicker');
+
 /** One value at the playhead: its number, and a slider beside it when it has a range. */
 const FieldView = template<{ field: Field; reading: Reading }>(
-  ({ field: { key, label, icon: Icon, step, min, max, range }, reading }) => (
+  ({ field: { key, label, icon: Icon, step, rate, min, max, range }, reading }) => (
     <KeyedValue name={key} reading={reading}>
       {(value, edit) => (
         <>
@@ -158,7 +180,9 @@ const FieldView = template<{ field: Field; reading: Reading }>(
             <Slider size="xs" aria-label={label} min={range[0]} max={range[1]} step={step} value={value} onInput={edit} />
           )}
           <Stepper size="xs" label={label} step={step} min={min} max={max} value={value} onInput={edit}>
-            <Icon />
+            <StepperAdjuster rate={rate}>
+              <Icon />
+            </StepperAdjuster>
             <StepperInput aria-label={label} />
             <Tooltip>{label}</Tooltip>
           </Stepper>
