@@ -16,10 +16,11 @@ export const FILE_TYPES: Record<string, string> = {
   persona: 'application/vnd.wedyan.persona+json',
   album: 'application/vnd.wedyan.album+json',
   agent: 'application/vnd.wedyan.agent+json',
+  receipt: 'application/vnd.wedyan.receipt+json',
 };
 
 /** Plain text files, by extension. */
-const TEXT_EXTENSIONS = new Set(['md', 'txt', 'json']);
+const TEXT_EXTENSIONS = new Set(['md', 'txt', 'json', 'eml', 'ics']);
 
 /** The metadata value of a project's favourite flag and of each of its tags. */
 export const FLAGGED = 'true';
