@@ -137,10 +137,12 @@ export function placeTitle(timeline: Timeline, stage: StageProps, at: Placement)
     height: Math.round(stage.height * 0.2),
     style: {
       display: 'grid',
-      placeItems: 'center',
+      alignItems: 'center',
       textAlign: 'center',
       color: '#ffffff',
-      font: `700 ${Math.round(stage.height * 0.08)}px/1.1 system-ui, sans-serif`,
+      fontSize: Math.round(stage.height * 0.08),
+      fontWeight: 'bold',
+      lineHeight: 1.1,
     },
   };
   return place(timeline, 'title', at, { type: 'title', name: 'Title', duration: TEXT_SECONDS }, props);

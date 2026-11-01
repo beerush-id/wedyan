@@ -1,76 +1,49 @@
-import type { Timeline } from '@airlib/react/timeline';
-import type { FontFamily } from '@/lib/kernel/fonts.h.js';
-import type { StageProps, TitleClip } from './composition.js';
+/** Where Google serves a family's styles, by name: asked for every style, it gives those the family has. */
+const FONT_SHEETS = 'https://fonts.googleapis.com/css';
+const STYLES = [100, 200, 300, 400, 500, 600, 700, 800, 900].flatMap((weight) => [weight, `${weight}i`]).join(',');
 
-/** Where Google serves a family's styles. */
-const FONT_SHEETS = 'https://fonts.googleapis.com/css2';
+/** A title's font as CSS sets it. */
+export type FontStyle = { fontFamily?: unknown; fontWeight?: unknown; fontStyle?: unknown };
 
-/** A style's weight in its Google name: `700italic`; `regular` and `italic` have none. */
-const STYLE_WEIGHT = /^\d+/;
-const REGULAR_WEIGHT = '400';
-
-/** The style sheets this page has asked for, each once, by address. */
-const SHEETS = new Map<string, Promise<void>>();
+/** The fonts this page has loaded, each once, by what it was asked for. */
+const LOADED = new Map<string, Promise<unknown>>();
 
 /**
- * Adds a family's style sheet to a stage, so the stage carries what its words need wherever it opens.
+ * Loads the font some words are set in, for a clip's `draw`, which the stage waits for: the browser
+ * fetches a font only as it paints it, which is too late for a frame being captured. A font that
+ * can't load leaves its words in the stage's own font.
  *
- * @param timeline - The stage's timeline.
- * @param font - The family.
+ * @param style - The words' font.
+ * @param text - The words: a family comes in parts by alphabet, and only theirs is fetched.
+ * @returns When it's loaded; nothing for words in the stage's own font.
  */
-export function addFont(timeline: Timeline, font: FontFamily): void {
-  const stage = timeline.props as StageProps;
-  const sheet = sheetOf(font);
-  stage.fonts ??= [];
-  if (!stage.fonts.includes(sheet)) stage.fonts.push(sheet);
-}
-
-/**
- * Loads a font style sheet into the page, once. A sheet that can't load settles all the same: its
- * words show in their fallback rather than holding up what's drawing them.
- *
- * @param href - The sheet's address.
- * @returns When it's in.
- */
-export function loadSheet(href: string): Promise<void> {
-  let loading = SHEETS.get(href);
+export function loadFont({ fontFamily, fontWeight = 400, fontStyle = 'normal' }: FontStyle, text = ''): Promise<unknown> | undefined {
+  if (!fontFamily) return;
+  const font = `${fontStyle} ${fontWeight} 16px "${fontFamily}"`;
+  const key = `${font}:${text}`;
+  let loading = LOADED.get(key);
   if (!loading) {
-    loading = new Promise((resolve) => {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = href;
-      link.crossOrigin = 'anonymous';
-      link.onload = link.onerror = () => resolve();
-      document.head.append(link);
-    });
-    SHEETS.set(href, loading);
+    loading = loadSheet(String(fontFamily))
+      .then(() => document.fonts.load(font, text))
+      .catch(() => undefined);
+    LOADED.set(key, loading);
   }
   return loading;
 }
 
-/**
- * Loads every font a stage's words are set in, for what must have them before it draws: the browser
- * only fetches a font once it's painting it, which is too late for a frame being captured.
- *
- * @param timeline - The stage's timeline.
- * @returns When they're in.
- */
-export async function loadFonts(timeline: Timeline): Promise<void> {
-  await Promise.all(((timeline.props as StageProps).fonts ?? []).map(loadSheet));
-  const titles = [...timeline.tracks].flatMap((track) => [...track.segments]).filter((segment) => segment.type === 'title');
-  await Promise.all(
-    titles.map(({ props }) => {
-      const { style, text } = props as TitleClip;
-      return style?.font ? document.fonts.load(String(style.font), text) : undefined;
-    }),
-  );
-}
-
-/** A family's style sheet, with every style it comes in; the browser fetches only those painted. */
-function sheetOf({ family, variants }: FontFamily): string {
-  const styles = variants
-    .map((variant) => ({ italic: variant.endsWith('italic') ? 1 : 0, weight: STYLE_WEIGHT.exec(variant)?.[0] ?? REGULAR_WEIGHT }))
-    .sort((a, b) => a.italic - b.italic || Number(a.weight) - Number(b.weight))
-    .map(({ italic, weight }) => `${italic},${weight}`);
-  return `${FONT_SHEETS}?family=${encodeURIComponent(family).replaceAll('%20', '+')}:ital,wght@${styles.join(';')}&display=swap`;
+/** Puts a family's style sheet in the page, once. */
+function loadSheet(family: string): Promise<unknown> {
+  let loading = LOADED.get(family);
+  if (!loading) {
+    loading = new Promise((resolve) => {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = `${FONT_SHEETS}?family=${encodeURIComponent(family)}:${STYLES}&display=swap`;
+      link.crossOrigin = 'anonymous';
+      link.onload = link.onerror = resolve;
+      document.head.append(link);
+    });
+    LOADED.set(family, loading);
+  }
+  return loading;
 }

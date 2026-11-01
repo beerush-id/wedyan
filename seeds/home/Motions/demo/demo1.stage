@@ -64,7 +64,7 @@
           {
             "id": "demo-t1",
             "options": { "type": "title", "name": "An AI in every tab.", "speed": 1, "duration": 2.3, "startFrame": 6 },
-            "props": { "text": "An AI in every tab.", "x": 140, "y": 345, "width": 1640, "height": 130, "style": { "display": "grid", "alignItems": "center", "justifyItems": "start", "whiteSpace": "nowrap", "color": "#ffffff", "font": "800 104px/1.1 system-ui, sans-serif", "letterSpacing": "-2px" } },
+            "props": { "text": "An AI in every tab.", "x": 140, "y": 345, "width": 1640, "height": 130, "style": { "display": "grid", "alignItems": "center", "whiteSpace": "nowrap", "color": "#ffffff", "fontSize": 104, "fontWeight": 800, "lineHeight": 1.1, "letterSpacing": "-2px" } },
             "scenes": [
               { "id": "demo-t1-k1", "options": { "atFrame": 0, "meta": { "ease": "out" } }, "data": { "opacity": 0, "y": 389 } },
               { "id": "demo-t1-k2", "options": { "atFrame": 9, "meta": { "ease": "in-out" } }, "data": { "opacity": 1, "y": 345 } },
@@ -80,7 +80,7 @@
           {
             "id": "demo-t2",
             "options": { "type": "title", "name": "None of them talk.", "speed": 1, "duration": 1.6, "startFrame": 27 },
-            "props": { "text": "None of them talk.", "x": 140, "y": 475, "width": 1640, "height": 130, "style": { "display": "grid", "alignItems": "center", "justifyItems": "start", "whiteSpace": "nowrap", "color": "#ffffff", "font": "800 104px/1.1 system-ui, sans-serif", "letterSpacing": "-2px" } },
+            "props": { "text": "None of them talk.", "x": 140, "y": 475, "width": 1640, "height": 130, "style": { "display": "grid", "alignItems": "center", "whiteSpace": "nowrap", "color": "#ffffff", "fontSize": 104, "fontWeight": 800, "lineHeight": 1.1, "letterSpacing": "-2px" } },
             "scenes": [
               { "id": "demo-t2-k1", "options": { "atFrame": 0, "meta": { "ease": "out" } }, "data": { "opacity": 0, "y": 519 } },
               { "id": "demo-t2-k2", "options": { "atFrame": 9, "meta": { "ease": "in-out" } }, "data": { "opacity": 1, "y": 475 } },
@@ -96,7 +96,7 @@
           {
             "id": "demo-t3",
             "options": { "type": "title", "name": "You are the glue.", "speed": 1, "duration": 0.9, "startFrame": 48 },
-            "props": { "text": "You are the glue.", "x": 140, "y": 605, "width": 1640, "height": 130, "style": { "display": "grid", "alignItems": "center", "justifyItems": "start", "whiteSpace": "nowrap", "color": "#f6b38a", "font": "800 104px/1.1 system-ui, sans-serif", "letterSpacing": "-2px" } },
+            "props": { "text": "You are the glue.", "x": 140, "y": 605, "width": 1640, "height": 130, "style": { "display": "grid", "alignItems": "center", "whiteSpace": "nowrap", "color": "#f6b38a", "fontSize": 104, "fontWeight": 800, "lineHeight": 1.1, "letterSpacing": "-2px" } },
             "scenes": [
               { "id": "demo-t3-k1", "options": { "atFrame": 0, "meta": { "ease": "out" } }, "data": { "opacity": 0, "y": 649 } },
               { "id": "demo-t3-k2", "options": { "atFrame": 9, "meta": { "ease": "in-out" } }, "data": { "opacity": 1, "y": 605 } },
@@ -146,7 +146,7 @@
           {
             "id": "demo-t4",
             "options": { "type": "title", "name": "Promo.mp4", "speed": 1, "duration": 1.5, "startFrame": 240 },
-            "props": { "text": "Promo.mp4", "x": 1920, "y": 244, "width": 924, "height": 72, "style": { "display": "grid", "placeItems": "center", "textAlign": "center", "whiteSpace": "nowrap", "color": "#2a0a18", "font": "600 36px/1 system-ui, sans-serif" } },
+            "props": { "text": "Promo.mp4", "x": 1920, "y": 244, "width": 924, "height": 72, "style": { "display": "grid", "alignItems": "center", "textAlign": "center", "whiteSpace": "nowrap", "color": "#2a0a18", "fontSize": 36, "fontWeight": 600, "lineHeight": 1 } },
             "scenes": [
               { "id": "demo-t4-k1", "options": { "atFrame": 0, "meta": { "ease": "in-out" } }, "data": { "x": 1920 } },
               { "id": "demo-t4-k2", "options": { "atFrame": 18, "meta": { "ease": "in-out" } }, "data": { "x": 900 } },
@@ -215,7 +215,7 @@
           {
             "id": "demo-t5",
             "options": { "type": "title", "name": "Ask Wedyan", "speed": 1, "duration": 0.5, "startFrame": 147 },
-            "props": { "text": "Ask Wedyan", "x": 796, "y": 932, "width": 420, "height": 72, "style": { "display": "grid", "alignItems": "center", "justifyItems": "start", "whiteSpace": "nowrap", "color": "#fff7ef", "font": "500 40px/1 system-ui, sans-serif" } },
+            "props": { "text": "Ask Wedyan", "x": 796, "y": 932, "width": 420, "height": 72, "style": { "display": "grid", "alignItems": "center", "whiteSpace": "nowrap", "color": "#fff7ef", "fontSize": 40, "fontWeight": 500, "lineHeight": 1 } },
             "scenes": [
               { "id": "demo-t5-k1", "options": { "atFrame": 0, "meta": { "ease": "out" } }, "data": { "opacity": 0 } },
               { "id": "demo-t5-k2", "options": { "atFrame": 6, "meta": { "ease": "in-out" } }, "data": { "opacity": 1 } },
@@ -226,7 +226,7 @@
           {
             "id": "demo-t6",
             "options": { "type": "title", "name": "Render my promo and open it.", "speed": 1, "duration": 1.2, "startFrame": 168 },
-            "props": { "text": "Render my promo and open it.", "x": 400, "y": 500, "width": 1120, "height": 180, "style": { "display": "grid", "alignItems": "center", "justifyItems": "start", "whiteSpace": "nowrap", "color": "#fff7ef", "font": "600 64px/1.1 system-ui, sans-serif", "letterSpacing": "-1px" } },
+            "props": { "text": "Render my promo and open it.", "x": 400, "y": 500, "width": 1120, "height": 180, "style": { "display": "grid", "alignItems": "center", "whiteSpace": "nowrap", "color": "#fff7ef", "fontSize": 64, "fontWeight": 600, "lineHeight": 1.1, "letterSpacing": "-1px" } },
             "scenes": [
               { "id": "demo-t6-k1", "options": { "atFrame": 0, "meta": { "ease": "out" } }, "data": { "opacity": 0, "y": 516 } },
               { "id": "demo-t6-k2", "options": { "atFrame": 9, "meta": { "ease": "in-out" } }, "data": { "opacity": 1, "y": 500 } },
@@ -237,7 +237,7 @@
           {
             "id": "demo-t7",
             "options": { "type": "title", "name": "Rendering promo", "speed": 1, "duration": 1, "startFrame": 210 },
-            "props": { "text": "Rendering promo", "x": 704, "y": 470, "width": 596, "height": 64, "style": { "display": "grid", "alignItems": "center", "justifyItems": "start", "whiteSpace": "nowrap", "color": "#fff7ef", "font": "600 40px/1 system-ui, sans-serif" } },
+            "props": { "text": "Rendering promo", "x": 704, "y": 470, "width": 596, "height": 64, "style": { "display": "grid", "alignItems": "center", "whiteSpace": "nowrap", "color": "#fff7ef", "fontSize": 40, "fontWeight": 600, "lineHeight": 1 } },
             "scenes": [
               { "id": "demo-t7-k1", "options": { "atFrame": 0, "meta": { "ease": "out" } }, "data": { "opacity": 0 } },
               { "id": "demo-t7-k2", "options": { "atFrame": 6, "meta": { "ease": "in-out" } }, "data": { "opacity": 1 } },
@@ -248,7 +248,7 @@
           {
             "id": "demo-t8",
             "options": { "type": "title", "name": "Wedyan. One workspace, one tab.", "speed": 1, "duration": 0.7, "startFrame": 279 },
-            "props": { "text": "Wedyan. One workspace, one tab.", "x": 160, "y": 610, "width": 1600, "height": 90, "style": { "display": "grid", "placeItems": "center", "textAlign": "center", "whiteSpace": "nowrap", "color": "#fff7ef", "font": "600 56px/1.1 system-ui, sans-serif", "letterSpacing": "-0.5px" } },
+            "props": { "text": "Wedyan. One workspace, one tab.", "x": 160, "y": 610, "width": 1600, "height": 90, "style": { "display": "grid", "alignItems": "center", "textAlign": "center", "whiteSpace": "nowrap", "color": "#fff7ef", "fontSize": 56, "fontWeight": 600, "lineHeight": 1.1, "letterSpacing": "-0.5px" } },
             "scenes": [
               { "id": "demo-t8-k1", "options": { "atFrame": 0, "meta": { "ease": "out" } }, "data": { "opacity": 0, "y": 626 } },
               { "id": "demo-t8-k2", "options": { "atFrame": 9, "meta": { "ease": "in-out" } }, "data": { "opacity": 1, "y": 610 } },
@@ -264,7 +264,7 @@
           {
             "id": "demo-t9",
             "options": { "type": "title", "name": "Promo ready", "speed": 1, "duration": 1.5, "startFrame": 234 },
-            "props": { "text": "Promo ready", "x": 704, "y": 470, "width": 596, "height": 64, "style": { "display": "grid", "alignItems": "center", "justifyItems": "start", "whiteSpace": "nowrap", "color": "#fff7ef", "font": "600 40px/1 system-ui, sans-serif" } },
+            "props": { "text": "Promo ready", "x": 704, "y": 470, "width": 596, "height": 64, "style": { "display": "grid", "alignItems": "center", "whiteSpace": "nowrap", "color": "#fff7ef", "fontSize": 40, "fontWeight": 600, "lineHeight": 1 } },
             "scenes": [
               { "id": "demo-t9-k1", "options": { "atFrame": 0, "meta": { "ease": "out" } }, "data": { "opacity": 0, "x": 704 } },
               { "id": "demo-t9-k2", "options": { "atFrame": 6, "meta": { "ease": "in-out" } }, "data": { "opacity": 1, "x": 704 } },

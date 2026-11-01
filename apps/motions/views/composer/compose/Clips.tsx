@@ -1,4 +1,4 @@
-import { $static, For, mutable, Snippet, setup, template } from '@airlib/react';
+import { For, mutable, Snippet, setup, template } from '@airlib/react';
 import { StageClip } from '@airlib/react-aui';
 import type { Timeline, TimelineSegment } from '@airlib/react/timeline';
 import type { ReactNode } from 'react';
@@ -15,6 +15,7 @@ import {
   type VideoClip,
   type WidgetClip,
 } from '../composition.js';
+import { loadFont } from '../fonts.js';
 import { PAINTERS } from '../painters.js';
 import { WIDGETS } from '../widgets.js';
 
@@ -120,11 +121,15 @@ const ImageClipView = template<{ segment: TimelineSegment<ImageClip> }>(
   'ImageClipView'
 );
 
-/** A title clip: its words in their CSS, filling its box. */
+/** A title clip: its words in their CSS, filling its box, in a font the stage waits for. */
 const TitleClipView = template<{ segment: TimelineSegment<TitleClip> }>(
   (props) => (
     // React freezes the object it's given as a style: the clip's own stays the clip's to change.
-    <StageClip segment={props.segment} style={{ ...props.segment.props.style }}>
+    <StageClip
+      segment={props.segment}
+      style={{ ...props.segment.props.style }}
+      draw={({ values }) => loadFont((values as TitleClip).style, (values as TitleClip).text)}
+    >
       {props.segment.props.text}
     </StageClip>
   ),
@@ -157,9 +162,7 @@ const HtmlClipView = template<{ segment: TimelineSegment<HtmlClip> }>((props) =>
  * keyframed values go onto a live copy of its props, so only the widget redraws.
  */
 const WidgetClipView = setup<{ segment: TimelineSegment<WidgetClip> }>((props) => {
-  const { widget, params, text, style } = $static(() => ({ ...props.segment.props }));
-  const Widget = WIDGETS[widget ?? ''];
-  const shown = mutable<Record<string, unknown>>($static(() => ({ ...params })));
+  const shown = mutable<Record<string, unknown>>({});
 
   const draw = ({ values }: { values: Record<string, unknown> }) => {
     for (const [key, value] of Object.entries(values)) {
@@ -167,12 +170,15 @@ const WidgetClipView = setup<{ segment: TimelineSegment<WidgetClip> }>((props) =
     }
   };
 
-  return () =>
-    Widget ? (
+  return () => {
+    const { widget, params, text, style } = props.segment.props;
+    const Widget = WIDGETS[widget ?? ''];
+    return Widget ? (
       <StageClip segment={props.segment} style={{ ...PICTURE_ONLY, ...style }} draw={draw}>
-        <Snippet data={() => ({ ...shown })}>{(values) => <Widget {...values}>{text}</Widget>}</Snippet>
+        <Snippet data={() => ({ ...params, ...shown })}>{(values) => <Widget {...values}>{text}</Widget>}</Snippet>
       </StageClip>
     ) : null;
+  };
 }, 'WidgetClipView');
 
 /**
