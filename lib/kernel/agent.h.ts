@@ -106,9 +106,11 @@ export type ActionOutcome = {
   error?: string;
 };
 
-/** What a stage's scene shows being made, each a row of the answer. */
+/** What a stage's scene or a new cast shows being made, each a row of the answer. */
 export const MOTION_PICTURE = 'motion.picture';
 export const MOTION_VOICE = 'motion.voice';
+export const MOTION_FACE = 'motion.face';
+export const MOTION_OUTFIT = 'motion.outfit';
 
 /**
  * One step of an answer and how long it took, kept to measure where the time goes: `model` is a turn

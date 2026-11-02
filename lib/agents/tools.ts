@@ -126,14 +126,15 @@ export const TOOLS = {
   motionCast: {
     name: 'sys.motion.cast',
     description:
-      'Makes someone in a project, with a generated face their scenes are drawn from so they stay the same person. Returns their .persona (path), which scenes name in casts. Says failed if no face came back.',
+      'Makes someone in a project, with a generated face and outfit that go with them into every scene they’re cast in, so they stay the same person. Returns their .persona (path), which scenes name in casts. Says failed if a picture didn’t come back.',
     parameters: object(
       {
         project: text('The project’s .motion.'),
         name: text('Their name.'),
         kind: { type: 'string', enum: ['person', 'character', 'mascot'] },
         description: text('Who they are, in a line.'),
-        look: text('What to draw: a close portrait of their face and head, with age, features, hair, costume and the work’s art style.'),
+        look: text('What to draw: a close portrait of their face and head, with age, features, hair and the work’s art style.'),
+        outfit: text('What to draw: them full length in what they wear, in the work’s art style.'),
       },
       ['project', 'name', 'look'],
     ),
@@ -141,14 +142,14 @@ export const TOOLS = {
   motionStill: {
     name: 'sys.motion.still',
     description:
-      'Makes a generated picture a project holds: a location, a prop, a look, anything its scenes are drawn from. Returns the .still (path), which scenes name in references. Says failed if no picture came back.',
+      'Makes a generated picture a project holds, for anything its scenes can be drawn from: a place, a prop, a look. It shows what its prompt describes and nothing else. Returns the .still (path), which scenes can name in references. Says failed if no picture came back.',
     parameters: object(
       {
         project: text('The project’s .motion.'),
         name: text('What it’s called.'),
         prompt: text('What to draw, in the work’s art style.'),
-        references: { type: 'array', items: { type: 'string' }, description: 'Stills or pictures to draw it from, by path.' },
-        casts: { type: 'array', items: { type: 'string' }, description: 'Who’s in it, by .persona path.' },
+        references: { type: 'array', items: { type: 'string' }, description: 'Stills or pictures that help draw it, by path, if any.' },
+        casts: { type: 'array', items: { type: 'string' }, description: 'Who’s in the picture, by .persona path, if anyone is.' },
       },
       ['project', 'name', 'prompt'],
     ),
@@ -156,7 +157,7 @@ export const TOOLS = {
   motionStage: {
     name: 'sys.motion.stage',
     description:
-      'Adds a stage to a project, such as an episode or a chapter, its scenes laid out one after another. Each scene is a playable take holding a generated still and a video prompt, with its words spoken as a sound over it. Words that run longer than the scene’s seconds make it longer. Takes a while. Returns the stage (path), how long it really runs (seconds), and what didn’t come back (failed).',
+      'Adds a stage to a project, such as an episode or a chapter, its scenes laid out one after another. Each scene is a playable take: its generated picture, its video prompt, and what both are made from, with its words spoken as a sound over it. Words that run longer than the scene’s seconds make it longer. Takes a while. Returns the stage (path), how long it really runs (seconds), and what didn’t come back (failed).',
     parameters: object(
       {
         project: text('The project’s .motion.'),
@@ -169,11 +170,15 @@ export const TOOLS = {
           items: object(
             {
               name: text('The scene’s name.'),
-              picture: text('The still: exactly what the frame shows, in the work’s art style.'),
-              video: text('The video prompt: what moves and how the camera moves, from that still.'),
+              picture: text('Exactly what the frame shows, in the work’s art style.'),
+              video: text('The video prompt: what moves and how the camera moves, from that picture.'),
               seconds: { type: 'number', minimum: 1, maximum: 10, description: 'How long it runs.' },
-              references: { type: 'array', items: { type: 'string' }, description: 'The .still paths of where it happens and what’s in it.' },
-              casts: { type: 'array', items: { type: 'string' }, description: 'Who’s in it, by .persona path.' },
+              references: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Anything else that helps draw this shot and its casts don’t already give, by .still path, if any. Never its own picture.',
+              },
+              casts: { type: 'array', items: { type: 'string' }, description: 'Who’s in this shot, by .persona path, if anyone is. They bring their own face and outfit.' },
               words: text('What’s spoken over it: a line of narration or dialogue. Leave it out when nothing is said.'),
               delivery: text('How the words are said.'),
               voice: text('Who says them, by .persona path.'),

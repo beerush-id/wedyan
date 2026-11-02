@@ -3,17 +3,18 @@ import type { IRPCData } from '@irpclib/irpc';
 import { list, read, write } from '@irpclib/r2-file';
 import type { ImageWorkerEnv } from '@irpclib/r2-image/worker';
 import { TOOLS } from '@/lib/agents/tools.js';
-import { addressAt, chosenAttempt } from '@/lib/documents/generation.js';
+import { addressAt } from '@/lib/documents/generation.js';
 import { newHeader, newId, parentOf } from '@/lib/documents/paths.js';
 import type { FileRow } from '@/lib/documents/rows.js';
 import { stageAt } from '@/lib/documents/stage.js';
 import type { MotionDocument, PersonaDocument, SoundDocument, StageDocument, TakeDocument } from '@/lib/documents/types.js';
 import type { SysAsk, SysHandler } from '@/lib/kernel/agent.js';
-import { MOTION_PICTURE, MOTION_VOICE } from '@/lib/kernel/agent.h.js';
+import { MOTION_FACE, MOTION_OUTFIT, MOTION_PICTURE, MOTION_VOICE } from '@/lib/kernel/agent.h.js';
 import { openLink } from '@/lib/share/links.js';
+import { addAttempts } from '@/lib/share/stills.js';
 import type { SoundAttempt } from '@/lib/speech/speech.h.js';
 import { speakAttempt } from '@/lib/speech/speech.js';
-import { makeStill } from './stills.js';
+import { makeAttempts, makeStill } from './stills.js';
 
 /** Where projects are kept. */
 const MOTIONS = '~/Motions';
@@ -29,7 +30,7 @@ const TAKE_SECONDS = 5;
 const MAX_TAKE_SECONDS = 10;
 
 type CreateArgs = { name?: string; description?: string; aspect?: string; length?: number; script?: string };
-type CastArgs = { project?: string; name?: string; kind?: PersonaDocument['kind']; description?: string; look?: string };
+type CastArgs = { project?: string; name?: string; kind?: PersonaDocument['kind']; description?: string; look?: string; outfit?: string };
 type StillArgs = { project?: string; name?: string; prompt?: string; references?: string[]; casts?: string[] };
 type SceneArgs = {
   name: string;
@@ -65,7 +66,7 @@ type MadeScene = {
 export function setupMotions(adapter: AIAdapter, pictures: ImageWorkerEnv): Record<string, SysHandler> {
   return {
     [TOOLS.motionCreate.name]: (args) => createProject(args as CreateArgs),
-    [TOOLS.motionCast.name]: (args) => addPerson(adapter, pictures, args as CastArgs),
+    [TOOLS.motionCast.name]: (args, ask) => addPerson(adapter, pictures, args as CastArgs, ask),
     [TOOLS.motionStill.name]: (args) => addStill(adapter, pictures, args as StillArgs),
     [TOOLS.motionStage.name]: (args, ask) => addStage(adapter, pictures, args as StageArgs, ask),
   };
@@ -107,16 +108,31 @@ async function createProject({ name, description, aspect = '16:9', length, scrip
  * @param adapter - The server's models.
  * @param pictures - The bucket and the resizer.
  * @param args - What the agent asked.
+ * @param ask - The ask they're made in, which shows each of their pictures being made.
  * @returns The new `.persona`, which scenes name them by.
  */
-async function addPerson(adapter: AIAdapter, pictures: ImageWorkerEnv, args: CastArgs): Promise<IRPCData> {
-  const { project, name, kind = 'character', description, look } = args;
+async function addPerson(adapter: AIAdapter, pictures: ImageWorkerEnv, args: CastArgs, ask: SysAsk): Promise<IRPCData> {
+  const { project, name, kind = 'character', description, look, outfit } = args;
   if (!project || !name || !look) return { error: 'sys.motion.cast needs project, name and look' };
   const id = newId();
   const path = `${PEOPLE}/${id}.persona`;
   const head = `${id}/Head.still`;
-  const request = { prompt: look, settings: { model: MODEL, aspect: '1:1', batch: 1 }, references: [], casts: [] };
-  const still = await makeStill(adapter, pictures, `${PEOPLE}/${head}`, `${name} face`, request);
+  const settings = { model: MODEL, aspect: '1:1', batch: 1 };
+  const face = await ask.activity(MOTION_FACE, name, () =>
+    makeStill(adapter, pictures, `${PEOPLE}/${head}`, `${name} face`, { prompt: look, settings, references: [], casts: [] }),
+  );
+  const worn = `${id}/Outfit.still`;
+  const wardrobe =
+    outfit && face.attempts.length
+      ? await ask.activity(MOTION_OUTFIT, name, () =>
+          makeStill(adapter, pictures, `${PEOPLE}/${worn}`, `${name} outfit`, {
+            prompt: outfit,
+            settings: { ...settings, aspect: '3:4' },
+            references: [`${PEOPLE}/${head}`],
+            casts: [],
+          }),
+        )
+      : undefined;
   const persona: PersonaDocument = {
     ...newHeader(path, '.persona'),
     name,
@@ -125,10 +141,13 @@ async function addPerson(adapter: AIAdapter, pictures: ImageWorkerEnv, args: Cas
     type: 'persona',
     kind,
     head: { main: head },
+    // Their outfit is theirs: what they're cast in takes it along with their face.
+    ...(wardrobe?.attempts.length ? { wardrobe: { main: worn }, attachDefault: true } : {}),
   };
   await write(path, persona as never);
   await changeMotion(project, (motion) => (motion.casts = [...(motion.casts ?? []), path]));
-  return { path, ...(still.attempts.length ? {} : { failed: 'No picture came back for their face' }) };
+  const failed = [!face.attempts.length && 'their face', outfit && !wardrobe?.attempts.length && 'their outfit'].filter(Boolean);
+  return { path, ...(failed.length ? { failed: `No picture came back for ${failed.join(' or ')}` } : {}) };
 }
 
 /**
@@ -153,7 +172,7 @@ async function addStill(adapter: AIAdapter, pictures: ImageWorkerEnv, args: Stil
 }
 
 /**
- * Adds a stage to a project, its scenes one after another: each a take holding a still as its first
+ * Adds a stage to a project, its scenes one after another: each a take holding a picture as its first
  * attempt, so the stage plays before any video is made, with its words spoken over it and timed from
  * their real length. Scenes are made one at a time, so stages can be made side by side.
  *
@@ -210,7 +229,8 @@ async function addStage(adapter: AIAdapter, pictures: ImageWorkerEnv, args: Stag
 }
 
 /**
- * Makes one scene's files: its still, its take, and its sound when it has words.
+ * Makes one scene's files: its take, whose first attempt is its picture and whose references are
+ * what that's made from, and its sound when it has words.
  *
  * @param adapter - The server's models.
  * @param pictures - The bucket and the resizer.
@@ -233,10 +253,10 @@ async function makeScene(
   const settings = { model: MODEL, aspect: motion.aspect, batch: 1 };
   const failed: string[] = [];
 
-  const stillPath = `${folder}/${id}.still`;
+  const takePath = `${folder}/${id}.take`;
   const request = { prompt: picture, settings, references, casts };
-  const still = await ask.activity(MOTION_PICTURE, name, () => makeStill(adapter, pictures, stillPath, name, request));
-  const drawn = chosenAttempt(still);
+  const attempts = await ask.activity(MOTION_PICTURE, name, () => makeAttempts(adapter, pictures, takePath, request).catch(() => []));
+  const drawn = attempts[0];
   if (!drawn) failed.push('no picture came back');
 
   const soundPath = `${folder}/${id}.sound`;
@@ -246,7 +266,6 @@ async function makeScene(
 
   // The words set how long it runs when they need longer: they're what everything is timed against.
   const seconds = Math.max(Math.min(scene.seconds ?? TAKE_SECONDS, MAX_TAKE_SECONDS), spoken?.seconds ?? 0);
-  const takePath = `${folder}/${id}.take`;
   const take: TakeDocument = {
     ...newHeader(takePath, '.take'),
     name,
@@ -254,15 +273,16 @@ async function makeScene(
     type: 'take',
     prompt: video,
     settings: { mode: 'image', model: MODEL, aspect: motion.aspect, seconds: Math.min(Math.ceil(seconds), MAX_TAKE_SECONDS) },
-    references: [`${id}.still`],
+    references,
     casts,
-    attempts: drawn ? [{ ...drawn, seconds }] : [],
-    chosen: drawn?.id ?? '',
+    attempts: [],
+    chosen: '',
   };
+  addAttempts(take as never, attempts.map((attempt) => ({ ...attempt, seconds })));
   await write(takePath, take as never);
 
   return {
-    files: [`${id}.still`, `${id}.take`, ...(words ? [`${id}.sound`] : [])],
+    files: [`${id}.take`, ...(words ? [`${id}.sound`] : [])],
     take: `${id}.take`,
     seconds,
     picture: drawn && addressAt(takePath, drawn.src),
