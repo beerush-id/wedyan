@@ -49,3 +49,18 @@ export const SYSTEM_FILES: SystemEntry[] = [
   { path: INBOXES[1], kind: 'folder', holds: 'Calendar events and invites, one file each', writers: ['services'] },
   { path: INBOXES[2], kind: 'folder', holds: 'Order receipts, one file each', writers: ['services'] },
 ];
+
+/**
+ * Whether a path is one the system controls.
+ *
+ * @param path - The path, in the home.
+ * @param kind - Whether it's a file or a folder.
+ * @returns Whether `SYSTEM_FILES` lists it; `{n}` is a page number.
+ */
+export function isSystemPath(path: string, kind: SystemEntry['kind']): boolean {
+  return SYSTEM_FILES.some((entry) => {
+    if (entry.kind !== kind) return false;
+    const [before, after] = entry.path.split('{n}');
+    return after === undefined ? path === before : path.startsWith(before) && path.endsWith(after);
+  });
+}

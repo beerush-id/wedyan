@@ -1,5 +1,6 @@
 import { HandlerError } from '@irpclib/irpc';
 import { fileModule, list, readStub, search, writeStub } from '@irpclib/r2-file';
+import { isSystemPath } from '../share/system.js';
 
 /**
  * What each kind of document is, by its extension. r2-file types a file by how its data is carried,
@@ -32,14 +33,17 @@ fileModule.hook(writeStub, (req) => {
   const extension = path.split('.').pop() as string;
   const type = FILE_TYPES[extension];
   const encoding = typeof data === 'string' && readsAsText(path) ? { encoding: 'text' as const } : {};
+  // What's the system's own stays out of every listing and search.
+  const hidden = isSystemPath(path, 'file') ? { hidden: true } : {};
   if (!type) {
-    req.args[2] = { ...options, ...encoding };
+    req.args[2] = { ...options, ...encoding, ...hidden };
     return;
   }
   if (typeof data === 'string') assertDocument(path, data);
   req.args[2] = {
     ...options,
     ...encoding,
+    ...hidden,
     type,
     metadata: { ...options?.metadata, ...titleOf(data), ...(extension === 'motion' ? flagsOf(data) : {}) },
   };
