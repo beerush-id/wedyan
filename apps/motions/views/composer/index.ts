@@ -1,7 +1,7 @@
 import { defineWindow } from '@airlib/react-aui/desktop';
 import { fullRect } from '@/lib/systems/window.js';
 import manifest from '../../manifest.json';
-import { documentAt } from '../motion.js';
+import { animation, documentAt } from '../motion.js';
 import { CONTEXTS } from '../prompt.js';
 import type { ComposerData } from './context.js';
 import { ComposerWindow, MotionDockExtension, MotionDockSubject } from './Window.js';
@@ -33,7 +33,7 @@ export function openMotion(path: string, direct = false) {
     return showing;
   }
 
-  return motionComposer.open({ path, direct } satisfies ComposerData, {
+  return motionComposer.open({ path, direct, animation } satisfies ComposerData, {
     name: 'project',
     contexts: CONTEXTS,
     get title() {

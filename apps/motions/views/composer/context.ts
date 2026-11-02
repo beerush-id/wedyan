@@ -14,8 +14,8 @@ import type { HtmlClip, NodeKeyframe } from './composition.js';
 import { findNode } from './nodes.js';
 import { showAttempt } from './placement.js';
 
-/** What a project window opens with: which project, and whether it opens in Direct. */
-export type ComposerData = { path: string; direct: boolean };
+/** What a project window opens with: which project, whether it opens in Direct, and who works on it. */
+export type ComposerData = { path: string; direct: boolean; animation: { model: string; effort: string } };
 
 /** What's being edited: a clip, or an element in it. Each holds its own values and keyframes. */
 export type Picked = { id: string; name?: string; props: Record<string, AnyType>; scenes: NodeKeyframe[] };

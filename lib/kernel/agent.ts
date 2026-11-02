@@ -13,6 +13,7 @@ import type { AIAdapter } from '@irpclib/ai-kit/worker';
 import { getAbortSignal, IRPC_STORE, type IRPCData, type IRPCRouter, setContext, stream } from '@irpclib/irpc';
 import { fsContext } from '@irpclib/r2-file/context';
 import { optionsOf, readsAsText } from '../documents/file-types.js';
+import { WORK_EFFORTS, WORK_MODELS } from '../documents/generation.js';
 import { logger } from '../logger.js';
 import { isUsageLimit } from '../share/usage.js';
 import {
@@ -59,6 +60,9 @@ const BINARY = 'That file is a picture, a video or a sound: it can be shown or o
 
 /** The tool that reads a file. */
 const FILE_READ = 'r2-file.read';
+
+/** What the window in front picks for the work: a work model and an effort, by name. */
+type FrontWork = { model?: string; effort?: string };
 
 /** The tool that makes a still's attempts. */
 const STILL_GENERATE = 'sys.still.generate';
@@ -277,6 +281,8 @@ export interface AgentSkill {
   description: string;
   system: string;
   tools: ChatTool[];
+  /** The work model it runs on, by name, unless the window in front picks another; the agent's own without one. */
+  model?: string;
 }
 
 /** Everything needed to resume an ask after the turn it was taken on. */
@@ -423,7 +429,8 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
   const formLimit = options.limits?.forms ?? DEFAULT_FORM_LIMIT;
 
   let skill = resume?.skill ? skills[resume.skill] : undefined;
-  let agent = withSkill(agents[resume?.agent ?? options.entry], skill);
+  const front = frontWork(options.input);
+  let agent = withSkill(agents[resume?.agent ?? options.entry], skill, front);
   const given = resume ? [...resume.asks] : chatTurns(options.input);
   const asks = given.map(withoutCommands);
   const held = (profile: AgentProfile) => (profile.holdsConversation ? (options.conversation ?? []) : []);
@@ -655,7 +662,7 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
           },
         ];
         skill = targetSkill;
-        agent = withSkill(target, skill);
+        agent = withSkill(target, skill, front);
         handed = true;
         told = !!said;
         state.agent = agent.name;
@@ -722,6 +729,19 @@ function frontSettings(input: ChatInput): Record<string, IRPCData> | undefined {
   const { still, generation } = context?.activeWindow?.data ?? {};
   if (still) return { path: still };
   return generation && { model: generation.model, aspect: generation.aspect, batch: generation.batch };
+}
+
+/**
+ * The work model and effort the window in front picks.
+ *
+ * @param input - The ask.
+ * @returns Them by name, when that window picks any.
+ */
+function frontWork(input: ChatInput): FrontWork | undefined {
+  const context = chatTurns(input).map(contextOf).find(Boolean) as
+    | { activeWindow?: { data?: { animation?: FrontWork } } }
+    | undefined;
+  return context?.activeWindow?.data?.animation;
 }
 
 /** The desktop's context a turn carries, if it's that turn. */
@@ -1140,15 +1160,24 @@ function toolsOf(
 }
 
 /**
- * An agent with a skill added: the skill's prompt after its own, and the skill's tools after its own.
+ * An agent with a skill added: the skill's prompt after its own, the skill's tools after its own,
+ * and for a skill that names a work model, that one, or what the window in front picks. What the
+ * desktop sends is only ever a name looked up here, so it can't reach another model.
  *
  * @param agent - The agent's base profile.
  * @param skill - The skill it was handed, if any.
+ * @param front - The work model and effort the window in front picks, if any.
  * @returns The profile it answers with.
  */
-function withSkill(agent: AgentProfile, skill?: AgentSkill): AgentProfile {
+function withSkill(agent: AgentProfile, skill?: AgentSkill, front?: FrontWork): AgentProfile {
   if (!skill) return agent;
-  return { ...agent, system: `${agent.system}\n\n${skill.system}`, tools: [...agent.tools, ...skill.tools] };
+  const work = skill.model && (WORK_MODELS[front?.model ?? ''] ?? WORK_MODELS[skill.model]);
+  return {
+    ...agent,
+    system: `${agent.system}\n\n${skill.system}`,
+    tools: [...agent.tools, ...skill.tools],
+    ...(work ? { model: work.model, effort: WORK_EFFORTS[front?.effort ?? ''] ? front?.effort : work.effort } : {}),
+  };
 }
 
 /** Resolves one call into what the model reads back: the answer, or an error it can act on. */

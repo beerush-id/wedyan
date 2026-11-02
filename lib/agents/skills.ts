@@ -1,5 +1,6 @@
 import motionsSkill from '@/apps/motions/SKILL.md?raw';
 import photosSkill from '@/apps/photos/SKILL.md?raw';
+import { WORK_MODELS } from '../documents/generation.js';
 import type { AgentSkill } from '../kernel/agent.js';
 import type { Callable, SkillFile } from '../share/skills.js';
 import { capabilities } from './format.js';
@@ -18,8 +19,8 @@ export const SKILLS: Record<string, AgentSkill> = Object.fromEntries(
 
 /**
  * Reads a `SKILL.md`: a frontmatter of `key: value` lines with the skill's `name`, a one-line
- * `description` for the one routing, and the `tools` and `actions` it uses as comma-separated
- * names; then the body, which is the skill's prompt.
+ * `description` for the one routing, the `tools` and `actions` it uses as comma-separated names,
+ * and the work `model` it runs on, if it needs one; then the body, which is the skill's prompt.
  *
  * @param text - The file's content.
  * @returns The skill, its prompt followed by the actions it may write.
@@ -42,7 +43,8 @@ export function parseSkill(text: string): AgentSkill {
   if (tool) throw new Error(`Skill ${name} names an unknown tool: ${tool}`);
   const action = actions.find((each) => !ACTIONS_BY_NAME[each]);
   if (action) throw new Error(`Skill ${name} names an unknown action: ${action}`);
-  return skillOf(name, description, match?.[2] ?? '', tools, actions);
+  if (meta.model && !WORK_MODELS[meta.model]) throw new Error(`Skill ${name} names an unknown model: ${meta.model}`);
+  return { ...skillOf(name, description, match?.[2] ?? '', tools, actions), ...(meta.model ? { model: meta.model } : {}) };
 }
 
 /**

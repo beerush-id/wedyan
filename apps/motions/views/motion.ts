@@ -9,7 +9,7 @@ import { LOUNGE, LOUNGE_EVENT } from '../../../lib/kernel/workspace.h.js';
 export { documentAt, follow } from '@/lib/share/documents.js';
 
 /** How Motions animates a new motion: set from the dock, read when a prompt is sent. */
-export const animation = mutable({ model: 'standard', aspect: '16:9', seconds: 6 });
+export const animation = mutable({ model: 'wonder', effort: 'medium', aspect: '16:9' });
 
 /** Where a new motion goes: set by the library as it moves, read by whatever makes one. */
 export const destination = mutable({ folder: '~/Motions' });

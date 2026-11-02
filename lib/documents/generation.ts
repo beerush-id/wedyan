@@ -43,8 +43,24 @@ export function asksSeconds(source: GenerativeDocument): boolean {
   return source.type === 'sound' && source.kind !== 'speech';
 }
 
-/** The models writing — a script, a persona's personality — can be asked of. Placeholders until the kernel names its own. */
-export const WRITING_MODELS = { fast: 'Fast', balanced: 'Balanced', best: 'Best' };
+/** The models an agent's work can run on, by the name the user picks them by: Spark is quick, Wonder is who directs a film. */
+export const WORK_MODELS: Record<string, { label: string; model: string; effort: string }> = {
+  wonder: { label: 'Wonder', model: 'muse-wonder-1.0', effort: 'medium' },
+  spark: { label: 'Spark', model: 'muse-spark-1.3', effort: 'minimal' },
+};
+
+/** How hard a work model can think, as the Meta Model API names each. */
+export const WORK_EFFORTS: Record<string, string> = {
+  minimal: 'Minimal',
+  low: 'Low',
+  medium: 'Medium',
+  high: 'High',
+  xhigh: 'Extra high',
+  max: 'Max',
+};
+
+/** The work models as a picker offers them. */
+export const WORK_MODEL_NAMES = Object.fromEntries(Object.entries(WORK_MODELS).map(([name, { label }]) => [name, label]));
 
 /** The aspect ratios a picture can be made at. */
 export const ASPECTS = { '16:9': '16:9', '9:16': '9:16', '1:1': '1:1' };

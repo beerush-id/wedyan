@@ -1,6 +1,7 @@
 import { defineWindow } from '@airlib/react-aui/desktop';
 import { fullRect } from '@/lib/systems/window.js';
 import manifest from '../../manifest.json';
+import { animation } from '../motion.js';
 import { CONTEXTS } from '../prompt.js';
 import { LibraryDockOptions } from './DockOptions.js';
 import { LibraryWindow } from './Window.js';
@@ -23,7 +24,7 @@ export const motionLibrary = defineWindow({
  */
 export function openLibrary() {
   const [open] = motionLibrary.instances;
-  if (!open) return motionLibrary.open(undefined, { name: 'library', contexts: CONTEXTS });
+  if (!open) return motionLibrary.open({ animation }, { name: 'library', contexts: CONTEXTS });
   open.focus();
   return open;
 }
