@@ -1,27 +1,19 @@
 import type { ListOptions } from '@irpclib/r2-file';
 import { kindArt, type WedyanFileKind } from '@/components/WedyanGallery.js';
-import { FILE_TYPES } from '@/lib/documents/file-types.js';
 import { ADDRESS } from '@/lib/documents/generation.js';
-import { parentOf } from '@/lib/documents/paths.js';
 import { type FileRow, shortDate, sizeOf } from '@/lib/documents/rows.js';
+import { isMedia } from '@/lib/documents/words.js';
 import { dfs } from '@/lib/share/dfs.js';
 import { pathFrom } from '@/lib/share/paths.js';
 
-/** The places down the side: the two folders pictures are kept in, and everything Wedyan made. */
-export type LibraryView = 'photos' | 'pictures' | 'generative';
+/** Where a new still is kept. */
+export const ROOT = '~/Photos';
 
-/** A place that's a folder to browse. */
-export type FolderView = Exclude<LibraryView, 'generative'>;
+/** The drive's home, which everything Photos shows is under. */
+export const HOME = '~';
 
-/** The places down the side, with their names. */
-export const VIEW_LABELS: Record<LibraryView, string> = {
-  photos: 'Photos',
-  pictures: 'Pictures',
-  generative: 'Generative',
-};
-
-/** Where pictures are kept on the drive. */
-export const ROOTS: Record<FolderView, string> = { photos: '~/Photos', pictures: '~/Pictures' };
+/** Every picture on the drive, wherever it's kept, newest first. */
+export const PICTURES: [string, ListOptions] = [HOME, { recursive: true, sort: '-mtime', scope: { pictures: 'true' } }];
 
 /** A still project's own file. */
 export const STILL_FILE = /\.still$/;
@@ -35,64 +27,16 @@ export const VIEWER_LABELS = {
   fullscreen: 'Full screen',
 };
 
-/** Every still on the drive, newest first: `list` takes one folder, and they're kept under two. */
-const STILLS: ListOptions = { recursive: true, sort: '-mtime', filter: { type: FILE_TYPES.still } };
-
-/** The drive's home, the one folder holding both of `ROOTS`. */
-const HOME = '~';
-
 /** The longest edge a picture is asked for at on a tile, as `dfs.image` serves it. */
 const TILE_SIZE = 256;
 
-/** The kinds Photos shows, in the order a folder lists them. */
-const SHOWN_KINDS = ['folder', 'still', 'image'];
-
 /**
- * What a place asks `list` for.
+ * Whether a file is one Photos might show, so a change to it lists the drive again.
  *
- * @param folder - The folder being browsed; none in Generative, which gathers from every folder.
- * @returns `list`'s arguments.
- */
-export function listingOf(folder: string | undefined): [string, ListOptions] {
-  return folder ? [folder, {}] : [HOME, STILLS];
-}
-
-/**
- * What of a listing belongs in Photos: folders, still projects and images under `ROOTS`, leaving out
- * what's part of a still: the folder its attempts are kept in, beside it, and those attempts.
- *
- * @param rows - The listed rows.
- * @returns The rows Photos shows.
- */
-export function shownRows(rows: FileRow[]): FileRow[] {
-  const stills = new Set(rows.filter((row) => row.kind === 'still').map((row) => row.path));
-  const inStill = ({ path }: FileRow) => stills.has(`${path}.still`) || stills.has(`${parentOf(path)}.still`);
-  return rows.filter((row) => SHOWN_KINDS.includes(row.kind) && isKept(row.path) && !inStill(row));
-}
-
-/**
- * Puts rows in the order a place shows them: Generative as listed, newest first; a folder by kind,
- * then by what they're called.
- *
- * @param view - The place.
- * @param rows - The rows.
- * @returns The rows in order.
- */
-export function orderOf(view: LibraryView, rows: FileRow[]): FileRow[] {
-  if (view === 'generative') return rows;
-  const rank = (row: FileRow) => SHOWN_KINDS.indexOf(row.kind);
-  return [...rows].sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
-}
-
-/**
- * Whether a change to a file changes what a place lists.
- *
- * @param folder - The folder being browsed; none in Generative.
  * @param path - The file.
- * @returns Whether it's listed there.
+ * @returns Whether it's a still or a picture.
  */
-export const changesListing = (folder: string | undefined, path: string): boolean =>
-  folder ? parentOf(path) === folder : STILL_FILE.test(path);
+export const isPicture = (path: string): boolean => STILL_FILE.test(path) || isMedia(path);
 
 /**
  * A picture written in a still as an address to show it from: attempts are kept by path from the
@@ -104,7 +48,7 @@ export const changesListing = (folder: string | undefined, path: string): boolea
  * @returns Its address.
  */
 export function addressOf(still: string, src: string, size?: number): string {
-  return ADDRESS.test(src) ? src : dfs.image(pathFrom(still, src), size ? { size } : undefined);
+  return dfs.image(ADDRESS.test(src) ? src : pathFrom(still, src), size ? { size } : undefined);
 }
 
 /**
@@ -116,7 +60,7 @@ export function addressOf(still: string, src: string, size?: number): string {
  */
 export function pictureOf(row: FileRow, size = TILE_SIZE): string {
   if (row.kind === 'image') return dfs.image(row.path, { size });
-  if (row.kind === 'still' && row.thumbnail) return addressOf(row.path, row.thumbnail, size);
+  if (row.thumbnail) return addressOf(row.path, row.thumbnail, size);
   return kindArt(row.kind as WedyanFileKind);
 }
 
@@ -124,41 +68,25 @@ export function pictureOf(row: FileRow, size = TILE_SIZE): string {
  * A listed row's picture at its own size, to view or keep.
  *
  * @param row - The row.
- * @returns Its address; none for a folder, or a still with nothing made yet.
+ * @returns Its address; none for a still with nothing made yet.
  */
 export function originalOf(row: FileRow): string | undefined {
   if (row.kind === 'image') return dfs.image(row.path);
-  if (row.kind === 'still' && row.src) return addressOf(row.path, row.src);
+  if (row.src) return addressOf(row.path, row.src);
 }
 
 /**
  * What matters about a listed row, in a line.
  *
  * @param row - The row.
- * @returns An image's size, or what it is.
+ * @returns An image's size, or that it's a still.
  */
-export function detailOf(row: FileRow): string {
-  if (row.kind === 'image') return sizeOf(row.size);
-  return row.kind === 'still' ? 'Still project' : 'Folder';
-}
+export const detailOf = (row: FileRow): string => (row.kind === 'image' ? sizeOf(row.size) : 'Still project');
 
 /**
  * When a listed row last changed, short.
  *
  * @param row - The row.
- * @returns The date; none for a folder.
+ * @returns The date.
  */
-export function modifiedOf(row: FileRow): string | undefined {
-  if (row.kind === 'folder') return;
-  return shortDate(row.updated ?? row.mtime);
-}
-
-/**
- * Whether a file is under one of `ROOTS`.
- *
- * @param path - The file.
- * @returns Whether Photos keeps it.
- */
-function isKept(path: string): boolean {
-  return Object.values(ROOTS).some((root) => path.startsWith(`${root}/`));
-}
+export const modifiedOf = (row: FileRow): string => shortDate(row.updated ?? row.mtime);

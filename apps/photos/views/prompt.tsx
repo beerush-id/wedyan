@@ -6,8 +6,8 @@ import { linkTo } from '@/lib/systems/links.js';
 import type { Commands } from '@/lib/systems/public.js';
 import type { PromptEvent } from '@/lib/systems/registry.js';
 import { GenerativeIcon } from './icons.js';
-import { type FolderView, modifiedOf, pictureOf, ROOTS, shownRows } from './listing.js';
-import { destination, dockRequest, generation, makeAttempts, makeStill, making } from './making.js';
+import { HOME, isPicture, modifiedOf, PICTURES, pictureOf, ROOT } from './listing.js';
+import { dockRequest, generation, makeAttempts, makeStill, making } from './making.js';
 import type { StillData } from './Still.js';
 
 /** What a suggestion is when it's a picture. */
@@ -16,8 +16,8 @@ const PICTURE = 'picture';
 /** The longest a still is called, cut from the prompt it's made from. */
 const NAME_LENGTH = 60;
 
-/** The listings `@` reads, one for each folder, replaced whole as they're asked for again. */
-const listed = mutable({} as Partial<Record<FolderView, ReturnType<typeof dfs.list>>>, { recursive: false });
+/** The listing `@` reads, replaced whole as it's asked for again. */
+const listed = mutable({ pictures: undefined as ReturnType<typeof dfs.list> | undefined }, { recursive: false });
 
 let listening = false;
 
@@ -38,9 +38,32 @@ export const COMMANDS: Commands = {
 };
 
 /**
+ * What a browser window lets agents do, so what's asked is made with what the dock is set to. They
+ * stay out of `/`, which has `generate` of its own. What can't be made, it says, and the agent hears it.
+ *
+ * @returns Its commands, at `system.window[id].name`.
+ */
+export function browserCommands(): Commands {
+  return {
+    generate: {
+      does: 'Makes a new image as a still project in Photos, with the model and aspect ratio set in the dock.',
+      takes: '{"prompt": string} // what to make, as the user said it',
+      unlisted: true,
+      handle: async ({ form }) => {
+        const ask = String(form.prompt ?? '').trim();
+        if (!ask) throw new Error('Say what to make.');
+        const path = await makeStill(ROOT, nameFrom(ask), dockRequest(ask));
+        if (!path) throw new Error('No image came back from the model, so nothing was kept.');
+        generation.references = [];
+      },
+    },
+  };
+}
+
+/**
  * Every picture on the drive, as `@` offers them: while Photos is in front, and after `/generate` to
- * make from. The listings are asked for the first time they're wanted, and again as a file changes;
- * what reads this only follows them.
+ * make from. The listing is asked for the first time it's wanted, and again as a picture changes;
+ * what reads this only follows it.
  *
  * @returns The pictures, each with its path as its value, shown by its own picture.
  */
@@ -49,19 +72,16 @@ export function pictures(): DockSuggestion[] {
     listening = true;
     // Outside whoever's reading: a listing outlives what's drawn, and asking isn't a read.
     queueMicrotask(() => {
-      for (const view of Object.keys(ROOTS) as FolderView[]) {
-        const list = () => {
-          listed[view] = dfs.list(ROOTS[view], { recursive: true });
-        };
-        list();
-        dfs.watch(ROOTS[view], list);
-      }
+      const list = () => {
+        listed.pictures = dfs.list(...PICTURES);
+      };
+      list();
+      dfs.watch(HOME, ({ path }) => {
+        if (isPicture(path)) list();
+      });
     });
   }
-  const rows = Object.values(listed).flatMap((listing) => rowsOf(listing ?? {}));
-  return shownRows(rows)
-    .filter((row) => row.kind !== 'folder')
-    .map((row) => ({ type: PICTURE, value: row.path, label: row.name, hint: modifiedOf(row), icon: pictureOf(row) }));
+  return rowsOf(listed.pictures ?? {}).map((row) => ({ type: PICTURE, value: row.path, label: row.name, hint: modifiedOf(row), icon: pictureOf(row) }));
 }
 
 /**
@@ -73,8 +93,8 @@ export function pictures(): DockSuggestion[] {
  */
 async function makeNew(ask: string, prompt: PromptEvent) {
   try {
-    const name = ask.length > NAME_LENGTH ? `${ask.slice(0, NAME_LENGTH).trimEnd()}…` : ask;
-    const path = await makeStill(destination.folder, name, dockRequest(ask, mentionedIn(prompt)));
+    const name = nameFrom(ask);
+    const path = await makeStill(ROOT, name, dockRequest(ask, mentionedIn(prompt)));
     if (!path) return 'No image came back from the model, so nothing was kept.';
     generation.references = [];
     return (
@@ -85,6 +105,16 @@ async function makeNew(ask: string, prompt: PromptEvent) {
   } catch (error) {
     return `Couldn't make it: ${(error as Error).message}`;
   }
+}
+
+/**
+ * What a still is called, from what it's asked for.
+ *
+ * @param ask - What it's asked for.
+ * @returns Its name, cut when it's long.
+ */
+function nameFrom(ask: string): string {
+  return ask.length > NAME_LENGTH ? `${ask.slice(0, NAME_LENGTH).trimEnd()}…` : ask;
 }
 
 /**

@@ -1,7 +1,6 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
 import { Show, setup, template } from '@airlib/react';
 import { DescriptionList, EmptyState } from '@airlib/react-aui';
-import { FolderIcon } from '@airlib/react-aui/icons';
 import { FloatingDownload } from '@/components/FloatingDownload.js';
 import { BROWSE_CLASS } from '@/components/WedyanGallery.js';
 import { type FileRow, shortDate, sizeOf } from '@/lib/documents/rows.js';
@@ -25,7 +24,7 @@ export const LibraryPreview = setup(() => {
   return () => (
     <aside className={`${BROWSE_CLASS.PREVIEW} ${AUI_CLASS.GLASS_PANEL}`} aria-label="Preview">
       <Show
-        when={() => library.selected}
+        when={() => (state.several ? undefined : library.picks()[0])}
         fallback={() => (
           <EmptyState
             title={checked() ? `${checked()} checked` : 'Nothing picked'}
@@ -43,7 +42,7 @@ export const LibraryPreview = setup(() => {
               {/* The picture opens what's picked; downloading it floats at its corner, beside, not inside. */}
               <div className={PICTURE_CLASS}>
                 <button type="button" className={BROWSE_CLASS.PREVIEW_OPEN} aria-label={`Open ${row.name}`} onClick={() => open(row)}>
-                  {row.kind === 'folder' ? <FolderIcon /> : <img src={pictureOf(row, PREVIEW_SIZE)} alt="" />}
+                  <img src={pictureOf(row, PREVIEW_SIZE)} alt="" />
                 </button>
                 {original && <FloatingDownload src={original} name={row.name} />}
               </div>

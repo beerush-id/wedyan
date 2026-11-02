@@ -26,6 +26,9 @@ const COLUMNS: Record<string, string> = {
 /** The longest `ask` a row carries; a list only shows the start of one. */
 const ASK_LENGTH = 512;
 
+/** What's a picture to the user: an image or a still, but not an attempt kept in the folder beside its still. */
+const PICTURES = `f.kind IN ('image', 'still') AND NOT EXISTS (SELECT 1 FROM _r2_files s WHERE s.path = f.directory || '.still')`;
+
 /** What a file holds of other files: a project's assets and its casts. */
 const LINKS = '_wedyan_links';
 
@@ -113,6 +116,7 @@ export const fileRows: D1Extension = {
 
   query({ options }) {
     const select = [`${THUMBNAIL} AS row_thumbnail`, `${PROJECT} AS project`];
+    if (options?.scope?.pictures) return { select, where: PICTURES };
     const holds = options?.scope?.holds;
     if (!holds) return { select };
     // A project's window, in one query: its stages, what it holds, and who can be cast or assigned.

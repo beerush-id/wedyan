@@ -1,6 +1,6 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
 import { $bind, $static, For, Show, setup } from '@airlib/react';
-import { Button, Divider, Select, Stepper, Toolbar, Tooltip } from '@airlib/react-aui';
+import { Button, Divider, Select, Toolbar, Tooltip } from '@airlib/react-aui';
 import type { WindowRenderProps } from '@airlib/react-aui/desktop';
 import { AspectRatioIcon, AutoAwesomeIcon } from '@airlib/react-aui/icons';
 import { ASPECTS, MODELS, settingsOf } from '@/lib/documents/generation.js';
@@ -9,8 +9,8 @@ import { generation } from './making.js';
 import type { StillData } from './Still.js';
 
 /**
- * How the still project in front is made again, in the dock: its model, aspect ratio, and how many
- * images one request makes, written onto the still itself.
+ * How the still project in front is made again, in the dock: its model and aspect ratio, written
+ * onto the still itself.
  */
 export const StillOptions = setup<WindowRenderProps>((props) => {
   // A window shows one still for its whole life.
@@ -40,15 +40,6 @@ export const StillOptions = setup<WindowRenderProps>((props) => {
                 )}
               </Select.Snippet>
             </Select>
-            <Stepper
-              size="sm"
-              label="Batch size"
-              decrementLabel="Smaller batch"
-              incrementLabel="Larger batch"
-              min={1}
-              max={4}
-              value={$bind(settings, 'batch')}
-            />
           </Toolbar>
         );
       }}
@@ -104,7 +95,6 @@ export const BrowseOptions = setup(
           )}
         </Select.Snippet>
       </Select>
-      <Stepper size="sm" label="Images" decrementLabel="Fewer images" incrementLabel="More images" min={1} max={4} value={$bind(generation, 'batch')} />
     </Toolbar>
   ),
   'BrowseOptions'

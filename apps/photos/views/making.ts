@@ -7,7 +7,6 @@ import { LOUNGE } from '@/lib/kernel/workspace.h.js';
 import { dfs } from '@/lib/share/dfs.js';
 import { documentAt } from '@/lib/share/documents.js';
 import { addAttempts } from '@/lib/share/stills.js';
-import { ROOTS } from './listing.js';
 
 /** A picture a new image starts from, as the dock shows it. */
 export type Reference = { path: string; name: string; picture: string };
@@ -26,9 +25,6 @@ export const STILL_CHANGED = 'still-changed';
 
 /** How a new image is made: set from the dock, read when a prompt is sent. References last for the next one. */
 export const generation = mutable({ model: 'standard', aspect: '1:1', batch: 1, references: [] as Reference[] });
-
-/** Where a new still goes: set by the browser as it moves, read by whatever makes one. */
-export const destination = mutable({ folder: ROOTS.photos });
 
 /** What's being made of each still, by path, for its window to show, whoever asked. */
 export const making = mutable<Record<string, Making>>({});

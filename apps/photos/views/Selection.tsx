@@ -1,4 +1,4 @@
-import { Show, setup } from '@airlib/react';
+import { $use, Show, setup } from '@airlib/react';
 import { DeleteIcon, DownloadIcon } from '@/components/icons.js';
 import { type SelectionAction, SelectionActions } from '@/components/SelectionActions.js';
 import type { FileRow } from '@/lib/documents/rows.js';
@@ -13,35 +13,29 @@ export const LibrarySelection = setup(() => {
   const library = libraryCtx.get() as PhotoLibrary;
   const { state, picks } = library;
 
-  /** The actions for what's picked, in their groups: make with; keep; remove. What needs a picture only shows when each has one. */
-  const groups = (): SelectionAction[][] => {
-    const rows = picks();
-    return [
-      ...(rows.every(originalOf)
-        ? [
-            [{ label: 'Use as reference', icon: <ReferenceIcon />, run: () => reference(rows) }],
-            [{ label: 'Download', icon: <DownloadIcon />, run: () => download(rows) }],
-          ]
-        : []),
-      [{ label: 'Delete', icon: <DeleteIcon />, run: () => void library.remove() }],
-    ];
-  };
+  // What's pressed reads the rows it works on then; only what's picked is watched here.
+  const groups: SelectionAction[][] = [
+    [{ label: 'Use as reference', icon: <ReferenceIcon />, run: () => reference(picks()) }],
+    [{ label: 'Download', icon: <DownloadIcon />, run: () => download(picks()) }],
+    [{ label: 'Delete', icon: <DeleteIcon />, run: () => void library.remove() }],
+  ];
 
   return () => (
-    <Show when={() => picks().length > 0}>
-      {() => <SelectionActions label="Picked photos" count={state.several ? `${picks().length} selected` : undefined} groups={groups()} />}
+    <Show when={() => [state.picked].flat().filter(Boolean).length > 0}>
+      {() => <SelectionActions label="Picked photos" count={$use(() => (state.several ? `${[state.picked].flat().length} selected` : undefined))} groups={groups} />}
     </Show>
   );
 }, 'LibrarySelection');
 
 /**
- * Hands pictures to the next generation as references, after any already there.
+ * Hands pictures to the next generation as references, after any already there. A still with
+ * nothing made yet has no picture to hand on.
  *
  * @param rows - The pictures.
  */
 function reference(rows: FileRow[]): void {
   const added = rows
-    .filter((row) => !generation.references.some(({ path }) => path === row.path))
+    .filter((row) => originalOf(row) && !generation.references.some(({ path }) => path === row.path))
     .map((row) => ({ path: row.path, name: row.name, picture: pictureOf(row) }));
   generation.references = [...generation.references, ...added].slice(0, MAX_REFERENCES);
 }

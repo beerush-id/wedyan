@@ -1,9 +1,9 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
-import { $bind, $use, Show, Snippet, setup } from '@airlib/react';
+import { $bind, $use, Show, setup } from '@airlib/react';
 import { Button, Divider, Toggle, Tooltip } from '@airlib/react-aui';
 import { WindowControls, WindowTitle, WindowToolbar } from '@airlib/react-aui/desktop';
 import { AddIcon, ArrowLeft } from '@airlib/react-aui/icons';
-import { PreviewPanelIcon, SidebarCloseIcon, SidebarOpenIcon } from '@/components/icons.js';
+import { PreviewPanelIcon } from '@/components/icons.js';
 import { WedyanGalleryLayoutToggle, WedyanGallerySearch } from '@/components/WedyanGallery.js';
 import { libraryCtx, type PhotoLibrary } from './library.js';
 import { LibrarySelection } from './Selection.js';
@@ -11,40 +11,22 @@ import { LibrarySelection } from './Selection.js';
 /** The browser's toolbar: where it is, what can be done with what's picked, and how it's shown. */
 export const LibraryToolbar = setup(() => {
   const library = libraryCtx.get() as PhotoLibrary;
-  const { state, up, create } = library;
-
-  // Going back: from the viewer to the tiles, otherwise up a folder.
-  const back = () => {
-    if (state.viewing) state.viewing = false;
-    else up();
-  };
+  const { state, create } = library;
 
   return () => (
     <WindowToolbar>
-      {/* Going back leads, set apart from the view it leaves: its sidebar and where it is. */}
-      <Show when={() => state.viewing || library.inFolder}>
+      {/* Going back from the viewer leads, set apart from the title. */}
+      <Show when={() => state.viewing}>
         {() => (
           <>
-            <Button
-              aria-label={$use(() => (state.viewing ? 'Back to the tiles' : 'Up a folder'))}
-              size="sm"
-              variant="text"
-              className={AUI_CLASS.CONTROL_ICON}
-              onClick={back}
-            >
+            <Button aria-label="Back to the tiles" size="sm" variant="text" className={AUI_CLASS.CONTROL_ICON} onClick={() => (state.viewing = false)}>
               <ArrowLeft />
             </Button>
             <Divider orientation="vertical" variant="ghost" size="sm" />
           </>
         )}
       </Show>
-      <Toggle aria-label="Hide sidebar" size="sm" variant="text" className={AUI_CLASS.CONTROL_ICON} pressed={$bind(state, 'sidebarHidden')}>
-        <Snippet>{() => (state.sidebarHidden ? <SidebarOpenIcon /> : <SidebarCloseIcon />)}</Snippet>
-        <Tooltip>Hide sidebar</Tooltip>
-      </Toggle>
-      <WindowTitle>
-        <Snippet>{() => library.title}</Snippet>
-      </WindowTitle>
+      <WindowTitle>Photos</WindowTitle>
       {/* While things are picked, what can be done with them sits beside the title. */}
       <Show when={() => !state.viewing}>{() => <LibrarySelection />}</Show>
       <WindowControls>

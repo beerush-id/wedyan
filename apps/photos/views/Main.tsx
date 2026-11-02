@@ -1,19 +1,18 @@
-import { Show } from '@airlib/react';
 import { defineWindow, Window, WindowBody, WindowContent, type WindowRenderProps } from '@airlib/react-aui/desktop';
+import { attachCommands } from '@/lib/systems/public.js';
 import { fullRect } from '@/lib/systems/window.js';
 import manifest from '../manifest.json';
 import { createLibrary, libraryCtx, type PhotosData } from './library.js';
+import { generation } from './making.js';
 import { BrowseOptions } from './options.js';
-import { pictures } from './prompt.js';
+import { browserCommands, pictures } from './prompt.js';
 import { LibrarySheet } from './Sheet.js';
-import { LibrarySidebar } from './Sidebar.js';
 import { LibraryToolbar } from './Toolbar.js';
 
 /**
- * Photos' browser, like a file explorer of the folders pictures are kept in: down the side, each
- * folder, and everything Wedyan made; as tiles, what the place holds, and beside them a preview of
- * the picked one, off until it's turned on. While it's in front, the dock holds how new images are
- * made. Every part reads the library this window publishes.
+ * Photos' browser: one view of every picture on the drive, wherever it's kept, newest first, as
+ * tiles, and beside them a preview of the picked one, off until it's turned on. While it's in front,
+ * the dock holds how new images are made. Every part reads the library this window publishes.
  */
 export const photos = defineWindow({
   name: manifest.name,
@@ -33,7 +32,7 @@ export const photos = defineWindow({
  * @returns The browser's window.
  */
 export function openPhotos(picture?: string) {
-  return photos.open(picture ? { picture } : undefined, {
+  return photos.open({ ...(picture ? { picture } : {}), generation } satisfies PhotosData, {
     name: 'browser',
     get contexts() {
       return pictures();
@@ -50,10 +49,10 @@ export function openPhotos(picture?: string) {
 function PhotosWindow(props: WindowRenderProps) {
   const library = createLibrary(props.instance.data as PhotosData);
   libraryCtx.set(library);
+  attachCommands(props.instance, browserCommands());
 
   return () => (
-    <Window sidebarResizeLabel="Resize sidebar">
-      <Window.Snippet for="sidebar">{() => <Show when={() => !library.state.sidebarHidden}>{() => <LibrarySidebar />}</Show>}</Window.Snippet>
+    <Window>
       <Window.Snippet for="body">
         {() => (
           <WindowBody>

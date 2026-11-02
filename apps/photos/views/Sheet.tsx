@@ -3,7 +3,7 @@ import { Button, EmptyState, GalleryItem, ImageViewer, type ImageViewerEntry, Sp
 import { AddIcon } from '@airlib/react-aui/icons';
 import { IRPC_STATUS } from '@irpclib/irpc';
 import { BROWSE_CLASS, WedyanGallery, WedyanGalleryRow } from '@/components/WedyanGallery.js';
-import type { FileRow } from '@/lib/documents/rows.js';
+import { type FileRow, rowsOf } from '@/lib/documents/rows.js';
 import { LibraryIcon } from './icons.js';
 import { libraryCtx, type PhotoLibrary } from './library.js';
 import { detailOf, modifiedOf, originalOf, pictureOf, VIEWER_LABELS } from './listing.js';
@@ -24,7 +24,7 @@ export const LibrarySheet = setup(() => {
 
   return () => (
     <Show when={() => state.viewing} fallback={() => <LibraryFiles />}>
-      {() => <ImageViewer label={library.title} items={$use(() => images().map(slideOf))} index={$bind(state, 'index')} labels={VIEWER_LABELS} onchange={step} />}
+      {() => <ImageViewer label="Photos" items={$use(() => images().map(slideOf))} index={$bind(state, 'index')} labels={VIEWER_LABELS} onchange={step} />}
     </Show>
   );
 }, 'LibrarySheet');
@@ -32,12 +32,12 @@ export const LibrarySheet = setup(() => {
 /** What's listed as tiles or rows, the picked one's preview beside; or why there's nothing to list. */
 const LibraryFiles = setup(() => {
   const library = libraryCtx.get() as PhotoLibrary;
-  const { state, items, rows, open, create } = library;
+  const { state, items, open, create } = library;
   const pending = () => items.status === IRPC_STATUS.PENDING;
 
   return () => (
     <Show
-      when={() => rows().length}
+      when={() => rowsOf(items).length}
       fallback={() => (
         <EmptyState
           title={$use(() => (pending() ? LOADING : items.error ? "Couldn't load your photos" : 'Nothing here yet'))}
@@ -68,8 +68,8 @@ const LibraryFiles = setup(() => {
       {() => (
         <div className={BROWSE_CLASS.ROOT}>
           <WedyanGallery
-            label={$use(() => library.title)}
-            entries={$use(rows)}
+            label="Photos"
+            entries={$use(() => rowsOf(items))}
             value={$bind(state, 'picked')}
             multiple={$bind(state, 'several')}
             layout={$use(() => state.viewMode)}
