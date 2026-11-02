@@ -1,5 +1,5 @@
 import { canCaptureVideo } from '@airlib/aria';
-import { type AnyType, createContext, effect, type history, mutable } from '@airlib/react';
+import { type AnyType, createContext, derived, effect, type history, mutable, untrack } from '@airlib/react';
 import type { Timeline, TimelineSegment, TimelineTrack } from '@airlib/react/timeline';
 import type { PersonTab } from '@/apps/lounge/views/session.js';
 import { attemptPicture, chosenAttempt, isGenerative, settingsOf } from '@/lib/documents/generation.js';
@@ -201,31 +201,31 @@ export function createComposer(path: string, direct: boolean): Composer {
       },
 
       get stages() {
-        return ofKind((row) => row.kind === 'stage');
+        return lists.value.stages;
       },
 
       get assets() {
-        return ofKind((row) => !!row.held && row.kind !== 'persona');
+        return lists.value.assets;
       },
 
       get pictures() {
-        return ofKind((row) => !!row.held && (row.kind === 'image' || row.kind === 'still'));
+        return lists.value.pictures;
       },
 
       get casts() {
-        return ofKind((row) => !!row.held && row.kind === 'persona');
+        return lists.value.casts;
       },
 
       get people() {
-        return ofKind((row) => row.kind === 'persona');
+        return lists.value.people;
       },
 
       get agents() {
-        return ofKind((row) => row.kind === 'agent');
+        return lists.value.agents;
       },
 
       get stagePath() {
-        return composer.activeStage ?? composer.stages[0]?.path;
+        return composer.activeStage ?? firstStage.value;
       },
 
       get stage() {
@@ -347,7 +347,27 @@ export function createComposer(path: string, direct: boolean): Composer {
     void composer.version;
     return [HOME, { recursive: true, scope: { holds: path } }];
   });
-  const ofKind = (test: (row: FileRow) => boolean) => rowsOf(listed).filter(test).sort((a, b) => a.position - b.position);
+
+  // The listing sorted out once, for what shows it: a row's kind, place and being held never change,
+  // so only which rows there are is observed, and whoever reads a list observes this one value.
+  const lists = derived(() => {
+    const rows = rowsOf(listed);
+    void rows.length;
+    return untrack(() => {
+      const sorted = [...rows].sort((a, b) => a.position - b.position);
+      return {
+        stages: sorted.filter((row) => row.kind === 'stage'),
+        assets: sorted.filter((row) => !!row.held && row.kind !== 'persona'),
+        pictures: sorted.filter((row) => !!row.held && (row.kind === 'image' || row.kind === 'still')),
+        casts: sorted.filter((row) => !!row.held && row.kind === 'persona'),
+        people: sorted.filter((row) => row.kind === 'persona'),
+        agents: sorted.filter((row) => row.kind === 'agent'),
+      };
+    });
+  });
+
+  // Who reads the stage is told when the first one changes, not whenever the listing does.
+  const firstStage = derived(() => lists.value.stages[0]?.path);
 
   // What an agent writes isn't held here, so it's listed again.
   dfs.watch(HOME, ({ path: changed }) => {
