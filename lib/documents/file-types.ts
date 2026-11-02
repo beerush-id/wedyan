@@ -1,5 +1,5 @@
 import { HandlerError } from '@irpclib/irpc';
-import { fileModule, readStub, search, writeStub } from '@irpclib/r2-file';
+import { fileModule, list, readStub, search, writeStub } from '@irpclib/r2-file';
 
 /**
  * What each kind of document is, by its extension. r2-file types a file by how its data is carried,
@@ -51,6 +51,11 @@ fileModule.hook(readStub, (req) => {
   const [path] = req.args;
   const options = optionsOf(req.args[1]);
   req.args[1] = options?.encoding === undefined && readsAsText(path) ? { ...options, encoding: 'text' } : options;
+});
+
+// A model writes its options as JSON text, and a listing that can't read them lists one folder.
+fileModule.hook(list, (req) => {
+  req.args[1] = optionsOf(req.args[1]);
 });
 
 // A model can write the whole search into its options: what's searched for is still the query.

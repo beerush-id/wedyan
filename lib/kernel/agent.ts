@@ -425,13 +425,15 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
   // a name alone drew buttons that had nothing to do with the card.
   const { links } = given.map(contextOf).find(Boolean) ?? {};
   const reach = links ? { links } : {};
+  // The pages a web search cited: real addresses, for what's drawn to link to.
+  let sources: IRPCData[] = [];
   const compose = (request: Record<string, IRPCData>) => {
     if (!composer) return Promise.reject(new Error('No composer to draw widgets'));
     const timer = timeStep(state, 'compose', composer.name, agent.name);
     return composeWidget(
       adapter,
       persona ? { ...composer, system: `${composer.system}\n\n${persona}` } : composer,
-      { ...request, ...reach },
+      { ...request, ...reach, ...(sources.length ? { sources } : {}) },
       signal,
     ).finally(timer.end);
   };
@@ -507,7 +509,7 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
         );
       };
       const turnWith = (timer: StepTimer) =>
-        modelTurn(adapter, { ...agent, system, tools }, history, state.parts, signal, timer, { announce, searched, handing: (args) => tell(drafted(args)), quiet: handed && told }, {
+        modelTurn(adapter, { ...agent, system, tools }, history, state.parts, signal, timer, { announce, searched, handing: (args) => tell(drafted(args)), cited: (found) => (sources = found), quiet: handed && told }, {
           onWidget: (part, intent) => {
             // The agent keeps speaking while its widget is composed; the part fills in place.
             compositions.push(
@@ -719,7 +721,13 @@ async function modelTurn(
   parts: AskPart[],
   signal: AbortSignal | undefined,
   timer: StepTimer,
-  calls: { announce(call: string): void; searched(query: string): void; handing(args: string): void; quiet: boolean },
+  calls: {
+    announce(call: string): void;
+    searched(query: string): void;
+    handing(args: string): void;
+    cited(sources: IRPCData[]): void;
+    quiet: boolean;
+  },
   hooks: PartWriterHooks,
 ): Promise<{ text: string; toolCalls: ToolCall[]; unfinished: boolean }> {
   const live = mutable<{ data?: ChatOutput }>({});
@@ -734,6 +742,7 @@ async function modelTurn(
     for (; announced < calling.length; announced += 1) calls.announce(calling[announced]);
     const searched = live.data?.searched ?? [];
     for (; found < searched.length; found += 1) calls.searched(searched[found]);
+    if (live.data?.sources?.length) calls.cited(JSON.parse(JSON.stringify(live.data.sources)));
     const commentary = live.data?.commentary ?? [];
     const chunks = live.data?.chunks ?? [];
     const reasoned = live.data?.reasoning?.length;

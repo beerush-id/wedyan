@@ -6,9 +6,9 @@ import { fsContext } from '@irpclib/r2-file/context';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { WidgetPart } from '../../lib/kernel/agent.h.js';
 import { setupKernel } from '../../lib/kernel/agent.js';
+import { ARRIVAL_SEEDS } from '../../lib/kernel/arrivals.js';
 import { type AgentMessage, ASK_REPLY, type Conversation, conversation } from '../../lib/kernel/chat.h.js';
 import {
-  CONVERSATION_DEFAULTS,
   CONVERSATION_PATH,
   JUDGE_PROMPT,
   pagePath,
@@ -784,7 +784,7 @@ describe('the conversation', () => {
     });
 
     it('bundles the demo’s mail, invite and receipt as its arrivals', () => {
-      expect(Object.keys(CONVERSATION_DEFAULTS.arrivalSeeds).sort()).toEqual([
+      expect(Object.keys(ARRIVAL_SEEDS).sort()).toEqual([
         'Calendar/c1.ics',
         'Mail/m1.eml',
         'Mail/m2.eml',
