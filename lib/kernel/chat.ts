@@ -28,6 +28,7 @@ import {
   type ConversationQueries,
   DUPLICATE_CLIENT,
   type FinishedJob,
+  INTERRUPTED,
   type Presence,
   type UserMessage,
   WORK_ASSIGN,
@@ -229,7 +230,7 @@ function createConversation({ hold }: RoomSetup) {
       // An answer still running when the conversation was last kept was cut off.
       for (const message of page?.messages ?? []) {
         if (message.role === 'agent' && isWriting(message)) {
-          Object.assign(message, { status: 'stopped', reason: 'Interrupted' });
+          Object.assign(message, { status: 'stopped', reason: INTERRUPTED });
         }
       }
 

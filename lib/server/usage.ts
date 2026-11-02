@@ -47,7 +47,7 @@ export type UsageDatabase = {
 };
 
 /** Where use is counted, and what's allowed; unset, nothing is counted or limited. */
-let counting: { db: UsageDatabase; limits: Record<UsageKind, UsageLimit>; ready?: Promise<unknown> } | undefined;
+let counting: { db: UsageDatabase; limits: Record<UsageKind, UsageLimit>; ready?: boolean } | undefined;
 
 /**
  * Starts counting model calls. Left unset where nothing is paid for by visitors: development and tests.
@@ -69,8 +69,13 @@ export function setupUsage(db: UsageDatabase, limits: Record<UsageKind, UsageLim
 export async function spend(kind: UsageKind): Promise<void> {
   if (!counting) return;
   const { db, limits } = counting;
-  counting.ready ??= db.prepare(CREATE).run();
-  await counting.ready;
+  // A fact, not the promise: this module outlives each call, and a promise belongs to the Durable
+  // Object that made it, so another user's would fail on it. Calls made at once each create the
+  // table, which changes nothing.
+  if (!counting.ready) {
+    await db.prepare(CREATE).run();
+    counting.ready = true;
+  }
 
   const day = new Date().toISOString().slice(0, 10);
   const visitor = fsContext.get()?.ownerId;

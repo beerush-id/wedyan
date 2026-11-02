@@ -49,6 +49,12 @@ export type ServerEnv = FileWorkerEnv & {
   RESIZER_URL?: string;
 };
 
+/** One running container, as far as resizing reaches it. */
+type ContainerStub = { fetch: typeof fetch };
+
+/** The part of the containers' binding resizing uses. */
+type ContainerNamespace = { idFromName(name: string): unknown; get(id: unknown): ContainerStub };
+
 let ready = false;
 
 /**
@@ -91,15 +97,34 @@ export function setupServer(env: ServerEnv): void {
 
 /**
  * What R2 Image works with, from the server's bindings: the bucket the user's files are in, and the
- * resizer: the bound container where deployed; locally the binding exists but can't run a container,
+ * resizer: the bound containers where deployed; locally the binding exists but can't run a container,
  * so the one running at `RESIZER_URL`.
  *
  * @param env - The resolved bindings.
  * @returns R2 Image's bindings.
  */
 export function picturesOf(env: ServerEnv): ImageWorkerEnv {
-  const resizer = process.env.NODE_ENV === 'production' ? env.RESIZER : env.RESIZER_URL;
+  const resizer = process.env.NODE_ENV === 'production' ? resizerPool(env.RESIZER as never) : env.RESIZER_URL;
   return { IMAGES: env.BUCKET as never, RESIZER: resizer as ImageWorkerEnv['RESIZER'] };
+}
+
+/** How many containers share the resizing: `max_instances` in `wrangler.json`. */
+const RESIZERS = 3;
+
+/**
+ * The resizing containers as one service, each picture going to any of them. Named alike, every
+ * picture would queue on one container, however many may run: a page of new pictures comes all at once.
+ *
+ * @param namespace - The containers' binding.
+ * @returns What R2 Image calls to resize.
+ */
+function resizerPool(namespace: ContainerNamespace): Pick<ContainerStub, 'fetch'> {
+  return {
+    fetch: (input, init) => {
+      const name = `resizer-${Math.floor(Math.random() * RESIZERS)}`;
+      return namespace.get(namespace.idFromName(name)).fetch(input, init);
+    },
+  };
 }
 
 /**

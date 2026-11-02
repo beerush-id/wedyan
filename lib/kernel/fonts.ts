@@ -9,8 +9,11 @@ const FONT_CHOICES = 40;
 
 let apiKey: string | undefined;
 
-/** The list, once asked for: it's public and the same for everyone, so this process asks Google once. */
-let listed: Promise<string[]> | undefined;
+/**
+ * The list, once it's come: it's public and the same for everyone, so this process keeps it. The
+ * names and not the promise: a promise belongs to the Durable Object that made it.
+ */
+let listed: string[] | undefined;
 
 /**
  * Gives the server the key Google Fonts is listed with.
@@ -22,13 +25,10 @@ export function setupFonts(key?: string): void {
 }
 
 kernel.construct(fontFamilies, async (query) => {
-  listed ??= listFonts().catch((error) => {
-    // A failure isn't the list: the next ask tries again.
-    listed = undefined;
-    throw error;
-  });
+  // A failure isn't the list: the next ask tries again.
+  listed ??= await listFonts();
   const wanted = query.toLowerCase();
-  return (await listed)
+  return listed
     .filter((family) => family.toLowerCase().includes(wanted))
     .slice(0, FONT_CHOICES)
     .sort((a, b) => a.localeCompare(b));

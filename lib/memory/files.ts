@@ -77,18 +77,49 @@ async function index(storagePath: string, text: string | undefined, name: string
     const [indexed] = (await vectors.getByIds?.([ids[0]])) ?? [];
     if (indexed?.metadata?.words === words) return;
     const values = await embed(chunks.map((chunk) => `${name}\n${chunk}`));
-    await vectors.upsert(
-      chunks.map((chunk, i) => ({
-        id: ids[i],
-        values: values[i],
-        metadata: { owner, path, name, scope: 'files', words, text: chunk.slice(0, TEXT_LIMIT) },
-      })),
+    await patiently(() =>
+      vectors.upsert(
+        chunks.map((chunk, i) => ({
+          id: ids[i],
+          values: values[i],
+          metadata: { owner, path, name, scope: 'files', words, text: chunk.slice(0, TEXT_LIMIT) },
+        })),
+      ),
     );
   }
   // A shorter version leaves chunks behind; they go, so recall never quotes text the file lost.
-  await vectors.deleteByIds(await idsOf(owner, path, chunks.length, MAX_CHUNKS));
+  const stale = await idsOf(owner, path, chunks.length, MAX_CHUNKS);
+  await patiently(() => vectors.deleteByIds(stale));
   log.debug(`indexed ${path}`, { chunks: chunks.length });
 }
+
+/**
+ * Runs a write to the index, waiting and trying again while it's refused for coming too fast: a new
+ * home's files all arrive at once. Each write waits on its own, at a random length that spreads them
+ * out, since nothing that lasts past one request may be shared here.
+ *
+ * @param write - The write.
+ * @returns What it returned; throws what it threw once it's out of tries, or for any other reason.
+ */
+async function patiently<T>(write: () => Promise<T>): Promise<T> {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await write();
+    } catch (error) {
+      if (attempt === INDEX_TRIES || !TOO_FAST.test((error as Error).message)) throw error;
+      await new Promise((resolve) => setTimeout(resolve, Math.random() * INDEX_WAIT * 2 ** attempt));
+    }
+  }
+}
+
+/** How many times a write to the index is tried. */
+const INDEX_TRIES = 6;
+
+/** The first wait between tries at most, in ms; it doubles with each try. */
+const INDEX_WAIT = 500;
+
+/** How the index refuses a write that came too fast. */
+const TOO_FAST = /too many requests|40041/i;
 
 /** Drops every chunk of a file. */
 async function unindex(storagePath: string): Promise<void> {

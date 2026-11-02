@@ -19,6 +19,7 @@
     {
       "class_name": "ImageResizer",
       "image": "docker.io/mahdaen/r2-image:2.2.0",
+      "instance_type": "standard-1",
       "max_instances": 3
     }
   ],
@@ -74,6 +75,7 @@
           "name": "wedyan-app-imageresizer",
           "class_name": "ImageResizer",
           "image": "docker.io/mahdaen/r2-image:2.2.0",
+          "instance_type": "standard-1",
           "max_instances": 3
         }
       ],

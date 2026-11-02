@@ -1,7 +1,7 @@
 import { mutable } from '@airlib/react';
 import type { DockWidgetEntry, DockWidgetPart } from '@airlib/react-aui/desktop';
 import type { AskPart, AskStep, WidgetPart } from '@/lib/kernel/agent.h.js';
-import type { AgentMessage, ConversationMessage, UserMessage } from '@/lib/kernel/chat.h.js';
+import { type AgentMessage, type ConversationMessage, INTERRUPTED, type UserMessage } from '@/lib/kernel/chat.h.js';
 
 /** How a user's words are drawn, as the desktop draws what's just been sent. */
 export type UserTurn = (message: UserMessage) => DockWidgetEntry;
@@ -89,8 +89,12 @@ function shownParts(message: AgentMessage): DockWidgetPart[] {
     return [part.status === 'ready' ? dockWidget(part) : drawing(part), ...rows];
   });
   const shown = [...rowsAfter(-1), ...parts];
+  if (message.reason === INTERRUPTED) return [...shown, { type: 'text', text: CUT_OFF }];
   return message.status === 'error' && message.reason ? [...shown, { type: 'text', text: message.reason }] : shown;
 }
+
+/** What an answer that was cut off says, so it isn't left empty. */
+const CUT_OFF = 'This answer was cut off before it finished. Please ask again.';
 
 /** What the user reads a call as, whether it's under way or done. */
 const CALL_LABELS: Record<string, string> = {

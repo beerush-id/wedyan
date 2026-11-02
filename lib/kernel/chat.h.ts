@@ -151,6 +151,9 @@ export type ConversationFn = (client: string) => RemoteState<Conversation, Conve
 /** Why a desktop is refused the conversation: its ID is already connected, as a duplicated tab's is. */
 export const DUPLICATE_CLIENT = 'This client is already connected';
 
+/** Why an answer stopped when it was still running as the conversation was last kept: it was cut off. */
+export const INTERRUPTED = 'Interrupted';
+
 /**
  * The user's conversation with Wedyan, live, as IRPC declares it. Every desktop of the session opens
  * it and sees the same conversation as it is written; the server owns it, runs each ask to the end
