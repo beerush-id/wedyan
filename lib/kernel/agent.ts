@@ -911,6 +911,35 @@ function rolesIn(nodes: unknown[]): string[] {
   });
 }
 
+/** Roles that draw their `items` and nothing else: children given to them never show. */
+const ITEMS_ROLES = new Set(['avatar-group', 'description-list', 'gallery', 'image-viewer', 'reorder', 'tree']);
+
+/**
+ * What in some nodes is written well but would draw nothing or do nothing, however deep.
+ *
+ * @param nodes - The nodes.
+ * @returns What's wrong, one line each, for the composer to put right.
+ */
+function misdrawnIn(nodes: unknown[]): string[] {
+  return nodes.flatMap((node) => {
+    if (typeof node !== 'object' || node === null) return [];
+    const { role, props, bindings, children } = node as {
+      role?: string;
+      props?: { items?: unknown; href?: unknown };
+      bindings?: { prop?: string }[];
+      children?: unknown[];
+    };
+    const itemsBound = bindings?.some(({ prop }) => prop === 'items');
+    return [
+      ...(role && ITEMS_ROLES.has(role) && !Array.isArray(props?.items) && !itemsBound
+        ? [`${role} draws only props.items, so its children never show: put them in items.`]
+        : []),
+      ...(role === 'button' && props?.href ? ['A button has no href, so it opens nothing: use link or a to open something.'] : []),
+      ...misdrawnIn(Array.isArray(children) ? children : []),
+    ];
+  });
+}
+
 /** Whether something is a widget node, all the way down: text, or a role with children that are nodes. */
 function isNode(node: unknown): boolean {
   if (typeof node === 'string') return true;
@@ -939,6 +968,8 @@ function composedOf(text: string): Composed {
     throw new Error(`The composer's answer isn't widget nodes: ${summaryOf(text)}`);
   const unknown = rolesIn(nodes).filter((role) => !isWidgetRole(role));
   if (unknown.length) throw new Error(`Nothing draws these roles: ${unknown.join(', ')}. Use only the catalog's.`);
+  const drawnWrong = misdrawnIn(nodes);
+  if (drawnWrong.length) throw new Error(drawnWrong.join(' '));
   return widget ? { ...declared, nodes } : { nodes: nodes as IRPCData[] };
 }
 
