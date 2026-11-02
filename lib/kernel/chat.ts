@@ -17,7 +17,7 @@ import { SETTINGS_PATH, type UserSettings } from '@/lib/share/profile.js';
 import { AGENTS_PATH, CONVERSATION_PATH, INBOXES } from '@/lib/share/system.js';
 import { type ActionMeta, actorOf, type AskAction, type AskInput, type WidgetPart } from './agent.h.js';
 import { askRouter, askWith, type CallResult, toChatInput } from './agent.js';
-import { ARRIVAL_SEEDS, landed } from './arrivals.js';
+import { landed } from './arrivals.js';
 import {
   type ActionRecord,
   type AgentMessage,
@@ -84,7 +84,7 @@ export const CONVERSATION_DEFAULTS: Readonly<ConversationConfig> = {
   briefAfter: 10 * 60_000,
   arrivals: 20,
   inboxes: INBOXES,
-  arrivalSeeds: ARRIVAL_SEEDS,
+  arrivalSeeds: {},
   acksRead: 8,
   proactive: true,
 };

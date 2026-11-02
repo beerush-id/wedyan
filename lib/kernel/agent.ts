@@ -1,4 +1,5 @@
 import { mutable, subscribe } from '@airlib/react';
+import { isWidgetRole } from '@airlib/react-aui/dynamic';
 import {
   type ChatInput,
   type ChatMessage,
@@ -11,6 +12,7 @@ import {
 import type { AIAdapter } from '@irpclib/ai-kit/worker';
 import { getAbortSignal, IRPC_STORE, type IRPCData, type IRPCRouter, setContext, stream } from '@irpclib/irpc';
 import { fsContext } from '@irpclib/r2-file/context';
+import { readsAsText } from '../documents/file-types.js';
 import { logger } from '../logger.js';
 import { isUsageLimit } from '../share/usage.js';
 import {
@@ -46,7 +48,7 @@ export type SysHandler = (args: IRPCData, ask: SysAsk) => Promise<CallResult> | 
 export type SysAsk = { agent: string; desktop: (action: AskAction) => Promise<CallResult> };
 
 /** What a model is told when a call gives it binary content, which it can't read. */
-const BINARY = 'That is binary content: read it with an encoding, like "text" or "base64"';
+const BINARY = 'That file is a picture, a video or a sound: it can be shown or opened, not read';
 
 /** The tool that reads a file. */
 const FILE_READ = 'r2-file.read';
@@ -193,7 +195,7 @@ export async function askWith(options: AskOptions): Promise<void> {
         const tool = router.toolOf(call.name);
         const args = router.argsOf(call.name, call.args as Record<string, unknown>);
         // With no encoding a read is a download, which only a browser can load and a model couldn't use.
-        if (call.name === FILE_READ && !JSON.stringify(args?.[1] ?? '').includes('encoding')) return { error: BINARY };
+        if (call.name === FILE_READ && !readsAsText(String(args?.[0]))) return { error: BINARY };
         if (tool && args) return inHomePaths((await tool.pkg.call(tool.spec.name, ...args)) as CallResult);
       }
       return sys[call.name]?.(call.args, { agent: options.state.agent, desktop: options.desktop });
@@ -236,6 +238,8 @@ export interface AgentProfile {
   holdsConversation?: boolean;
   /** Acts through the `act` call, so it can't say something is happening without doing it. */
   actsByCall?: boolean;
+  /** Answers only in JSON, held to valid JSON by the provider. */
+  json?: boolean;
   /** Whether it can search the web itself, where the provider hosts that. */
   webSearch?: boolean;
   /** Whether a job handed to it starts with a call, so it can't promise the work and stop there. */
@@ -411,6 +415,7 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
   let handed = false;
   // The user was told as the ask was handed over, so the next agent's opening words would say it again.
   let told = false;
+  let nudged = false;
   const actions = createActionQueue(options.act, options.track);
   const problems: string[] = [];
   let forms = 0;
@@ -531,7 +536,11 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
       let reply = await take();
       if (isEmpty(reply)) reply = await take();
       if (isEmpty(reply)) return end('error', `No answer from ${agent.model}`);
-      if (handed && agent.actsFirst && !reply.toolCalls.length) problems.push(NOT_ACTED);
+      // Ending on "I'll now…" with nothing done is a promise left hanging: it's held to it, once.
+      if (agent.actsFirst && !reply.toolCalls.length && (handed || (reply.unfinished && !nudged))) {
+        nudged = true;
+        problems.push(NOT_ACTED);
+      }
       handed = false;
 
       history.push({
@@ -712,7 +721,7 @@ async function modelTurn(
   timer: StepTimer,
   calls: { announce(call: string): void; searched(query: string): void; handing(args: string): void; quiet: boolean },
   hooks: PartWriterHooks,
-): Promise<{ text: string; toolCalls: ToolCall[] }> {
+): Promise<{ text: string; toolCalls: ToolCall[]; unfinished: boolean }> {
   const live = mutable<{ data?: ChatOutput }>({});
   const writer = createPartWriter(parts, hooks);
   const parser = createMarkerParser(writer);
@@ -743,6 +752,7 @@ async function modelTurn(
   });
 
   let text = '';
+  let unfinished = false;
   try {
     await new Promise<void>((resolve, reject) => {
       void adapter.ask(
@@ -769,17 +779,20 @@ async function modelTurn(
     // Everything the agent said this turn, so its next turn knows it's been said.
     const answer = live.data?.text ?? (live.data?.chunks ?? []).join('');
     text = [(live.data?.commentary ?? []).join(''), answer].filter(Boolean).join('\n\n');
+    // Commentary goes with work: on its own, the agent said what it would do and stopped.
+    unfinished = !answer && !!live.data?.commentary?.length;
   } finally {
     unsubscribe();
     parser.end();
     writer.end();
     const reasoning = (live.data?.reasoning ?? []).join('');
     if (reasoning) timer.step.reasoning = reasoning;
+    if (live.data?.sources?.length) timer.step.sources = JSON.parse(JSON.stringify(live.data.sources));
   }
 
   // Plain copies: the calls go into history and to resolvers, not the reactive state.
   const toolCalls = JSON.parse(JSON.stringify(live.data?.toolCalls ?? [])) as ToolCall[];
-  return { text, toolCalls };
+  return { text, toolCalls, unfinished };
 }
 
 /**
@@ -846,11 +859,26 @@ async function answerOnce(
         system: agent.system,
         tools: agent.tools,
         ...(agent.effort ? { reasoningEffort: agent.effort } : {}),
+        ...(agent.json ? { json: true } : {}),
       },
       { state: live, signal, resolve, reject },
     );
   });
   return live.data?.text || (live.data?.chunks ?? []).join('') || (live.data?.commentary ?? []).join('');
+}
+
+/**
+ * Every role in some nodes, however deep.
+ *
+ * @param nodes - The nodes.
+ * @returns Their roles.
+ */
+function rolesIn(nodes: unknown[]): string[] {
+  return nodes.flatMap((node) => {
+    if (typeof node !== 'object' || node === null) return [];
+    const { role, children } = node as { role?: string; children?: unknown[] };
+    return [...(role ? [role] : []), ...rolesIn(Array.isArray(children) ? children : [])];
+  });
 }
 
 /**
@@ -875,6 +903,8 @@ function composedOf(text: string): Composed {
     (typeof node === 'object' && node !== null && typeof (node as { role?: unknown }).role === 'string');
   if (!nodes.length || !nodes.every(isNode))
     throw new Error(`The composer's answer isn't widget nodes: ${summaryOf(text)}`);
+  const unknown = rolesIn(nodes).filter((role) => !isWidgetRole(role));
+  if (unknown.length) throw new Error(`Nothing draws these roles: ${unknown.join(', ')}. Use only the catalog's.`);
   return widget ? { ...declared, nodes } : { nodes: nodes as IRPCData[] };
 }
 

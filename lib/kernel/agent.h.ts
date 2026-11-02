@@ -132,6 +132,8 @@ export type AskStep = {
   ended?: string;
   /** How long it took, in milliseconds. */
   ms?: number;
+  /** What a web search on this turn cited, as the provider gave it. */
+  sources?: { url: string; title?: string }[];
   /** How long a model took to send anything: the provider's wait, which isn't the model's work. */
   waitMs?: number;
   /** How long a model reasoned before its first words or call, in milliseconds. */

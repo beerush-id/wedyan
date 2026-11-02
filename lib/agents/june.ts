@@ -13,7 +13,7 @@ import { fill } from './format.js';
  * @returns June's profile.
  */
 export function june(model: string): AgentProfile {
-  return { name: 'june', model, tools: [], system: COMPOSER_PROMPT };
+  return { name: 'june', model, tools: [], json: true, system: COMPOSER_PROMPT };
 }
 
 /** What a date picker's and a time picker's own controls read out, as AUI requires them. */
@@ -57,9 +57,9 @@ const VOCABULARY = `Each entry gives a role, its props, then how it looks and be
 
 **Pictures**
 
-A picture's src is its address or ~/ path, as given.
+A picture's src is its address or ~/ path, as given, always ending in its size: ?s=512 at most, or ?s=256 where it shows small, like a gallery tile, a list row or an avatar. Never leave it off, and never go above 512. An item's value and an href keep the plain path, with no size.
 
-- image: src, alt. A 40-pixel square with soft corners, or the initials of alt when there's no picture. Inside card-media it fills the width at its own shape instead, and it may sit in an a that opens it.
+- image: src, alt. A picture at its own shape, as wide as what holds it, or the initials of alt when there's none. In card-media it reaches the card's edges, and it may sit in an a that opens it.
 - avatar: src, alt (required). A round picture, or initials when there's none. Holds what sits on it, such as a badge with count or dot.
 - avatar-group: label, items, a list of {alt, src}; max. A row of overlapping avatars. Past max, the rest collapse into a "+N".
 - gallery: label, items, multiple, checkable, required. Square picture tiles side by side, wrapping into rows, two to a row at the card's width, each at least 160 pixels wide. Each item is {value, src, alt, title, description, meta, href, disabled}: value is the picture's path. Under the picture, the title on one line, then description and meta at either end, all cut with an ellipsis. The picture eases in under the pointer. Pressing a tile picks it, with a tint and a ring, and with href pressing the picture opens it. checkable puts a check on each tile, and checking one switches to picking several. Binds value: the picked value, or a list with multiple.
