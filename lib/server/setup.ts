@@ -31,6 +31,7 @@ import { type SpeechModel, setupSpeech } from '@/lib/speech/speech.js';
 import { wsTransport } from '@/src/api.js';
 import { DriveDriver } from './drive-driver.js';
 import { generateImage, searchPhotos } from './images.js';
+import { setupMotions } from './motions.js';
 import { setupStills } from './stills.js';
 import { setupUsage, UsageDriver } from './usage.js';
 
@@ -88,6 +89,7 @@ export function setupServer(env: ServerEnv): void {
       [TOOLS.photosSearch.name]: searchPhotos,
       [TOOLS.imageGenerate.name]: generateImage(adapter),
       [TOOLS.stillGenerate.name]: setupStills(adapter, picturesOf(env)),
+      ...setupMotions(adapter, picturesOf(env)),
     },
   });
   setupConversation({ briefer: BRIEFER });

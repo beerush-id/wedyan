@@ -114,6 +114,31 @@ async function generateForAgent(
 }
 
 /**
+ * Makes a new still and writes it, for what an agent puts together with no window open on it. It's
+ * written even when no picture comes back, so what was asked is there to make again.
+ *
+ * @param adapter - The server's models.
+ * @param pictures - The bucket and the resizer, for R2 Image to size the references.
+ * @param path - Where it goes, in the home.
+ * @param name - What it's called.
+ * @param request - What it's made from.
+ * @returns The still, with its one picture when it came back.
+ */
+export async function makeStill(
+  adapter: AIAdapter,
+  pictures: ImageWorkerEnv,
+  path: string,
+  name: string,
+  request: StillRequest,
+): Promise<StillDocument> {
+  const still: StillDocument = { ...newStill(path), name, casts: request.casts ?? [] };
+  applyRequest(still, request);
+  addAttempts(still, await makeAttempts(adapter, pictures, path, requestOf(still)).catch(() => []));
+  await write(path, still as never);
+  return still;
+}
+
+/**
  * Makes a still's new attempts, or a take's pictures: as many images as its batch asks, from its
  * prompt and references, each kept in a folder beside it named after it (`Hero.still` keeps
  * `Hero/<id>.webp`).

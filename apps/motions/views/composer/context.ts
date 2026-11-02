@@ -8,7 +8,7 @@ import { type FileRow, rowsOf } from '@/lib/documents/rows.js';
 import type { GenerativeDocument, MotionDocument, StageDocument } from '@/lib/documents/types.js';
 import { LOUNGE, LOUNGE_EVENT } from '@/lib/kernel/workspace.h.js';
 import { dfs } from '@/lib/share/dfs.js';
-import { generateTakePicture } from '@/lib/share/generate.js';
+import { generateSpeech, generateTakePicture } from '@/lib/share/generate.js';
 import { documentAt, follow, type Project } from '../motion.js';
 import type { HtmlClip, NodeKeyframe } from './composition.js';
 import { findNode } from './nodes.js';
@@ -349,4 +349,5 @@ export function createComposer(path: string, direct: boolean): Composer {
 function attemptsOf({ path, source }: GenerativeSource): (() => Promise<{ id: string }[]>) | undefined {
   if (source.type === 'still') return () => dfs.still.generate(path);
   if (source.type === 'take' && settingsOf(source).mode === 'image') return () => generateTakePicture(path);
+  if (source.type === 'sound' && source.kind === 'speech') return () => generateSpeech(path);
 }

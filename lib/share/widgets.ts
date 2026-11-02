@@ -1,6 +1,6 @@
 import { mutable } from '@airlib/react';
 import type { DockWidgetEntry, DockWidgetPart } from '@airlib/react-aui/desktop';
-import type { AskPart, AskStep, WidgetPart } from '@/lib/kernel/agent.h.js';
+import { type AskPart, type AskStep, MOTION_PICTURE, MOTION_VOICE, type WidgetPart } from '@/lib/kernel/agent.h.js';
 import { type AgentMessage, type ConversationMessage, INTERRUPTED, type UserMessage } from '@/lib/kernel/chat.h.js';
 
 /** How a user's words are drawn, as the desktop draws what's just been sent. */
@@ -107,6 +107,12 @@ const CALL_LABELS: Record<string, string> = {
   'sys.photos.search': 'Photo search',
   'sys.image.generate': 'New image',
   'sys.still.generate': 'New image',
+  'sys.motion.create': 'New project',
+  'sys.motion.cast': 'New cast',
+  'sys.motion.still': 'New still',
+  'sys.motion.stage': 'New stage',
+  [MOTION_PICTURE]: 'Picture',
+  [MOTION_VOICE]: 'Voice',
 };
 
 /** A call as a row of its answer: what it is, what it's working on, and how long it took. */

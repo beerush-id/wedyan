@@ -1,15 +1,13 @@
 import type { Timeline, TimelineSegment, TimelineTrack } from '@airlib/react/timeline';
 import { addressAt, attemptPicture, chosenAttempt, isGenerative, settingsOf } from '@/lib/documents/generation.js';
 import type { FileRow } from '@/lib/documents/rows.js';
+import { TRACK_NAMES, type TrackType } from '@/lib/documents/stage.js';
 import type { GenerativeDocument } from '@/lib/documents/types.js';
 import { documentArrived } from '@/lib/share/documents.js';
 import type { AudioClip, HtmlClip, ImageClip, StageProps, SvgClip, TitleClip, VideoClip } from './composition.js';
 import type { Composer } from './context.js';
 
-/** The tracks a stage can be given, by type, and what each is called. */
-export const TRACK_NAMES = { video: 'Video', audio: 'Audio', title: 'Title', html: 'HTML' };
-
-export type TrackType = keyof typeof TRACK_NAMES;
+export { TRACK_NAMES, type TrackType };
 
 /** How a dragged asset names itself to the timeline: its path, under this type. */
 export const ASSET_DRAG = 'application/x-wedyan-asset';
@@ -122,6 +120,8 @@ export function showAttempt(segment: TimelineSegment, path: string, source: Gene
   const thumbnail = attemptPicture(path, source, attempt);
   (segment.props as { src?: string }).src = addressAt(path, attempt.src);
   if (thumbnail) segment.meta = { ...segment.meta, thumbnail };
+  // Speech lasts as long as it's said: that's the timing everything else is laid out against.
+  if (source.type === 'sound') segment.duration = (attempt as { seconds: number }).seconds;
   if (segment.timeline.status !== 'playing') void segment.timeline.scrub(segment.timeline.frame);
 }
 

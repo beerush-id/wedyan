@@ -44,8 +44,15 @@ export type CallResult = Awaited<IRPCData> | undefined;
 /** A call the kernel resolves on the server, by name. `undefined` means nothing to return. */
 export type SysHandler = (args: IRPCData, ask: SysAsk) => Promise<CallResult> | IRPCData | undefined;
 
-/** The ask a `sys.*` call is made in: the agent making it, and the desktop the ask reaches. */
-export type SysAsk = { agent: string; desktop: (action: AskAction) => Promise<CallResult> };
+/**
+ * The ask a `sys.*` call is made in: the agent making it, the desktop the ask reaches, and how a long
+ * call shows what it's doing, each piece of work a row of the answer of its own, timed as it runs.
+ */
+export type SysAsk = {
+  agent: string;
+  desktop: (action: AskAction) => Promise<CallResult>;
+  activity: <T>(name: string, detail: string, work: () => Promise<T>) => Promise<T>;
+};
 
 /** What a model is told when a call gives it binary content, which it can't read. */
 const BINARY = 'That file is a picture, a video or a sound: it can be shown or opened, not read';
@@ -178,6 +185,15 @@ export async function askWith(options: AskOptions): Promise<void> {
   const agents = await Promise.resolve()
     .then(() => config?.userAgents?.(base) ?? base)
     .catch(() => base);
+  const sysAsk = (): SysAsk => ({
+    agent: options.state.agent,
+    desktop: options.desktop,
+    activity(name, detail, work) {
+      const timer = timeStep(options.state, 'call', name, options.state.agent);
+      timer.step.detail = detail;
+      return work().finally(timer.end);
+    },
+  });
 
   await runAgentLoop({
     adapter,
@@ -203,12 +219,9 @@ export async function askWith(options: AskOptions): Promise<void> {
       }
       // What the window in front says is the user's choice, so what a model asked for doesn't replace it.
       const args = call.name === STILL_GENERATE ? { ...(call.args as object), ...frontSettings(options.input) } : call.args;
-      return sys[call.name]?.(args, { agent: options.state.agent, desktop: options.desktop });
+      return sys[call.name]?.(args, sysAsk());
     },
-    act: async (action) =>
-      sys[action.name]
-        ? sys[action.name](action.args, { agent: options.state.agent, desktop: options.desktop })
-        : options.desktop(action),
+    act: async (action) => (sys[action.name] ? sys[action.name](action.args, sysAsk()) : options.desktop(action)),
     followUps: options.followUps,
     track: options.track,
     signal: options.signal,
@@ -360,11 +373,11 @@ function timeStep(state: AskState, kind: AskStep['kind'], name: string, agent: s
  * What a call is working on, for the row that shows it.
  *
  * @param args - The call's arguments.
- * @returns The path or query it's given, in its options or beside them, when it has one.
+ * @returns The path, query or name it's given, in its options or beside them, when it has one.
  */
 function detailOf(args: unknown): string | undefined {
-  const { path, query, options } = (args ?? {}) as { path?: unknown; query?: unknown; options?: string | object };
-  const detail = path ?? query ?? optionsOf<{ query?: unknown }>(options)?.query;
+  const { path, query, name, options } = (args ?? {}) as { path?: unknown; query?: unknown; name?: unknown; options?: string | object };
+  const detail = path ?? query ?? name ?? optionsOf<{ query?: unknown }>(options)?.query;
   return typeof detail === 'string' ? detail : undefined;
 }
 

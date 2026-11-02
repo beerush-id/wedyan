@@ -1,5 +1,7 @@
-import { IRPC_STORE, stream } from '@irpclib/irpc';
+import { IRPC_STORE, IRPCFile, stream } from '@irpclib/irpc';
+import { write } from '@irpclib/r2-file';
 import { spend } from '@/lib/server/usage.js';
+import { pathTo } from '@/lib/share/paths.js';
 import {
   DEFAULT_VOICE,
   type Heard,
@@ -8,6 +10,8 @@ import {
   type PlayChunk,
   SPEAK_LIMIT,
   SPEECH_TYPE,
+  type SoundAttempt,
+  soundAttempt,
   speak,
   speech,
   type Voice,
@@ -52,6 +56,33 @@ speech.construct(speak, async (text) => {
   const result = await model().run(SPEECH_MODEL, { prompt: text, lang: SPEECH_LANGUAGE });
   return { audio: base64Of(await bytesOf(result)), type: SPEECH_TYPE };
 });
+
+speech.construct(soundAttempt, (path, text) => speakAttempt(path, text));
+
+/**
+ * Speaks a `.sound`'s words as a new attempt, kept in a folder beside it named after it.
+ *
+ * @param path - The sound's path in the home.
+ * @param text - Its words.
+ * @returns The attempt, by path from the sound, with how long it really runs.
+ */
+export async function speakAttempt(path: string, text: string): Promise<SoundAttempt> {
+  await spend('speech');
+  const bytes = await bytesOf(await model().run(SPEECH_MODEL, { prompt: text, lang: SPEECH_LANGUAGE }));
+  const id = crypto.randomUUID();
+  const stored = `${path.slice(0, path.lastIndexOf('.'))}/${id}.wav`;
+  const name = stored.slice(stored.lastIndexOf('/') + 1);
+  const file = new IRPCFile({ name, size: bytes.byteLength, type: SPEECH_TYPE }, new Blob([bytes as BlobPart]));
+  await write(stored, file);
+  return {
+    id,
+    src: pathTo(path, stored),
+    prompt: text,
+    settings: {},
+    created: new Date().toISOString(),
+    seconds: wavSeconds(bytes),
+  };
+}
 
 speech.construct(voice, (speaker) =>
   stream<Record<string, never>, VoiceQueries>((state) => {
@@ -249,6 +280,25 @@ function createSpeaking(speaker: Voice, play: (chunk: PlayChunk) => void) {
       void reader?.cancel();
     },
   };
+}
+
+/**
+ * How long a WAV runs, from its own header: its data's size over the bytes it plays a second.
+ *
+ * @param bytes - The file.
+ * @returns Its length in seconds; throws when it isn't a WAV.
+ */
+function wavSeconds(bytes: Uint8Array): number {
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const chunkAt = (at: number) => String.fromCharCode(...bytes.subarray(at, at + 4));
+  if (chunkAt(0) !== 'RIFF') throw new Error('Speech model returned no WAV');
+  let byteRate = 0;
+  for (let at = 12; at + 8 <= bytes.byteLength; at += 8 + view.getUint32(at + 4, true) + (view.getUint32(at + 4, true) % 2)) {
+    const size = view.getUint32(at + 4, true);
+    if (chunkAt(at) === 'fmt ') byteRate = view.getUint32(at + 16, true);
+    if (chunkAt(at) === 'data' && byteRate) return size / byteRate;
+  }
+  throw new Error('Speech model returned no WAV');
 }
 
 /** The model speech runs on; throws before `setupSpeech`. */

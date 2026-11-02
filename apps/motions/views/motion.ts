@@ -1,10 +1,10 @@
 import { mutable } from '@airlib/react';
 import { nameOf, newHeader, newId, parentOf } from '@/lib/documents/paths.js';
 import type { FileRow } from '@/lib/documents/rows.js';
+import { stageAt } from '@/lib/documents/stage.js';
 import type { MotionDocument, PersonaDocument, StageDocument } from '@/lib/documents/types.js';
 import { dfs } from '@/lib/share/dfs.js';
 import { LOUNGE, LOUNGE_EVENT } from '../../../lib/kernel/workspace.h.js';
-import { TRACK_NAMES, type TrackType } from './composer/placement.js';
 
 export { documentAt, follow } from '@/lib/share/documents.js';
 
@@ -96,16 +96,6 @@ export const removeEntries = (paths: string[]): Promise<unknown> => {
   return Promise.all(paths.map((path) => dfs.remove(MOTION_FILE.test(path) ? parentOf(path) : path, { recursive: true })));
 };
 
-/** A stage's size at each aspect ratio a motion is made at. */
-const STAGE_SIZES: Record<string, { width: number; height: number }> = {
-  '16:9': { width: 1920, height: 1080 },
-  '9:16': { width: 1080, height: 1920 },
-  '1:1': { width: 1080, height: 1080 },
-};
-
-/** The tracks a stage starts with, one of each kind: later ones draw over earlier ones. */
-const STARTING_TRACKS: TrackType[] = ['audio', 'video', 'html', 'title'];
-
 /**
  * Starts a new project in its own folder, with one empty stage at its aspect ratio. Its folder and
  * file are named by its id; what it's called is its document's, and can change.
@@ -180,38 +170,6 @@ async function writeScript(project: string, name: string): Promise<string> {
   const path = `${parentOf(project)}/${newId()}.md`;
   await dfs.write(path, `## ${name}\n`, { metadata: { title: `${name} script` } });
   return nameOf(path);
-}
-
-/**
- * A new empty stage of a project: its size, its casts, its starting tracks, at 30 frames a second.
- *
- * @param id - Its id, which names its file.
- * @param folder - The folder it goes in.
- * @param name - What it's called.
- * @param project - The project's `.motion`.
- * @param order - Its place in the project.
- * @returns The stage.
- */
-function stageAt(id: string, folder: string, name: string, project: MotionDocument, order: number): StageDocument {
-  return {
-    ...newHeader(`${folder}/${id}.stage`, '.stage'),
-    id,
-    name,
-    type: 'stage',
-    projectId: project.id,
-    order,
-    casts: [...(project.casts ?? [])],
-    composition: {
-      id: crypto.randomUUID(),
-      options: { frameRate: 30 },
-      props: STAGE_SIZES[project.aspect] ?? STAGE_SIZES['16:9'],
-      tracks: STARTING_TRACKS.map((type) => ({
-        id: crypto.randomUUID(),
-        options: { type, name: `${TRACK_NAMES[type]} 1`, meta: {} },
-        segments: [],
-      })),
-    },
-  };
 }
 
 /**

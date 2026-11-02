@@ -1,6 +1,7 @@
 import { settingsOf } from '@/lib/documents/generation.js';
-import type { StillDocument, TakeDocument } from '@/lib/documents/types.js';
+import type { SoundDocument, StillDocument, TakeDocument } from '@/lib/documents/types.js';
 import { type StillAttempt, type StillRequest, stillAttempts } from '@/lib/kernel/stills.h.js';
+import { type SoundAttempt, soundAttempt } from '@/lib/speech/speech.h.js';
 import { addAttempts, applyRequest, requestOf } from './stills.js';
 import { edited } from './workspace.js';
 
@@ -21,6 +22,24 @@ export async function generateStill(path: string, request?: Partial<StillRequest
   const attempts = await stillAttempts(path, requestOf(still));
   addAttempts(still, attempts);
   return attempts;
+}
+
+/**
+ * Speaks a speech `.sound` a window here is editing, as a new attempt: its words, at their real
+ * length, which is what a stage can be timed from before anything expensive is made.
+ *
+ * @param path - The sound's path in the home.
+ * @returns The new attempt, in a list as every other way of making one gives it.
+ * @throws When nothing on this desktop is editing that sound, or it has no words.
+ */
+export async function generateSpeech(path: string): Promise<SoundAttempt[]> {
+  const sound = edited<SoundDocument>(path);
+  if (!sound) throw new Error(`${path} isn't being edited on this desktop`);
+  const text = sound.text?.trim();
+  if (!text) throw new Error('Write the words it says first.');
+  const attempt = await soundAttempt(path, text);
+  addAttempts(sound as never, [attempt]);
+  return [attempt];
 }
 
 /**

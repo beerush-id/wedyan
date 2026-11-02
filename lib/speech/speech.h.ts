@@ -1,5 +1,6 @@
 import { createPackage, type RemoteState } from '@irpclib/irpc';
 import { z } from 'zod';
+import type { GeneratedAttempt } from '@/lib/documents/types.js';
 import { wsTransport } from '@/src/api.js';
 
 /**
@@ -43,6 +44,22 @@ export type SpeakFn = (text: string, voice?: Voice | null) => Promise<Speech>;
 export const speak = speech.declare<SpeakFn>('speak', () => ({ audio: '', type: SPEECH_TYPE }), {
   schema: { input: [z.string().trim().min(1).max(SPEAK_LIMIT), z.enum(VOICES).nullish()] },
 });
+
+/** A new attempt of a speech `.sound`: its words as spoken, kept beside it, and how long they run. */
+export type SoundAttempt = GeneratedAttempt & { seconds: number };
+
+export type SoundAttemptFn = (path: string, text: string) => Promise<SoundAttempt>;
+
+/**
+ * Speaks a `.sound`'s words and keeps them in a folder beside it named after it, as a still keeps its
+ * pictures. It isn't in the document yet: the window that asked adds it to its copy. Its length is the
+ * audio's own, which is what a timeline can be timed from before any video is made.
+ */
+export const soundAttempt = speech.declare<SoundAttemptFn>(
+  'soundAttempt',
+  () => ({ id: '', src: '', prompt: '', settings: {}, created: '', seconds: 0 }),
+  { schema: { input: [z.string().min(1).max(1024), z.string().trim().min(1).max(SPEAK_LIMIT)] } },
+);
 
 /** Spoken text of one answer part, as it streams in. */
 export type SayInput = { part: number; text: string };

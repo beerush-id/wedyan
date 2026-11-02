@@ -106,6 +106,10 @@ export type ActionOutcome = {
   error?: string;
 };
 
+/** What a stage's scene shows being made, each a row of the answer. */
+export const MOTION_PICTURE = 'motion.picture';
+export const MOTION_VOICE = 'motion.voice';
+
 /**
  * One step of an answer and how long it took, kept to measure where the time goes: `model` is a turn
  * of a model, `call` a tool it called, `compose` a widget or form being drawn, `handoff` an ask being
