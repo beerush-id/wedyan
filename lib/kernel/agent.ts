@@ -53,6 +53,9 @@ const BINARY = 'That file is a picture, a video or a sound: it can be shown or o
 /** The tool that reads a file. */
 const FILE_READ = 'r2-file.read';
 
+/** The tool that makes a still's attempts. */
+const STILL_GENERATE = 'sys.still.generate';
+
 /**
  * A call's result as a model reads it: data as it is, and a downloaded blob as a note on how to
  * read it instead, since binary content reaches a model as nothing.
@@ -198,7 +201,9 @@ export async function askWith(options: AskOptions): Promise<void> {
         if (call.name === FILE_READ && !readsAsText(String(args?.[0]))) return { error: BINARY };
         if (tool && args) return inHomePaths((await tool.pkg.call(tool.spec.name, ...args)) as CallResult);
       }
-      return sys[call.name]?.(call.args, { agent: options.state.agent, desktop: options.desktop });
+      // What the dock is set to is the user's choice, so what a model asked for doesn't replace it.
+      const args = call.name === STILL_GENERATE ? { ...(call.args as object), ...dockSettings(options.input) } : call.args;
+      return sys[call.name]?.(args, { agent: options.state.agent, desktop: options.desktop });
     },
     act: async (action) =>
       sys[action.name]
@@ -688,6 +693,18 @@ function inHomePaths(result: CallResult): CallResult {
   const home = fsContext.get()?.homeDir;
   if (!home || !result || typeof result !== 'object' || result instanceof Blob) return result;
   return JSON.parse(JSON.stringify(result).replaceAll(`${home}/`, '~/')) as CallResult;
+}
+
+/**
+ * What the window in front says new images are made with, for the ask being answered.
+ *
+ * @param input - The ask.
+ * @returns The model, aspect ratio and how many to make; none when that window says nothing.
+ */
+function dockSettings(input: ChatInput): Record<string, IRPCData> | undefined {
+  const context = chatTurns(input).map(contextOf).find(Boolean) as { activeWindow?: { data?: { generation?: Record<string, IRPCData> } } } | undefined;
+  const generation = context?.activeWindow?.data?.generation;
+  return generation && { model: generation.model, aspect: generation.aspect, batch: generation.batch };
 }
 
 /** The desktop's context a turn carries, if it's that turn. */

@@ -52,7 +52,7 @@ export const DESCRIBE_PROMPTS: Record<DescriptionType, string> = {
 };
 
 /** What an agent asks `sys.still.generate` for. */
-type GenerateArgs = { path?: string; prompt?: string; aspect?: string; batch?: number; references?: string[] };
+type GenerateArgs = { path?: string; prompt?: string; model?: string; aspect?: string; batch?: number; references?: string[] };
 
 /**
  * Sets up making stills on the server's models: the desktop's `still.attempts` and `still.describe`,
@@ -74,14 +74,14 @@ export function setupStills(adapter: AIAdapter, pictures: ImageWorkerEnv): SysHa
  * copy, so they're saved with its edits; otherwise the still is written here.
  */
 async function generateForAgent(adapter: AIAdapter, args: IRPCData, { agent, desktop }: SysAsk): Promise<IRPCData> {
-  const { path, prompt, aspect, batch, references } = (args ?? {}) as GenerateArgs;
+  const { path, prompt, model, aspect, batch, references } = (args ?? {}) as GenerateArgs;
   if (!path?.startsWith('~/') || !path.endsWith(STILL_EXTENSION)) {
     return { error: 'sys.still.generate needs path: a .still in the home (~/…)' };
   }
   const still = (await read<StillDocument>(path, { encoding: 'json' }).catch(() => undefined)) ?? newStill(path);
   applyRequest(still, {
     ...(prompt ? { prompt } : {}),
-    settings: { aspect, batch },
+    settings: { model, aspect, batch },
     ...(references ? { references } : {}),
   });
   if (!still.prompt) return { error: 'A new still needs a prompt' };

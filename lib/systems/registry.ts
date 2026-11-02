@@ -3,7 +3,7 @@
  * desktop looks like right now. Everything reads the running system here, so an app never needs to.
  * The parts apps may use are in `public.ts`.
  */
-import { type AnyType, snapshot } from '@airlib/react';
+import { type AnyType, stringify } from '@airlib/react';
 import { toast } from '@airlib/react-aui';
 import type {
   AUIAppEntry,
@@ -342,7 +342,8 @@ function offered(commands: Commands | undefined, prefix: string, group: string):
 function factsOf(instance: WindowInstance): WindowFacts {
   const { id, app, name, title, data } = instance;
   const commands = agentCommands(opened.get(id)?.commands);
-  return { id, app: app.name, name, title, data: data && snapshot(data), ...(commands.length ? { commands } : {}) };
+  // A window's data can hold live state, like what the dock is set to; what leaves here is plain.
+  return { id, app: app.name, name, title, data: data && JSON.parse(stringify(data)), ...(commands.length ? { commands } : {}) };
 }
 
 /**
