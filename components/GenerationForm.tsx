@@ -83,7 +83,13 @@ const promptGroup = (source: GenerativeDocument, subject: GenerationSubject) =>
         <TextInput size="xs" multiline rows={3} label="Words" placeholder="The words it says" value={$bind(source, 'text')} />
       )}
       <TextInput size="xs" multiline rows={4} label="Prompt" value={$bind(source, 'prompt')} />
-      <Button size="sm" variant="filled" className="wedyan-compose-generate" disabled={$use(() => !source.prompt?.trim())} onClick={() => subject.generate()}>
+      <Button
+        size="sm"
+        variant="filled"
+        className="wedyan-compose-generate"
+        disabled={$use(() => !!subject.busy || !source.prompt?.trim())}
+        onClick={() => subject.generate()}
+      >
         <GenerativeIcon />
         <span>Generate</span>
       </Button>

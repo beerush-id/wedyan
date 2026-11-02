@@ -14,7 +14,7 @@ import { resolvePath } from '@/lib/documents/paths.js';
 import type { PersonaDocument, StillDocument } from '@/lib/documents/types.js';
 import { dfs } from '@/lib/share/dfs.js';
 import { AddIcon, CloseIcon, DeleteIcon, ImageIcon, PeopleIcon, PersonIcon } from './icons.js';
-import { announceName, edit, KINDS, newStill, type PersonaKind, pictureOf, portraitOf, stillAt, tilePicture } from './library.js';
+import { announceName, announcePortrait, edit, KINDS, largePicture, newStill, type PersonaKind, pictureOf, portraitOf, stillAt, tilePicture } from './library.js';
 import { type LoungeSession, loungeCtx, PERSON_TABS, type PersonTab } from './session.js';
 
 /** The id naming the Profile's attach-defaults switch, and its hint as `-hint` after it. */
@@ -260,6 +260,12 @@ const StillPanel = setup<{ path: string }>((props) => {
   const path = $static(() => props.path);
   const file = dfs.binding<StillDocument>(path);
   const making = mutable({ busy: false, note: '' });
+  const view = personaViewCtx.get() as PersonaView;
+
+  // This still may be their face, whose picture is now another.
+  const pictureChanged = () => {
+    if (view.document) announcePortrait(view.path, view.document);
+  };
 
   // Makes new attempts, which join the still here, and says so if they can't be made.
   const make = async () => {
@@ -272,6 +278,7 @@ const StillPanel = setup<{ path: string }>((props) => {
     try {
       await dfs.still.generate(path);
       making.note = '';
+      pictureChanged();
     } catch (error) {
       making.note = (error as Error).message;
     } finally {
@@ -286,11 +293,16 @@ const StillPanel = setup<{ path: string }>((props) => {
     },
     // A persona's own pictures are of the persona; no one else is cast in them.
     casts: false,
+    get busy() {
+      return making.busy;
+    },
     generate() {
       void make();
     },
     choose(id: string) {
-      if (file.data) file.data.chosen = id;
+      if (!file.data) return;
+      file.data.chosen = id;
+      pictureChanged();
     },
   });
 
@@ -468,7 +480,7 @@ const LookTab = setup<{ part: Part }>((props) => {
 
   const look = (): Side | undefined => persona()?.[props.part];
   const main = () => look()?.main ?? '';
-  const picture = () => (main() ? pictureOf(view.path, main()) : undefined);
+  const picture = () => (main() ? largePicture(view.path, main()) : undefined);
 
   // Whether a still is on its way, so a second press doesn't make another.
   let adding = false;
@@ -503,7 +515,7 @@ const LookTab = setup<{ part: Part }>((props) => {
                   <PictureButton source={main()} label={part.main}>
                     <img src={src} alt="" className={CLASS.SLOT_PICTURE} />
                   </PictureButton>
-                  <FloatingDownload src={src} name={`${persona()?.name || 'Unnamed'} ${part.main.toLowerCase()}`} />
+                  <FloatingDownload src={pictureOf(view.path, main()) ?? src} name={`${persona()?.name || 'Unnamed'} ${part.main.toLowerCase()}`} />
                 </div>
               );
             }
@@ -552,7 +564,10 @@ const LookTab = setup<{ part: Part }>((props) => {
               },
               promote: {
                 label: part.promote,
-                run: (source) => view.change((document) => makeMain(document, props.part, source)),
+                run: (source) => {
+                  view.change((document) => makeMain(document, props.part, source));
+                  if (view.document) announcePortrait(view.path, view.document);
+                },
               },
             })}
           </section>

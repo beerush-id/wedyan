@@ -33,13 +33,14 @@ export function applyRequest(still: StillDocument, request: Partial<StillRequest
 }
 
 /**
- * Adds new attempts to a still's history; the first becomes its chosen one when it has none yet,
- * otherwise the choice stays the user's.
+ * Adds new attempts to a still's history and chooses the newest: what was just asked for is what
+ * the still shows, with nothing more to pick.
  *
  * @param still - The still.
  * @param attempts - The new attempts, as made.
  */
 export function addAttempts(still: StillDocument, attempts: Array<GeneratedAttempt & { url?: string }>): void {
   for (const { url: _, ...attempt } of attempts) still.attempts.push(attempt);
-  if (!still.chosen && attempts.length) still.chosen = attempts[0].id;
+  const newest = attempts.at(-1);
+  if (newest) still.chosen = newest.id;
 }

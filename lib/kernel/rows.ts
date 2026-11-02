@@ -51,7 +51,10 @@ const DOCUMENTS: Partial<Record<RowKind, Columns>> = {
   sound: (sound: { attempts: { id: string; src: string }[]; chosen?: string }) => ({ src: chosen(sound)?.src }),
   persona: (persona: PersonaDocument, { path }) => {
     const main = persona.head?.main;
-    return main?.endsWith('.still') ? { picture: resolvePath(path, main) } : { thumbnail: main };
+    // Both, always: the column a former face wrote would otherwise outlive it.
+    return main?.endsWith('.still')
+      ? { picture: resolvePath(path, main), thumbnail: null }
+      : { picture: null, thumbnail: main ?? null };
   },
   agent: (agent: { avatar?: string }) => ({ thumbnail: agent.avatar }),
   memo: (memo: MemoDocument) => ({ status: memo.priority, description: memo.body.slice(0, ASK_LENGTH) }),

@@ -12,6 +12,8 @@ export type GenerationSubject = {
   readonly source?: GenerativeDocument;
   /** Whether who's in it shows; a persona's own pictures have no one cast in them but the persona. */
   readonly casts?: boolean;
+  /** Whether it's being made, so a second press doesn't make it twice. */
+  readonly busy?: boolean;
   /** Makes it again, as a new attempt. */
   generate(): void;
   /**

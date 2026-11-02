@@ -53,7 +53,7 @@ export const lounge = kernel.declare<() => RemoteState<LoungeState, LoungeQuerie
 });
 
 /** What a lounge message says happened. */
-export const LOUNGE_EVENT = { RENAMED: 'renamed', CREATED: 'created', REMOVED: 'removed' } as const;
+export const LOUNGE_EVENT = { RENAMED: 'renamed', CREATED: 'created', REMOVED: 'removed', PORTRAIT: 'portrait' } as const;
 
 export type LoungeMessage = {
   type: string;

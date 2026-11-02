@@ -42,6 +42,9 @@ export const SKILLS: Record<string, { label: string; hint: string }> = {
 /** The longest edge of a person's picture where it shows small: a portrait or a tile. */
 const SMALL_PICTURE = 256;
 
+/** The longest edge of a person's picture where it fills its tab. */
+const LARGE_PICTURE = 1024;
+
 /**
  * Listed rows in name order, as the side shows them: files are named by id, so only the rows know.
  *
@@ -126,6 +129,22 @@ export function announceName(path: string, title: string): void {
 }
 
 /**
+ * Tells every window what a person now looks like. The list shows the portrait its listing gave it,
+ * and a file saving itself tells nobody.
+ *
+ * @param path - Where the person is.
+ * @param persona - The person.
+ */
+export function announcePortrait(path: string, persona: PersonaDocument): void {
+  const main = persona.head?.main;
+  const still = main ? stillAt(path, main) : undefined;
+  const thumbnail = main && ADDRESS.test(main) ? main : still && chosenAttempt(still.document)?.src;
+  const message = { type: LOUNGE_EVENT.PORTRAIT, data: { path, thumbnail } };
+  LOUNGE.ask(message);
+  LOUNGE.broadcast(message);
+}
+
+/**
  * Takes a person or an agent off the drive, telling every other window; a person's pictures stay
  * in their folder.
  *
@@ -175,6 +194,9 @@ export function pictureOf(from: string, source: string, size?: number): string |
   const src = still && chosenAttempt(still.document)?.src;
   return still && src ? addressOf(still.path, src, size) : undefined;
 }
+
+/** A large picture, for the main one on a tab of a person's pictures. */
+export const largePicture = (from: string, source: string): string | undefined => pictureOf(from, source, LARGE_PICTURE);
 
 /** A small picture, for a tile of a person's pictures. */
 export const tilePicture = (from: string, source: string): string | undefined => pictureOf(from, source, SMALL_PICTURE);

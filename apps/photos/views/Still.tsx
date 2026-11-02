@@ -109,6 +109,9 @@ function StillWindow(props: WindowRenderProps) {
     get source() {
       return still();
     },
+    get busy() {
+      return made()?.busy;
+    },
     generate() {
       void makeAttempts(path);
     },

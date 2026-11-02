@@ -92,6 +92,9 @@ export function createLounge() {
         const row = rowsOf(listings[group]).find(({ path }) => path === event.data.path);
         if (row) row.name = event.data.title;
       }
+    } else if (event.type === LOUNGE_EVENT.PORTRAIT) {
+      const row = rowsOf(listings.people).find(({ path }) => path === event.data.path);
+      if (row) row.thumbnail = event.data.thumbnail;
     } else if (event.type === LOUNGE_EVENT.REMOVED) {
       drop(event.data);
     }
