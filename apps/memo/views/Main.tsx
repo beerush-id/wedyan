@@ -1,15 +1,16 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
-import { $bind, effect, mutable, Show, Snippet } from '@airlib/react';
+import { $bind, effect, Snippet } from '@airlib/react';
 import { Button, Divider, EmptyState, Toggle, ToggleGroup, Tooltip } from '@airlib/react-aui';
 import { defineWindow, Window, WindowBody, WindowControls, WindowPanel, WindowToolbar } from '@airlib/react-aui/desktop';
 import { AddIcon } from '@airlib/react-aui/icons';
 import type { FC } from 'react';
 import { type DirectItem, DirectList } from '@/components/Direct.js';
-import { SaveButton } from '@/components/SaveButton.js';
+import { shortDate } from '@/lib/documents/rows.js';
 import { fullRect } from '@/lib/systems/window.js';
 import manifest from '../manifest.json';
+import { createMemos } from './context.js';
 import { MemosIcon, MemoryIcon, SidebarCloseIcon, SidebarOpenIcon } from './icons.js';
-import { type MemoGroup, memoAt, memosOf, newMemo, opening, PRIORITIES, priorityOf, remove, shortDate } from './library.js';
+import { type MemoGroup, opening, PRIORITIES, rowPriority } from './library.js';
 import { MemoEditor } from './Memo.js';
 import { memoCtx } from './session.js';
 
@@ -33,36 +34,19 @@ export const memo = defineWindow({
   rect: fullRect(),
   window: { snap: '.aui-window', minWidth: 720, minHeight: 400 },
 }).render(() => {
-  // Each tab keeps its own pick; until the user picks, its first memo is open.
-  const view = mutable({
-    group: 'personal' as MemoGroup,
-    picked: { personal: null, memory: null } as Record<MemoGroup, string | null>,
-    query: '',
-    sidebar: true,
-  });
-
-  const opened = () => view.picked[view.group] ?? memosOf(view.group)[0]?.path ?? null;
+  const memos = createMemos();
+  const { state: view, opened } = memos;
   memoCtx.set({
     get path() {
       return opened();
     },
-    remove() {
-      const path = opened();
-      if (!path) return;
-      view.picked[view.group] = null;
-      remove(path);
-    },
+    remove: () => void memos.remove(),
+    changed: memos.changed,
   });
 
-  // A link's memo opens in its own tab, picked.
+  // A link's memo opens in its own tab, picked, once it's listed.
   effect(() => {
-    const path = opening.path;
-    const document = path ? memoAt(path) : undefined;
-    if (!path || !document) return;
-    view.group = document.author.kind === 'agent' ? 'memory' : 'personal';
-    view.picked[view.group] = path;
-    view.query = '';
-    opening.path = null;
+    if (opening.path && memos.open(opening.path)) opening.path = null;
   });
 
   // What the toolbar's tabs pick: the tab, which starts its search afresh.
@@ -89,24 +73,18 @@ export const memo = defineWindow({
   // The side's rows, narrowed by the search through names and words, each saying how much it weighs, when it isn't normal, and when it changed.
   const rows = (): DirectItem[] => {
     const query = view.query.trim().toLowerCase();
-    return memosOf(view.group)
-      .filter(({ document }) => !query || `${document.name} ${document.body}`.toLowerCase().includes(query))
-      .map(({ path, document }) => {
-        const priority = priorityOf(document);
+    return memos
+      .rows()
+      .filter(({ name, description }) => !query || `${name} ${description ?? ''}`.toLowerCase().includes(query))
+      .map((row) => {
+        const priority = rowPriority(row);
         return {
-          key: path,
-          title: document.name || 'Untitled',
-          description: [priority !== 'normal' && `${PRIORITIES[priority]} priority`, shortDate(document.updated)].filter(Boolean).join(' · '),
+          key: row.path,
+          title: row.name || 'Untitled',
+          description: [priority !== 'normal' && `${PRIORITIES[priority]} priority`, row.updated && shortDate(row.updated)].filter(Boolean).join(' · '),
           icon: GROUPS[view.group].Icon,
         };
       });
-  };
-
-  // A new memo is the user's own, so it opens in Personal.
-  const create = () => {
-    view.group = 'personal';
-    view.query = '';
-    view.picked.personal = newMemo();
   };
 
   return () => (
@@ -133,11 +111,10 @@ export const memo = defineWindow({
                 })}
               </ToggleGroup>
               <WindowControls>
-                <Button aria-label="New memo" size="sm" variant="text" className={AUI_CLASS.CONTROL_ICON} onClick={create}>
+                <Button aria-label="New memo" size="sm" variant="text" className={AUI_CLASS.CONTROL_ICON} onClick={() => void memos.create()}>
                   <AddIcon />
                   <Tooltip>New memo</Tooltip>
                 </Button>
-                <Show when={opened}>{() => <SaveButton />}</Show>
                 {/* Sets the app's own buttons apart from the window's. */}
                 <Divider orientation="vertical" variant="ghost" size="sm" />
               </WindowControls>

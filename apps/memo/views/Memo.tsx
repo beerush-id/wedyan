@@ -1,11 +1,12 @@
-import { $bind, $static, mutable, Show, Snippet, setup } from '@airlib/react';
-import { EmptyState, Select, TextInput, Toggle, ToggleGroup } from '@airlib/react-aui';
+import { $bind, $static, $use, mutable, Show, Snippet, setup } from '@airlib/react';
+import { EmptyState, Select, Spinner, TextInput, Toggle, ToggleGroup } from '@airlib/react-aui';
 import { WindowPanel } from '@airlib/react-aui/desktop';
 import { MarkdownRenderer } from '@airlib/react-aui/markdown';
 import { ConfirmButton } from '@/components/ConfirmButton.js';
 import type { MemoDocument } from '@/lib/documents/types.js';
+import { dfs } from '@/lib/share/dfs.js';
 import { DeleteIcon, EditIcon, MemoryIcon, MemosIcon, PreviewIcon } from './icons.js';
-import { edit, factsOf, memoAt, PRIORITIES, type MemoPriority, priorityOf } from './library.js';
+import { edit, factsOf, PRIORITIES, type MemoPriority, priorityOf } from './library.js';
 import { memoCtx, type MemoSession } from './session.js';
 
 const CLASS = {
@@ -27,11 +28,14 @@ const CLASS = {
 /**
  * The open memo, edited in place: its name, how much it weighs, and its words in Markdown, drawn
  * or as their source as Motions shows a script; then who wrote it and when, and deleting it, once
- * confirmed. Every change is made to the memo itself, so the list beside it sees it at once.
+ * confirmed. The memo is held, so every change saves as it's made, and the list beside it is told.
  */
 export const MemoEditor = setup(() => {
   const session = memoCtx.get() as MemoSession;
-  const memo = () => (session.path ? memoAt(session.path) : undefined);
+  // Made afresh for each memo, so which file it works on never changes under it.
+  const path = $static(() => session.path) as string;
+  const file = dfs.binding<MemoDocument>(path);
+  const memo = () => file.data;
 
   /**
    * Changes the open memo, while it's still on the drive, and marks when it changed.
@@ -40,7 +44,9 @@ export const MemoEditor = setup(() => {
    */
   const change = (apply: (document: MemoDocument) => void) => {
     const document = memo();
-    if (document) edit(document, () => apply(document));
+    if (!document) return;
+    edit(document, () => apply(document));
+    session.changed(path, document);
   };
 
   // What the fields edit: the memo's own values, read live and written straight back to it. A
@@ -70,16 +76,29 @@ export const MemoEditor = setup(() => {
     },
   };
 
-  // The words open drawn when there's something to read, and as their source when there's nothing yet.
-  const view = mutable({ mode: $static(() => (memo()?.body ? 'preview' : 'edit')) });
+  // The words open drawn when there's something to read, and as their source when there's nothing
+  // yet, until the user says otherwise. The memo arrives after the editor opens, so it's asked then.
+  const chosen = mutable({ mode: null as string | null });
+  const view = {
+    get mode() {
+      return chosen.mode ?? (memo()?.body ? 'preview' : 'edit');
+    },
+    set mode(mode: string) {
+      chosen.mode = mode;
+    },
+  };
 
   return () => (
     <WindowPanel surface="solid" role="region" aria-label="Memo" className={CLASS.PANEL}>
       <Show
         when={memo}
         fallback={() => (
-          <EmptyState title="This memo is gone" description="It was deleted." level={3}>
-            <EmptyState.Snippet for="icon">{() => <MemosIcon />}</EmptyState.Snippet>
+          <EmptyState
+            title={$use(() => (file.ready ? 'This memo is gone' : 'Loading it'))}
+            description={$use(() => (file.ready ? 'It was deleted.' : undefined))}
+            level={3}
+          >
+            <EmptyState.Snippet for="icon">{() => (file.ready ? <MemosIcon /> : <Spinner label="Loading it" />)}</EmptyState.Snippet>
           </EmptyState>
         )}
       >

@@ -1,22 +1,26 @@
 import { mutable } from '@airlib/react';
-import { documentAt, documentsOf, drive, freePath, newHeader, supply } from '@/lib/documents/store.js';
+import type { ListOptions } from '@irpclib/r2-file';
+import { FILE_TYPES } from '@/lib/documents/file-types.js';
+import { newHeader, newId } from '@/lib/documents/paths.js';
+import type { FileRow } from '@/lib/documents/rows.js';
 import type { MemoDocument } from '@/lib/documents/types.js';
-import SAMPLES from '../data/memos.json';
-
-// More memos than the seed holds, on the drive at their paths, until the drive serves the user's own.
-supply(Object.entries(SAMPLES) as [string, MemoDocument][]);
+import { dfs } from '@/lib/share/dfs.js';
+import { MEMOS_PATH } from '@/lib/share/system.js';
 
 /** The memo a link asked for, until the window opens it. */
 export const opening = mutable({ path: null as string | null });
 
-/** Where the memos live: the Memos folder at the drive's root. */
-export const ROOT = '/Memos';
+/** What a memo's file ends with. */
+export const MEMO_EXTENSION = '.memo';
+
+/** What Memo lists: every memo in the Memos folder. */
+export const LISTING: [string, ListOptions] = [MEMOS_PATH, { filter: { type: FILE_TYPES.memo } }];
+
+/** What a memo with no name yet is called. */
+const UNTITLED = 'Untitled';
 
 /** Whose memos a tab shows: the user's own notes, or what Wedyan remembers. */
 export type MemoGroup = 'personal' | 'memory';
-
-/** A memo as Memo lists it: the `.memo` and where it is. */
-export type Memo = { path: string; document: MemoDocument };
 
 /** How much a memo weighs, normal when it says nothing. */
 export type MemoPriority = NonNullable<MemoDocument['priority']> | 'normal';
@@ -25,39 +29,21 @@ export type MemoPriority = NonNullable<MemoDocument['priority']> | 'normal';
 export const PRIORITIES: Record<MemoPriority, string> = { high: 'High', normal: 'Normal', low: 'Low' };
 
 /**
- * Every memo kept in Memos.
+ * Whose a listed memo is. A row says only when the user wrote it: until Memo kept them, every memo
+ * on a drive was one Wedyan saved.
  *
- * @returns Each `.memo` under the Memos folder still on the drive.
+ * @param row - The memo's row.
+ * @returns Its tab.
  */
-export const memos = (): Memo[] => documentsOf('memo').filter(({ path }) => path.startsWith(`${ROOT}/`));
+export const groupOf = (row: FileRow): MemoGroup => (row.author === 'You' ? 'personal' : 'memory');
 
 /**
- * The memos of one tab — the user's, or Wedyan's — high priority first, low last, the latest
- * changed first within each.
+ * How much a listed memo weighs.
  *
- * @param group - Personal or Memory.
- * @returns Its memos, in that order.
+ * @param row - The memo's row.
+ * @returns Its priority, normal when it has none.
  */
-export function memosOf(group: MemoGroup): Memo[] {
-  const rank = Object.keys(PRIORITIES) as MemoPriority[];
-  return memos()
-    .filter(({ document }) => (document.author.kind === 'agent' ? 'memory' : 'personal') === group)
-    .sort(
-      (a, b) =>
-        rank.indexOf(priorityOf(a.document)) - rank.indexOf(priorityOf(b.document)) || b.document.updated.localeCompare(a.document.updated)
-    );
-}
-
-/**
- * The memo at a path.
- *
- * @param path - Its path.
- * @returns Its document, unless there's no memo there.
- */
-export function memoAt(path: string): MemoDocument | undefined {
-  const document = documentAt(path);
-  return document?.type === 'memo' ? document : undefined;
-}
+export const rowPriority = (row: FileRow): MemoPriority => (row.status as MemoPriority | undefined) ?? 'normal';
 
 /**
  * How much a memo weighs.
@@ -81,31 +67,14 @@ export function edit(document: MemoDocument, change: () => void): void {
 /**
  * Makes a new, empty memo of the user's own in Memos.
  *
- * @returns Where it was put.
+ * @returns Where it was put, once it's written.
  */
-export function newMemo(): string {
-  const path = freePath(ROOT, 'Untitled', '.memo');
-  const memo: MemoDocument = { ...newHeader(path, '.memo'), type: 'memo', kind: 'note', body: '' };
-  supply([[path, memo]]);
+export async function newMemo(): Promise<string> {
+  const path = `${MEMOS_PATH}/${newId()}${MEMO_EXTENSION}`;
+  const memo: MemoDocument = { ...newHeader(path, MEMO_EXTENSION), name: UNTITLED, type: 'memo', kind: 'note', body: '' };
+  await dfs.write(path, memo as never);
   return path;
 }
-
-/**
- * Takes a memo off the drive, for this session.
- *
- * @param path - Where it is.
- */
-export function remove(path: string): void {
-  drive.deleted.push(path);
-}
-
-/**
- * A date as lists show it, e.g. `Oct 27`.
- *
- * @param iso - The date, as an ISO string.
- * @returns Its month and day.
- */
-export const shortDate = (iso: string): string => new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
 /**
  * A date and time as the open memo shows it, e.g. `Oct 30, 2026, 9:00 AM`.
