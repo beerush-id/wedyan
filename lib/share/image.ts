@@ -4,7 +4,7 @@ import { type Resize, url } from '@irpclib/r2-image';
  * The longest edges a picture is resized to, kept once each in storage. Any other size gets the
  * original picture.
  */
-export const IMAGE_SIZES = [64, 128, 256, 512, 1024];
+export const IMAGE_SIZES = [64, 128, 256, 512, 1024, 1600];
 
 /**
  * A picture's URL with its resizing spelled out, for when writing `?s=` by hand isn't wanted. Never

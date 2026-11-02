@@ -44,6 +44,9 @@ const DESCRIBER = DEFAULT_MODELS.agents;
 /** How large a still is shown to the describer, its longest edge: any smaller saves little and loses detail. */
 const DESCRIBE_SIZE = 512;
 
+/** How large a reference is sent to the model, its longest edge, inline as WebP. */
+const REFERENCE_SIZE = 1024;
+
 /** What the describer is asked, by what the description is for. */
 export const DESCRIBE_PROMPTS: Record<DescriptionType, string> = {
   face: 'Describe only the face and head of the person in this picture, in two paragraphs, plain words, no preamble. First, who they are, so an image model could draw the same person again in any scene, outfit, pose or style: apparent age and sex, face shape, skin tone and texture, eyes (shape, colour), brows, nose, lips, cheeks, jaw and chin, hair (colour, length, texture, hairline), facial hair, and distinguishing marks such as freckles, scars, moles, wrinkles or glasses. Second, starting with "Expression:", the expression exactly as drawn, so it can be adjusted: what the brows, forehead, eyes and lids, mouth, lips and jaw are each doing, how tense the face is, any tears or flush, how strong it reads, and what it could be mistaken for. Leave out clothing, pose, lighting, background and art style.',
@@ -63,9 +66,9 @@ type GenerateArgs = { path?: string; prompt?: string; model?: string; aspect?: s
  * @returns The agents' handler.
  */
 export function setupStills(adapter: AIAdapter, pictures: ImageWorkerEnv): SysHandler {
-  kernel.construct(stillAttempts, (path, request) => makeAttempts(adapter, path, request));
+  kernel.construct(stillAttempts, (path, request) => makeAttempts(adapter, pictures, path, request));
   kernel.construct(stillDescribe, (path, options) => describeStill(adapter, pictures, path, options));
-  return (args, ask) => generateForAgent(adapter, args, ask);
+  return (args, ask) => generateForAgent(adapter, pictures, args, ask);
 }
 
 /**
@@ -73,7 +76,12 @@ export function setupStills(adapter: AIAdapter, pictures: ImageWorkerEnv): SysHa
  * is written into the still first. A desktop editing that still takes the attempts into its own
  * copy, so they're saved with its edits; otherwise the still is written here.
  */
-async function generateForAgent(adapter: AIAdapter, args: IRPCData, { agent, desktop }: SysAsk): Promise<IRPCData> {
+async function generateForAgent(
+  adapter: AIAdapter,
+  pictures: ImageWorkerEnv,
+  args: IRPCData,
+  { agent, desktop }: SysAsk,
+): Promise<IRPCData> {
   const { path, prompt, model, aspect, batch, references } = (args ?? {}) as GenerateArgs;
   if (!path?.startsWith('~/') || !path.endsWith(STILL_EXTENSION)) {
     return { error: 'sys.still.generate needs path: a .still in the home (~/…)' };
@@ -87,7 +95,7 @@ async function generateForAgent(adapter: AIAdapter, args: IRPCData, { agent, des
   if (!still.prompt) return { error: 'A new still needs a prompt' };
 
   const request = requestOf(still);
-  const attempts = await makeAttempts(adapter, path, request);
+  const attempts = await makeAttempts(adapter, pictures, path, request);
   // Nothing made: the still stays as it was, what was asked included.
   if (!attempts.length) return { error: 'No image came back from the model; the still is unchanged' };
   const taken = (await desktop({
@@ -110,15 +118,21 @@ async function generateForAgent(adapter: AIAdapter, args: IRPCData, { agent, des
  * each kept in a folder beside it named after it (`Hero.still` keeps `Hero/<id>.webp`).
  *
  * @param adapter - The server's models.
+ * @param pictures - The bucket and the resizer, for R2 Image to size the references.
  * @param path - The still's path in the home.
  * @param request - What it's made from.
  * @returns The new attempts, their images by path from the still, and an address to show each at.
  */
-export async function makeAttempts(adapter: AIAdapter, path: string, request: StillRequest): Promise<StillAttempt[]> {
+export async function makeAttempts(
+  adapter: AIAdapter,
+  pictures: ImageWorkerEnv,
+  path: string,
+  request: StillRequest,
+): Promise<StillAttempt[]> {
   const { model = 'standard', aspect, batch = 1 } = request.settings ?? {};
-  const references = (
-    await Promise.all((request.references ?? []).map((reference) => imageOf(path, reference)))
-  ).filter((image): image is string => !!image);
+  const references = await Promise.all(
+    (request.references ?? []).map((reference) => referenceOf(pictures, path, reference)),
+  );
   const count = Math.min(Math.max(Math.round(batch), 1), MAX_BATCH);
   const drawn = await Promise.all(
     Array.from({ length: count }, () =>
@@ -188,12 +202,28 @@ async function describeStill(
 }
 
 /**
- * A reference as an image the model can be given: an address as it is; a picture in the drive, or
- * a still's chosen image, inline, since the drive is private. Undefined when there's none.
+ * A reference as the model is given it. What's asked is made from it or not made at all: drawn
+ * without it, the picture comes back looking fine and nothing like what was asked.
+ *
+ * @param pictures - The bucket and the resizer.
+ * @param still - The still's path in the home.
+ * @param reference - The reference, as written.
+ * @returns The image; throws when there's none to give.
  */
-async function imageOf(still: string, reference: string): Promise<string | undefined> {
+async function referenceOf(pictures: ImageWorkerEnv, still: string, reference: string): Promise<string> {
+  const image = await imageOf(pictures, still, reference);
+  if (!image) throw new Error(`Couldn't read the reference ${reference}`);
+  return image;
+}
+
+/**
+ * A reference as an image the model can be given: an address as it is; a picture in the drive, by
+ * its path or the `/~/…` it's delivered from, or a still's chosen image, inline and sized by R2
+ * Image, since the drive is private. Undefined when there's none.
+ */
+async function imageOf(pictures: ImageWorkerEnv, still: string, reference: string): Promise<string | undefined> {
   if (isAddress(reference)) return reference;
-  let path = pathFrom(still, reference);
+  let path = pathFrom(still, reference.replace(/^\//, ''));
   if (path.endsWith(STILL_EXTENSION)) {
     const source = await read<StillDocument>(path, { encoding: 'json' }).catch(() => undefined);
     const chosen = source && chosenAttempt(source);
@@ -201,7 +231,7 @@ async function imageOf(still: string, reference: string): Promise<string | undef
     if (isAddress(chosen.src)) return chosen.src;
     path = pathFrom(path, chosen.src);
   }
-  return (await read(path, { encoding: 'data-url' }).catch(() => undefined)) ?? undefined;
+  return resizePicture(pictures, path, REFERENCE_SIZE).catch(() => undefined);
 }
 
 /** Whether an image is an address a model can be given as it is, rather than a path in the drive. */

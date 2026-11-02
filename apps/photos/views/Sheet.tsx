@@ -6,7 +6,7 @@ import { BROWSE_CLASS, WedyanGallery, WedyanGalleryRow } from '@/components/Wedy
 import { type FileRow, rowsOf } from '@/lib/documents/rows.js';
 import { LibraryIcon } from './icons.js';
 import { libraryCtx, type PhotoLibrary } from './library.js';
-import { detailOf, modifiedOf, originalOf, pictureOf, VIEWER_LABELS } from './listing.js';
+import { detailOf, modifiedOf, pictureOf, VIEWER_LABELS, viewedOf } from './listing.js';
 import { LibraryPreview } from './Preview.js';
 
 /** What the browser says while its listing is on the way. */
@@ -107,5 +107,5 @@ const LibraryRow = template<{ row: FileRow }>(
  * @returns The viewer's entry.
  */
 function slideOf(row: FileRow): ImageViewerEntry {
-  return { src: originalOf(row) as string, alt: row.name, caption: `${row.name} · ${modifiedOf(row)}` };
+  return { src: viewedOf(row) as string, alt: row.name, caption: `${row.name} · ${modifiedOf(row)}` };
 }

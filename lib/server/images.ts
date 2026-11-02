@@ -4,6 +4,7 @@ import { mutable } from '@irpclib/irpc/core';
 import { fsContext } from '@irpclib/r2-file/context';
 import { url } from '@irpclib/r2-image';
 import { createWorker as createImageWorker, type ImageWorkerEnv } from '@irpclib/r2-image/worker';
+import { recall } from '@/lib/memory/memory.h.js';
 import type { SavedOptions } from '@/lib/share/ai.js';
 import { IMAGE_SIZES } from '@/lib/share/image.js';
 import { pathFrom } from '@/lib/share/paths.js';
@@ -13,6 +14,15 @@ export const IMAGE_MODEL = 'muse-image-1.0';
 
 /** Where resized pictures are kept in the bucket: outside every home, so they're never a user's files. */
 const VARIANTS_PREFIX = '.variants';
+
+/** What's a picture to a search: a still, or an image file. */
+const PICTURE_FILE = /\.(still|webp|png|jpe?g|gif|avif)$/i;
+
+/** How many files a photo search looks through: others on the drive are close too, and are left out. */
+const SEARCHED_FILES = 20;
+
+/** How many pictures a photo search returns. */
+const FOUND_PHOTOS = 8;
 
 /** The part of a D1 binding finding a still's picture uses. */
 type PictureIndex = {
@@ -91,6 +101,24 @@ export async function resizePicture(env: ImageWorkerEnv, path: string, size: num
   if (!response.ok) throw new Error(`${path} couldn't be resized (${response.status})`);
   const type = response.headers.get('content-type') ?? 'image/webp';
   return `data:${type};base64,${base64Of(new Uint8Array(await response.arrayBuffer()))}`;
+}
+
+/**
+ * Serves `sys.photos.search` for the agents: the user's pictures by what they show, from what the
+ * drive's index holds of each, which for a still is what it was asked to be.
+ *
+ * @param args - The `query`: what the photo shows.
+ * @returns The closest pictures first, each with what's known of it and how close it is.
+ */
+export async function searchPhotos(args: IRPCData): Promise<IRPCData> {
+  const { query } = (args ?? {}) as { query?: string };
+  if (!query?.trim()) return { error: 'sys.photos.search needs a query: what the photo shows' };
+  const found = await recall({ query, scope: 'files', limit: SEARCHED_FILES });
+  const photos = found
+    .filter(({ path }) => PICTURE_FILE.test(path))
+    .slice(0, FOUND_PHOTOS)
+    .map(({ path, name, text, score }) => ({ path, name, about: text, score }));
+  return { photos };
 }
 
 /** What an agent asks `sys.image.generate` for. */

@@ -30,7 +30,7 @@ import { AGENTS_PATH } from '@/lib/share/system.js';
 import { type SpeechModel, setupSpeech } from '@/lib/speech/speech.js';
 import { wsTransport } from '@/src/api.js';
 import { DriveDriver } from './drive-driver.js';
-import { generateImage } from './images.js';
+import { generateImage, searchPhotos } from './images.js';
 import { setupStills } from './stills.js';
 import { setupUsage, UsageDriver } from './usage.js';
 
@@ -79,6 +79,7 @@ export function setupServer(env: ServerEnv): void {
     persona: loadPersona,
     userAgents: loadUserAgents,
     sys: {
+      [TOOLS.photosSearch.name]: searchPhotos,
       [TOOLS.imageGenerate.name]: generateImage(adapter),
       [TOOLS.stillGenerate.name]: setupStills(adapter, picturesOf(env)),
     },

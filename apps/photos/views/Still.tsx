@@ -13,7 +13,7 @@ import { dfs } from '@/lib/share/dfs.js';
 import { documentAt } from '@/lib/share/documents.js';
 import { fullRect } from '@/lib/systems/window.js';
 import manifest from '../manifest.json';
-import { addressOf, VIEWER_LABELS } from './listing.js';
+import { addressOf, VIEWER_LABELS, VIEWER_SIZE } from './listing.js';
 import { makeAttempts, making, stillChanged } from './making.js';
 import { StillOptions } from './options.js';
 import { pictures } from './prompt.js';
@@ -143,7 +143,7 @@ function StillWindow(props: WindowRenderProps) {
   };
 
   const slides = (): ImageViewerEntry[] =>
-    (still()?.attempts ?? []).map((attempt, at) => ({ src: addressOf(path, attempt.src), alt: `Attempt ${at + 1}` }));
+    (still()?.attempts ?? []).map((attempt, at) => ({ src: addressOf(path, attempt.src, VIEWER_SIZE), alt: `Attempt ${at + 1}` }));
 
   // Each attempt as its picture alone; what it was asked shows as the viewer's caption.
   const tiles = (): GalleryEntry[] =>
@@ -226,8 +226,8 @@ function StillWindow(props: WindowRenderProps) {
                 {/* Downloading the attempt the viewer shows. */}
                 <Snippet>
                   {() => {
-                    const shown = slides()[viewer.index];
-                    return shown ? <FloatingDownload src={shown.src} name={still()?.name ?? 'Still'} /> : null;
+                    const shown = still()?.attempts[viewer.index];
+                    return shown ? <FloatingDownload src={addressOf(path, shown.src)} name={still()?.name ?? 'Still'} /> : null;
                   }}
                 </Snippet>
               </>

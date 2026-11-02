@@ -16,6 +16,9 @@ import { PeopleTile } from './PeopleTile.js';
 /** What a generated sound can be. */
 const SOUND_KINDS: Record<SoundDocument['kind'], string> = { music: 'Music', speech: 'Speech', sfx: 'Sound effect', ambience: 'Ambience' };
 
+/** The longest edge a small square picture is asked for at, as `dfs.image` serves it. */
+const THUMB_SIZE = 128;
+
 /**
  * A generated image, video or sound as it was asked for, to change and make again: its prompt; its
  * settings — the model, and the aspect ratio of a picture or how long a video or a sound runs; the
@@ -365,7 +368,7 @@ function pressedApart(run: () => void): (element: HTMLElement | null) => void {
 const Thumb = template<{ src?: string; sound?: boolean }>(
   ({ src, sound }) =>
     src ? (
-      <img className="wedyan-compose-thumb" src={src} alt="" />
+      <img className="wedyan-compose-thumb" src={dfs.image(src, { size: THUMB_SIZE })} alt="" />
     ) : (
       <span className="wedyan-compose-thumb" data-blank>
         {sound && <SoundIcon />}

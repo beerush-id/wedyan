@@ -30,6 +30,9 @@ export const VIEWER_LABELS = {
 /** The longest edge a picture is asked for at on a tile, as `dfs.image` serves it. */
 const TILE_SIZE = 256;
 
+/** The longest edge a picture is asked for at in the viewer, as `dfs.image` serves it. */
+export const VIEWER_SIZE = 1600;
+
 /**
  * Whether a file is one Photos might show, so a change to it lists the drive again.
  *
@@ -65,7 +68,7 @@ export function pictureOf(row: FileRow, size = TILE_SIZE): string {
 }
 
 /**
- * A listed row's picture at its own size, to view or keep.
+ * A listed row's picture at its own size, to keep.
  *
  * @param row - The row.
  * @returns Its address; none for a still with nothing made yet.
@@ -73,6 +76,17 @@ export function pictureOf(row: FileRow, size = TILE_SIZE): string {
 export function originalOf(row: FileRow): string | undefined {
   if (row.kind === 'image') return dfs.image(row.path);
   if (row.src) return addressOf(row.path, row.src);
+}
+
+/**
+ * A listed row's picture as the viewer shows it.
+ *
+ * @param row - The row.
+ * @returns Its address; none for a still with nothing made yet.
+ */
+export function viewedOf(row: FileRow): string | undefined {
+  if (row.kind === 'image') return dfs.image(row.path, { size: VIEWER_SIZE });
+  if (row.src) return addressOf(row.path, row.src, VIEWER_SIZE);
 }
 
 /**
