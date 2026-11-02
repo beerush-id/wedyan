@@ -1,18 +1,20 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
 import { $bind, $static, $use, createContext, For, mutable, Show, Snippet, setup } from '@airlib/react';
-import { Avatar, Button, EmptyState, Listbox, ListboxOption, Select, Switch, TextInput, Tooltip } from '@airlib/react-aui';
+import { Avatar, Button, EmptyState, Select, Spinner, Switch, TextInput, Tooltip } from '@airlib/react-aui';
 import { WindowPanel } from '@airlib/react-aui/desktop';
 import { linkTo, requestLink } from '@/lib/systems/public.js';
 import type { ReactNode } from 'react';
 import { ConfirmButton } from '@/components/ConfirmButton.js';
 import { FloatingDownload } from '@/components/FloatingDownload.js';
 import { generationCtx } from '@/components/generation.js';
-import { GenerationForm, GenerationGroup } from '@/components/GenerationForm.js';
+import { GenerationForm } from '@/components/GenerationForm.js';
 import { GenerativeIcon } from '@/components/icons.js';
-import { WRITING_MODELS } from '@/lib/documents/generation.js';
-import type { PersonaDocument } from '@/lib/documents/types.js';
+import { ADDRESS } from '@/lib/documents/generation.js';
+import { resolvePath } from '@/lib/documents/paths.js';
+import type { PersonaDocument, StillDocument } from '@/lib/documents/types.js';
+import { dfs } from '@/lib/share/dfs.js';
 import { AddIcon, CloseIcon, DeleteIcon, ImageIcon, PeopleIcon, PersonIcon } from './icons.js';
-import { edit, KINDS, newStill, type PersonaKind, personaAt, personalityOf, pictureOf, portraitOf, stillAt } from './library.js';
+import { announceName, edit, KINDS, newStill, type PersonaKind, pictureOf, portraitOf, stillAt, tilePicture } from './library.js';
 import { type LoungeSession, loungeCtx, PERSON_TABS, type PersonTab } from './session.js';
 
 /** The id naming the Profile's attach-defaults switch, and its hint as `-hint` after it. */
@@ -96,8 +98,12 @@ const PARTS: Record<
   },
 };
 
-/** The open persona's tab and picked picture, shared by its tabs and pictures. */
+/** The open persona and its picked picture, shared by its tabs and pictures. */
 type PersonaView = {
+  /** Where the persona is, which its pictures' paths are written from. */
+  readonly path: string;
+  /** The persona, live; none until it arrives, or once it's gone. */
+  readonly document: PersonaDocument | undefined;
   /** The picked picture, as the persona writes it; none on Profile, or while nothing on the tab is picked. */
   readonly picked: string | null;
   /**
@@ -106,9 +112,15 @@ type PersonaView = {
    * @param source - The picture, as the persona writes it.
    */
   pick(source: string): void;
+  /**
+   * Changes the persona, while it's still on the drive, and marks when it changed.
+   *
+   * @param apply - What to change in it.
+   */
+  change(apply: (document: PersonaDocument) => void): void;
 };
 
-/** The open persona's picked picture, for its pictures. */
+/** The open persona, for its tabs and pictures. */
 const personaViewCtx = createContext<PersonaView>();
 
 const CLASS = {
@@ -139,65 +151,65 @@ const CLASS = {
 };
 
 /**
- * The open persona, as the source its images, videos and scripts are made from, on two panels. The
- * person, by the tab the toolbar picks: Profile — who they are and how they sound —
- * then Head, Body and Wardrobe, each with its pictures. On the right, how it's made: on Profile,
- * their personality, from a prompt; on a tab of pictures, the picked one's prompt, settings,
- * references and history, where choosing an attempt changes the picture. Every change is made to
- * the persona itself, so the side sees it at once.
+ * The persona a window has open, whichever it is: its editor starts afresh as the open one changes,
+ * here and where it's embedded, as a cast in Motions.
  */
 export const PersonaEditor = setup(() => {
   const session = loungeCtx.get() as LoungeSession;
-  const persona = () => (session.path ? personaAt(session.path) : undefined);
+
+  return () => <Snippet data={() => session.path}>{(path) => (path ? <OpenPersona key={path} path={path} /> : null)}</Snippet>;
+}, 'PersonaEditor');
+
+/**
+ * One persona, as the source its images, videos and scripts are made from, on two panels. The
+ * person, by the tab the toolbar picks: Profile — who they are and how they sound — then Head, Body
+ * and Wardrobe, each with its pictures. On the right, on a tab of pictures, the picked one's prompt,
+ * settings, references and history, where choosing an attempt changes the picture. Its file is
+ * bound, so every change is saved as it's made.
+ */
+const OpenPersona = setup<{ path: string }>((props) => {
+  const session = loungeCtx.get() as LoungeSession;
+  // Made afresh for each persona, so which file it works on never changes under it.
+  const path = $static(() => props.path);
+  const file = dfs.binding<PersonaDocument>(path);
   const view = mutable({ picked: null as string | null });
 
   // The picked picture, while it's still one of the tab's; otherwise the tab's main picture, if it has one.
   const picked = () => {
-    const document = persona();
+    const document = file.data;
     const { tab } = session;
     if (!document || tab === 'profile') return null;
     if (view.picked && picturesOf(document, tab).includes(view.picked)) return view.picked;
     return document[tab]?.main || null;
   };
   personaViewCtx.set({
+    path,
+    get document() {
+      return file.data;
+    },
     get picked() {
       return picked();
     },
     pick(source: string) {
       view.picked = source;
     },
-  });
-
-  // The picked picture's still, while it was made in Wedyan.
-  const pickedStill = () => {
-    const source = picked();
-    return source && session.path ? stillAt(session.path, source) : undefined;
-  };
-  generationCtx.set({
-    get path() {
-      return pickedStill()?.path;
-    },
-    get source() {
-      return pickedStill()?.document;
-    },
-    // A persona's own pictures are of the persona; no one else is cast in them.
-    casts: false,
-    generate() {
-      // Nothing in Lounge generates yet; the prompt and settings are kept for when it does.
-    },
-    choose(id: string) {
-      const still = pickedStill();
-      if (still) still.document.chosen = id;
+    change(apply) {
+      const document = file.data;
+      if (document) edit(document, () => apply(document));
     },
   });
 
   return () => (
     <Show
-      when={persona}
+      when={() => file.data}
       fallback={() => (
         <WindowPanel surface="solid" role="region" aria-label="Person" className={CLASS.PANEL}>
-          <EmptyState title="They're gone" description="They were deleted from People." level={3}>
-            <EmptyState.Snippet for="icon">{() => <PeopleIcon />}</EmptyState.Snippet>
+          <EmptyState
+            title={$use(() => (file.ready ? "They're gone" : 'Loading them'))}
+            description={$use(() => (file.ready ? 'They were deleted from People.' : undefined))}
+            level={3}
+          >
+            <EmptyState.Snippet for="icon">{() => (file.ready ? <PeopleIcon /> : <Spinner label="Loading them" />)}</EmptyState.Snippet>
           </EmptyState>
         </WindowPanel>
       )}
@@ -212,42 +224,106 @@ export const PersonaEditor = setup(() => {
               }}
             </Snippet>
           </WindowPanel>
-          <WindowPanel role="region" aria-label="How it's made" className={CLASS.GENERATION}>
-            <Snippet data={() => session.tab === 'profile'}>
-              {(profile) =>
-                profile ? (
-                  <PersonalityForm />
-                ) : (
-                  <Show
-                    when={picked}
-                    fallback={() => (
+          <Show when={() => session.tab !== 'profile'}>
+            {() => (
+              <WindowPanel role="region" aria-label="How it's made" className={CLASS.GENERATION}>
+                <Snippet data={picked}>
+                  {(source) =>
+                    source && ADDRESS.test(source) ? (
+                      <EmptyState size="sm" title="Not made here" description="This picture wasn't generated, so there's nothing to remake.">
+                        <EmptyState.Snippet for="icon">{() => <GenerativeIcon />}</EmptyState.Snippet>
+                      </EmptyState>
+                    ) : source ? (
+                      <StillPanel key={source} path={resolvePath(path, source)} />
+                    ) : (
                       <EmptyState size="sm" title="Nothing picked" description="Pick one of their pictures to see how it was made.">
                         <EmptyState.Snippet for="icon">{() => <GenerativeIcon />}</EmptyState.Snippet>
                       </EmptyState>
-                    )}
-                  >
-                    {() => (
-                      <Show
-                        when={pickedStill}
-                        fallback={() => (
-                          <EmptyState size="sm" title="No still there" description="Its still was moved or deleted, so there's no prompt or history to show.">
-                            <EmptyState.Snippet for="icon">{() => <ImageIcon />}</EmptyState.Snippet>
-                          </EmptyState>
-                        )}
-                      >
-                        {() => <GenerationForm />}
-                      </Show>
-                    )}
-                  </Show>
-                )
-              }
-            </Snippet>
-          </WindowPanel>
+                    )
+                  }
+                </Snippet>
+              </WindowPanel>
+            )}
+          </Show>
         </>
       )}
     </Show>
   );
-}, 'PersonaEditor');
+}, 'OpenPersona');
+
+/**
+ * How one of the persona's pictures is made: its still, bound, so what's written and generated is
+ * saved with it, in the shared generation form, and where making it stands.
+ */
+const StillPanel = setup<{ path: string }>((props) => {
+  // Made afresh for each still, so which file it works on never changes under it.
+  const path = $static(() => props.path);
+  const file = dfs.binding<StillDocument>(path);
+  const making = mutable({ busy: false, note: '' });
+
+  // Makes new attempts, which join the still here, and says so if they can't be made.
+  const make = async () => {
+    if (making.busy) return;
+    if (!file.data?.prompt.trim()) {
+      making.note = 'Write its prompt first.';
+      return;
+    }
+    Object.assign(making, { busy: true, note: 'Making it…' });
+    try {
+      await dfs.still.generate(path);
+      making.note = '';
+    } catch (error) {
+      making.note = (error as Error).message;
+    } finally {
+      making.busy = false;
+    }
+  };
+
+  generationCtx.set({
+    path,
+    get source() {
+      return file.data;
+    },
+    // A persona's own pictures are of the persona; no one else is cast in them.
+    casts: false,
+    generate() {
+      void make();
+    },
+    choose(id: string) {
+      if (file.data) file.data.chosen = id;
+    },
+  });
+
+  return () => (
+    <Show
+      when={() => file.data}
+      fallback={() => (
+        <EmptyState
+          size="sm"
+          title={$use(() => (file.ready ? 'No still there' : 'Loading its still'))}
+          description={$use(() => (file.ready ? "Its still was moved or deleted, so there's no prompt or history to show." : undefined))}
+        >
+          <EmptyState.Snippet for="icon">{() => (file.ready ? <ImageIcon /> : <Spinner label="Loading its still" />)}</EmptyState.Snippet>
+        </EmptyState>
+      )}
+    >
+      {() => (
+        <>
+          <Snippet>
+            {() =>
+              making.note && (
+                <p role="status" className="wedyan-compose-property-note">
+                  {making.note}
+                </p>
+              )
+            }
+          </Snippet>
+          <GenerationForm />
+        </>
+      )}
+    </Show>
+  );
+}, 'StillPanel');
 
 /**
  * Who the open persona is: their portrait and name, what they are, how they sound, and who they
@@ -255,23 +331,20 @@ export const PersonaEditor = setup(() => {
  */
 const ProfileTab = setup(() => {
   const session = loungeCtx.get() as LoungeSession;
-  const persona = () => (session.path ? personaAt(session.path) : undefined);
-
-  /**
-   * Changes the open persona and marks when it changed.
-   *
-   * @param apply - What to change in it.
-   */
-  const change = (apply: (document: PersonaDocument) => void) => changeOpen(session, apply);
+  const view = personaViewCtx.get() as PersonaView;
+  const persona = () => view.document;
+  const change = view.change;
 
   // What the fields edit: the persona's own values, read live and written straight back to it.
-  // The format keeps the description and voice optional, so emptying them leaves them out.
+  // The format keeps the description and voice optional, so emptying them leaves them out. What the
+  // list shows of them is written to their row too, which the listing filled.
   const fields = {
     get name() {
       return persona()?.name ?? '';
     },
     set name(name: string) {
       change((document) => (document.name = name));
+      if (session.row) session.row.name = name;
     },
     get description() {
       return persona()?.description ?? '';
@@ -281,6 +354,7 @@ const ProfileTab = setup(() => {
         if (description) document.description = description;
         else delete document.description;
       });
+      if (session.row) session.row.description = description;
     },
     get kind() {
       return persona()?.kind ?? 'person';
@@ -307,13 +381,19 @@ const ProfileTab = setup(() => {
 
   const portrait = () => {
     const document = persona();
-    return document && session.path ? portraitOf(session.path, document) : undefined;
+    return document ? portraitOf(view.path, document) : undefined;
   };
   return () => (
     <div className={CLASS.TAB}>
       <header className={CLASS.HEAD}>
         <Avatar src={$use(portrait)} alt={$use(() => fields.name || 'Unnamed')} size="md" />
-        <TextInput label="Name" placeholder="Name" value={$bind(fields, 'name')} className={CLASS.NAME} />
+        <TextInput
+          label="Name"
+          placeholder="Name"
+          value={$bind(fields, 'name')}
+          onchange={() => announceName(view.path, fields.name)}
+          className={CLASS.NAME}
+        />
       </header>
       <div className={CLASS.META}>
         <div className={CLASS.FIELD}>
@@ -363,17 +443,10 @@ const ProfileTab = setup(() => {
       <Show when={() => Boolean(session.remove)}>
         {() => (
           <footer className={CLASS.FOOT}>
-            <ConfirmButton
-              size="sm"
-              variant="tonal"
-              title={() => `Delete ${fields.name || 'this person'}?`}
-              description="They're taken off People. Their pictures stay in their folder."
-              action="Delete"
-              onconfirm={() => session.remove?.()}
-            >
+            <Button size="sm" variant="tonal" onClick={() => session.remove?.()}>
               <DeleteIcon />
               <span>Delete person</span>
-            </ConfirmButton>
+            </Button>
           </footer>
         )}
       </Show>
@@ -382,82 +455,23 @@ const ProfileTab = setup(() => {
 }, 'ProfileTab');
 
 /**
- * How the open persona's personality is made: the prompt describing them, the writing model it's
- * asked of, and every try, newest first, where picking one chooses it.
- */
-const PersonalityForm = setup(() => {
-  const session = loungeCtx.get() as LoungeSession;
-  // The editor is made afresh for each persona, so whose personality it is never changes under it.
-  const personality = $static(() => personalityOf(session.path ?? ''));
-  const models: Record<string, string> = WRITING_MODELS;
-
-  return () => (
-    <div className="wedyan-compose-properties-fields">
-      <GenerationGroup label="Prompt">
-        <TextInput
-          size="xs"
-          multiline
-          rows={4}
-          label="Prompt"
-          placeholder="Who they are, how they think and talk"
-          value={$bind(personality, 'prompt')}
-        />
-        <Button size="sm" variant="filled" className="wedyan-compose-generate">
-          <GenerativeIcon />
-          <span>Generate</span>
-        </Button>
-      </GenerationGroup>
-      <GenerationGroup label="Settings" card>
-        <div className="wedyan-compose-property-row pi-sm">
-          <span>Model</span>
-          <Select size="xs" label="Model" options={models} value={$bind(personality, 'model')}>
-            <Select.Snippet for="trigger">{(value) => <span>{models[value as string]}</span>}</Select.Snippet>
-          </Select>
-        </div>
-      </GenerationGroup>
-      <GenerationGroup label="History">
-        <Snippet>
-          {() =>
-            personality.tries.length ? (
-              <Listbox size="xs" label="Tries" value={$bind(personality, 'chosen')}>
-                {[...personality.tries].reverse().map((attempt) => (
-                  <ListboxOption key={attempt.id} value={attempt.id} className="wedyan-lounge-try">
-                    <span className="wedyan-compose-attempt-text">
-                      <span>{attempt.prompt}</span>
-                      <span>{models[attempt.model] ?? attempt.model}</span>
-                      <time dateTime={attempt.created}>
-                        {new Date(attempt.created).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
-                      </time>
-                    </span>
-                  </ListboxOption>
-                ))}
-              </Listbox>
-            ) : (
-              <p className="wedyan-compose-property-note">Nothing made yet.</p>
-            )
-          }
-        </Snippet>
-      </GenerationGroup>
-    </div>
-  );
-}, 'PersonalityForm');
-
-/**
  * One of the open persona's sides — the head, the body, or the wardrobe: its main picture, large —
  * the picture, an empty still waiting to be made, or an empty place offering to add one — then, once
  * it exists, its others — poses, or outfits — each to pick, make the main one or remove, ending with
  * a tile adding one. What's added is a new, empty still, picked at once so its prompt is beside it.
  */
 const LookTab = setup<{ part: Part }>((props) => {
-  const session = loungeCtx.get() as LoungeSession;
   const view = personaViewCtx.get() as PersonaView;
-  const persona = () => (session.path ? personaAt(session.path) : undefined);
+  const persona = () => view.document;
   // Each side gets its own tab, made afresh, so which side it is never changes under it.
   const part = $static(() => PARTS[props.part]);
 
   const look = (): Side | undefined => persona()?.[props.part];
   const main = () => look()?.main ?? '';
-  const picture = () => (main() && session.path ? pictureOf(session.path, main()) : undefined);
+  const picture = () => (main() ? pictureOf(view.path, main()) : undefined);
+
+  // Whether a still is on its way, so a second press doesn't make another.
+  let adding = false;
 
   /**
    * Makes a new, empty still for this look, puts it where it belongs, and picks it.
@@ -465,11 +479,16 @@ const LookTab = setup<{ part: Part }>((props) => {
    * @param name - What the still is called.
    * @param place - Puts the still, as the persona writes it, into the persona.
    */
-  const add = (name: string, place: (document: PersonaDocument, source: string) => void) => {
-    if (!session.path) return;
-    const source = newStill(session.path, name, part.aspect);
-    changeOpen(session, (document) => place(document, source));
-    view.pick(source);
+  const add = async (name: string, place: (document: PersonaDocument, source: string) => void) => {
+    if (adding) return;
+    adding = true;
+    try {
+      const source = await newStill(view.path, name, part.aspect);
+      view.change((document) => place(document, source));
+      view.pick(source);
+    } finally {
+      adding = false;
+    }
   };
 
   return () => (
@@ -506,7 +525,7 @@ const LookTab = setup<{ part: Part }>((props) => {
                   <EmptyState.Snippet for="icon">{() => <PersonIcon />}</EmptyState.Snippet>
                   <EmptyState.Snippet for="action">
                     {() => (
-                      <Button size="sm" variant="filled" onClick={() => add(part.main, (document, source) => (lookOf(document, props.part).main = source))}>
+                      <Button size="sm" variant="filled" onClick={() => void add(part.main, (document, source) => (lookOf(document, props.part).main = source))}>
                         <AddIcon />
                         <span>{part.add}</span>
                       </Button>
@@ -522,18 +541,18 @@ const LookTab = setup<{ part: Part }>((props) => {
         {() => (
           <section className={CLASS.SECTION} aria-label={part.othersLabel}>
             <span className={CLASS.FIELD_LABEL}>{part.othersLabel}</span>
-            {tiles(session, {
+            {tiles(view, {
               items: () => look()?.[part.others] ?? [],
               label: part.other,
-              add: { label: part.addOther, run: () => add(part.other, (document, source) => (lookOf(document, props.part)[part.others] ??= []).push(source)) },
+              add: { label: part.addOther, run: () => void add(part.other, (document, source) => (lookOf(document, props.part)[part.others] ??= []).push(source)) },
               remove: {
                 label: part.remove,
                 description: part.removeHint,
-                run: (source) => changeOpen(session, (document) => removeOther(document, props.part, source)),
+                run: (source) => view.change((document) => removeOther(document, props.part, source)),
               },
               promote: {
                 label: part.promote,
-                run: (source) => changeOpen(session, (document) => makeMain(document, props.part, source)),
+                run: (source) => view.change((document) => makeMain(document, props.part, source)),
               },
             })}
           </section>
@@ -548,12 +567,11 @@ const LookTab = setup<{ part: Part }>((props) => {
  * shows beside the persona. A double click opens its still in a Preview window, larger.
  */
 const PictureButton = setup<{ source: string; label: string; children?: ReactNode }>((props) => {
-  const session = loungeCtx.get() as LoungeSession;
   const view = personaViewCtx.get() as PersonaView;
 
   // The persona writes its pictures by path from its own file; Preview takes the still's own path.
   const enlarge = () => {
-    const still = session.path ? stillAt(session.path, props.source) : undefined;
+    const still = stillAt(view.path, props.source);
     if (still) void requestLink(linkTo('preview', still.path));
   };
 
@@ -576,13 +594,13 @@ const PictureButton = setup<{ source: string; label: string; children?: ReactNod
  * picture's corners while it's hovered or focused — making it the main picture at the start,
  * removing it at the end — the grid ending with a square tile adding one.
  *
- * @param session - The window's open persona, which the pictures' paths are written from.
+ * @param view - The open persona, which the pictures' paths are written from.
  * @param grid - The pictures, read live; what each is, for screen readers; adding one; removing
  *   one; and making one the main picture, where there's one to make.
  * @returns The grid.
  */
 function tiles(
-  session: LoungeSession,
+  view: PersonaView,
   grid: {
     items: () => string[];
     label: string;
@@ -595,9 +613,9 @@ function tiles(
     <ul className={CLASS.TILES}>
       <For each={grid.items}>
         {(source) => (
-          <li className={CLASS.TILE} title={source}>
+          <li className={CLASS.TILE}>
             <PictureButton source={source} label={grid.label}>
-              <Snippet data={() => (session.path ? pictureOf(session.path, source) : undefined)}>
+              <Snippet data={() => tilePicture(view.path, source)}>
                 {(picture) =>
                   picture ? (
                     <img src={picture} alt="" className={CLASS.TILE_PICTURE} />
@@ -659,18 +677,6 @@ function removeButton(remove: { label: string; description: string; run: (source
       <Tooltip>{remove.label}</Tooltip>
     </ConfirmButton>
   );
-}
-
-/**
- * Changes the persona open in a Lounge window, while it's still on the drive, and marks when it
- * changed.
- *
- * @param session - The window's open item.
- * @param apply - What to change in it.
- */
-function changeOpen(session: LoungeSession, apply: (document: PersonaDocument) => void): void {
-  const document = session.path ? personaAt(session.path) : undefined;
-  if (document) edit(document, () => apply(document));
 }
 
 /**

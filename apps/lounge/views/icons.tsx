@@ -2,8 +2,8 @@ import { SymbolIcon } from '@/components/SymbolIcon.js';
 
 /** Lounge's glyphs for its people and agents: Material Symbols. */
 
-export { AddIcon, CloseIcon, ImageIcon, AutoAwesomeIcon as SkillIcon } from '@airlib/react-aui/icons';
-export { DeleteIcon, EditIcon, PreviewIcon, SidebarCloseIcon, SidebarOpenIcon } from '@/components/icons.js';
+export { AddIcon, CloseIcon, ImageIcon } from '@airlib/react-aui/icons';
+export { DeleteIcon, SidebarCloseIcon, SidebarOpenIcon } from '@/components/icons.js';
 
 /** `group`: the people and characters, all of them. */
 export const PeopleIcon = () => (

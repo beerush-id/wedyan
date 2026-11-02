@@ -1,55 +1,27 @@
-import { mutable } from '@airlib/react';
-import { chosenAttempt } from '@/lib/documents/generation.js';
-import { documentAt, documentsOf, drive, follow, freePath, nameOf, newHeader, parentOf, supply } from '@/lib/documents/store.js';
-import type { DocumentHeader, DocumentType, PersonaDocument, StillDocument, WedyanDocument } from '@/lib/documents/types.js';
-import type { AgentFile } from '@/lib/share/agents.js';
-import AGENTS_SAMPLE from '../data/agents.json';
-import PEOPLE_SAMPLE from '../data/people.json';
-import PERSONALITY_SAMPLE from '../data/personality.json';
-import SKILLS_SAMPLE from '../data/skills.json';
-import TOOLS_SAMPLE from '../data/tools.json';
+import type { ListOptions } from '@irpclib/r2-file';
+import { FILE_TYPES } from '@/lib/documents/file-types.js';
+import { ADDRESS, chosenAttempt } from '@/lib/documents/generation.js';
+import { nameOf, newHeader, newId, parentOf } from '@/lib/documents/paths.js';
+import type { FileRow } from '@/lib/documents/rows.js';
+import type { PersonaDocument, StillDocument } from '@/lib/documents/types.js';
+import { LOUNGE, LOUNGE_EVENT } from '@/lib/kernel/workspace.h.js';
+import { AGENT_EXTENSION, type AgentFile } from '@/lib/share/agents.js';
+import { dfs } from '@/lib/share/dfs.js';
+import { follow } from '@/lib/share/documents.js';
+import { pathFrom } from '@/lib/share/paths.js';
+import { AGENTS_PATH } from '@/lib/share/system.js';
 
-// A person made from generated pictures, with the stills they're made from, until the drive serves the user's own.
-supply(Object.entries(PEOPLE_SAMPLE) as unknown as [string, WedyanDocument][]);
+/** Where the people and characters live. */
+export const PEOPLE = '~/People';
 
-// The format doesn't list `.agent` among the drive's documents yet, so agents go on and come off
-// the drive under the shape the contract gives them.
-supply(Object.entries(AGENTS_SAMPLE) as unknown as [string, WedyanDocument][]);
+/** The extension of a person's file. */
+export const PERSONA_EXTENSION = '.persona';
 
-// Nor `.skill`: the user's own skills go on the drive under the shape Lounge mocks for them.
-supply(Object.entries(SKILLS_SAMPLE) as unknown as [string, WedyanDocument][]);
-
-/** Where the people and characters live: the People folder at the drive's root. */
-export const PEOPLE = '/People';
-
-/** Where the user's own agents live: the Agents folder at the drive's root. */
-export const AGENTS = '/Agents';
-
-/** Where the user's own skills live: the Skills folder at the drive's root. */
-export const SKILLS_FOLDER = '/Skills';
-
-/**
- * One of the user's own skills — a teacher, a scientist — as a `.skill` file: what it's for in a
- * line, its instructions in Markdown, and exactly the tools and actions it may call. Mocked here
- * until the format names it.
- */
-export type SkillFile = Omit<DocumentHeader, 'type' | 'description'> & {
-  type: 'skill';
-  /** What it's for, in a line: what the assistant reads to decide when to use it. */
-  description: string;
-  /** How to work as it, in Markdown. */
-  instructions: string;
-  /** The server tools it may call, by name. */
-  tools: string[];
-  /** The desktop actions it may take, by name. */
-  actions: string[];
+/** What each list asks `list` for: only the files it shows, not the folders of pictures beside them. */
+export const LISTINGS: Record<'people' | 'agents', [string, ListOptions]> = {
+  people: [PEOPLE, { filter: { type: FILE_TYPES.persona } }],
+  agents: [AGENTS_PATH, { filter: { type: FILE_TYPES.agent } }],
 };
-
-/** Something a skill can be allowed to call: a server tool or a desktop action, by its name, with what it does. */
-export type Callable = { name: string; hint: string };
-
-/** Everything a skill can be allowed to call: the contract's desktop actions and the server tools it names. */
-export const CALLABLES: { tools: Callable[]; actions: Callable[] } = TOOLS_SAMPLE;
 
 /** What a persona is: a real person, a character, or a mascot. */
 export type PersonaKind = PersonaDocument['kind'];
@@ -61,87 +33,29 @@ export const KINDS: Record<PersonaKind, string> = {
   mascot: 'Mascot',
 };
 
-/** The apps' skills an agent can be given, with their names and what they let it do; the user's own come on top. */
+/** The apps' skills an agent can be given, by the name the kernel resolves them with. */
 export const SKILLS: Record<string, { label: string; hint: string }> = {
   motions: { label: 'Motions', hint: 'Make and edit videos: scripts, stages, clips and sound.' },
   photos: { label: 'Photos', hint: 'Make and edit images.' },
 };
 
+/** The longest edge of a person's picture where it shows small: a portrait or a tile. */
+const SMALL_PICTURE = 256;
+
 /**
- * People or agents in name order, as the side lists them.
+ * Listed rows in name order, as the side shows them: files are named by id, so only the rows know.
  *
- * @param listed - Each one and where it is.
- * @returns The same, ordered by name.
+ * @param rows - The rows.
+ * @returns The same rows, ordered by what they're called.
  */
-export function byName<T extends { document: { name: string } }>(listed: T[]): T[] {
-  return listed.sort((a, b) => a.document.name.localeCompare(b.document.name));
+export function byName(rows: FileRow[]): FileRow[] {
+  return [...rows].sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /**
- * Every persona kept in People.
+ * Changes a persona or an agent in place and marks when it changed.
  *
- * @returns Each `.persona` under the People folder still on the drive.
- */
-export const people = (): { path: string; document: PersonaDocument }[] =>
-  documentsOf('persona').filter(({ path }) => path.startsWith(`${PEOPLE}/`));
-
-/**
- * Every agent kept in Agents.
- *
- * @returns Each `.agent` under the Agents folder still on the drive.
- */
-export const agents = (): { path: string; document: AgentFile }[] =>
-  (documentsOf('agent' as DocumentType) as unknown as { path: string; document: AgentFile }[]).filter(({ path }) =>
-    path.startsWith(`${AGENTS}/`)
-  );
-
-/**
- * Every skill kept in Skills.
- *
- * @returns Each `.skill` under the Skills folder still on the drive.
- */
-export const skills = (): { path: string; document: SkillFile }[] =>
-  (documentsOf('skill' as DocumentType) as unknown as { path: string; document: SkillFile }[]).filter(({ path }) =>
-    path.startsWith(`${SKILLS_FOLDER}/`)
-  );
-
-/**
- * The skill at a path.
- *
- * @param path - Its path.
- * @returns Its document, unless there's no skill there.
- */
-export function skillAt(path: string): SkillFile | undefined {
-  const document = documentAt(path) as unknown as SkillFile | undefined;
-  return document?.type === 'skill' ? document : undefined;
-}
-
-/**
- * The persona at a path.
- *
- * @param path - Its path.
- * @returns Its document, unless there's no persona there.
- */
-export function personaAt(path: string): PersonaDocument | undefined {
-  const document = documentAt(path);
-  return document?.type === 'persona' ? document : undefined;
-}
-
-/**
- * The agent at a path.
- *
- * @param path - Its path.
- * @returns Its document, unless there's no agent there.
- */
-export function agentAt(path: string): AgentFile | undefined {
-  const document = documentAt(path) as unknown as AgentFile | undefined;
-  return document?.type === 'agent' ? document : undefined;
-}
-
-/**
- * Changes a persona, an agent or a skill in place and marks when it changed.
- *
- * @param document - The persona, agent or skill.
+ * @param document - The persona or agent.
  * @param change - What to change in it.
  */
 export function edit(document: { updated: string }, change: () => void): void {
@@ -150,38 +64,26 @@ export function edit(document: { updated: string }, change: () => void): void {
 }
 
 /**
- * Makes a new person in People, with nothing filled in but their name: no head yet.
+ * Makes a new person in People, named apart from its path, with nothing filled in: no head yet.
  *
- * @returns Where it was put.
+ * @returns Where it was put, once it's written.
  */
-export function newPerson(): string {
-  const path = freePath(PEOPLE, 'New person', '.persona');
-  const persona: PersonaDocument = { ...newHeader(path, '.persona'), type: 'persona', kind: 'person', head: { main: '' } };
-  supply([[path, persona]]);
+export async function newPerson(): Promise<string> {
+  const path = `${PEOPLE}/${newId()}${PERSONA_EXTENSION}`;
+  const person: PersonaDocument = { ...newHeader(path, PERSONA_EXTENSION), name: 'New person', type: 'persona', kind: 'person', head: { main: '' } };
+  await dfs.write(path, person as never);
   return path;
 }
 
 /**
- * Makes a new agent in Agents, with no skills yet: the user grants each one.
+ * Makes a new agent in Agents, named apart from its path, with no skills yet: the user grants each one.
  *
- * @returns Where it was put.
+ * @returns Where it was put, once it's written.
  */
-export function newAgent(): string {
-  const path = freePath(AGENTS, 'New agent', '.agent');
-  const agent: AgentFile = { ...newHeader(path, '.agent'), type: 'agent', description: '', skills: [] };
-  supply([[path, agent as unknown as WedyanDocument]]);
-  return path;
-}
-
-/**
- * Makes a new skill in Skills, with no instructions and nothing it may call yet: the user grants each one.
- *
- * @returns Where it was put.
- */
-export function newSkill(): string {
-  const path = freePath(SKILLS_FOLDER, 'New skill', '.skill');
-  const skill: SkillFile = { ...newHeader(path, '.skill'), type: 'skill', description: '', instructions: '', tools: [], actions: [] };
-  supply([[path, skill as unknown as WedyanDocument]]);
+export async function newAgent(): Promise<string> {
+  const path = `${AGENTS_PATH}/${newId()}${AGENT_EXTENSION}`;
+  const agent: AgentFile = { ...newHeader(path, AGENT_EXTENSION), name: 'New agent', type: 'agent', description: '', skills: [] };
+  await dfs.write(path, agent as never);
   return path;
 }
 
@@ -190,15 +92,16 @@ export function newSkill(): string {
  * their file, to be made from the prompt beside it.
  *
  * @param personaPath - Where the persona is.
- * @param base - What the still is called, e.g. `Face`.
+ * @param name - What the still is called, e.g. `Face`.
  * @param aspect - The shape it's made in, e.g. `1:1`.
- * @returns The still as the persona writes it: its path from the persona.
+ * @returns The still as the persona writes it, by path from the persona, once it's written.
  */
-export function newStill(personaPath: string, base: string, aspect: string): string {
-  const folder = nameOf(personaPath).slice(0, -'.persona'.length);
-  const path = freePath(`${parentOf(personaPath)}/${folder}`, base, '.still');
+export async function newStill(personaPath: string, name: string, aspect: string): Promise<string> {
+  const folder = nameOf(personaPath).slice(0, -PERSONA_EXTENSION.length);
+  const path = `${parentOf(personaPath)}/${folder}/${newId()}.still`;
   const still: StillDocument = {
     ...newHeader(path, '.still'),
+    name,
     type: 'still',
     prompt: '',
     settings: { aspect, batch: 1 },
@@ -207,41 +110,46 @@ export function newStill(personaPath: string, base: string, aspect: string): str
     edits: [],
     chosen: '',
   };
-  supply([[path, still]]);
+  await dfs.write(path, still as never);
   return `${folder}/${nameOf(path)}`;
 }
 
-/** One try at a persona's personality: what it was asked, the model it was asked of, and when. */
-export type PersonalityTry = { id: string; prompt: string; model: string; created: string };
-
-/** How a persona's personality is made: its prompt, the model it's asked of, and every try, with the one chosen. */
-export type Personality = { prompt: string; model: string; tries: PersonalityTry[]; chosen: string };
-
-// How each persona's personality was made, by the persona's path, until the drive keeps it.
-const personalities = mutable(PERSONALITY_SAMPLE as Record<string, Personality>);
-
 /**
- * How a persona's personality is made, started empty for one that has none yet.
+ * Tells every other window what a person or an agent is now called. A list shows the name its
+ * listing gave it, and a file saving itself tells nobody.
  *
- * @param path - Where the persona is.
- * @returns Its prompt, model and tries, to edit in place.
+ * @param path - Where it is.
+ * @param title - What it's called now.
  */
-export function personalityOf(path: string): Personality {
-  personalities[path] ??= { prompt: '', model: 'balanced', tries: [], chosen: '' };
-  return personalities[path];
+export function announceName(path: string, title: string): void {
+  LOUNGE.ask({ type: LOUNGE_EVENT.RENAMED, data: { path, title } });
 }
 
 /**
- * Takes personas, agents and skills off the drive, for this session.
+ * Takes a person or an agent off the drive, telling every other window; a person's pictures stay
+ * in their folder.
  *
- * @param paths - Where they are.
+ * @param path - Where it is.
+ * @returns When it's gone.
  */
-export function remove(paths: string[]): void {
-  drive.deleted.push(...paths);
+export async function removeFile(path: string): Promise<void> {
+  LOUNGE.ask({ type: LOUNGE_EVENT.REMOVED, data: [path] });
+  await dfs.remove(path);
 }
 
 /**
- * A persona's portrait: its main face, as a picture.
+ * A listed person's portrait. A row carries what their still writes, from the still's folder: the
+ * folder named after them, beside their file.
+ *
+ * @param row - The person's row.
+ * @returns The picture's address, unless they have no face yet.
+ */
+export function rowPortrait(row: FileRow): string | undefined {
+  return row.thumbnail ? addressOf(`${row.path.slice(0, -PERSONA_EXTENSION.length)}/`, row.thumbnail, SMALL_PICTURE) : undefined;
+}
+
+/**
+ * A persona's portrait: its main face, small.
  *
  * @param path - Where the persona is.
  * @param persona - The persona.
@@ -250,7 +158,7 @@ export function remove(paths: string[]): void {
 export function portraitOf(path: string, persona: PersonaDocument): string | undefined {
   // A persona of an older shape has no head; it shows its initials until it's given one.
   const main = persona.head?.main;
-  return main ? pictureOf(path, main) : undefined;
+  return main ? pictureOf(path, main, SMALL_PICTURE) : undefined;
 }
 
 /**
@@ -258,47 +166,30 @@ export function portraitOf(path: string, persona: PersonaDocument): string | und
  *
  * @param from - The path of the persona it is written in.
  * @param source - The picture, by path from the persona to its `.still`.
+ * @param size - Its longest edge, where it shows small; the picture as made without one.
  * @returns The picture's address, unless the path leads to no still or the still has no attempt yet.
  */
-export function pictureOf(from: string, source: string): string | undefined {
+export function pictureOf(from: string, source: string, size?: number): string | undefined {
+  if (ADDRESS.test(source)) return source;
   const still = stillAt(from, source);
-  return still && chosenAttempt(still.document)?.src;
+  const src = still && chosenAttempt(still.document)?.src;
+  return still && src ? addressOf(still.path, src, size) : undefined;
 }
+
+/** A small picture, for a tile of a person's pictures. */
+export const tilePicture = (from: string, source: string): string | undefined => pictureOf(from, source, SMALL_PICTURE);
 
 /**
  * The `.still` one of a persona's pictures is: what keeps its prompt, settings, references and attempts.
  *
  * @param from - The path of the persona it is written in.
  * @param source - The picture, by path from the persona to its `.still`.
- * @returns The still and where it is, unless the path leads to none.
+ * @returns The still and where it is, unless the path leads to none, or it hasn't arrived.
  */
 export function stillAt(from: string, source: string): { path: string; document: StillDocument } | undefined {
+  if (ADDRESS.test(source)) return;
   const { path, document } = follow(from, source);
   return document?.type === 'still' ? { path, document } : undefined;
-}
-
-/**
- * A user skill as an agent writes it among its skills: by path from the agent's file, beside the
- * app skills it names by name.
- *
- * @param path - Where the skill is.
- * @returns E.g. `../Skills/Teacher.skill`.
- */
-export function skillRef(path: string): string {
-  return `..${path}`;
-}
-
-/**
- * What a list shows about an agent: the skills it has, the apps' and the user's own, by name.
- *
- * @param agent - The agent.
- * @returns E.g. `Motions · Teacher`, or `No skills`.
- */
-export function skillsOf(agent: AgentFile): string {
-  const own = skills();
-  const nameOf = (skill: string) =>
-    SKILLS[skill]?.label ?? own.find(({ path }) => skillRef(path) === skill)?.document.name ?? skill;
-  return agent.skills.map(nameOf).join(' · ') || 'No skills';
 }
 
 /**
@@ -311,6 +202,20 @@ export function factsOf(document: AgentFile): string {
   const { author } = document;
   const by = author.kind === 'agent' ? `By Wedyan${author.ask ? `, asked “${author.ask}”` : ''}` : 'By you';
   return `${by} · Updated ${longDate(document.updated)}`;
+}
+
+/**
+ * A picture written in a file as an address for `<img src>`: an attempt keeps its picture by path
+ * from its still.
+ *
+ * @param file - The file it's written in, by its path in the home.
+ * @param src - The picture, as written.
+ * @param size - Its longest edge, if it's resized.
+ * @returns Its address.
+ */
+function addressOf(file: string, src: string, size?: number): string {
+  if (ADDRESS.test(src)) return src;
+  return dfs.image(pathFrom(file, src), size ? { size } : undefined);
 }
 
 /**

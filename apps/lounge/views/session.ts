@@ -1,4 +1,5 @@
 import { createContext } from '@airlib/react';
+import type { FileRow } from '@/lib/documents/rows.js';
 
 /** What an open person shows: who they are, their face, their figure, or their outfits. */
 export type PersonTab = 'profile' | 'head' | 'body' | 'wardrobe';
@@ -8,11 +9,13 @@ export const PERSON_TABS: Record<PersonTab, string> = { profile: 'Profile', head
 
 /** The persona or agent open beside the list: what Lounge's window shares with its editors. */
 export type LoungeSession = {
-  /** The open persona's or agent's path; none while nothing, or several, are picked. */
+  /** The open persona's or agent's path in the home; none while nothing is open. */
   readonly path: string | null;
   /** What an open person shows, picked in the toolbar. */
   readonly tab: PersonTab;
-  /** Takes the open one off the drive; the group's first opens in its place. None where it isn't deleted from, as a cast in Motions. */
+  /** Its row in the list beside it, written as it's renamed. None where it isn't listed, as a cast in Motions. */
+  readonly row?: FileRow;
+  /** Asks, then takes the open one off the drive. None where it isn't deleted from, as a cast in Motions. */
   remove?(): void;
 };
 
