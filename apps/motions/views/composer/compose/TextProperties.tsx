@@ -18,7 +18,7 @@ import {
   FormatUnderlinedIcon,
   TitleIcon,
 } from '@airlib/react-aui/icons';
-import type { Picked } from '../context.js';
+import { type Composer, composerCtx, type Picked } from '../context.js';
 import { FontPicker } from './FontPicker.js';
 import { KeyedLine } from './Groups.js';
 
@@ -30,12 +30,15 @@ const COLOR = { label: 'Color', fields: [{ key: 'color' }] };
 
 /**
  * Picked words and how they're set, on a title or an element, each bound to its own value. What has
- * a between is keyed on its own; the rest of how it's set doesn't move.
+ * a between is keyed on its own; the rest of how it's set doesn't move. A track sets how its clips'
+ * words look; the words are theirs.
  */
-export const TextProperties = template<{ clip: Picked }>(
-  ({ clip: { props } }) => (
+export const TextProperties = template<{ clip: Picked }>(({ clip }) => {
+  const composer = composerCtx.get() as Composer;
+  const props = readingTrack(clip.props, composer.hostClip() === (clip as never) ? composer.hostClip()?.track.props : undefined);
+  return (
     <div className="wedyan-compose-properties-fields">
-      <TextInput size="sm" label="Words" multiline rows={3} value={$bind(props, 'text')} />
+      {props.text !== undefined && <TextInput size="sm" label="Words" multiline rows={3} value={$bind(props, 'text')} />}
       <fieldset aria-label="Font" className="wedyan-compose-property-group">
         <div className="wedyan-compose-property-head pi-sm">
           <span className="wedyan-compose-property-label" aria-hidden="true">
@@ -95,6 +98,17 @@ export const TextProperties = template<{ clip: Picked }>(
         {(value, edit) => <TextInput type="color" size="xs" value={value} onInput={edit} />}
       </KeyedLine>
     </div>
-  ),
-  'TextProperties',
-);
+  );
+}, 'TextProperties');
+
+/**
+ * A clip's values as a control shows them: its own, else its track's. Only a change is written, and
+ * to the clip, so a control that's merely open never turns what the track says into the clip's own.
+ *
+ * @param props - The clip's values.
+ * @param track - Its track's values; none when these aren't a clip's.
+ * @returns What to bind controls to.
+ */
+function readingTrack(props: Picked['props'], track?: Picked['props']): Picked['props'] {
+  return track ? new Proxy(props, { get: (own, key: string) => own[key] ?? track[key] }) : props;
+}

@@ -1,6 +1,6 @@
 import { canCaptureVideo } from '@airlib/aria';
 import { type AnyType, createContext, effect, type history, mutable } from '@airlib/react';
-import type { Timeline, TimelineSegment } from '@airlib/react/timeline';
+import type { Timeline, TimelineSegment, TimelineTrack } from '@airlib/react/timeline';
 import type { PersonTab } from '@/apps/lounge/views/session.js';
 import { attemptPicture, chosenAttempt, isGenerative, settingsOf } from '@/lib/documents/generation.js';
 import { parentOf, resolvePath } from '@/lib/documents/paths.js';
@@ -51,6 +51,8 @@ export type Composer = {
   stageHistory?: ReturnType<typeof history>;
   /** The clips picked on it, by id. */
   clips: string[];
+  /** The track picked on it, by id: what its clips read where they don't say. Never picked with clips. */
+  track: string;
   /** The element picked inside the picked clip, by id; empty, the clip itself. */
   node: string;
   /** Whether dragging on the timeline snaps clips and the playhead to what's near. */
@@ -89,7 +91,9 @@ export type Composer = {
   pathOf(written: string): string;
   /** The clip picked on the timeline, when it's the only one. */
   hostClip(): TimelineSegment | undefined;
-  /** What's being edited: the element picked inside the clip, else the clip. Its time is the clip's. */
+  /** The track picked on the timeline. */
+  pickedTrack(): TimelineTrack | undefined;
+  /** What's being edited: the track picked, or the element picked inside the clip, else the clip. A clip's time is its own; a track has none. */
   picked(): Picked | undefined;
   /**
    * Shows an edit to a clip: on what reads its keyframes, and on the stage, which draws a frame only
@@ -150,6 +154,26 @@ export function createComposer(path: string, direct: boolean): Composer {
   // What this window is writing itself: it's about to hold it, so hearing of it lists nothing.
   const written = new Set<string>();
 
+  // A track as what's picked, the same one each time, so reading it again is no change. A track has
+  // no time of its own, so it has no keyframes; its values are read live.
+  const tracksPicked = new WeakMap<TimelineTrack, Picked>();
+  const pickedOf = (track: TimelineTrack) => {
+    const held =
+      tracksPicked.get(track) ??
+      ({
+        id: track.id,
+        get name() {
+          return track.name;
+        },
+        get props() {
+          return track.props;
+        },
+        scenes: [],
+      } as Picked);
+    tracksPicked.set(track, held);
+    return held;
+  };
+
   const composer: Composer = mutable<Composer>(
     {
       path,
@@ -158,6 +182,7 @@ export function createComposer(path: string, direct: boolean): Composer {
       viewMode: 'preview',
       sidebar: true,
       clips: [],
+      track: '',
       node: '',
       snap: false,
       edits: 0,
@@ -227,7 +252,14 @@ export function createComposer(path: string, direct: boolean): Composer {
         }
       },
 
+      pickedTrack() {
+        const { timeline, track } = composer;
+        return track ? [...(timeline?.tracks ?? [])].find((each) => each.id === track) : undefined;
+      },
+
       picked() {
+        const track = composer.pickedTrack();
+        if (track) return pickedOf(track);
         const host = composer.hostClip();
         const found = host && composer.node && findNode((host.props as HtmlClip).children, composer.node);
         return found ? found.node : host;
@@ -326,6 +358,11 @@ export function createComposer(path: string, direct: boolean): Composer {
   // What another tab added, which it holds and this one can't list until the project is saved.
   LOUNGE.subscribe(({ type, data }) => {
     if (type === LOUNGE_EVENT.CREATED && data.held && parentOf(data.path) === parentOf(path)) rowsOf(listed).push(data);
+  });
+
+  // However clips get picked, the track lets go: placing one picks it without the timeline's say.
+  effect(() => {
+    if (composer.clips.length) composer.track = '';
   });
 
   // A stage edited in Compose changes only its row, which shows in Direct: it's listed again on the

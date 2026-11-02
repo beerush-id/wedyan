@@ -1,8 +1,8 @@
 import { $bind, setup } from '@airlib/react';
-import type { TimelineSegment } from '@airlib/react/timeline';
 import { Switch } from '@airlib/react-aui';
 import { BalanceIcon, VolumeIcon } from '../../icons.js';
 import type { ClipSound } from '../composition.js';
+import { type Composer, composerCtx } from '../context.js';
 import { type Group, Groups } from './Groups.js';
 
 /** A clip's sound levels, each keyed on its own: how loud, and where between the speakers. */
@@ -21,21 +21,28 @@ const SOUND_GROUPS: Group[] = [
   },
 ];
 
-/** The picked clip's sound: whether it's heard, then its volume and balance, keyed like its box. */
-export const SoundProperties = setup<{ clip: TimelineSegment<ClipSound> }>(() => {
+/**
+ * What's picked's sound: for a clip, whether it's heard, then its volume and balance, keyed like its
+ * box. A track mutes from its own row, so it shows its levels alone.
+ */
+export const SoundProperties = setup<{ clip: { props: ClipSound } }>(() => {
+  const composer = composerCtx.get() as Composer;
+
   return ({ clip: { props } }) => (
     <div className="wedyan-compose-properties-fields">
-      <fieldset aria-label="Sound" className="wedyan-compose-property-group">
-        <div className="wedyan-compose-property-head pis-sm">
-          <span className="wedyan-compose-property-label" aria-hidden="true">
-            Sound
-          </span>
-        </div>
-        <div className="wedyan-compose-property-row pis-sm">
-          <span id="wedyan-compose-mute">Mute</span>
-          <Switch size="xs" aria-labelledby="wedyan-compose-mute" checked={$bind(props, 'muted')} />
-        </div>
-      </fieldset>
+      {composer.hostClip() && (
+        <fieldset aria-label="Sound" className="wedyan-compose-property-group">
+          <div className="wedyan-compose-property-head pis-sm">
+            <span className="wedyan-compose-property-label" aria-hidden="true">
+              Sound
+            </span>
+          </div>
+          <div className="wedyan-compose-property-row pis-sm">
+            <span id="wedyan-compose-mute">Mute</span>
+            <Switch size="xs" aria-labelledby="wedyan-compose-mute" checked={$bind(props, 'muted')} />
+          </div>
+        </fieldset>
+      )}
       <Groups groups={SOUND_GROUPS} />
     </div>
   );

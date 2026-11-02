@@ -43,7 +43,7 @@ const PICTURE_KINDS = new Set(['image', 'still']);
  */
 export const LayerProperties = setup(() => {
   const composer = composerCtx.get() as Composer;
-  const html = () => (composer.hostClip()?.type === 'html' ? composer.picked() : undefined);
+  const html = () => ((composer.pickedTrack() ?? composer.hostClip())?.type === 'html' ? composer.picked() : undefined);
 
   return () => (
     <div className="wedyan-compose-properties-fields">

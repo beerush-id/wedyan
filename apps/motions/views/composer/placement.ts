@@ -1,7 +1,7 @@
 import type { Timeline, TimelineSegment, TimelineTrack } from '@airlib/react/timeline';
 import { addressAt, attemptPicture, chosenAttempt, isGenerative, settingsOf } from '@/lib/documents/generation.js';
 import type { FileRow } from '@/lib/documents/rows.js';
-import { TRACK_NAMES, type TrackType } from '@/lib/documents/stage.js';
+import { TRACK_NAMES, type TrackType, trackDefaults } from '@/lib/documents/stage.js';
 import type { GenerativeDocument } from '@/lib/documents/types.js';
 import { documentArrived } from '@/lib/share/documents.js';
 import type { AudioClip, HtmlClip, ImageClip, StageProps, SvgClip, TitleClip, VideoClip } from './composition.js';
@@ -50,7 +50,7 @@ export function placeOnStage(composer: Composer, asset: FileRow, at?: Placement)
 export function addTrack(timeline: Timeline, type: TrackType): TimelineTrack {
   const count = [...timeline.tracks].filter((track) => track.type === type).length;
   // The stage keeps whether a track is locked or muted in its `meta`, so every track it makes has one.
-  return timeline.addTrack({ type, name: `${TRACK_NAMES[type]} ${count + 1}`, meta: {} });
+  return timeline.addTrack({ type, name: `${TRACK_NAMES[type]} ${count + 1}`, meta: {} }, trackDefaults(type, timeline.props as StageProps));
 }
 
 /**
@@ -126,28 +126,14 @@ export function showAttempt(segment: TimelineSegment, path: string, source: Gene
 }
 
 /**
- * Puts a title on a title track: words centred across the stage's middle, in white, for a few seconds.
+ * Puts a title on a title track for a few seconds: only its words, set as its track says.
  *
  * @param timeline - The stage's timeline.
- * @param stage - The stage's size.
  * @param at - Where it goes.
  * @returns The new clip.
  */
-export function placeTitle(timeline: Timeline, stage: StageProps, at: Placement): TimelineSegment {
-  const props: TitleClip = {
-    text: 'Title',
-    x: Math.round(stage.width * 0.1),
-    y: Math.round(stage.height * 0.4),
-    width: Math.round(stage.width * 0.8),
-    height: Math.round(stage.height * 0.2),
-    display: 'grid',
-    alignItems: 'center',
-    textAlign: 'center',
-    color: '#ffffff',
-    fontSize: Math.round(stage.height * 0.08),
-    fontWeight: 'bold',
-    lineHeight: 1.1,
-  };
+export function placeTitle(timeline: Timeline, at: Placement): TimelineSegment {
+  const props: TitleClip = { text: 'Title' };
   return place(timeline, 'title', at, { type: 'title', name: 'Title', duration: TEXT_SECONDS }, props);
 }
 
@@ -219,6 +205,8 @@ function place(
   const kin = [...timeline.tracks].filter((track) => track.type === type);
   if (type !== 'audio') kin.reverse();
   const track = [at.track, ...kin].find((each) => each?.type === type && free(each)) ?? addTrack(timeline, type);
+  // A track older than its defaults gets them now, before a clip that reads them lands on it.
+  track.props = { ...trackDefaults(type, timeline.props as StageProps), ...track.props };
   const segment = track.addSegment({ ...options, startFrame: at.frame }, props as Record<string, unknown>);
   if (timeline.status !== 'playing') void timeline.scrub(timeline.frame);
   return segment;

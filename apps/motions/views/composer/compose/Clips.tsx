@@ -18,7 +18,7 @@ import {
 } from '../composition.js';
 import { loadFont } from '../fonts.js';
 import { PAINTERS } from '../painters.js';
-import { sampleClip } from '../sampling.js';
+import { clipValues, sampleClip } from '../sampling.js';
 import { WIDGETS } from '../widgets.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -87,8 +87,8 @@ const AudioClipView = template<{ segment: TimelineSegment<AudioClip> }>(
       segment={props.segment}
       media={props.segment.props.src}
       muted={props.segment.props.muted}
-      volume={props.segment.props.volume}
-      pan={props.segment.props.pan}
+      volume={clipValues(props.segment).volume as number}
+      pan={clipValues(props.segment).pan as number}
     />
   ),
   'AudioClipView'
@@ -103,8 +103,8 @@ const VideoClipView = template<{ segment: TimelineSegment<VideoClip> }>(
       media={props.segment.props.src}
       fit={props.segment.props.fit}
       muted={props.segment.props.muted}
-      volume={props.segment.props.volume}
-      pan={props.segment.props.pan}
+      volume={clipValues(props.segment).volume as number}
+      pan={clipValues(props.segment).pan as number}
     />
   ),
   'VideoClipView'
@@ -130,13 +130,13 @@ const ImageClipView = template<{ segment: TimelineSegment<ImageClip> }>(
 const TitleClipView = setup<{ segment: TimelineSegment<TitleClip> }>((props) => {
   // A paused stage draws no frame, so a font set then loads here; `draw` is what a frame waits on.
   effect.client(() => {
-    void loadFont(props.segment.props, props.segment.props.text);
+    void loadFont(clipValues(props.segment) as TitleClip, props.segment.props.text);
   });
 
   return () => (
     <StageClip
       segment={props.segment}
-      style={cssOf(props.segment.props)}
+      style={cssOf(clipValues(props.segment) as HtmlClip)}
       draw={({ element, values }) => {
         drawCss(element as HTMLElement, values as HtmlClip);
         return loadFont(values as TitleClip, (values as TitleClip).text);
@@ -161,7 +161,7 @@ const HtmlClipView = template<{ segment: TimelineSegment<HtmlClip> }>((props) =>
       segment={props.segment}
       {...attrs}
       crossOrigin={image ? 'anonymous' : undefined}
-      style={cssOf(props.segment.props)}
+      style={cssOf(clipValues(props.segment) as HtmlClip)}
       draw={({ element: node, values, frame }) => {
         drawCss(node as HTMLElement, values as HtmlClip);
         drawNodes(node, props.segment, (values as HtmlClip).children, frame);

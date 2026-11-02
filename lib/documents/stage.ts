@@ -17,6 +17,31 @@ const STAGE_SIZES: Record<string, { width: number; height: number }> = {
 const STARTING_TRACKS: TrackType[] = ['audio', 'video', 'html', 'title'];
 
 /**
+ * What a new track's clips read until they say otherwise: words have to be set somehow to be seen,
+ * so a title track starts with them centred across the stage's middle, in white. Others need nothing.
+ *
+ * @param type - The kind of track.
+ * @param size - The stage's size.
+ * @returns The track's values.
+ */
+export function trackDefaults(type: string | undefined, { width, height }: { width: number; height: number }): Record<string, unknown> {
+  if (type !== 'title') return {};
+  return {
+    x: Math.round(width * 0.1),
+    y: Math.round(height * 0.4),
+    width: Math.round(width * 0.8),
+    height: Math.round(height * 0.2),
+    display: 'grid',
+    alignItems: 'center',
+    textAlign: 'center',
+    color: '#ffffff',
+    fontSize: Math.round(Math.min(width, height) * 0.08),
+    fontWeight: 'bold',
+    lineHeight: 1.1,
+  };
+}
+
+/**
  * A new empty stage of a project: its size, its casts, its starting tracks, at 30 frames a second.
  *
  * @param id - Its id, which names its file.
@@ -27,6 +52,7 @@ const STARTING_TRACKS: TrackType[] = ['audio', 'video', 'html', 'title'];
  * @returns The stage.
  */
 export function stageAt(id: string, folder: string, name: string, project: MotionDocument, order: number): StageDocument {
+  const size = STAGE_SIZES[project.aspect] ?? STAGE_SIZES['16:9'];
   return {
     ...newHeader(`${folder}/${id}.stage`, '.stage'),
     id,
@@ -38,10 +64,11 @@ export function stageAt(id: string, folder: string, name: string, project: Motio
     composition: {
       id: crypto.randomUUID(),
       options: { frameRate: 30 },
-      props: STAGE_SIZES[project.aspect] ?? STAGE_SIZES['16:9'],
+      props: size,
       tracks: STARTING_TRACKS.map((type) => ({
         id: crypto.randomUUID(),
         options: { type, name: `${TRACK_NAMES[type]} 1`, meta: {} },
+        props: trackDefaults(type, size),
         segments: [],
       })),
     },

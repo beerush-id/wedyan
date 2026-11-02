@@ -34,11 +34,22 @@ export function watchKeyframes(composition: object): void {
 }
 
 /**
+ * A clip's values with its track's under them: its own where it has one, its track's where it
+ * doesn't. Nothing is written to the clip, so a change to the track shows in every clip that follows it.
+ *
+ * @param clip - The clip.
+ * @returns What it reads.
+ */
+export function clipValues(clip: TimelineSegment): Record<string, unknown> {
+  return { ...clip.track.props, ...clip.props };
+}
+
+/**
  * Reads values at a timeline frame. Every value follows its own points: it holds the first until
  * then, eases between each pair by the earlier one's `meta.ease`, any GSAP ease, and holds the last
  * from there. A
- * value no keyframe sets is what `props` says. Keyframes stay data; this is who deals with what's
- * between them.
+ * value no keyframe sets is what `props` says, or for a clip, what its track says. Keyframes stay
+ * data; this is who deals with what's between them.
  *
  * @param clip - The clip, whose time the frame is read on.
  * @param frame - The frame on the timeline.
@@ -55,7 +66,7 @@ export function sampleClip<P extends Record<string, unknown>>(
   const at = frame - clip.startFrame + clip.offsetFrame;
   timeline.seek(at, false);
 
-  const values: Record<string, unknown> = { ...keyed.props };
+  const values: Record<string, unknown> = keyed === (clip as never) ? clipValues(clip) : { ...keyed.props };
   for (const key of Object.keys(slots)) values[key] = slots[key].value;
   for (const key of Object.keys(switches)) {
     const points = switches[key];

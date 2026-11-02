@@ -1,5 +1,5 @@
 import { $bind, type AnyType, effect, setup, Snippet, template } from '@airlib/react';
-import type { Timeline, TimelineSegment } from '@airlib/react/timeline';
+import type { Timeline } from '@airlib/react/timeline';
 import { Select, Slider, Stepper, StepperAdjuster, StepperInput, Tooltip } from '@airlib/react-aui';
 import type { FC, ReactNode } from 'react';
 import { type Composer, composerCtx, type Picked } from '../context.js';
@@ -230,9 +230,10 @@ export const KeyedValue = setup<{
 
   return ({ name, reading, children }) => {
     void composer.edits;
-    const clip = composer.hostClip() as TimelineSegment;
+    // A picked track holds values with no time of its own: its clip is none, and its frame is any.
+    const clip = composer.hostClip();
     const keyed = composer.picked() as Picked;
-    const at = clipFrame(clip, (composer.timeline as Timeline).state.frame);
+    const at = clip ? clipFrame(clip, (composer.timeline as Timeline).state.frame) : 0;
     const holder = holderOf(keyed, name, at);
     const edit = () => {
       if (!holder) setValue(clip, keyed, at, name, reading[name] as number | string);

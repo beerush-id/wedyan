@@ -25,9 +25,11 @@ export function createReading(composer: Composer, fields: () => KeyedField[]): R
     void composer.edits;
     const reading: Reading = {};
     // This runs once more as the pick clears, before the panel goes.
+    const picked = composer.picked();
+    if (!picked) return reading;
+    // A track has no time of its own, so what it reads is what it holds.
     const clip = composer.hostClip();
-    if (!clip) return reading;
-    const sampled = sampleClip(clip, (composer.timeline as Timeline).state.frame, composer.picked());
+    const sampled = clip ? sampleClip(clip, (composer.timeline as Timeline).state.frame, picked) : picked.props;
     for (const { key, fallback, step } of fields()) {
       reading[key] = shown(sampled[key] ?? fallback, step);
     }
@@ -60,14 +62,14 @@ export function holderOf(keyed: Picked, key: string, at: number): Record<string,
  * Makes one value a fact where it belongs: with keyframes, a point at that frame for whoever reads
  * them; with none, there's no between to deal with, so it's a value of its own.
  *
- * @param clip - The clip, whose time the frame is read on.
- * @param keyed - What holds it: the clip, or an element in it.
+ * @param clip - The clip, whose time the frame is read on; none for a track, which has no keyframes.
+ * @param keyed - What holds it: the clip, an element in it, or a track.
  * @param at - The frame, in the clip's content.
  * @param key - The value.
  * @param value - What it is.
  */
-export function setValue(clip: TimelineSegment, keyed: Picked, at: number, key: string, value: number | string): void {
-  if (keyed.scenes.length) setKeyframe(clip, keyed, at, { [key]: value });
+export function setValue(clip: TimelineSegment | undefined, keyed: Picked, at: number, key: string, value: number | string): void {
+  if (clip && keyed.scenes.length) setKeyframe(clip, keyed, at, { [key]: value });
   else keyed.props[key] = value;
 }
 

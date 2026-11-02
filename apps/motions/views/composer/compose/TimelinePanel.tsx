@@ -28,7 +28,11 @@ const LANE_COMMANDS: Record<string, { name: string; label: string }[]> = {
 };
 
 /** What each lane command puts at its point. */
-const LANE_PLACERS: Record<string, typeof placeTitle> = { 'add-title': placeTitle, 'add-box': placeBox, 'add-shape': placeShape };
+const LANE_PLACERS: Record<string, typeof placeBox> = {
+  'add-title': (timeline, _, at) => placeTitle(timeline, at),
+  'add-box': placeBox,
+  'add-shape': placeShape,
+};
 
 /**
  * How far a clip's media is through buffering, while it is, for the timeline to show on the clip.
@@ -96,6 +100,7 @@ export const TimelinePanel = setup(() => {
         label={`Clips in ${composer.stage?.name}`}
         timeline={timeline}
         value={$bind(composer, 'clips')}
+        track={$bind(composer, 'track')}
         multiple
         snap={$use(() => composer.snap)}
         autofocus
