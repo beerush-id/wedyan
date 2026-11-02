@@ -68,7 +68,7 @@ export const ComposeSubject = setup(() => {
 
   return () => {
     const generated = composer.generativeClip();
-    if (generated) return <GeneratedTile source={generated.source} />;
+    if (generated) return <GeneratedTile generated={generated} />;
     const segment = composer.hostClip();
     if (!segment) return null;
     return (

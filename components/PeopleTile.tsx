@@ -17,13 +17,9 @@ type PeopleTileProps = {
 /** A run of a person's pictures, under its name. */
 type PictureGroup = { label: string; sources: string[] };
 
-/** How many picked pictures the tile stacks before it counts the rest. */
-const STACKED = 3;
-
 /**
- * Someone cast in a generation, as a square tile of their portrait, with the pictures it takes of
- * them stacked small at its corner. Hovered or focused, their name shows
- * below it; clicked, every picture of theirs — face, expressions, figure, poses, wardrobe — opens
+ * Someone cast in a generation, as a square tile of their portrait. Hovered or focused, their name
+ * shows below it; clicked, every picture of theirs — face, expressions, figure, poses, wardrobe — opens
  * above it, to pick which ones the generation takes along. Their defaults start picked when they
  * attach them; their face alone otherwise.
  */
@@ -31,7 +27,8 @@ export const PeopleTile = setup<PeopleTileProps>((props) => {
   // The tile is made for one person; their pictures are read as it's made.
   const groups = $static(() => groupsOf(props.persona));
   const name = $static(() => props.persona.name || 'Unnamed');
-  const portrait = $static(() => (props.persona.head?.main ? props.pictureOf(props.persona.head.main) : undefined));
+  // Theirs may still be on its way, so it's read as it's drawn.
+  const portrait = () => (props.persona.head?.main ? props.pictureOf(props.persona.head.main) : undefined);
   // Until the drive keeps the choice on the cast, what goes along is their defaults, or their face alone.
   const choice = mutable({ picked: $static(() => defaultsOf(props.persona)) });
 
@@ -48,21 +45,8 @@ export const PeopleTile = setup<PeopleTileProps>((props) => {
 
   return () => (
     <Button variant="text" aria-label={name} className="wedyan-people-tile">
-      {portrait ? <img src={portrait} alt="" /> : <span aria-hidden="true">{initialsOf(name)}</span>}
-      {/* What it takes of them, at a glance: the first three picked, then how many more. */}
-      <Snippet>
-        {() =>
-          choice.picked.length > 0 && (
-            <span className="wedyan-people-tile-stack" aria-hidden="true">
-              {choice.picked.slice(0, STACKED).map((source) => (
-                <span key={source}>
-                  <Picture src={props.pictureOf(source)} />
-                </span>
-              ))}
-              {choice.picked.length > STACKED && <span>{`+${choice.picked.length - STACKED}`}</span>}
-            </span>
-          )
-        }
+      <Snippet data={portrait}>
+        {(src) => (src ? <img src={src} alt="" /> : <span aria-hidden="true">{initialsOf(name)}</span>)}
       </Snippet>
       <Tooltip yDir="below" xDir="between">
         {name}

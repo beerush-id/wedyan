@@ -1,6 +1,6 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
 import { $bind, setup, Show, Snippet } from '@airlib/react';
-import { Button, Divider, Toggle, ToggleGroup, Tooltip } from '@airlib/react-aui';
+import { Button, Divider, Spinner, Toggle, ToggleGroup, Tooltip } from '@airlib/react-aui';
 import { WindowControls, WindowTitle, WindowToolbar } from '@airlib/react-aui/desktop';
 import { PERSON_TABS, type PersonTab } from '@/apps/lounge/views/session.js';
 import { ComposeIcon, DirectIcon, RenderIcon, SidebarCloseIcon, SidebarOpenIcon } from '../icons.js';
@@ -75,7 +75,17 @@ const ComposeActions = setup(() => {
   return () => (
     <>
       <Snippet>
-        {() => (composer.status ? <span className="wedyan-motions-notice">{composer.status}</span> : null)}
+        {() =>
+          composer.status ? (
+            <>
+              <span className="wedyan-motions-notice">
+                {(composer.generating || composer.rendering) && <Spinner size="xs" label={composer.status} />}
+                {composer.status}
+              </span>
+              <Divider orientation="vertical" variant="ghost" size="sm" />
+            </>
+          ) : null
+        }
       </Snippet>
       <Snippet data={() => assigneeAt(composer, composer.stage?.assignee)}>
         {(agent) =>

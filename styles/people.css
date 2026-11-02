@@ -1,20 +1,10 @@
-/* People cast in a generation, as portrait tiles, as many to a row as fit. */
-.wedyan-people-tiles {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
-  gap: var(--spacing-sm);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-/* A person cast: their portrait, square — not a button's height or padding — or their initials while they have none. */
+/* A person cast: their portrait, a reference's square — not a button's height or padding — or their initials while they have none. */
 .wedyan-people-tile {
   position: relative;
   display: grid;
   place-items: center;
   overflow: hidden;
-  inline-size: 100%;
+  inline-size: 2.5rem;
   block-size: auto;
   aspect-ratio: 1;
   padding: 0;
@@ -37,39 +27,6 @@
 
   &:focus-visible {
     outline-color: var(--color-primary);
-  }
-}
-
-/* What it takes of them, at the tile's bottom corner: up to three pictures overlapping, then how many more. */
-.wedyan-people-tile-stack {
-  position: absolute;
-  inset-block-end: var(--spacing-xs);
-  inset-inline-end: var(--spacing-xs);
-  display: flex;
-
-  & > * {
-    display: grid;
-    place-items: center;
-    overflow: hidden;
-    box-sizing: border-box;
-    inline-size: 1.5rem;
-    aspect-ratio: 1;
-    border: 2px solid var(--aui-glass-surface-bg);
-    border-radius: var(--radius-xs);
-    background: var(--color-surface-high);
-    color: var(--color-on-surface);
-    font-size: var(--font-label-sm-size);
-    font-weight: 600;
-
-    & + * {
-      margin-inline-start: calc(var(--spacing) * -2);
-    }
-  }
-
-  & img {
-    inline-size: 100%;
-    block-size: 100%;
-    object-fit: cover;
   }
 }
 

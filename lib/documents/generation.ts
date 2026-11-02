@@ -9,6 +9,20 @@ export const MODELS: Record<GenerativeDocument['type'], Record<string, string>> 
   sound: { standard: 'Standard', voice: 'Voice' },
 };
 
+/** Whether the tiers in `MODELS` are different models: while they're one, picking between them does nothing. */
+export const TIERED_MODELS = false;
+
+/**
+ * Whether how long something runs is asked for: a picture has no length, and speech runs as long as its words.
+ *
+ * @param source - The generated document.
+ * @returns Whether its seconds take effect.
+ */
+export function asksSeconds(source: GenerativeDocument): boolean {
+  if (source.type === 'take') return settingsOf(source).mode === 'video';
+  return source.type === 'sound' && source.kind !== 'speech';
+}
+
 /** The models writing — a script, a persona's personality — can be asked of. Placeholders until the kernel names its own. */
 export const WRITING_MODELS = { fast: 'Fast', balanced: 'Balanced', best: 'Best' };
 
@@ -21,8 +35,14 @@ const DEFAULT_SETTINGS: Required<GenerationSettings> = { mode: 'image', model: '
 /** What a take's Generate can make: pictures first, since a video costs far more to get wrong. */
 export const GENERATION_MODES = { image: 'Image', video: 'Video' };
 
+/** Whether there's a video model: Muse has none, so Video shows where a take is headed and can't be picked. */
+export const MAKES_VIDEO = false;
+
 /** What's a picture rather than footage, by its address: a take can hold either as an attempt. */
 export const PICTURE_FILE = /\.(webp|png|jpe?g|avif)(\?|$)/i;
+
+/** What's a document that shows a picture, rather than a picture, by its path. */
+const DOCUMENT_FILE = /\.(still|take|persona)$/;
 
 /** The document types that are generated, and made again from their prompt. */
 const GENERATIVE_TYPES = new Set<DocumentType>(['still', 'take', 'sound']);
@@ -48,6 +68,7 @@ export function settingsOf(source: GenerativeDocument): Required<GenerationSetti
   const settings = () => (source.settings ??= {}) as GenerationSettings;
   return {
     get mode() {
+      if (!MAKES_VIDEO) return DEFAULT_SETTINGS.mode;
       return (source.settings as GenerationSettings | undefined)?.mode ?? DEFAULT_SETTINGS.mode;
     },
     set mode(mode: GenerationMode) {
@@ -147,7 +168,8 @@ export function pictureAt(from: string, reference: string): string | undefined {
   if (ADDRESS.test(reference)) return reference;
   const found = follow(from, reference);
   const document = found.document;
-  if (!document) return addressAt(from, reference);
+  // A document on its way isn't a picture yet: its own file would show as a broken one.
+  if (!document) return DOCUMENT_FILE.test(reference) ? undefined : addressAt(from, reference);
   if (isGenerative(document)) return attemptPicture(found.path, document, chosenAttempt(document));
   if (document.type === 'persona') return document.head?.main && pictureAt(found.path, document.head.main);
 }

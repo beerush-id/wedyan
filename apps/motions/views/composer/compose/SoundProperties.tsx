@@ -10,7 +10,7 @@ const SOUND_GROUPS: Group[] = [
   {
     label: 'Volume',
     fields: [
-      { key: 'volume', label: 'Volume', icon: VolumeIcon, fallback: 1, step: 0.05, min: 0, max: 1, range: [0, 1] },
+      { key: 'volume', label: 'Volume', icon: VolumeIcon, fallback: 1, step: 0.05, min: 0, max: 2, range: [0, 2] },
     ],
   },
   {

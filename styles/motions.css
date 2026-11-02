@@ -749,7 +749,7 @@
   --aui-icon-size: 1rem;
 }
 
-/* Adding a reference: a thumb's square, its edge dashed, the glyph in it; its file picker is the whole tile. */
+/* Adding to a generation: a thumb's square, its edge dashed, the glyph in it; its file picker or menu button is the whole tile. */
 .wedyan-compose-thumb-add {
   position: relative;
   box-sizing: border-box;
@@ -765,6 +765,25 @@
   &:focus-within {
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
+  }
+
+  & > button {
+    inline-size: 100%;
+    block-size: 100%;
+    border-radius: inherit;
+    background-color: transparent;
+    color: inherit;
+  }
+
+  &:has(:disabled) {
+    opacity: 0.5;
+    background-color: transparent;
+    color: var(--color-on-surface-variant);
+    cursor: not-allowed;
+
+    & > * {
+      cursor: not-allowed;
+    }
   }
 }
 
@@ -786,39 +805,37 @@
   list-style: none;
 }
 
-/* A reference, holding its remove button over its middle, which shows while it's hovered or focused. */
-.wedyan-compose-reference {
+/* A reference or a cast, holding its remove button, which floats at its top right while it's hovered or focused. */
+.wedyan-compose-removable {
   position: relative;
 }
 
-.wedyan-compose-reference-remove {
+.wedyan-compose-remove {
   position: absolute;
-  inset: 0;
+  inset-block-start: -0.25rem;
+  inset-inline-end: -0.25rem;
+  z-index: 1;
   display: grid;
-  place-items: center;
   opacity: 0;
   transition: opacity 120ms ease;
+  --aui-icon-size: 0.625rem;
 
-  .wedyan-compose-reference:is(:hover, :focus-within) > & {
+  .wedyan-compose-removable:is(:hover, :focus-within) > & {
     opacity: 1;
+  }
+
+  & button {
+    inline-size: 1.125rem;
+    block-size: 1.125rem;
+    min-block-size: 0;
+    padding: 0;
+    border-radius: 50%;
   }
 }
 
-/* Who's in it: each their look and name on a line. */
-.wedyan-compose-casts {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-
-  & > li {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    font-size: var(--font-label-md-size);
-  }
+/* Whether a take's Generate makes a picture or a video: as wide as its two choices, not the panel. */
+.wedyan-compose-mode {
+  align-self: start;
 }
 
 /* An attempt in the history: its picture, then what it was asked and when, one over the other. */
@@ -967,6 +984,9 @@
 }
 
 .wedyan-motions-notice {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
   color: var(--color-on-surface-variant);
   font-size: var(--font-label-md-size);
   font-variant-numeric: tabular-nums;

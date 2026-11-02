@@ -1,9 +1,35 @@
 import { $bind, $use, Snippet, setup, template } from '@airlib/react';
-import { Button, Listbox, ListboxOption, Menu, Select, Stepper, TextInput, Toggle, ToggleGroup, Tooltip } from '@airlib/react-aui';
+import {
+  Button,
+  Listbox,
+  ListboxOption,
+  Menu,
+  Select,
+  SelectOption,
+  SelectPanel,
+  SelectTrigger,
+  Stepper,
+  TextInput,
+  Toggle,
+  ToggleGroup,
+  Tooltip,
+} from '@airlib/react-aui';
 import { AddIcon, CloseIcon } from '@airlib/react-aui/icons';
 import { IRPCFile } from '@irpclib/irpc';
 import type { ReactNode } from 'react';
-import { ASPECTS, attemptPicture, chosenAttempt, GENERATION_MODES, MODELS, pictureAt, reuseAttempt, settingsOf } from '@/lib/documents/generation.js';
+import {
+  ASPECTS,
+  asksSeconds,
+  attemptPicture,
+  chosenAttempt,
+  GENERATION_MODES,
+  MAKES_VIDEO,
+  MODELS,
+  pictureAt,
+  reuseAttempt,
+  settingsOf,
+  TIERED_MODELS,
+} from '@/lib/documents/generation.js';
 import { nameOf, newId, parentOf } from '@/lib/documents/paths.js';
 import type { GeneratedAttempt, GenerativeDocument, PersonaDocument, SoundDocument } from '@/lib/documents/types.js';
 import { dfs } from '@/lib/share/dfs.js';
@@ -16,8 +42,14 @@ import { PeopleTile } from './PeopleTile.js';
 /** What a generated sound can be. */
 const SOUND_KINDS: Record<SoundDocument['kind'], string> = { music: 'Music', speech: 'Speech', sfx: 'Sound effect', ambience: 'Ambience' };
 
+/** The only kind of sound Generate can make. */
+const SPOKEN = 'speech';
+
 /** The longest edge a small square picture is asked for at, as `dfs.image` serves it. */
 const THUMB_SIZE = 128;
+
+/** The dashed box everything added to a generation is added from, whatever its icon. */
+const ADD_TILE = 'wedyan-compose-thumb wedyan-compose-thumb-add';
 
 /**
  * A generated image, video or sound as it was asked for, to change and make again: its prompt; its
@@ -87,9 +119,9 @@ const promptGroup = (source: GenerativeDocument, subject: GenerationSubject) =>
     'Prompt',
     <>
       {source.type === 'take' && (
-        <ToggleGroup aria-label="Generate as" size="xs" value={$bind(settingsOf(source), 'mode')}>
+        <ToggleGroup aria-label="Generate as" size="xs" className="wedyan-compose-mode" value={$bind(settingsOf(source), 'mode')}>
           {Object.entries(GENERATION_MODES).map(([mode, label]) => (
-            <Toggle key={mode} value={mode}>
+            <Toggle key={mode} value={mode} disabled={mode === 'video' && !MAKES_VIDEO}>
               {label}
             </Toggle>
           ))}
@@ -103,7 +135,7 @@ const promptGroup = (source: GenerativeDocument, subject: GenerationSubject) =>
         size="sm"
         variant="filled"
         className="wedyan-compose-generate"
-        disabled={$use(() => !!subject.busy || !source.prompt?.trim())}
+        disabled={$use(() => !!subject.busy || !(source.type === 'sound' && source.kind === 'speech' ? source.text : source.prompt)?.trim())}
         onClick={() => subject.generate()}
       >
         <GenerativeIcon />
@@ -125,14 +157,21 @@ const settingsGroup = (source: GenerativeDocument) => {
       {source.type === 'sound' && (
         <div className="wedyan-compose-property-row pi-sm">
           <span>Kind</span>
-          <Select size="xs" label="Kind" options={SOUND_KINDS} value={$bind(source, 'kind')}>
-            <Select.Snippet for="trigger">{(value) => <span>{SOUND_KINDS[value as SoundDocument['kind']]}</span>}</Select.Snippet>
+          <Select size="xs" label="Kind" value={$bind(source, 'kind')}>
+            <SelectTrigger label="Kind">{() => <span>{SOUND_KINDS[source.kind]}</span>}</SelectTrigger>
+            <SelectPanel>
+              {Object.entries(SOUND_KINDS).map(([kind, label]) => (
+                <SelectOption key={kind} value={kind} disabled={kind !== SPOKEN}>
+                  {label}
+                </SelectOption>
+              ))}
+            </SelectPanel>
           </Select>
         </div>
       )}
       <div className="wedyan-compose-property-row pi-sm">
         <span>Model</span>
-        <Select size="xs" label="Model" options={models} value={$bind(settings, 'model')}>
+        <Select size="xs" label="Model" disabled={!TIERED_MODELS} options={models} value={$bind(settings, 'model')}>
           <Select.Snippet for="trigger">{(value) => <span>{models[value as string]}</span>}</Select.Snippet>
         </Select>
       </div>
@@ -158,20 +197,24 @@ const settingsGroup = (source: GenerativeDocument) => {
           />
         </div>
       )}
-      {source.type !== 'still' && (
-        <div className="wedyan-compose-property-row pi-sm">
-          <span>Seconds</span>
-          <Stepper
-            size="xs"
-            label="Seconds"
-            decrementLabel="Shorter"
-            incrementLabel="Longer"
-            min={1}
-            max={source.type === 'sound' ? 60 : 10}
-            value={$bind(settings, 'seconds')}
-          />
-        </div>
-      )}
+      <Snippet>
+        {() =>
+          asksSeconds(source) && (
+            <div className="wedyan-compose-property-row pi-sm">
+              <span>Seconds</span>
+              <Stepper
+                size="xs"
+                label="Seconds"
+                decrementLabel="Shorter"
+                incrementLabel="Longer"
+                min={1}
+                max={source.type === 'sound' ? 60 : 10}
+                value={$bind(settings, 'seconds')}
+              />
+            </div>
+          )
+        }
+      </Snippet>
     </>,
     true
   );
@@ -185,23 +228,13 @@ const referencesGroup = (source: GenerativeDocument, subject: GenerationSubject)
       <Snippet>
         {() =>
           (source.references ?? []).map((reference) => (
-            <li key={reference} title={reference} className="wedyan-compose-reference">
+            <li key={reference} title={reference} className="wedyan-compose-removable">
               <Thumb src={pictureAt(subject.path ?? '', reference)} />
-              {/* Taking it off, once confirmed: small, over the picture's middle, while it's hovered or focused. */}
-              <span className="wedyan-compose-reference-remove">
-                <ConfirmButton
-                  label="Remove reference"
-                  size="xs"
-                  variant="glass"
-                  title={() => 'Remove reference?'}
-                  description="It's taken off what this is made from. The image itself stays where it is."
-                  action="Remove"
-                  onconfirm={() => removeReference(source, reference)}
-                >
-                  <CloseIcon />
-                  <Tooltip>Remove reference</Tooltip>
-                </ConfirmButton>
-              </span>
+              <TileRemove
+                label="Remove reference"
+                description="It's taken off what this is made from. The image itself stays where it is."
+                onconfirm={() => removeFrom(source.references, reference)}
+              />
             </li>
           ))
         }
@@ -218,30 +251,43 @@ const referencesGroup = (source: GenerativeDocument, subject: GenerationSubject)
     true
   );
 
+/** Taking a tile off what a generation is made from, once confirmed: small, floating at its top right, while it's hovered or focused. */
+const TileRemove = template<{ label: string; description: string; onconfirm(): void }>(
+  ({ label, description, onconfirm }) => (
+    <span className="wedyan-compose-remove">
+      <ConfirmButton label={label} size="xs" variant="glass" title={() => `${label}?`} description={description} action="Remove" onconfirm={onconfirm}>
+        <CloseIcon />
+        <Tooltip>{label}</Tooltip>
+      </ConfirmButton>
+    </span>
+  ),
+  'TileRemove'
+);
+
 /**
- * Takes one of a generation's references off it.
+ * Takes one path off what a generation is made from.
  *
- * @param source - The generated document.
- * @param reference - The reference, as written.
+ * @param list - Its references or casts.
+ * @param path - The path, as written.
  */
-function removeReference(source: GenerativeDocument, reference: string): void {
-  const references = source.references ?? [];
-  const at = references.indexOf(reference);
-  if (at >= 0) references.splice(at, 1);
+function removeFrom(list: string[] | undefined, path: string): void {
+  const at = list?.indexOf(path) ?? -1;
+  if (at >= 0) list?.splice(at, 1);
 }
 
 /**
- * Adding references: a tile, always at the end, picking from the user's own files — images, or
- * sounds for a sound — each added as it's picked.
+ * Adding references: a tile, always at the end, picking from the user's own files, each added as
+ * it's picked. A sound's model takes none, so its tile can't be used.
  */
 const ReferenceAdd = template<{ source: GenerativeDocument; path?: string }>(
   ({ source, path }) => (
-    <label className="wedyan-compose-thumb wedyan-compose-thumb-add" title="Add reference">
+    <label className={ADD_TILE} title="Add reference">
       <AddIcon />
       <input
         type="file"
         multiple
         accept={source.type === 'sound' ? 'audio/*' : 'image/*'}
+        disabled={source.type === 'sound'}
         aria-label="Add reference"
         className="wedyan-compose-thumb-file"
         onChange={(event) => {
@@ -259,10 +305,9 @@ const ReferenceAdd = template<{ source: GenerativeDocument; path?: string }>(
 
 /** Adding a reference from the pictures on hand: what isn't one already, and never what's being made. */
 const ReferencePick = setup<{ source: GenerativeDocument; subject: GenerationSubject }>((props) => {
-  const { source, subject } = props;
   const items = () =>
-    (subject.pictures ?? [])
-      .filter(({ path }) => path !== subject.path && !source.references?.includes(path))
+    (props.subject.pictures ?? [])
+      .filter(({ path }) => path !== props.subject.path && !props.source.references?.includes(path))
       .map(({ path, name }) => ({ name: path, label: name }));
 
   return () => (
@@ -273,8 +318,9 @@ const ReferencePick = setup<{ source: GenerativeDocument; subject: GenerationSub
             label="Pick a reference"
             size="xs"
             variant="text"
+            className={ADD_TILE}
             items={$use(items)}
-            oncommand={(event) => (source.references ??= []).push(String(event.detail))}
+            oncommand={(event) => (props.source.references ??= []).push(String(event.detail))}
           >
             <Menu.Snippet for="trigger">{() => <GenerativeIcon />}</Menu.Snippet>
           </Menu>
@@ -284,19 +330,26 @@ const ReferencePick = setup<{ source: GenerativeDocument; subject: GenerationSub
   );
 }, 'ReferencePick');
 
-/** Who can be put in it: everyone not in it yet, one at a time for who says the words. */
+/** Who can be put in it: everyone not in it yet. Speech has one voice, so who says the words can't be picked. */
 const CastAdd = setup<{ source: GenerativeDocument; subject: GenerationSubject; casts: () => string[]; add(path: string): void }>((props) => {
-  const { subject, casts, add } = props;
   const items = () =>
-    (subject.people ?? [])
-      .filter(({ path }) => !casts().includes(path))
+    (props.subject.people ?? [])
+      .filter(({ path }) => !props.casts().includes(path))
       .map(({ path, name }) => ({ name: path, label: name }));
 
   return () => (
     <Snippet>
       {() =>
         items().length ? (
-          <Menu label="Add cast" size="xs" variant="text" items={$use(items)} oncommand={(event) => add(String(event.detail))}>
+          <Menu
+            label="Add cast"
+            size="xs"
+            variant="text"
+            className={ADD_TILE}
+            disabled={props.source.type === 'sound'}
+            items={$use(items)}
+            oncommand={(event) => props.add(String(event.detail))}
+          >
             <Menu.Snippet for="trigger">{() => <AddIcon />}</Menu.Snippet>
           </Menu>
         ) : null
@@ -332,41 +385,41 @@ const castsGroup = (source: GenerativeDocument, subject: GenerationSubject) => {
     if (source.type === 'sound') source.voice = cast;
     else (source.casts ??= []).push(cast);
   };
+  const remove = (cast: string) => {
+    if (source.type === 'sound') source.voice = undefined;
+    else removeFrom(source.casts, cast);
+  };
   const portraitOf = (cast: { path: string; document: PersonaDocument }) =>
     cast.document.head?.main && pictureAt(cast.path, cast.document.head.main);
-  // A voice is who says the words, a row; someone cast is a tile picking which of their pictures it takes.
-  const shown = () => {
-    const casts = written()
-      .map((cast) => follow<'persona'>(path, cast))
-      .filter((found): found is { path: string; document: PersonaDocument } => !!found.document);
-    if (!casts.length) {
-      return <p className="wedyan-compose-property-note">{speech ? 'No one says it yet.' : 'No one is cast in it.'}</p>;
-    }
-    return speech ? (
-      <ul className="wedyan-compose-casts">
-        {casts.map((cast) => (
-          <li key={cast.path} title={cast.document.description ?? cast.document.name}>
-            <Thumb src={portraitOf(cast)} />
-            <span>{cast.document.name}</span>
-          </li>
-        ))}
-      </ul>
-    ) : (
-      <ul className="wedyan-people-tiles">
-        {casts.map((cast) => (
-          <li key={cast.path}>
-            <PeopleTile persona={cast.document} pictureOf={(picture) => pictureAt(cast.path, picture)} />
-          </li>
-        ))}
-      </ul>
-    );
-  };
+  // A voice is who says the words, a portrait; someone cast is a tile picking which of their pictures it takes.
+  const shown = () =>
+    written().flatMap((cast) => {
+      const found = follow<'persona'>(path, cast);
+      if (!found.document) return [];
+      const person = { path: found.path, document: found.document };
+      return [
+        <li key={cast} className="wedyan-compose-removable" title={speech ? person.document.name : undefined}>
+          {speech ? (
+            <Thumb src={portraitOf(person)} />
+          ) : (
+            <PeopleTile persona={person.document} pictureOf={(picture) => sized(pictureAt(person.path, picture))} />
+          )}
+          <TileRemove
+            label={speech ? 'Remove voice' : 'Remove cast'}
+            description="They're taken off this. They stay where they are."
+            onconfirm={() => remove(cast)}
+          />
+        </li>,
+      ];
+    });
   return group(
     speech ? 'Voice' : 'Casts',
-    <>
+    <ul className="wedyan-compose-thumbs">
       <Snippet>{shown}</Snippet>
-      <CastAdd source={source} subject={subject} casts={written} add={add} />
-    </>,
+      <li>
+        <CastAdd source={source} subject={subject} casts={written} add={add} />
+      </li>
+    </ul>,
     true
   );
 };
@@ -437,11 +490,21 @@ function pressedApart(run: () => void): (element: HTMLElement | null) => void {
   };
 }
 
+/**
+ * A picture's address at a tile's size.
+ *
+ * @param src - Its address, if it has one.
+ * @returns Where it's served at that size.
+ */
+function sized(src?: string): string | undefined {
+  return src && dfs.image(src, { size: THUMB_SIZE });
+}
+
 /** A small square picture, or a blank — a sound's glyph for a sound — when there's none. */
 const Thumb = template<{ src?: string; sound?: boolean }>(
   ({ src, sound }) =>
     src ? (
-      <img className="wedyan-compose-thumb" src={dfs.image(src, { size: THUMB_SIZE })} alt="" />
+      <img className="wedyan-compose-thumb" src={sized(src)} alt="" />
     ) : (
       <span className="wedyan-compose-thumb" data-blank>
         {sound && <SoundIcon />}

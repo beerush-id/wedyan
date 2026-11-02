@@ -1,7 +1,7 @@
-import { $bind, template } from '@airlib/react';
+import { $bind, Snippet, template } from '@airlib/react';
 import { Button, Select, Stepper } from '@airlib/react-aui';
 import type { FC } from 'react';
-import { chosenAttempt, MODELS, settingsOf } from '@/lib/documents/generation.js';
+import { asksSeconds, attemptPicture, chosenAttempt, MODELS, settingsOf, TIERED_MODELS } from '@/lib/documents/generation.js';
 import { GenerativeIcon, ModelIcon } from '../../icons.js';
 import { type Composer, composerCtx, type GenerativeSource } from '../context.js';
 
@@ -14,7 +14,7 @@ export const RegenerateOptions = template<{ generated: GenerativeSource }>(({ ge
 
   return (
     <>
-      <Select size="sm" label="Model" options={models} value={$bind(settings, 'model')}>
+      <Select size="sm" label="Model" disabled={!TIERED_MODELS} options={models} value={$bind(settings, 'model')}>
         <Select.Snippet for="trigger">
           {(value) => (
             <>
@@ -23,9 +23,13 @@ export const RegenerateOptions = template<{ generated: GenerativeSource }>(({ ge
           )}
         </Select.Snippet>
       </Select>
-      {source.type !== 'still' && (
-        <Stepper size="sm" label="Seconds" decrementLabel="Shorter" incrementLabel="Longer" min={2} max={10} value={$bind(settings, 'seconds')} />
-      )}
+      <Snippet>
+        {() =>
+          asksSeconds(source) && (
+            <Stepper size="sm" label="Seconds" decrementLabel="Shorter" incrementLabel="Longer" min={2} max={10} value={$bind(settings, 'seconds')} />
+          )
+        }
+      </Snippet>
       <Button size="sm" variant="filled" onClick={() => composer.generate(generated)}>
         <GenerativeIcon />
         <span>Generate</span>
@@ -45,8 +49,6 @@ export const SubjectTile = template<{ name: string; picture?: string; glyph?: FC
 );
 
 /** A generated document's tile: the picture of its chosen attempt, when it has one. */
-export const GeneratedTile = template<{ source: GenerativeSource['source'] }>(({ source }) => {
-  const chosen = chosenAttempt(source);
-  const picture = source.type === 'take' ? (chosen as { poster?: string })?.poster : source.type === 'still' ? chosen?.src : undefined;
-  return <SubjectTile name={source.name} picture={picture} />;
-}, 'GeneratedTile');
+export const GeneratedTile = template<{ generated: GenerativeSource }>(({ generated: { path, source } }) => (
+  <SubjectTile name={source.name} picture={attemptPicture(path, source, chosenAttempt(source))} />
+), 'GeneratedTile');

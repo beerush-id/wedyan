@@ -42,7 +42,7 @@ export const DirectSubject = setup(() => {
   return () => {
     if (composer.activeView !== 'asset') return null;
     const generated = composer.generativeAsset();
-    return generated ? <GeneratedTile source={generated.source} /> : null;
+    return generated ? <GeneratedTile generated={generated} /> : null;
   };
 }, 'DirectSubject');
 
@@ -50,7 +50,7 @@ export const DirectSubject = setup(() => {
 const WritingOptions = template(
   () => (
     <>
-      <Select size="sm" label="Model" options={WRITING_MODELS} value={$bind(writing, 'model')}>
+      <Select size="sm" label="Model" disabled options={WRITING_MODELS} value={$bind(writing, 'model')}>
         <Select.Snippet for="trigger">
           {(value) => (
             <>
@@ -59,7 +59,7 @@ const WritingOptions = template(
           )}
         </Select.Snippet>
       </Select>
-      <Select size="sm" label="Reasoning effort" options={EFFORTS} value={$bind(writing, 'effort')}>
+      <Select size="sm" label="Reasoning effort" disabled options={EFFORTS} value={$bind(writing, 'effort')}>
         <Select.Snippet for="trigger">
           {(value) => (
             <>
