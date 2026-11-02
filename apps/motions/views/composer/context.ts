@@ -2,15 +2,17 @@ import { canCaptureVideo } from '@airlib/aria';
 import { type AnyType, createContext, effect, type history, mutable } from '@airlib/react';
 import type { Timeline, TimelineSegment } from '@airlib/react/timeline';
 import type { PersonTab } from '@/apps/lounge/views/session.js';
-import { isGenerative } from '@/lib/documents/generation.js';
+import { attemptPicture, chosenAttempt, isGenerative, settingsOf } from '@/lib/documents/generation.js';
 import { parentOf, resolvePath } from '@/lib/documents/paths.js';
 import { type FileRow, rowsOf } from '@/lib/documents/rows.js';
 import type { GenerativeDocument, MotionDocument, StageDocument } from '@/lib/documents/types.js';
 import { LOUNGE, LOUNGE_EVENT } from '@/lib/kernel/workspace.h.js';
 import { dfs } from '@/lib/share/dfs.js';
+import { generateTakePicture } from '@/lib/share/generate.js';
 import { documentAt, follow, type Project } from '../motion.js';
 import type { HtmlClip, NodeKeyframe } from './composition.js';
 import { findNode } from './nodes.js';
+import { showAttempt } from './placement.js';
 
 /** What a project window opens with: which project, and whether it opens in Direct. */
 export type ComposerData = { path: string; direct: boolean };
@@ -57,6 +59,8 @@ export type Composer = {
   edits: number;
   /** What the stage's render says now. */
   status: string;
+  /** Whether something's being generated, so a second press doesn't make it twice. */
+  generating: boolean;
   rendering: boolean;
   /** Read by the stage listing, which runs again as it changes. */
   version: number;
@@ -73,6 +77,8 @@ export type Composer = {
   readonly casts: FileRow[];
   /** Everyone who could be. */
   readonly people: FileRow[];
+  /** The project's pictures: its images and stills, which what's generated can be made from. */
+  readonly pictures: FileRow[];
   /** The agents work can be assigned to. */
   readonly agents: FileRow[];
   /** Where the stage picked is, or the project's first until one is. */
@@ -98,10 +104,17 @@ export type Composer = {
   generativeClip(): (GenerativeSource & { segment: TimelineSegment }) | undefined;
   /** The asset picked, when it's generated. */
   generativeAsset(): GenerativeSource | undefined;
-  /** Makes a generated document again; nothing in Motions generates yet, so it says so. */
+  /** Makes a new attempt of a generated document, which shows in its clip; `status` says how it went. */
   generate(generated: GenerativeSource): void;
   /** Starts rendering the stage open in Compose, or says in `status` why it can't. */
   render(): void;
+  /**
+   * Says a file is being written here, so hearing of it doesn't list the project again: a listing
+   * that ran before the project saved would drop the file's row.
+   *
+   * @param file - The file's home path.
+   */
+  writing(file: string): void;
   /**
    * Puts a row this desktop is adding in the listing, which needs no asking again for it: the
    * project only holds a file once it's saved, so a listing can't have it yet.
@@ -134,6 +147,9 @@ const LISTED_FILE = /\.(motion|stage|persona|agent|still|take)$/;
  * @returns The composer.
  */
 export function createComposer(path: string, direct: boolean): Composer {
+  // What this window is writing itself: it's about to hold it, so hearing of it lists nothing.
+  const written = new Set<string>();
+
   const composer: Composer = mutable<Composer>(
     {
       path,
@@ -146,6 +162,7 @@ export function createComposer(path: string, direct: boolean): Composer {
       snap: false,
       edits: 0,
       status: '',
+      generating: false,
       rendering: false,
       version: 0,
 
@@ -164,6 +181,10 @@ export function createComposer(path: string, direct: boolean): Composer {
 
       get assets() {
         return ofKind((row) => !!row.held && row.kind !== 'persona');
+      },
+
+      get pictures() {
+        return ofKind((row) => !!row.held && (row.kind === 'image' || row.kind === 'still'));
       },
 
       get casts() {
@@ -238,13 +259,41 @@ export function createComposer(path: string, direct: boolean): Composer {
 
       generativeAsset() {
         const asset = composer.activeAsset;
-        if (asset?.kind !== 'still' && asset?.kind !== 'take') return;
+        if (asset?.kind !== 'still' && asset?.kind !== 'take' && asset?.kind !== 'sound') return;
         const source = documentAt(asset.path);
         return isGenerative(source) ? { path: asset.path, source } : undefined;
       },
 
-      generate({ source }) {
-        composer.status = `Generating ${source.name} isn't connected yet.`;
+      generate(generated) {
+        const { path, source } = generated;
+        const making = composer.generating ? undefined : attemptsOf(generated);
+        if (!making) {
+          if (!composer.generating) composer.status = `Generating ${source.name} here isn't connected yet.`;
+          return;
+        }
+        composer.generating = true;
+        composer.status = `Making ${source.name}…`;
+        making()
+          .then((attempts) => {
+            composer.status = '';
+            // The clip stays where it is, as long as it is: what's new just shows in it.
+            const clip = composer.generativeClip();
+            const newest = attempts.at(-1);
+            if (newest && clip?.path === path) showAttempt(clip.segment, path, source, newest.id);
+            // Its row shows it too, here and in Sources, without listing the project again.
+            const row = composer.assets.find((asset) => asset.path === path);
+            if (row) row.thumbnail = attemptPicture(path, source, chosenAttempt(source));
+          })
+          .catch((error: Error) => {
+            composer.status = error.message;
+          })
+          .finally(() => {
+            composer.generating = false;
+          });
+      },
+
+      writing(file) {
+        written.add(file);
       },
 
       add(row) {
@@ -270,6 +319,7 @@ export function createComposer(path: string, direct: boolean): Composer {
 
   // What an agent writes isn't held here, so it's listed again.
   dfs.watch(HOME, ({ path: changed }) => {
+    if (written.delete(changed)) return;
     if (LISTED_FILE.test(changed)) composer.version += 1;
   });
 
@@ -288,4 +338,15 @@ export function createComposer(path: string, direct: boolean): Composer {
   });
 
   return composer;
+}
+
+/**
+ * What makes a generated document's next attempt.
+ *
+ * @param generated - The document, and where it is.
+ * @returns What makes it; none where nothing can yet.
+ */
+function attemptsOf({ path, source }: GenerativeSource): (() => Promise<{ id: string }[]>) | undefined {
+  if (source.type === 'still') return () => dfs.still.generate(path);
+  if (source.type === 'take' && settingsOf(source).mode === 'image') return () => generateTakePicture(path);
 }

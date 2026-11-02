@@ -1,9 +1,9 @@
 import { $bind, $use, Snippet, setup, template } from '@airlib/react';
-import { Button, Listbox, ListboxOption, Select, Stepper, TextInput, Tooltip } from '@airlib/react-aui';
+import { Button, Listbox, ListboxOption, Menu, Select, Stepper, TextInput, Toggle, ToggleGroup, Tooltip } from '@airlib/react-aui';
 import { AddIcon, CloseIcon } from '@airlib/react-aui/icons';
 import { IRPCFile } from '@irpclib/irpc';
 import type { ReactNode } from 'react';
-import { ASPECTS, attemptPicture, chosenAttempt, MODELS, pictureAt, reuseAttempt, settingsOf } from '@/lib/documents/generation.js';
+import { ASPECTS, attemptPicture, chosenAttempt, GENERATION_MODES, MODELS, pictureAt, reuseAttempt, settingsOf } from '@/lib/documents/generation.js';
 import { nameOf, newId, parentOf } from '@/lib/documents/paths.js';
 import type { GeneratedAttempt, GenerativeDocument, PersonaDocument, SoundDocument } from '@/lib/documents/types.js';
 import { dfs } from '@/lib/share/dfs.js';
@@ -77,11 +77,24 @@ const group = (label: string, children: ReactNode, card = false) => (
   </GenerationGroup>
 );
 
-/** What the generation is asked, written onto its document — speech also says its words — and Generate, to make it again. */
+/**
+ * What the generation is asked, written onto its document — speech also says its words — and
+ * Generate, to make it again. A take says first whether that makes a picture or the video itself,
+ * so what's asked can be got right before the expensive part.
+ */
 const promptGroup = (source: GenerativeDocument, subject: GenerationSubject) =>
   group(
     'Prompt',
     <>
+      {source.type === 'take' && (
+        <ToggleGroup aria-label="Generate as" size="xs" value={$bind(settingsOf(source), 'mode')}>
+          {Object.entries(GENERATION_MODES).map(([mode, label]) => (
+            <Toggle key={mode} value={mode}>
+              {label}
+            </Toggle>
+          ))}
+        </ToggleGroup>
+      )}
       {source.type === 'sound' && source.kind === 'speech' && (
         <TextInput size="xs" multiline rows={3} label="Words" placeholder="The words it says" value={$bind(source, 'text')} />
       )}
@@ -196,6 +209,11 @@ const referencesGroup = (source: GenerativeDocument, subject: GenerationSubject)
       <li>
         <ReferenceAdd source={source} path={subject.path} />
       </li>
+      {source.type !== 'sound' && (
+        <li>
+          <ReferencePick source={source} subject={subject} />
+        </li>
+      )}
     </ul>,
     true
   );
@@ -239,6 +257,54 @@ const ReferenceAdd = template<{ source: GenerativeDocument; path?: string }>(
   'ReferenceAdd'
 );
 
+/** Adding a reference from the pictures on hand: what isn't one already, and never what's being made. */
+const ReferencePick = setup<{ source: GenerativeDocument; subject: GenerationSubject }>((props) => {
+  const { source, subject } = props;
+  const items = () =>
+    (subject.pictures ?? [])
+      .filter(({ path }) => path !== subject.path && !source.references?.includes(path))
+      .map(({ path, name }) => ({ name: path, label: name }));
+
+  return () => (
+    <Snippet>
+      {() =>
+        items().length ? (
+          <Menu
+            label="Pick a reference"
+            size="xs"
+            variant="text"
+            items={$use(items)}
+            oncommand={(event) => (source.references ??= []).push(String(event.detail))}
+          >
+            <Menu.Snippet for="trigger">{() => <GenerativeIcon />}</Menu.Snippet>
+          </Menu>
+        ) : null
+      }
+    </Snippet>
+  );
+}, 'ReferencePick');
+
+/** Who can be put in it: everyone not in it yet, one at a time for who says the words. */
+const CastAdd = setup<{ source: GenerativeDocument; subject: GenerationSubject; casts: () => string[]; add(path: string): void }>((props) => {
+  const { subject, casts, add } = props;
+  const items = () =>
+    (subject.people ?? [])
+      .filter(({ path }) => !casts().includes(path))
+      .map(({ path, name }) => ({ name: path, label: name }));
+
+  return () => (
+    <Snippet>
+      {() =>
+        items().length ? (
+          <Menu label="Add cast" size="xs" variant="text" items={$use(items)} oncommand={(event) => add(String(event.detail))}>
+            <Menu.Snippet for="trigger">{() => <AddIcon />}</Menu.Snippet>
+          </Menu>
+        ) : null
+      }
+    </Snippet>
+  );
+}, 'CastAdd');
+
 /**
  * Stores a picked file beside what it's a reference of, as a part of it that lists as nothing.
  *
@@ -261,22 +327,22 @@ const castsGroup = (source: GenerativeDocument, subject: GenerationSubject) => {
   if (subject.casts === false || (source.type === 'sound' && source.kind !== 'speech')) return null;
   const speech = source.type === 'sound';
   const path = subject.path ?? '';
-  const casts = (speech ? (source.voice ? [source.voice] : []) : (source.casts ?? []))
-    .map((cast) => follow<'persona'>(path, cast))
-    .filter((found): found is { path: string; document: PersonaDocument } => !!found.document);
+  const written = () => (speech ? (source.voice ? [source.voice] : []) : (source.casts ?? []));
+  const add = (cast: string) => {
+    if (source.type === 'sound') source.voice = cast;
+    else (source.casts ??= []).push(cast);
+  };
   const portraitOf = (cast: { path: string; document: PersonaDocument }) =>
     cast.document.head?.main && pictureAt(cast.path, cast.document.head.main);
-  if (!casts.length) {
-    return group(
-      speech ? 'Voice' : 'Casts',
-      <p className="wedyan-compose-property-note">{speech ? 'No one says it yet.' : 'No one is cast in it.'}</p>,
-      true
-    );
-  }
   // A voice is who says the words, a row; someone cast is a tile picking which of their pictures it takes.
-  return group(
-    speech ? 'Voice' : 'Casts',
-    speech ? (
+  const shown = () => {
+    const casts = written()
+      .map((cast) => follow<'persona'>(path, cast))
+      .filter((found): found is { path: string; document: PersonaDocument } => !!found.document);
+    if (!casts.length) {
+      return <p className="wedyan-compose-property-note">{speech ? 'No one says it yet.' : 'No one is cast in it.'}</p>;
+    }
+    return speech ? (
       <ul className="wedyan-compose-casts">
         {casts.map((cast) => (
           <li key={cast.path} title={cast.document.description ?? cast.document.name}>
@@ -289,11 +355,18 @@ const castsGroup = (source: GenerativeDocument, subject: GenerationSubject) => {
       <ul className="wedyan-people-tiles">
         {casts.map((cast) => (
           <li key={cast.path}>
-            <PeopleTile persona={cast.document} pictureOf={(source) => pictureAt(cast.path, source)} />
+            <PeopleTile persona={cast.document} pictureOf={(picture) => pictureAt(cast.path, picture)} />
           </li>
         ))}
       </ul>
-    ),
+    );
+  };
+  return group(
+    speech ? 'Voice' : 'Casts',
+    <>
+      <Snippet>{shown}</Snippet>
+      <CastAdd source={source} subject={subject} casts={written} add={add} />
+    </>,
     true
   );
 };

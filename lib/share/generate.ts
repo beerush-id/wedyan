@@ -1,4 +1,5 @@
-import type { StillDocument } from '@/lib/documents/types.js';
+import { settingsOf } from '@/lib/documents/generation.js';
+import type { StillDocument, TakeDocument } from '@/lib/documents/types.js';
 import { type StillAttempt, type StillRequest, stillAttempts } from '@/lib/kernel/stills.h.js';
 import { addAttempts, applyRequest, requestOf } from './stills.js';
 import { edited } from './workspace.js';
@@ -19,5 +20,28 @@ export async function generateStill(path: string, request?: Partial<StillRequest
   if (request) applyRequest(still, request);
   const attempts = await stillAttempts(path, requestOf(still));
   addAttempts(still, attempts);
+  return attempts;
+}
+
+/**
+ * Generates a picture of a take a window here is editing, as a new attempt: one image, far cheaper
+ * than a video, that plays in the take's clip for as long as the take runs, so what's asked can be
+ * got right before a video is. It's chosen like any attempt, and a video replaces it the same way.
+ *
+ * @param path - The take's path in the home.
+ * @returns The new attempts, each with an address to show it at.
+ * @throws When nothing on this desktop is editing that take.
+ */
+export async function generateTakePicture(path: string): Promise<StillAttempt[]> {
+  const take = edited<TakeDocument>(path);
+  if (!take) throw new Error(`${path} isn't being edited on this desktop`);
+  const { model, aspect, seconds } = settingsOf(take);
+  const attempts = await stillAttempts(path, {
+    prompt: take.prompt,
+    settings: { model, aspect, batch: 1 },
+    references: [...take.references],
+    casts: [...(take.casts ?? [])],
+  });
+  addAttempts(take as never, attempts.map((attempt) => ({ ...attempt, seconds })));
   return attempts;
 }

@@ -9,6 +9,8 @@ export type StillRequest = {
   settings?: { model?: string; aspect?: string; batch?: number };
   /** Images it's made from: a `.still` (its chosen image), a picture, by path from the still, or an address. */
   references?: string[];
+  /** Who's in it, by path to each `.persona`: their face goes to the model with the references. */
+  casts?: string[];
 };
 
 /** A new attempt of a still, and an address to show it at. */
@@ -40,6 +42,7 @@ export const stillAttempts = kernel.declare<(path: string, request: StillRequest
         prompt: z.string().min(1).max(4000),
         settings: z.object({ model: z.string(), aspect: z.string(), batch: z.number().int() }).partial().optional(),
         references: z.array(z.string().max(2048)).max(8).optional(),
+        casts: z.array(z.string().max(2048)).max(8).optional(),
       }),
     ],
   },

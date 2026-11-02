@@ -16,6 +16,7 @@ import {
   UrlSource,
   type WrappedCanvas,
 } from 'mediabunny';
+import { PICTURE_FILE } from '@/lib/documents/generation.js';
 
 /** How media is opened: whether its scrubbing copy is made as soon as it's opened. */
 export type MediaLoaderOptions = {
@@ -73,6 +74,7 @@ const FILES = new Map<string, Promise<MediaFile | undefined>>();
  */
 export function mediaLoader(options: MediaLoaderOptions = {}): VideoMediaLoader {
   return async (src) => {
+    if (PICTURE_FILE.test(src)) return openPicture(src);
     const file = await openFile(src);
     if (!file) return;
     if (options.autobuffer && file.video) bufferFile(src, file);
@@ -97,6 +99,21 @@ export function mediaLoader(options: MediaLoaderOptions = {}): VideoMediaLoader 
       dispose: () => reader?.dispose(),
     };
   };
+}
+
+/**
+ * A picture as a clip's media: the same picture at every moment, so a take can rehearse on a still
+ * and be given its video later, in the same clip. It has no length of its own, so it runs as long as
+ * its clip does.
+ *
+ * @param src - Where it is.
+ * @returns The media, or nothing when it can't be read.
+ */
+async function openPicture(src: string): Promise<VideoMedia | undefined> {
+  const response = await fetch(src).catch(() => undefined);
+  if (!response?.ok) return;
+  const picture = await createImageBitmap(await response.blob());
+  return { duration: 0, frame: async () => picture, dispose: () => picture.close() };
 }
 
 /**

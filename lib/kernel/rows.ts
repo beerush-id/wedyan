@@ -1,5 +1,6 @@
 import type { D1Extension, D1Write, FileInfo } from '@irpclib/r2-file';
 import { fsContext } from '@irpclib/r2-file/context';
+import { PICTURE_FILE } from '@/lib/documents/generation.js';
 import { resolvePath } from '@/lib/documents/paths.js';
 import type { FileRow, RowKind } from '@/lib/documents/rows.js';
 import { posterOf, runtime } from '@/lib/documents/stage.js';
@@ -47,7 +48,10 @@ const DOCUMENTS: Partial<Record<RowKind, Columns>> = {
     position: stage.order,
   }),
   still: (still: StillDocument) => ({ thumbnail: chosen(still)?.src, src: chosen(still)?.src }),
-  take: (take: TakeDocument) => ({ thumbnail: chosen(take)?.poster, src: chosen(take)?.src }),
+  take: (take: TakeDocument) => {
+    const attempt = chosen(take);
+    return { thumbnail: attempt && PICTURE_FILE.test(attempt.src) ? attempt.src : attempt?.poster, src: attempt?.src };
+  },
   sound: (sound: { attempts: { id: string; src: string }[]; chosen?: string }) => ({ src: chosen(sound)?.src }),
   persona: (persona: PersonaDocument, { path }) => {
     const main = persona.head?.main;

@@ -1,8 +1,8 @@
 import type { Timeline, TimelineSegment, TimelineTrack } from '@airlib/react/timeline';
-import { chosenAttempt, isGenerative } from '@/lib/documents/generation.js';
+import { addressAt, attemptPicture, chosenAttempt, isGenerative, settingsOf } from '@/lib/documents/generation.js';
 import type { FileRow } from '@/lib/documents/rows.js';
 import type { GenerativeDocument } from '@/lib/documents/types.js';
-import { documentAt } from '../motion.js';
+import { documentArrived } from '@/lib/share/documents.js';
 import type { AudioClip, HtmlClip, ImageClip, StageProps, SvgClip, TitleClip, VideoClip } from './composition.js';
 import type { Composer } from './context.js';
 
@@ -66,7 +66,7 @@ export function addTrack(timeline: Timeline, type: TrackType): TimelineTrack {
  * @param stage - The stage it goes on.
  * @param asset - The asset.
  * @param at - Where it goes.
- * @returns The new clip, or nothing when the asset has no media to show.
+ * @returns The new clip, or nothing when the asset is no media and no generated document.
  */
 export async function placeAsset(stage: PlacementStage, asset: FileRow, at: Placement): Promise<TimelineSegment | undefined> {
   const { timeline, size } = stage;
@@ -83,23 +83,27 @@ export async function placeAsset(stage: PlacementStage, asset: FileRow, at: Plac
     return place(timeline, type, at, { type, name, duration: await mediaSeconds(asset.src as string, asset.kind) }, props);
   }
 
-  const source = documentAt(asset.path);
+  const source = await documentArrived(asset.path);
   if (!isGenerative(source)) return;
   const attempt = chosenAttempt(source);
-  if (!attempt) return;
   const meta = { source: pathFrom(stage.project, asset.path) };
+  // Documents keep their attempts by path from themselves; a clip plays from an address. With no
+  // attempt yet the clip waits empty, so its first Generate lands in it, where it was put.
+  const src = attempt && addressAt(asset.path, attempt.src);
 
   if (source.type === 'still') {
-    const props: ImageClip = { src: attempt.src, fit: 'cover', ...box };
-    return place(timeline, 'video', at, { type: 'image', name, duration: CLIP_SECONDS, meta: { ...meta, thumbnail: attempt.src } }, props);
+    const props = { src, fit: 'cover', ...box } as ImageClip;
+    const picture = src ? { thumbnail: src } : {};
+    return place(timeline, 'video', at, { type: 'image', name, duration: CLIP_SECONDS, meta: { ...meta, ...picture } }, props);
   }
-  const { seconds, poster } = attempt as { seconds: number; poster?: string };
+  const seconds = (attempt as { seconds?: number } | undefined)?.seconds ?? settingsOf(source).seconds;
   if (source.type === 'sound') {
-    const props: AudioClip = { src: attempt.src };
+    const props: AudioClip = { src };
     return place(timeline, 'audio', at, { type: 'audio', name, duration: seconds, meta }, props);
   }
-  const props: VideoClip = { src: attempt.src, ...box };
-  return place(timeline, 'video', at, { type: 'video', name, duration: seconds, meta: poster ? { ...meta, thumbnail: poster } : meta }, props);
+  const props: VideoClip = { src, fit: 'cover', ...box };
+  const thumbnail = attemptPicture(asset.path, source, attempt);
+  return place(timeline, 'video', at, { type: 'video', name, duration: seconds, meta: thumbnail ? { ...meta, thumbnail } : meta }, props);
 }
 
 /**
@@ -107,15 +111,16 @@ export async function placeAsset(stage: PlacementStage, asset: FileRow, at: Plac
  * chosen, and the clip's picture or media is the attempt's.
  *
  * @param segment - The clip made from the document.
+ * @param path - Where the document is, which its attempts are written from.
  * @param source - The generated document.
  * @param id - The attempt to show, by id.
  */
-export function showAttempt(segment: TimelineSegment, source: GenerativeDocument, id: string): void {
+export function showAttempt(segment: TimelineSegment, path: string, source: GenerativeDocument, id: string): void {
   const attempt = source.attempts.find((each) => each.id === id);
   if (!attempt) return;
   source.chosen = id;
-  const thumbnail = source.type === 'still' ? attempt.src : (attempt as { poster?: string }).poster;
-  (segment.props as { src?: string }).src = attempt.src;
+  const thumbnail = attemptPicture(path, source, attempt);
+  (segment.props as { src?: string }).src = addressAt(path, attempt.src);
   if (thumbnail) segment.meta = { ...segment.meta, thumbnail };
   if (segment.timeline.status !== 'playing') void segment.timeline.scrub(segment.timeline.frame);
 }

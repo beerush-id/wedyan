@@ -1,6 +1,9 @@
 import { createContext } from '@airlib/react';
 import type { GenerativeDocument } from '@/lib/documents/types.js';
 
+/** Something on the drive that can be picked: where it is, and what it's called. */
+export type GenerationChoice = { path: string; name: string };
+
 /**
  * What a generation form works on: a generated image, video or sound by its path, and what making
  * it again and choosing one of its attempts mean where it's shown.
@@ -14,6 +17,10 @@ export type GenerationSubject = {
   readonly casts?: boolean;
   /** Whether it's being made, so a second press doesn't make it twice. */
   readonly busy?: boolean;
+  /** Pictures on hand it can be made from, offered beside uploading one. */
+  readonly pictures?: GenerationChoice[];
+  /** The people who can be cast in it. */
+  readonly people?: GenerationChoice[];
   /** Makes it again, as a new attempt. */
   generate(): void;
   /**

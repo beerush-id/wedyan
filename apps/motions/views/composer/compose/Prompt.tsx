@@ -18,13 +18,22 @@ export const Prompt = setup(() => {
     get source() {
       return composer.generativeClip()?.source;
     },
+    get busy() {
+      return composer.generating;
+    },
+    get pictures() {
+      return composer.pictures;
+    },
+    get people() {
+      return composer.people;
+    },
     generate() {
       const clip = composer.generativeClip();
       if (clip) composer.generate(clip);
     },
     choose(id) {
       const clip = composer.generativeClip();
-      if (clip) showAttempt(clip.segment, clip.source, id);
+      if (clip) showAttempt(clip.segment, clip.path, clip.source, id);
     },
   });
 

@@ -411,6 +411,14 @@
   grid-area: sources;
 }
 
+/* What's shown, then adding more at the end of the line. */
+.wedyan-compose-sources-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-xs);
+}
+
 .wedyan-compose-group {
   display: flex;
   flex-direction: column;

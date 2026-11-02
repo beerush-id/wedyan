@@ -6,7 +6,7 @@ import { read, write } from '@irpclib/r2-file';
 import type { ImageWorkerEnv } from '@irpclib/r2-image/worker';
 import { DEFAULT_MODELS } from '@/lib/agents/index.js';
 import { chosenAttempt } from '@/lib/documents/generation.js';
-import type { StillDocument } from '@/lib/documents/types.js';
+import type { PersonaDocument, StillDocument } from '@/lib/documents/types.js';
 import type { SysAsk, SysHandler } from '@/lib/kernel/agent.js';
 import { DOC_ATTEMPTS } from '@/lib/kernel/document.h.js';
 import { kernel } from '@/lib/kernel/package.js';
@@ -114,8 +114,9 @@ async function generateForAgent(
 }
 
 /**
- * Makes a still's new attempts: as many images as its batch asks, from its prompt and references,
- * each kept in a folder beside it named after it (`Hero.still` keeps `Hero/<id>.webp`).
+ * Makes a still's new attempts, or a take's pictures: as many images as its batch asks, from its
+ * prompt and references, each kept in a folder beside it named after it (`Hero.still` keeps
+ * `Hero/<id>.webp`).
  *
  * @param adapter - The server's models.
  * @param pictures - The bucket and the resizer, for R2 Image to size the references.
@@ -130,16 +131,18 @@ export async function makeAttempts(
   request: StillRequest,
 ): Promise<StillAttempt[]> {
   const { model = 'standard', aspect, batch = 1 } = request.settings ?? {};
-  const references = await Promise.all(
-    (request.references ?? []).map((reference) => referenceOf(pictures, path, reference)),
-  );
+  const [written, faces] = await Promise.all([
+    Promise.all((request.references ?? []).map((reference) => referenceOf(pictures, path, reference))),
+    Promise.all((request.casts ?? []).map((cast) => faceOf(pictures, path, cast))),
+  ]);
+  const references = [...written, ...faces.filter((face): face is string => !!face)];
   const count = Math.min(Math.max(Math.round(batch), 1), MAX_BATCH);
   const drawn = await Promise.all(
     Array.from({ length: count }, () =>
       drawImage(adapter, {
         prompt: request.prompt,
         model: STILL_MODELS[model] ?? IMAGE_MODEL,
-        saveTo: path.slice(0, -STILL_EXTENSION.length),
+        saveTo: path.slice(0, path.lastIndexOf('.')),
         ...(aspect ? { aspectRatio: aspect } : {}),
         ...(references.length ? { attachments: references } : {}),
       }),
@@ -217,6 +220,22 @@ async function referenceOf(pictures: ImageWorkerEnv, still: string, reference: s
 }
 
 /**
+ * Someone cast, as the picture the model is given to keep them the same: their main face. Someone
+ * with no face yet has none to give, which is no reason not to make the picture.
+ *
+ * @param pictures - The bucket and the resizer.
+ * @param still - The path of what's being made.
+ * @param cast - The `.persona`, by path.
+ * @returns Their face, if they have one.
+ */
+async function faceOf(pictures: ImageWorkerEnv, still: string, cast: string): Promise<string | undefined> {
+  const path = pathFrom(still, cast.replace(/^\//, ''));
+  const persona = await read<PersonaDocument>(path, { encoding: 'json' }).catch(() => undefined);
+  const face = persona?.head?.main;
+  return face ? imageOf(pictures, path, face) : undefined;
+}
+
+/**
  * A reference as an image the model can be given: an address as it is; a picture in the drive, by
  * its path or the `/~/…` it's delivered from, or a still's chosen image, inline and sized by R2
  * Image, since the drive is private. Undefined when there's none.
@@ -229,7 +248,7 @@ async function imageOf(pictures: ImageWorkerEnv, still: string, reference: strin
     const chosen = source && chosenAttempt(source);
     if (!chosen) return undefined;
     if (isAddress(chosen.src)) return chosen.src;
-    path = pathFrom(path, chosen.src);
+    path = pathFrom(path, chosen.src.replace(/^\//, ''));
   }
   return resizePicture(pictures, path, REFERENCE_SIZE).catch(() => undefined);
 }

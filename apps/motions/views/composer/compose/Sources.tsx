@@ -3,9 +3,11 @@ import { ContextMenu, EmptyState, type GalleryValue, TabButton, TabList, TabPane
 import { WindowPanel } from '@airlib/react-aui/desktop';
 import type { DragEvent } from 'react';
 import { WedyanGallery, type WedyanGalleryEntry } from '@/components/WedyanGallery.js';
+import { addressAt } from '@/lib/documents/generation.js';
 import type { FileRow, RowKind } from '@/lib/documents/rows.js';
 import { linkTo, previewLink, requestLink } from '@/lib/systems/public.js';
 import { type Composer, composerCtx } from '../context.js';
+import { AddAsset } from '../direct/Adders.js';
 import { ASSET_DRAG, placeOnStage } from '../placement.js';
 import { addAssets } from '../upload.js';
 
@@ -33,7 +35,7 @@ export const Sources = setup(() => {
     path: row.path,
     name: row.name,
     kind: row.kind === 'persona' ? 'image' : (row.kind as WedyanGalleryEntry['kind']),
-    picture: row.thumbnail,
+    picture: row.thumbnail && addressAt(row.path, row.thumbnail),
   });
   const casts = () => composer.casts.map(entryOf);
 
@@ -94,12 +96,15 @@ export const Sources = setup(() => {
         onDrop={drop}
       >
         <Tabs size="xs" value="all">
-          <TabList label="Show">
-            <TabButton name="all">All</TabButton>
-            <TabButton name="video">Video</TabButton>
-            <TabButton name="audio">Audio</TabButton>
-            <TabButton name="cast">Cast</TabButton>
-          </TabList>
+          <div className="wedyan-compose-sources-head">
+            <TabList label="Show">
+              <TabButton name="all">All</TabButton>
+              <TabButton name="video">Video</TabButton>
+              <TabButton name="audio">Audio</TabButton>
+              <TabButton name="cast">Cast</TabButton>
+            </TabList>
+            <AddAsset made={(asset) => placeOnStage(composer, asset)} />
+          </div>
           <TabPanel name="all">{gallery('Sources', [...assets().map(entryOf), ...casts()], ['Nothing yet', "This project's assets and casts show here."])}</TabPanel>
           <TabPanel name="video">{gallery('Video', pictures, ['No video yet', 'The pictures and footage this project has show here.'])}</TabPanel>
           <TabPanel name="audio">{gallery('Audio', sounds, ['No audio yet', 'The music and sound this project has show here.'])}</TabPanel>

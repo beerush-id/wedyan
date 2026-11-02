@@ -1,13 +1,15 @@
-import { setup, template } from '@airlib/react';
+import { Snippet, setup, template } from '@airlib/react';
 import { DescriptionList } from '@airlib/react-aui';
 import { DirectContent } from '@/components/Direct.js';
+import { GenerationForm } from '@/components/GenerationForm.js';
+import { generationCtx } from '@/components/generation.js';
 import { RenameField } from '@/components/RenameField.js';
+import { addressAt, attemptPicture, chosenAttempt, PICTURE_FILE } from '@/lib/documents/generation.js';
 import { ASSET_KINDS, type FileRow } from '@/lib/documents/rows.js';
-import type { StillDocument, TakeDocument } from '@/lib/documents/types.js';
+import type { GenerativeDocument } from '@/lib/documents/types.js';
 import { dfs } from '@/lib/share/dfs.js';
-import { documentAt, duration } from '../../motion.js';
+import { duration } from '../../motion.js';
 import { type Composer, composerCtx } from '../context.js';
-import { StillView } from './StillView.js';
 
 /** The picked asset: a generated one as its own document, otherwise the media itself, as it plays or shows. */
 export const AssetView = setup(() => {
@@ -18,13 +20,12 @@ export const AssetView = setup(() => {
     const asset = composer.activeAsset;
     if (!asset) return null;
 
-    if (asset.kind === 'still') {
-      const still = documentAt<'still'>(asset.path);
-      return <DirectContent>{still && <StillView document={still as StillDocument} />}</DirectContent>;
-    }
-    if (asset.kind === 'take') {
-      const take = documentAt<'take'>(asset.path);
-      return <DirectContent>{take && <TakeView take={take as TakeDocument} />}</DirectContent>;
+    if (asset.kind === 'still' || asset.kind === 'take' || asset.kind === 'sound') {
+      return (
+        <DirectContent>
+          <GeneratedAsset />
+        </DirectContent>
+      );
     }
 
     return (
@@ -35,20 +36,62 @@ export const AssetView = setup(() => {
   };
 }, 'AssetView');
 
-/** A generated video: its chosen attempt, and how it was asked for. */
-const TakeView = template<{ take: TakeDocument }>(({ take }) => {
-  const chosen = take.attempts.find((attempt) => attempt.id === take.chosen);
-  return (
+/**
+ * A generated asset, the same for whoever made it: the attempt it shows, as it plays, and the form
+ * that says how it's made, with every attempt to choose from. With none yet, that's all there is.
+ */
+const GeneratedAsset = setup(() => {
+  const composer = composerCtx.get() as Composer;
+
+  generationCtx.set({
+    get path() {
+      return composer.generativeAsset()?.path;
+    },
+    get source() {
+      return composer.generativeAsset()?.source;
+    },
+    get busy() {
+      return composer.generating;
+    },
+    get pictures() {
+      return composer.pictures;
+    },
+    get people() {
+      return composer.people;
+    },
+    generate() {
+      const asset = composer.generativeAsset();
+      if (asset) composer.generate(asset);
+    },
+    choose(id) {
+      const asset = composer.generativeAsset();
+      if (asset) asset.source.chosen = id;
+    },
+  });
+
+  return () => (
     <article className="wedyan-direct-pane">
-      {/* biome-ignore lint/a11y/useMediaCaption: a generated clip has no words to caption. */}
-      <video className="wedyan-direct-hero" src={chosen?.src} poster={chosen?.poster} controls />
-      <header className="wedyan-direct-heading">
-        <h2>{take.name}</h2>
-        <p>{chosen?.prompt ?? take.prompt}</p>
-      </header>
+      <Snippet>
+        {() => {
+          const asset = composer.generativeAsset();
+          return asset ? <AttemptShown path={asset.path} source={asset.source} /> : null;
+        }}
+      </Snippet>
+      <GenerationForm />
     </article>
   );
-}, 'TakeView');
+}, 'GeneratedAsset');
+
+/** The attempt a generated document shows: a picture, its footage, or its sound. */
+const AttemptShown = template<{ path: string; source: GenerativeDocument }>(({ path, source }) => {
+  const chosen = chosenAttempt(source);
+  const src = chosen && addressAt(path, chosen.src);
+  if (!src) return null;
+  if (source.type === 'sound') return <audio className="wedyan-direct-hero" src={src} controls aria-label={source.name} />;
+  if (PICTURE_FILE.test(src)) return <img className="wedyan-direct-hero" src={src} alt={source.name} />;
+  // biome-ignore lint/a11y/useMediaCaption: a generated clip has no words to caption.
+  return <video className="wedyan-direct-hero" src={src} poster={attemptPicture(path, source, chosen)} controls />;
+}, 'AttemptShown');
 
 /** An image, a video or a sound, as it shows or plays, with what it is. */
 const MediaView = template<{ asset: FileRow }>(({ asset }) => (

@@ -1,6 +1,6 @@
 import { follow } from '../share/documents.js';
 import { pathFrom } from '../share/paths.js';
-import type { DocumentType, GeneratedAttempt, GenerationSettings, GenerativeDocument, WedyanDocument } from './types.js';
+import type { DocumentType, GeneratedAttempt, GenerationMode, GenerationSettings, GenerativeDocument, WedyanDocument } from './types.js';
 
 /** The models a generation can be asked of, by what it makes. Placeholders until the kernel names its own. */
 export const MODELS: Record<GenerativeDocument['type'], Record<string, string>> = {
@@ -16,7 +16,13 @@ export const WRITING_MODELS = { fast: 'Fast', balanced: 'Balanced', best: 'Best'
 export const ASPECTS = { '16:9': '16:9', '9:16': '9:16', '1:1': '1:1' };
 
 /** What a generation is made with when its document doesn't say. */
-const DEFAULT_SETTINGS: Required<GenerationSettings> = { model: 'standard', aspect: '16:9', seconds: 4, batch: 2 };
+const DEFAULT_SETTINGS: Required<GenerationSettings> = { mode: 'image', model: 'standard', aspect: '16:9', seconds: 4, batch: 2 };
+
+/** What a take's Generate can make: pictures first, since a video costs far more to get wrong. */
+export const GENERATION_MODES = { image: 'Image', video: 'Video' };
+
+/** What's a picture rather than footage, by its address: a take can hold either as an attempt. */
+export const PICTURE_FILE = /\.(webp|png|jpe?g|avif)(\?|$)/i;
 
 /** The document types that are generated, and made again from their prompt. */
 const GENERATIVE_TYPES = new Set<DocumentType>(['still', 'take', 'sound']);
@@ -36,11 +42,17 @@ export function isGenerative(document?: WedyanDocument): document is GenerativeD
  * what it's made with when it doesn't say, and writes onto the document.
  *
  * @param source - The generated document.
- * @returns Its model, aspect ratio, seconds and batch size, read from and written to the document.
+ * @returns Its mode, model, aspect ratio, seconds and batch size, read from and written to the document.
  */
 export function settingsOf(source: GenerativeDocument): Required<GenerationSettings> {
   const settings = () => (source.settings ??= {}) as GenerationSettings;
   return {
+    get mode() {
+      return (source.settings as GenerationSettings | undefined)?.mode ?? DEFAULT_SETTINGS.mode;
+    },
+    set mode(mode: GenerationMode) {
+      settings().mode = mode;
+    },
     get model() {
       return source.settings?.model ?? DEFAULT_SETTINGS.model;
     },
@@ -91,7 +103,7 @@ export function chosenAttempt<T extends GenerativeDocument>(source: T): T['attem
 }
 
 /**
- * An attempt's picture: a still's own, a take's poster; a sound has none.
+ * An attempt's picture: a still's own, a take's own or its video's poster; a sound has none.
  *
  * @param from - The generated document's path.
  * @param source - The generated document.
@@ -104,7 +116,8 @@ export function attemptPicture(
   attempt?: GenerativeDocument['attempts'][number],
 ): string | undefined {
   if (!attempt || source.type === 'sound') return;
-  const written = source.type === 'still' ? attempt.src : (attempt as { poster?: string }).poster;
+  const { poster } = attempt as { poster?: string };
+  const written = source.type === 'still' || PICTURE_FILE.test(attempt.src) ? attempt.src : poster;
   return written && addressAt(from, written);
 }
 
@@ -119,7 +132,7 @@ export const ADDRESS =/^(\/~\/|[a-z][a-z0-9+.-]*:)/i;
  * @param written - The path or address, as written.
  * @returns Its address.
  */
-const addressAt = (from: string, written: string): string =>
+export const addressAt = (from: string, written: string): string =>
   ADDRESS.test(written) ? written : `/${pathFrom(from, written)}`;
 
 /**

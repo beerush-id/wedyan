@@ -137,7 +137,10 @@ export type PersonaDocument = DocumentHeader<'persona'> & {
  * Kept on the document, so it's made again the same way.
  */
 /** How a generation is asked: its model, a picture's aspect ratio, how long a video or a sound runs, and how many it makes in one request. */
-export type GenerationSettings = { model?: string; aspect?: string; seconds?: number; batch?: number };
+export type GenerationSettings = { mode?: GenerationMode; model?: string; aspect?: string; seconds?: number; batch?: number};
+
+/** What a take's Generate makes: a picture, cheap, to get it right, or the video itself. */
+export type GenerationMode = 'image' | 'video';
 
 /** One generated image as an editable source: how it was asked for, every attempt, its edits, and the one chosen. */
 export type StillDocument = DocumentHeader<'still'> & {

@@ -13,7 +13,12 @@ import type { StillRequest } from '@/lib/kernel/stills.h.js';
  */
 export function requestOf(still: StillDocument): StillRequest {
   const { model, aspect, batch } = settingsOf(still);
-  return { prompt: still.prompt, settings: { model, aspect, batch }, references: [...(still.references ?? [])] };
+  return {
+    prompt: still.prompt,
+    settings: { model, aspect, batch },
+    references: [...(still.references ?? [])],
+    casts: [...(still.casts ?? [])],
+  };
 }
 
 /**

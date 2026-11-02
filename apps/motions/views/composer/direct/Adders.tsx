@@ -1,9 +1,11 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
 import { $use, setup } from '@airlib/react';
 import { Button, Menu, Tooltip } from '@airlib/react-aui';
+import type { FileRow } from '@/lib/documents/rows.js';
 import { AddIcon } from '../../icons.js';
 import { addCast, newPerson, newStage } from '../../motion.js';
 import { type Composer, composerCtx } from '../context.js';
+import { addGenerated, GENERATED_ITEMS, isGeneratedKind } from '../generated.js';
 import { ASSET_TYPES, addAssets } from '../upload.js';
 
 /** Which command makes a new person, among the people to pick. */
@@ -27,14 +29,30 @@ export const AddStage = setup(() => {
   );
 }, 'AddStage');
 
-/** Uploads pictures, videos and sounds into the project, each under an id, called by its own name. */
-export const AddAsset = setup(() => {
+/** Which command uploads, among the new things to make. */
+const UPLOAD = 'upload';
+
+/** What the Add menu offers: what's made here, then what's brought in. */
+const ADD_ITEMS = [...GENERATED_ITEMS, { name: UPLOAD, label: 'Upload' }];
+
+/**
+ * Adds to the project: a new generated image, video or sound, or uploaded pictures, videos and
+ * sounds, each under an id, called by its own name. What's new goes to `made`.
+ */
+export const AddAsset = setup<{ made(asset: FileRow): void }>((props) => {
   const composer = composerCtx.get() as Composer;
   let picker: HTMLInputElement | null = null;
 
   const upload = async (files: FileList | null) => {
     if (files) await addAssets(composer, files);
     if (picker) picker.value = '';
+  };
+
+  const add = async (command: string) => {
+    if (command === UPLOAD) return picker?.click();
+    if (!isGeneratedKind(command)) return;
+    const asset = await addGenerated(composer, command);
+    if (asset) props.made(asset);
   };
 
   return () => (
@@ -50,10 +68,9 @@ export const AddAsset = setup(() => {
         aria-label="Files to upload"
         onChange={(event) => void upload(event.target.files)}
       />
-      <Button aria-label="Upload" size="xs" variant="text" className={AUI_CLASS.CONTROL_ICON} onClick={() => picker?.click()}>
-        <AddIcon />
-        <Tooltip>Upload</Tooltip>
-      </Button>
+      <Menu label="Add asset" size="xs" variant="text" xDir="between" items={ADD_ITEMS} oncommand={(event) => void add(String(event.detail))}>
+        <Menu.Snippet for="trigger">{() => <AddIcon />}</Menu.Snippet>
+      </Menu>
     </>
   );
 }, 'AddAsset');

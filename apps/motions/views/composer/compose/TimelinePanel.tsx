@@ -4,6 +4,7 @@ import { Menu, TimelineEditor, type TimelineLaneCommand, type TimelineLaneDrop }
 import { WindowPanel } from '@airlib/react-aui/desktop';
 import { AddIcon } from '../../icons.js';
 import { type Composer, composerCtx } from '../context.js';
+import { addGenerated, isGeneratedKind } from '../generated.js';
 import { buffers } from '../media.js';
 import { ASSET_DRAG, addTrack, placeBox, placeOnStage, placeShape, placeTitle, TRACK_NAMES, type TrackType } from '../placement.js';
 import { clipAssignee } from './assignee.js';
@@ -14,6 +15,11 @@ const TRACK_KINDS = Object.entries(TRACK_NAMES).map(([name, label]) => ({ name, 
 
 /** What an empty spot on a track offers, by the track's type: a new clip of its kind there. */
 const LANE_COMMANDS: Record<string, { name: string; label: string }[]> = {
+  video: [
+    { name: 'still', label: 'New still here' },
+    { name: 'take', label: 'New take here' },
+  ],
+  audio: [{ name: 'sound', label: 'New sound here' }],
   title: [{ name: 'add-title', label: 'Add title here' }],
   html: [
     { name: 'add-box', label: 'Add box here' },
@@ -71,6 +77,12 @@ export const TimelinePanel = setup(() => {
 
   const laneCommand = (event: CustomEvent<TimelineLaneCommand>) => {
     const { name, track, frame } = event.detail;
+    if (isGeneratedKind(name)) {
+      void addGenerated(composer, name).then((asset) => {
+        if (asset) placeOnStage(composer, asset, { track, frame });
+      });
+      return;
+    }
     const placer = LANE_PLACERS[name];
     const { stage, timeline } = composer;
     if (placer && stage && timeline) composer.clips = [placer(timeline, stage.composition.props, { track, frame }).id];
