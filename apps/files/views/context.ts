@@ -1,27 +1,32 @@
-import { mutable, onCleanup } from '@airlib/react';
+import { createContext, mutable, onCleanup } from '@airlib/react';
 import { confirmDialog } from '@/components/ConfirmHost.js';
 import type { WedyanGalleryLayout } from '@/components/WedyanGallery.js';
 import { parentOf } from '@/lib/documents/paths.js';
 import { type FileRow, rowsOf } from '@/lib/documents/rows.js';
 import { dfs } from '@/lib/share/dfs.js';
 import { linkTo, requestLink } from '@/lib/systems/public.js';
-import { HOME, isShown, orderOf, type Place, placesOf } from './listing.js';
+import { FOLDER_TYPE, FOUND_LIMIT, HOME, type Place, SEARCH_WAIT } from './listing.js';
 
 /** One Files window, for every part of it. */
 export type Files = ReturnType<typeof createFiles>;
+
+/** The Files window, which its parts read. */
+export const filesCtx = createContext<Files>();
 
 /** What the open window lists, for what reads it from outside: the prompt's mentions. */
 export const shown: { files?: Files } = {};
 
 /**
- * A Files window's one source of truth: where it is, and the real listing of the home and of the
- * folder open, which follow what changes anywhere in the session.
+ * A Files window's one source of truth: where it is, the real listing of the drive's top folders and
+ * of the folder open, which follow what changes anywhere in the session, and what a search finds.
  *
  * @returns The window's files.
  */
 export function createFiles() {
   const state = mutable({
-    /** The folders opened to get here, from the home: a path only says their ids. */
+    /** The folder open. */
+    here: HOME as Place,
+    /** The folders opened to get here: a path only says their ids. */
     trail: [] as Place[],
     // One file's path while picking one, and the checked paths while picking several; both layouts share it.
     picked: null as string | string[] | null,
@@ -32,85 +37,59 @@ export function createFiles() {
     asked: 0,
   });
 
-  const folder = () => state.trail.at(-1)?.path ?? HOME;
-
-  const home = dfs.list.with(() => {
+  const places = dfs.list.with(() => {
     void state.asked;
-    return [HOME, {}] as [string, object];
+    return [HOME.path, { filter: { type: FOLDER_TYPE } }] as [string, object];
   });
   const items = dfs.list.with(() => {
     void state.asked;
-    return [folder(), {}] as [string, object];
+    return [state.here.path, {}] as [string, object];
   });
+  const found = dfs.search.when(() => {
+    void state.asked;
+    return [state.query, { limit: FOUND_LIMIT }] as [string, object];
+  }, SEARCH_WAIT);
 
-  /** What the folder open holds, folders first, without what's the system's own. */
-  const rows = (): FileRow[] => orderOf(rowsOf(items).filter(isShown));
-
-  /** The paths picked: the one file, or every checked one. */
-  const pickedPaths = (): string[] => (Array.isArray(state.picked) ? state.picked : state.picked ? [state.picked] : []);
-
-  /** Lets go of what's picked: the mode first, while the value is still a list. */
-  const letGo = () => {
+  /** Goes somewhere, letting go of what's picked: the mode first, while the value is still a list. */
+  const go = (here: Place, trail: Place[]) => {
     state.several = false;
     state.picked = null;
-  };
-
-  /** Goes to a folder by the folders leading to it. */
-  const go = (trail: Place[]) => {
-    letGo();
     state.query = '';
     state.trail = trail;
+    state.here = here;
   };
 
   // An agent's work and other desktops: a change to what's listed lists it again.
-  dfs.watch(HOME, ({ path }) => {
-    if (parentOf(path) === folder() || parentOf(path) === HOME) state.asked += 1;
+  dfs.watch(HOME.path, ({ path }) => {
+    if (parentOf(path) === state.here.path || parentOf(path) === HOME.path) state.asked += 1;
   });
 
   const files = {
     state,
-    home,
+    places,
     items,
-    rows,
-    pickedPaths,
-
-    /** The picked rows. */
-    picks: (): FileRow[] => rowsOf(items).filter((row) => pickedPaths().includes(row.path)),
-
-    /** The folders down the side. */
-    places: (): Place[] => placesOf(rowsOf(home)),
-
-    /** What the place open is called. */
-    get title() {
-      return state.trail.at(-1)?.name ?? 'Home';
-    },
-
-    /** The folder open, by its path. */
-    get folder() {
-      return folder();
-    },
+    found,
 
     /** Goes to a folder down the side, or the home. */
-    goTo(place?: Place) {
-      go(place ? [place] : []);
+    goTo(place: Place) {
+      go(place, place === HOME ? [] : [HOME]);
     },
 
     /** Goes up a folder. */
     up() {
-      go(state.trail.slice(0, -1));
+      go(state.trail.at(-1) ?? HOME, state.trail.slice(0, -1));
     },
 
-    /** Opens what's listed: a folder here, anything else where it's shown. */
-    open(path: string) {
-      const row = rowsOf(items).find((listed) => listed.path === path);
-      if (row?.isDirectory) go([...state.trail, { path: row.path, name: row.name }]);
-      else if (row) void requestLink(linkTo('preview', row.path));
+    /** Opens a row: a folder here, from wherever it was found; anything else where it's shown. */
+    open(row: FileRow) {
+      if (!row.isDirectory) return void requestLink(linkTo('preview', row.path));
+      go({ path: row.path, name: row.name }, state.query ? [HOME] : [...state.trail, state.here]);
     },
 
-    /** Deletes what's picked, once the user confirms. If the drive refuses, it's listed again. */
+    /** Deletes what's picked, once the user confirms; the listing hears of it as it does of any change. */
     async remove() {
-      const picked = files.picks();
-      if (!picked.length) return;
+      const paths = [state.picked].flat();
+      const picked = rowsOf(state.query ? found : items).filter((row) => paths.includes(row.path));
       const inside = picked.some((row) => row.isDirectory) ? ' Everything in a folder goes with it.' : '';
       const confirmed = await confirmDialog({
         title: picked.length === 1 ? `Delete ${picked[0].name}?` : `Delete ${picked.length} items?`,
@@ -119,12 +98,9 @@ export function createFiles() {
         color: 'error',
       });
       if (!confirmed) return;
-      letGo();
-      try {
-        await Promise.all(picked.map((row) => dfs.remove(row.path, row.isDirectory ? { recursive: true } : undefined)));
-      } finally {
-        state.asked += 1;
-      }
+      state.several = false;
+      state.picked = null;
+      await Promise.all(picked.map((row) => dfs.remove(row.path, row.isDirectory ? { recursive: true } : undefined)));
     },
   };
 

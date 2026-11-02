@@ -1,6 +1,6 @@
 import type { DockSuggestion } from '@airlib/react-aui/desktop';
 import type { FC } from 'react';
-import { sizeOf } from '@/lib/documents/rows.js';
+import { rowsOf, sizeOf } from '@/lib/documents/rows.js';
 import { dfs } from '@/lib/share/dfs.js';
 import type { Commands } from '@/lib/systems/public.js';
 import { shown } from './context.js';
@@ -22,8 +22,7 @@ export const COMMANDS: Commands = {};
  * @returns One suggestion each, by its path in the home.
  */
 export function contexts(): DockSuggestion[] {
-  const rows = shown.files?.rows() ?? [];
-  return rows
+  return rowsOf(shown.files?.items ?? {})
     .filter((row) => !row.isDirectory)
     .map((row) => {
       const Icon = KIND_ICONS[row.kind] ?? DocumentsIcon;
