@@ -3,7 +3,7 @@ import { kindArt, type WedyanFileKind } from '@/components/WedyanGallery.js';
 import { FILE_TYPES } from '@/lib/documents/file-types.js';
 import { ADDRESS } from '@/lib/documents/generation.js';
 import { parentOf } from '@/lib/documents/paths.js';
-import type { FileRow } from '@/lib/documents/rows.js';
+import { type FileRow, shortDate, sizeOf } from '@/lib/documents/rows.js';
 import { dfs } from '@/lib/share/dfs.js';
 import { pathFrom } from '@/lib/share/paths.js';
 
@@ -151,28 +151,6 @@ export function detailOf(row: FileRow): string {
 export function modifiedOf(row: FileRow): string | undefined {
   if (row.kind === 'folder') return;
   return shortDate(row.updated ?? row.mtime);
-}
-
-/**
- * A date as lists show it, e.g. `Oct 27`.
- *
- * @param date - The date.
- * @returns Its month and day.
- */
-export function shortDate(date: string | Date): string {
-  return new Date(date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
-
-/**
- * How large a file is, in words.
- *
- * @param bytes - Its size.
- * @returns E.g. `2.4 MB` or `340 kB`.
- */
-export function sizeOf(bytes: number): string {
-  const large = bytes >= 1_000_000;
-  const format = new Intl.NumberFormat(undefined, { style: 'unit', unit: large ? 'megabyte' : 'kilobyte', maximumFractionDigits: 1 });
-  return format.format(bytes / (large ? 1_000_000 : 1_000));
 }
 
 /**

@@ -4,12 +4,12 @@ import { DescriptionList, EmptyState } from '@airlib/react-aui';
 import { FolderIcon } from '@airlib/react-aui/icons';
 import { FloatingDownload } from '@/components/FloatingDownload.js';
 import { BROWSE_CLASS } from '@/components/WedyanGallery.js';
-import type { FileRow } from '@/lib/documents/rows.js';
+import { type FileRow, shortDate, sizeOf } from '@/lib/documents/rows.js';
 import type { StillDocument } from '@/lib/documents/types.js';
 import { dfs } from '@/lib/share/dfs.js';
 import { LibraryIcon } from './icons.js';
 import { libraryCtx, type PhotoLibrary } from './library.js';
-import { modifiedOf, originalOf, pictureOf, shortDate, sizeOf } from './listing.js';
+import { modifiedOf, originalOf, pictureOf } from './listing.js';
 
 const PICTURE_CLASS = 'wedyan-photos-preview-picture';
 

@@ -3,7 +3,7 @@ import { fsContext } from '@irpclib/r2-file/context';
 import { resolvePath } from '@/lib/documents/paths.js';
 import type { FileRow, RowKind } from '@/lib/documents/rows.js';
 import { posterOf, runtime } from '@/lib/documents/stage.js';
-import type { MotionDocument, PersonaDocument, StageDocument, StillDocument, TakeDocument } from '@/lib/documents/types.js';
+import type { MemoDocument, MotionDocument, PersonaDocument, StageDocument, StillDocument, TakeDocument } from '@/lib/documents/types.js';
 
 /** The columns every kind of file shares, on `_r2_files`, so any list is one query. */
 const COLUMNS: Record<string, string> = {
@@ -51,6 +51,7 @@ const DOCUMENTS: Partial<Record<RowKind, Columns>> = {
     return main?.endsWith('.still') ? { picture: resolvePath(path, main) } : { thumbnail: main };
   },
   agent: (agent: { avatar?: string }) => ({ thumbnail: agent.avatar }),
+  memo: (memo: MemoDocument) => ({ status: memo.priority, description: memo.body.slice(0, ASK_LENGTH) }),
 };
 
 /**
@@ -129,9 +130,10 @@ export const fileRows: D1Extension = {
       const { path, ...project } = JSON.parse(row.project as string);
       return { ...info, ...project, kind: 'motion', path: homeOf(path), isDirectory: false, position: 0 };
     }
-    // A folder a write made on its way to a file has no row of its own to say what it is.
-    const kind = row.kind ?? (info.isDirectory ? 'folder' : undefined);
-    if (!kind) return info;
+    // A folder a write made on its way to a file has no row of its own to say what it is, nor has a
+    // document written before its kind had one.
+    const kind = row.kind ?? (info.isDirectory ? 'folder' : documentKind(info.path));
+    if (!kind) return { ...info, path: homeOf(info.path) };
     const entry: FileRow = {
       ...info,
       path: homeOf(info.path),

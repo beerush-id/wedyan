@@ -1,7 +1,7 @@
 import type { FileInfo } from '@irpclib/r2-file';
 
 /** What a row is: a kind of document, a kind of media, or a folder. */
-export type RowKind = 'folder' | 'motion' | 'stage' | 'still' | 'take' | 'sound' | 'persona' | 'agent' | 'image' | 'video' | 'audio';
+export type RowKind = 'folder' | 'motion' | 'stage' | 'still' | 'take' | 'sound' | 'persona' | 'agent' | 'memo' | 'image' | 'video' | 'audio';
 
 /**
  * A file as every list shows it, whatever it is, from one listing: no list reads a file to draw a row.
@@ -48,3 +48,25 @@ export const ASSET_KINDS: Partial<Record<RowKind, string>> = {
  */
 export const rowsOf = (listing: { data?: { entries?: unknown[] } }): FileRow[] =>
   (listing.data?.entries ?? []) as FileRow[];
+
+/**
+ * A date as lists show it, e.g. `Oct 27`.
+ *
+ * @param date - The date.
+ * @returns Its month and day.
+ */
+export function shortDate(date: string | Date): string {
+  return new Date(date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+/**
+ * How large a file is, in words.
+ *
+ * @param bytes - Its size.
+ * @returns E.g. `2.4 MB` or `340 kB`.
+ */
+export function sizeOf(bytes: number): string {
+  const large = bytes >= 1_000_000;
+  const format = new Intl.NumberFormat(undefined, { style: 'unit', unit: large ? 'megabyte' : 'kilobyte', maximumFractionDigits: 1 });
+  return format.format(bytes / (large ? 1_000_000 : 1_000));
+}
