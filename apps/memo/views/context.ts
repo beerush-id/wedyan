@@ -1,5 +1,5 @@
-import { mutable, onCleanup } from '@airlib/react';
-import { type FileRow, rowsOf } from '@/lib/documents/rows.js';
+import { derived, mutable, onCleanup } from '@airlib/react';
+import { rowsOf } from '@/lib/documents/rows.js';
 import type { MemoDocument } from '@/lib/documents/types.js';
 import { dfs } from '@/lib/share/dfs.js';
 import { MEMOS_PATH } from '@/lib/share/system.js';
@@ -35,16 +35,16 @@ export function createMemos() {
     return LISTING;
   });
 
-  /** A tab's memos: high priority first, low last, the latest changed first within each. */
-  const rows = (group: MemoGroup = state.group): FileRow[] => {
+  // The tab's memos, high priority first, low last, the latest changed first within each.
+  const rows = derived(() => {
     const rank = Object.keys(PRIORITIES) as MemoPriority[];
     return rowsOf(listing)
-      .filter((row) => groupOf(row) === group)
+      .filter((row) => groupOf(row) === state.group)
       .sort((a, b) => rank.indexOf(rowPriority(a)) - rank.indexOf(rowPriority(b)) || (b.updated ?? '').localeCompare(a.updated ?? ''));
-  };
+  });
 
-  /** The memo open beside the list: the tab's pick, or its first. */
-  const opened = (): string | null => state.picked[state.group] ?? rows()[0]?.path ?? null;
+  // The memo open beside the list: the tab's pick, or its first.
+  const opened = derived((): string | null => state.picked[state.group] ?? rows.value[0]?.path ?? null);
 
   /** Takes a row out of the listing, and whatever was open there goes with it. */
   const drop = (path: string) => {
@@ -93,7 +93,7 @@ export function createMemos() {
 
     /** Deletes the open memo; the tab's first opens in its place. */
     async remove() {
-      const path = opened();
+      const path = opened.value;
       if (!path) return;
       // Closed first: an editor still open would write the file back.
       drop(path);

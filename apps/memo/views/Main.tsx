@@ -1,5 +1,5 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
-import { $bind, effect, Snippet } from '@airlib/react';
+import { $bind, derived, effect, Snippet } from '@airlib/react';
 import { Button, Divider, EmptyState, Toggle, ToggleGroup, Tooltip } from '@airlib/react-aui';
 import { defineWindow, Window, WindowBody, WindowControls, WindowPanel, WindowToolbar } from '@airlib/react-aui/desktop';
 import { AddIcon } from '@airlib/react-aui/icons';
@@ -36,13 +36,7 @@ export const memo = defineWindow({
 }).render(() => {
   const memos = createMemos();
   const { state: view, opened } = memos;
-  memoCtx.set({
-    get path() {
-      return opened();
-    },
-    remove: () => void memos.remove(),
-    changed: memos.changed,
-  });
+  memoCtx.set({ remove: () => void memos.remove(), changed: memos.changed });
 
   // A link's memo opens in its own tab, picked, once it's listed.
   effect(() => {
@@ -63,7 +57,7 @@ export const memo = defineWindow({
   // What the side's list picks: the open memo, written back as the tab's pick.
   const pick = {
     get value() {
-      return opened() ?? '';
+      return opened.value ?? '';
     },
     set value(path: string) {
       view.picked[view.group] = path;
@@ -71,10 +65,10 @@ export const memo = defineWindow({
   };
 
   // The side's rows, narrowed by the search through names and words, each saying how much it weighs, when it isn't normal, and when it changed.
-  const rows = (): DirectItem[] => {
+  const items = derived((): DirectItem[] => {
     const query = view.query.trim().toLowerCase();
-    return memos
-      .rows()
+    const { Icon } = GROUPS[view.group];
+    return memos.rows.value
       .filter(({ name, description }) => !query || `${name} ${description ?? ''}`.toLowerCase().includes(query))
       .map((row) => {
         const priority = rowPriority(row);
@@ -82,10 +76,10 @@ export const memo = defineWindow({
           key: row.path,
           title: row.name || 'Untitled',
           description: [priority !== 'normal' && `${PRIORITIES[priority]} priority`, row.updated && shortDate(row.updated)].filter(Boolean).join(' · '),
-          icon: GROUPS[view.group].Icon,
+          icon: Icon,
         };
       });
-  };
+  });
 
   return () => (
     <Window>
@@ -126,7 +120,7 @@ export const memo = defineWindow({
                     <DirectList
                       label={GROUPS[view.group].label}
                       listLabel={`${GROUPS[view.group].label} memos`}
-                      groups={() => [{ items: rows() }]}
+                      groups={() => [{ items: items.value }]}
                       value={$bind(pick, 'value')}
                       query={$bind(view, 'query')}
                     />
@@ -134,10 +128,10 @@ export const memo = defineWindow({
                 }
               </Snippet>
               {/* A memo picked anew starts its editor afresh, so its fields hold it from the start. */}
-              <Snippet data={opened}>
+              <Snippet data={() => opened.value}>
                 {(path) =>
                   path ? (
-                    <MemoEditor key={path} />
+                    <MemoEditor key={path} path={path} />
                   ) : (
                     <WindowPanel surface="solid" role="region" aria-label="Memo" className="wedyan-memo-open">
                       <EmptyState title="No memos yet" description={GROUPS[view.group].empty} level={3}>

@@ -1,5 +1,5 @@
 import type { DockSuggestion } from '@airlib/react-aui/desktop';
-import { shortDate } from '@/lib/documents/rows.js';
+import { rowsOf, shortDate } from '@/lib/documents/rows.js';
 import { save } from '@/lib/memory/memory.h.js';
 import { linkTo } from '@/lib/systems/links.js';
 import type { Commands } from '@/lib/systems/public.js';
@@ -22,7 +22,7 @@ export const COMMANDS: Commands = {
 export function contexts(): DockSuggestion[] {
   const { memos } = shown;
   if (!memos) return [];
-  return [...memos.rows('personal'), ...memos.rows('memory')].map((row) => ({
+  return rowsOf(memos.listing).map((row) => ({
     value: row.path,
     label: row.name,
     hint: `${groupOf(row) === 'memory' ? 'Memory' : 'Personal'}${row.updated ? ` · ${shortDate(row.updated)}` : ''}`,

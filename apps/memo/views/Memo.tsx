@@ -1,4 +1,4 @@
-import { $bind, $static, $use, mutable, Show, Snippet, setup } from '@airlib/react';
+import { $bind, $static, $use, effect, mutable, Show, Snippet, setup } from '@airlib/react';
 import { EmptyState, Select, Spinner, TextInput, Toggle, ToggleGroup } from '@airlib/react-aui';
 import { WindowPanel } from '@airlib/react-aui/desktop';
 import { MarkdownRenderer } from '@airlib/react-aui/markdown';
@@ -30,12 +30,11 @@ const CLASS = {
  * or as their source as Motions shows a script; then who wrote it and when, and deleting it, once
  * confirmed. The memo is held, so every change saves as it's made, and the list beside it is told.
  */
-export const MemoEditor = setup(() => {
+export const MemoEditor = setup<{ path: string }>((props) => {
   const session = memoCtx.get() as MemoSession;
   // Made afresh for each memo, so which file it works on never changes under it.
-  const path = $static(() => session.path) as string;
+  const path = $static(() => props.path);
   const file = dfs.binding<MemoDocument>(path);
-  const memo = () => file.data;
 
   /**
    * Changes the open memo, while it's still on the drive, and marks when it changed.
@@ -43,7 +42,7 @@ export const MemoEditor = setup(() => {
    * @param apply - What to change in it.
    */
   const change = (apply: (document: MemoDocument) => void) => {
-    const document = memo();
+    const document = file.data;
     if (!document) return;
     edit(document, () => apply(document));
     session.changed(path, document);
@@ -53,19 +52,19 @@ export const MemoEditor = setup(() => {
   // normal priority is the memo saying nothing about it.
   const fields = {
     get name() {
-      return memo()?.name ?? '';
+      return file.data?.name ?? '';
     },
     set name(name: string) {
       change((document) => (document.name = name));
     },
     get body() {
-      return memo()?.body ?? '';
+      return file.data?.body ?? '';
     },
     set body(body: string) {
       change((document) => (document.body = body));
     },
     get priority(): string {
-      const document = memo();
+      const document = file.data;
       return document ? priorityOf(document) : 'normal';
     },
     set priority(priority: string) {
@@ -76,22 +75,18 @@ export const MemoEditor = setup(() => {
     },
   };
 
-  // The words open drawn when there's something to read, and as their source when there's nothing
-  // yet, until the user says otherwise. The memo arrives after the editor opens, so it's asked then.
-  const chosen = mutable({ mode: null as string | null });
-  const view = {
-    get mode() {
-      return chosen.mode ?? (memo()?.body ? 'preview' : 'edit');
-    },
-    set mode(mode: string) {
-      chosen.mode = mode;
-    },
-  };
+  const view = mutable({ mode: null as string | null });
+
+  // The words open drawn when there's something to read, and as their source when there's nothing yet.
+  effect(() => {
+    const { data } = file;
+    if (data && !view.mode) view.mode = data.body ? 'preview' : 'edit';
+  });
 
   return () => (
     <WindowPanel surface="solid" role="region" aria-label="Memo" className={CLASS.PANEL}>
       <Show
-        when={memo}
+        when={() => file.data}
         fallback={() => (
           <EmptyState
             title={$use(() => (file.ready ? 'This memo is gone' : 'Loading it'))}
@@ -106,7 +101,7 @@ export const MemoEditor = setup(() => {
           <article className={CLASS.MEMO}>
             <header className={CLASS.HEAD}>
               <span className={CLASS.GLYPH} aria-hidden="true">
-                <Snippet data={memo}>{(document) => (document?.author.kind === 'agent' ? <MemoryIcon /> : <MemosIcon />)}</Snippet>
+                <Snippet data={() => file.data}>{(document) => (document?.author.kind === 'agent' ? <MemoryIcon /> : <MemosIcon />)}</Snippet>
               </span>
               <TextInput label="Name" placeholder="What it's about" value={$bind(fields, 'name')} className={CLASS.NAME} />
             </header>
@@ -156,7 +151,7 @@ export const MemoEditor = setup(() => {
               </Snippet>
             </div>
             <footer className={CLASS.FOOT}>
-              <Snippet data={memo}>{(document) => document && <p className={CLASS.FACTS}>{factsOf(document)}</p>}</Snippet>
+              <Snippet data={() => file.data}>{(document) => document && <p className={CLASS.FACTS}>{factsOf(document)}</p>}</Snippet>
               <ConfirmButton
                 size="sm"
                 variant="tonal"
