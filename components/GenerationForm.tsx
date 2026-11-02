@@ -309,7 +309,7 @@ const historyGroup = (source: GenerativeDocument, subject: GenerationSubject) =>
         {[...source.attempts].reverse().map((attempt) => (
           <ListboxOption key={attempt.id} value={attempt.id}>
             <span className="wedyan-compose-attempt">
-              <Thumb src={attemptPicture(source, attempt)} sound={source.type === 'sound'} />
+              <Thumb src={attemptPicture(subject.path ?? '', source, attempt)} sound={source.type === 'sound'} />
               <span className="wedyan-compose-attempt-text">
                 <span>{attempt.prompt}</span>
                 <span>{settingsLine(source, attempt)}</span>

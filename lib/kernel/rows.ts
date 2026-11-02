@@ -50,7 +50,7 @@ const DOCUMENTS: Partial<Record<RowKind, Columns>> = {
     const main = persona.head?.main;
     return main?.endsWith('.still') ? { picture: resolvePath(path, main) } : { thumbnail: main };
   },
-  agent: (agent: { picture?: string }) => ({ thumbnail: agent.picture }),
+  agent: (agent: { avatar?: string }) => ({ thumbnail: agent.avatar }),
 };
 
 /**
@@ -129,12 +129,14 @@ export const fileRows: D1Extension = {
       const { path, ...project } = JSON.parse(row.project as string);
       return { ...info, ...project, kind: 'motion', path: homeOf(path), isDirectory: false, position: 0 };
     }
-    if (!row.kind) return info;
+    // A folder a write made on its way to a file has no row of its own to say what it is.
+    const kind = row.kind ?? (info.isDirectory ? 'folder' : undefined);
+    if (!kind) return info;
     const entry: FileRow = {
       ...info,
       path: homeOf(info.path),
       name: (row.title as string) ?? info.name,
-      kind: row.kind as RowKind,
+      kind: kind as RowKind,
       id: orUndefined(row.doc_id),
       description: orUndefined(row.description),
       thumbnail: orUndefined(row.row_thumbnail ?? row.thumbnail),
@@ -145,7 +147,7 @@ export const fileRows: D1Extension = {
       status: orUndefined(row.status),
       author: orUndefined(row.author),
       ask: orUndefined(row.ask),
-      updated: orUndefined(row.updated),
+      updated: orUndefined(row.updated) ?? new Date(info.mtime).toISOString(),
     };
     return entry as unknown as FileInfo;
   },

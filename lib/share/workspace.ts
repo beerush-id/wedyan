@@ -64,9 +64,10 @@ export function watchFolder(folder: string, listener: (change: FileChange) => vo
  */
 export function edit<T>(path: string, blank?: T, encoding: FileRefEncoding = 'json'): FileRef<T> {
   const kept = KEPT.get(keyOf(path, encoding)) ?? open(path, encoding);
+  const firstBlank = kept.blank === undefined && blank !== undefined;
   kept.blank ??= blank;
   // Already there, and known to be missing, before anyone gave it a blank.
-  if (kept.state.ready && kept.absent && kept.blank !== undefined && kept.state.data === undefined) {
+  if (kept.absent && firstBlank) {
     take(kept, () => {
       kept.state.data = kept.blank;
     });

@@ -1,4 +1,5 @@
 import { follow } from '../share/documents.js';
+import { pathFrom } from '../share/paths.js';
 import type { DocumentType, GeneratedAttempt, GenerationSettings, GenerativeDocument, WedyanDocument } from './types.js';
 
 /** The models a generation can be asked of, by what it makes. Placeholders until the kernel names its own. */
@@ -92,17 +93,34 @@ export function chosenAttempt<T extends GenerativeDocument>(source: T): T['attem
 /**
  * An attempt's picture: a still's own, a take's poster; a sound has none.
  *
+ * @param from - The generated document's path.
  * @param source - The generated document.
  * @param attempt - One of its attempts.
  * @returns Its picture's address, if it has one.
  */
-export function attemptPicture(source: GenerativeDocument, attempt?: GenerativeDocument['attempts'][number]): string | undefined {
+export function attemptPicture(
+  from: string,
+  source: GenerativeDocument,
+  attempt?: GenerativeDocument['attempts'][number],
+): string | undefined {
   if (!attempt || source.type === 'sound') return;
-  return source.type === 'still' ? attempt.src : (attempt as { poster?: string }).poster;
+  const written = source.type === 'still' ? attempt.src : (attempt as { poster?: string }).poster;
+  return written && addressAt(from, written);
 }
 
 /** A written reference that's an address to load, not a document to follow. */
-const ADDRESS = /^(\/~\/|[a-z][a-z0-9+.-]*:)/i;
+export const ADDRESS =/^(\/~\/|[a-z][a-z0-9+.-]*:)/i;
+
+/**
+ * A picture written in a document as an address to show it from: documents keep them by path from
+ * themselves, and only an address reaches `<img>`.
+ *
+ * @param from - The path of the document it's written in.
+ * @param written - The path or address, as written.
+ * @returns Its address.
+ */
+const addressAt = (from: string, written: string): string =>
+  ADDRESS.test(written) ? written : `/${pathFrom(from, written)}`;
 
 /**
  * The picture a written path or address shows: a still's chosen attempt, a take's poster, a
@@ -116,7 +134,7 @@ export function pictureAt(from: string, reference: string): string | undefined {
   if (ADDRESS.test(reference)) return reference;
   const found = follow(from, reference);
   const document = found.document;
-  if (!document) return reference;
-  if (isGenerative(document)) return attemptPicture(document, chosenAttempt(document));
+  if (!document) return addressAt(from, reference);
+  if (isGenerative(document)) return attemptPicture(found.path, document, chosenAttempt(document));
   if (document.type === 'persona') return document.head?.main && pictureAt(found.path, document.head.main);
 }

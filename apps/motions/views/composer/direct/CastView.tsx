@@ -13,7 +13,7 @@ export const CastView = setup(() => {
 
   loungeCtx.set({
     get path() {
-      return (composer.activeCast ?? '').slice(1);
+      return composer.activeCast ?? '';
     },
     get tab() {
       return composer.person ?? 'profile';

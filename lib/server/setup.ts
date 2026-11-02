@@ -130,8 +130,8 @@ async function readUser(): Promise<UserDetails> {
 export async function loadUserAgents(agents: Record<string, AgentProfile>): Promise<Record<string, AgentProfile>> {
   const listed = await list(AGENTS_PATH).catch(() => undefined);
   const paths = (listed?.entries ?? [])
-    .filter((entry) => !entry.isDirectory && entry.name.endsWith(AGENT_EXTENSION))
-    .map((entry) => `${AGENTS_PATH}/${entry.name}`);
+    .filter((entry) => !entry.isDirectory && entry.path.endsWith(AGENT_EXTENSION))
+    .map((entry) => entry.path);
   if (!paths.length) return agents;
 
   const [user, ...files] = await Promise.all([
