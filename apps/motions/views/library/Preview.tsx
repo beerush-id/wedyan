@@ -7,7 +7,10 @@ import { openMotion } from '../composer/index.js';
 import { ProjectsIcon } from '../icons.js';
 import { duration, rename, shortDate } from '../motion.js';
 import { libraryCtx, type MotionLibrary } from './context.js';
-import { statusOf } from './listing.js';
+import { pictureOf, statusOf } from './listing.js';
+
+/** The longest edge a picture is asked for at in the preview, as `dfs.image` serves it. */
+const PREVIEW_SIZE = 512;
 
 /** The picked project or folder, beside the tiles: its picture, its facts, and what it was asked to be. */
 export const LibraryPreview = setup(() => {
@@ -32,7 +35,7 @@ export const LibraryPreview = setup(() => {
         {(row) => {
           const project = row.kind === 'motion' ? row : undefined;
           // Made once: the name its button is labelled with changes the label alone.
-          const picture = project ? <img src={project.thumbnail} alt="" /> : <FolderIcon />;
+          const picture = project ? <img src={pictureOf(project, PREVIEW_SIZE)} alt="" /> : <FolderIcon />;
           return (
             <>
               <Snippet data={() => row.name}>

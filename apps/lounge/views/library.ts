@@ -170,7 +170,7 @@ export function portraitOf(path: string, persona: PersonaDocument): string | und
  * @returns The picture's address, unless the path leads to no still or the still has no attempt yet.
  */
 export function pictureOf(from: string, source: string, size?: number): string | undefined {
-  if (ADDRESS.test(source)) return source;
+  if (ADDRESS.test(source)) return addressOf(from, source, size);
   const still = stillAt(from, source);
   const src = still && chosenAttempt(still.document)?.src;
   return still && src ? addressOf(still.path, src, size) : undefined;
@@ -214,8 +214,7 @@ export function factsOf(document: AgentFile): string {
  * @returns Its address.
  */
 function addressOf(file: string, src: string, size?: number): string {
-  if (ADDRESS.test(src)) return src;
-  return dfs.image(pathFrom(file, src), size ? { size } : undefined);
+  return dfs.image(ADDRESS.test(src) ? src : pathFrom(file, src), size ? { size } : undefined);
 }
 
 /**

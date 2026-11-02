@@ -3,6 +3,7 @@ import { kindArt, type WedyanFileKind } from '@/components/WedyanGallery.js';
 import { FILE_TYPES, FLAGGED } from '@/lib/documents/file-types.js';
 import { nameOf, parentOf } from '@/lib/documents/paths.js';
 import type { FileRow } from '@/lib/documents/rows.js';
+import { dfs } from '@/lib/share/dfs.js';
 import { duration, MOTION_FILE, ROOT, shortDate } from '../motion.js';
 
 /** The places down the library's side. */
@@ -62,13 +63,18 @@ export const changesListing = (view: LibraryView, folder: string, path: string):
   return parentOf(path) === folder && !nameOf(path).includes('.');
 };
 
+/** The longest edge a picture is asked for at on a tile, as `dfs.image` serves it. */
+const TILE_SIZE = 256;
+
 /**
- * A listed row's picture: a project's thumbnail, or its kind's art.
+ * A listed row's picture, small: a project's thumbnail, or its kind's art.
  *
  * @param row - The row.
+ * @param size - Its longest edge, one of `IMAGE_SIZES`.
  * @returns The picture's address.
  */
-export const pictureOf = (row: FileRow): string => row.thumbnail || kindArt(row.kind as WedyanFileKind);
+export const pictureOf = (row: FileRow, size = TILE_SIZE): string =>
+  row.thumbnail ? dfs.image(row.thumbnail, { size }) : kindArt(row.kind as WedyanFileKind);
 
 /**
  * What matters about a listed row, in a line.

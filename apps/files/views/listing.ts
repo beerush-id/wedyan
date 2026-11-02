@@ -33,7 +33,7 @@ export function pictureOf(row: FileRow): string {
   if (row.kind === 'image') return dfs.image(row.path, { size: TILE_SIZE });
   const { thumbnail } = row;
   if (!thumbnail) return kindArt(row.kind as WedyanFileKind);
-  return ADDRESS.test(thumbnail) ? thumbnail : dfs.image(pathFrom(row.path, thumbnail), { size: TILE_SIZE });
+  return dfs.image(ADDRESS.test(thumbnail) ? thumbnail : pathFrom(row.path, thumbnail), { size: TILE_SIZE });
 }
 
 /**
