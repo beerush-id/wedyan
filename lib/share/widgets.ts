@@ -1,6 +1,15 @@
 import { mutable } from '@airlib/react';
 import type { DockWidgetEntry, DockWidgetPart } from '@airlib/react-aui/desktop';
-import { type AskPart, type AskStep, MOTION_FACE, MOTION_OUTFIT, MOTION_PICTURE, MOTION_VOICE, type WidgetPart } from '@/lib/kernel/agent.h.js';
+import {
+  type AskPart,
+  type AskStep,
+  MOTION_FACE,
+  MOTION_FIGURE,
+  MOTION_OUTFIT,
+  MOTION_PICTURE,
+  MOTION_VOICE,
+  type WidgetPart,
+} from '@/lib/kernel/agent.h.js';
 import { type AgentMessage, type ConversationMessage, INTERRUPTED, type UserMessage } from '@/lib/kernel/chat.h.js';
 
 /** How a user's words are drawn, as the desktop draws what's just been sent. */
@@ -114,6 +123,7 @@ const CALL_LABELS: Record<string, string> = {
   [MOTION_PICTURE]: 'Picture',
   [MOTION_VOICE]: 'Voice',
   [MOTION_FACE]: 'Face',
+  [MOTION_FIGURE]: 'Figure',
   [MOTION_OUTFIT]: 'Outfit',
 };
 

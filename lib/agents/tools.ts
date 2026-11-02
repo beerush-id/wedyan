@@ -49,6 +49,21 @@ const object = (properties: Record<string, IRPCData>, required: string[] = []): 
 
 const text = (description: string) => ({ type: 'string', description });
 
+/** How a clip moves over its time. */
+const KEYFRAMES = {
+  type: 'array',
+  description:
+    'How it moves: keyframes in seconds from its own start, each eased into the next. Its values are any of its own, plus `x`, `y`, `scale`, `rotate` and `opacity`.',
+  items: object(
+    {
+      at: { type: 'number', minimum: 0 },
+      ease: text('A GSAP ease, e.g. "power2.inOut".'),
+      values: { type: 'object', additionalProperties: true },
+    },
+    ['at', 'values'],
+  ),
+};
+
 export const TOOLS = {
   photosSearch: {
     name: 'sys.photos.search',
@@ -126,7 +141,7 @@ export const TOOLS = {
   motionCast: {
     name: 'sys.motion.cast',
     description:
-      'Makes someone in a project, with a generated face and outfit that go with them into every scene they’re cast in, so they stay the same person. Returns their .persona (path), which scenes name in casts. Says failed if a picture didn’t come back.',
+      'Makes someone in a project, with a generated face, figure and outfit that go with them into every scene they’re cast in, so they stay the same person. Returns their .persona (path), which scenes name in casts. Says failed if a picture didn’t come back.',
     parameters: object(
       {
         project: text('The project’s .motion.'),
@@ -134,6 +149,7 @@ export const TOOLS = {
         kind: { type: 'string', enum: ['person', 'character', 'mascot'] },
         description: text('Who they are, in a line.'),
         look: text('What to draw: a close portrait of their face and head, with age, features, hair and the work’s art style.'),
+        figure: text('What to draw: their whole body, neutral and plain, showing build, height and posture, in the work’s art style.'),
         outfit: text('What to draw: them full length in what they wear, in the work’s art style.'),
       },
       ['project', 'name', 'look'],
@@ -157,7 +173,7 @@ export const TOOLS = {
   motionStage: {
     name: 'sys.motion.stage',
     description:
-      'Adds a stage to a project, such as an episode or a chapter, its scenes laid out one after another. Each scene is a playable take: its generated picture, its video prompt, and what both are made from, with its words spoken as a sound over it. Words that run longer than the scene’s seconds make it longer. Takes a while. Returns the stage (path), how long it really runs (seconds), and what didn’t come back (failed).',
+      'Adds a stage to a project, such as an episode or a chapter, its scenes laid out one after another. A scene shows a new picture as a playable take, or something already made as a picture clip, or only its layers, over the stage’s background. Each can have words spoken over it, a subtitle, keyframes, and layers of titles, HTML or SVG over it, each timed within it. Takes a while. Returns the stage (path), how long it really runs (seconds), how long each scene runs and its words were spoken for (scenes), and what didn’t come back (failed).',
     parameters: object(
       {
         project: text('The project’s .motion.'),
@@ -170,20 +186,47 @@ export const TOOLS = {
           items: object(
             {
               name: text('The scene’s name.'),
-              picture: text('Exactly what the frame shows, in the work’s art style.'),
-              video: text('The video prompt: what moves and how the camera moves, from that picture.'),
-              seconds: { type: 'number', minimum: 1, maximum: 10, description: 'How long it runs.' },
+              picture: text('Makes a new picture for this scene, as a take: exactly what the frame shows, in the work’s art style.'),
+              video: text('With a picture, the video prompt: what moves and how the camera moves, from that picture.'),
+              still: text('Instead of a picture, shows a .still or a picture that’s already made, by path.'),
+              seconds: {
+                type: 'number',
+                exclusiveMinimum: 0,
+                description: 'How long it runs, of any length, 0.5 or 300 alike. Leave it out to run as long as its words. Words longer than this run on over what follows.',
+              },
               references: {
                 type: 'array',
                 items: { type: 'string' },
                 description: 'Anything else that helps draw this shot and its casts don’t already give, by .still path, if any. Never its own picture.',
               },
-              casts: { type: 'array', items: { type: 'string' }, description: 'Who’s in this shot, by .persona path, if anyone is. They bring their own face and outfit.' },
-              words: text('What’s spoken over it: a line of narration or dialogue. Leave it out when nothing is said.'),
+              casts: { type: 'array', items: { type: 'string' }, description: 'Who’s in this shot, by .persona path, if anyone is. They bring their own face, figure and outfit.' },
+              words: text('What’s spoken from the scene’s start, up to 1000 characters. Leave it out when nothing is said.'),
               delivery: text('How the words are said.'),
               voice: text('Who says them, by .persona path.'),
+              subtitle: text('Words shown low on the stage for as long as the scene’s words are spoken, or the scene runs.'),
+              motion: KEYFRAMES,
+              layers: {
+                type: 'array',
+                description: 'What’s drawn over the scene, later ones on top, with no limit on how they overlap.',
+                items: object(
+                  {
+                    kind: { type: 'string', enum: ['title', 'html', 'svg'] },
+                    name: text('What it’s called on the timeline.'),
+                    at: { type: 'number', minimum: 0, description: 'When it starts, in seconds into the scene.' },
+                    seconds: { type: 'number', exclusiveMinimum: 0, description: 'How long it shows; leave it out for the rest of the scene.' },
+                    props: {
+                      type: 'object',
+                      additionalProperties: true,
+                      description:
+                        'What it is, in stage units. A title: its `text`, box (`x`, `y`, `width`, `height`), and any CSS by camel-case name, e.g. `fontSize`, `fontFamily`, `color`. HTML: an `element`, its `text`, `attrs`, box, CSS, and `children`, each `{id, props, scenes: []}` nested the same way. SVG: an `element`, `attrs`, its `text`, and its attributes.',
+                    },
+                    motion: KEYFRAMES,
+                  },
+                  ['kind'],
+                ),
+              },
             },
-            ['name', 'picture', 'video'],
+            ['name'],
           ),
         },
       },

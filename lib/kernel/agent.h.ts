@@ -110,6 +110,7 @@ export type ActionOutcome = {
 export const MOTION_PICTURE = 'motion.picture';
 export const MOTION_VOICE = 'motion.voice';
 export const MOTION_FACE = 'motion.face';
+export const MOTION_FIGURE = 'motion.figure';
 export const MOTION_OUTFIT = 'motion.outfit';
 
 /**
