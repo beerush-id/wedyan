@@ -57,7 +57,8 @@ export function dockRequest(prompt: string, mentioned: string[] = []): StillRequ
  */
 export async function startStill(folder: string): Promise<string> {
   const path = pathIn(folder);
-  await dfs.write(path, stillAt(path, NEW_STILL, dockRequest('')) as never);
+  const { prompt, settings } = dockRequest('');
+  await dfs.write(path, stillAt(path, NEW_STILL, { prompt, settings }) as never);
   return path;
 }
 
