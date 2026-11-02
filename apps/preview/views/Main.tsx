@@ -3,7 +3,7 @@ import { EmptyState, ImageViewer, type ImageViewerEntry } from '@airlib/react-au
 import { defineWindow, Window, WindowTitle } from '@airlib/react-aui/desktop';
 import { ImageIcon } from '@airlib/react-aui/icons';
 import { FloatingDownload } from '@/components/FloatingDownload.js';
-import { chosenAttempt } from '@/lib/documents/generation.js';
+import { addressAt, attemptPicture, chosenAttempt, PICTURE_FILE } from '@/lib/documents/generation.js';
 import { nameOf } from '@/lib/documents/paths.js';
 import type { DocumentOf, DocumentType, SoundDocument, StillDocument, TakeDocument } from '@/lib/documents/types.js';
 import { dfs } from '@/lib/share/dfs.js';
@@ -119,8 +119,8 @@ export function openPreview(target: PreviewTarget): void {
 /** What a target is, for showing it: an addressed picture, video or sound, a document of a kind, or nothing Preview shows. */
 type Shape =
   | { kind: 'image' | 'video' | 'audio'; src: string; name: string }
-  | { kind: 'still'; document: StillDocument }
-  | { kind: 'take' | 'sound'; document: TakeDocument | SoundDocument }
+  | { kind: 'still'; path: string; document: StillDocument }
+  | { kind: 'take' | 'sound'; path: string; document: TakeDocument | SoundDocument }
   | { kind: 'none'; name: string };
 
 /** What a target is shown as: the viewer for pictures, a player for a video or a sound. */
@@ -137,11 +137,11 @@ const Shown = setup<{ target: PreviewTarget }>((props) => {
       return () => <Player src={src} type={kind} name={name} />;
     }
     case 'still': {
-      const still = shape.document;
+      const { path, document: still } = shape;
       // Every attempt, the chosen one shown first.
       return () => (
         <Pictures
-          slides={() => still.attempts.map((attempt, at) => ({ src: attempt.src, alt: `Attempt ${at + 1}` }))}
+          slides={() => still.attempts.map((attempt, at) => ({ src: addressAt(path, attempt.src), alt: `Attempt ${at + 1}` }))}
           name={still.name}
           start={still.attempts.indexOf(chosenAttempt(still) ?? still.attempts[0])}
         />
@@ -149,11 +149,15 @@ const Shown = setup<{ target: PreviewTarget }>((props) => {
     }
     case 'take':
     case 'sound': {
-      const source = shape.document;
+      const { path, document: source } = shape;
       const type = shape.kind === 'take' ? 'video' : 'audio';
       return () => {
         const chosen = chosenAttempt(source);
-        return chosen ? <Player src={chosen.src} type={type} name={source.name} /> : <Nothing title="Nothing made yet" />;
+        if (!chosen) return <Nothing title="Nothing made yet" />;
+        const src = addressAt(path, chosen.src);
+        // A take can hold a picture until its video is made.
+        if (PICTURE_FILE.test(src)) return <Pictures slides={() => [{ src, alt: source.name }]} name={source.name} />;
+        return <Player src={src} type={type} name={source.name} />;
       };
     }
     default:
@@ -170,8 +174,8 @@ const Shown = setup<{ target: PreviewTarget }>((props) => {
 function shapeOf(target: PreviewTarget): Shape {
   if (typeof target !== 'string') return { kind: target.type, src: target.src, name: target.name ?? 'Picture' };
   const document = documentOf(target);
-  if (document?.type === 'still') return { kind: 'still', document };
-  if (document?.type === 'take' || document?.type === 'sound') return { kind: document.type, document };
+  if (document?.type === 'still') return { kind: 'still', path: target, document };
+  if (document?.type === 'take' || document?.type === 'sound') return { kind: document.type, path: target, document };
   return { kind: 'none', name: nameOf(target) };
 }
 
@@ -243,6 +247,5 @@ function titleOf(target: PreviewTarget): string {
 function thumbnailOf(target: PreviewTarget): string | undefined {
   if (typeof target !== 'string') return target.type === 'image' ? target.src : undefined;
   const document = documentOf(target);
-  if (document?.type === 'still') return chosenAttempt(document)?.src;
-  if (document?.type === 'take') return (chosenAttempt(document) as { poster?: string } | undefined)?.poster;
+  if (document?.type === 'still' || document?.type === 'take') return attemptPicture(target, document, chosenAttempt(document));
 }

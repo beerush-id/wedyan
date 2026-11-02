@@ -1,6 +1,7 @@
 import { $use, For, setup } from '@airlib/react';
 import { ListboxOption } from '@airlib/react-aui';
 import { DirectRow, DirectSection } from '@/components/Direct.js';
+import { addressAt } from '@/lib/documents/generation.js';
 import { type Composer, composerCtx } from '../context.js';
 import { AddCast } from './Adders.js';
 
@@ -18,7 +19,7 @@ export const CastList = setup(() => {
             onchange={() => Object.assign(composer, { activeView: 'cast', activeCast: cast.path })}
             className="wedyan-direct-row"
           >
-            <DirectRow title={cast.name} description={cast.description} picture={cast.thumbnail} />
+            <DirectRow title={cast.name} description={cast.description} picture={cast.thumbnail && addressAt(cast.path, cast.thumbnail)} />
           </ListboxOption>
         )}
       </For>

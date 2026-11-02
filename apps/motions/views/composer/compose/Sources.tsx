@@ -48,7 +48,8 @@ export const Sources = setup(() => {
   };
   const openPreview = (entry: WedyanGalleryEntry) => {
     const asset = assetOf(entry.path);
-    if (!asset) return;
+    // A cast is no asset: what's seen of them is their portrait.
+    if (!asset) return void (entry.picture && requestLink(previewLink(entry.picture, 'image', entry.name)));
     const { kind, src, name, path } = asset;
     void requestLink(kind === 'image' || kind === 'video' || kind === 'audio' ? previewLink(src as string, kind, name) : linkTo('preview', path));
   };

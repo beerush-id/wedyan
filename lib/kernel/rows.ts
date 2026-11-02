@@ -152,7 +152,7 @@ export const fileRows: D1Extension = {
       kind: kind as RowKind,
       id: orUndefined(row.doc_id),
       description: orUndefined(row.description),
-      thumbnail: orUndefined(row.row_thumbnail ?? row.thumbnail),
+      thumbnail: thumbnailOf(row),
       src: orUndefined(row.src),
       duration: (row.duration as number) ?? 0,
       position: ((row.held ?? row.position) as number) ?? 0,
@@ -244,6 +244,18 @@ function parsed(data: unknown): Record<string, unknown> | undefined {
 
 function orUndefined<T>(value: T): string | undefined {
   return (value as string | null) ?? undefined;
+}
+
+/**
+ * What a row shows as its picture, as its own path leads to it: a person's comes from their still,
+ * written from where that still is, not from where they are.
+ *
+ * @param row - The row, as listed.
+ * @returns Its picture, if it has one.
+ */
+function thumbnailOf(row: Record<string, unknown>): string | undefined {
+  const thumbnail = orUndefined(row.row_thumbnail ?? row.thumbnail);
+  return thumbnail && row.picture ? homeOf(resolvePath(row.picture as string, thumbnail)) : thumbnail;
 }
 
 /** A stored path as a home path; one outside the home stays as it is. */

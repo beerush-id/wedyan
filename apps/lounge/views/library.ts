@@ -164,7 +164,7 @@ export async function removeFile(path: string): Promise<void> {
  * @returns The picture's address, unless they have no face yet.
  */
 export function rowPortrait(row: FileRow): string | undefined {
-  return row.thumbnail ? addressOf(`${row.path.slice(0, -PERSONA_EXTENSION.length)}/`, row.thumbnail, SMALL_PICTURE) : undefined;
+  return row.thumbnail ? addressOf(row.path, row.thumbnail, SMALL_PICTURE) : undefined;
 }
 
 /**
