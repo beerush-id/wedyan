@@ -147,7 +147,7 @@ const FilesPlaces = setup(() => {
         <Button
           variant="text"
           size="sm"
-          aria-current={$use(() => (state.here === HOME ? 'true' : undefined))}
+          aria-current={$use(() => (state.here.path === HOME.path ? 'true' : undefined))}
           onClick={() => browser.goTo(HOME)}
         >
           <StorageIcon />

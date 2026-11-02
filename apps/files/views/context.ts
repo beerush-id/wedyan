@@ -72,7 +72,8 @@ export function createFiles() {
 
     /** Goes to a folder down the side, or the home. */
     goTo(place: Place) {
-      go(place, place === HOME ? [] : [HOME]);
+      if (place.path === state.here.path) state.query = '';
+      else go(place, place === HOME ? [] : [HOME]);
     },
 
     /** Goes up a folder. */
