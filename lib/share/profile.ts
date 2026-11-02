@@ -43,7 +43,7 @@ export interface UserSettings {
 export type UserDetails = UserProfile & UserSettings;
 
 /** How fast the assistant speaks when the settings don't say: the voices are a little slow as they come. */
-export const SPEECH_RATE = 1.1;
+export const SPEECH_RATE = 1;
 
 /** How long a desktop goes without input before it is idle, when the profile doesn't say. */
 export const IDLE_AFTER = 5 * 60_000;

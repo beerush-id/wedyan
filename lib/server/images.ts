@@ -6,12 +6,21 @@ import { url } from '@irpclib/r2-image';
 import { createWorker as createImageWorker, type ImageWorkerEnv } from '@irpclib/r2-image/worker';
 import type { SavedOptions } from '@/lib/share/ai.js';
 import { IMAGE_SIZES } from '@/lib/share/image.js';
+import { pathFrom } from '@/lib/share/paths.js';
 
 /** The model Wedyan generates images with: Muse Image, a flat price per image whatever its size. */
 export const IMAGE_MODEL = 'muse-image-1.0';
 
 /** Where resized pictures are kept in the bucket: outside every home, so they're never a user's files. */
 const VARIANTS_PREFIX = '.variants';
+
+/** The part of a D1 binding finding a still's picture uses. */
+type PictureIndex = {
+  prepare(query: string): { bind(path: string): { first<T>(): Promise<T | null> } };
+};
+
+/** A still's document, which is never a picture itself. */
+const STILL_EXTENSION = '.still';
 
 /** The origin R2 Image is asked on from within the server; only the path and the size matter to it. */
 const PICTURES_ORIGIN = 'http://localhost';
@@ -42,6 +51,25 @@ export function isHomePath(path: string): boolean {
  */
 export function picturePath(homeDir: string, path: string): string {
   return `${homeDir}${path.slice(1)}`;
+}
+
+/**
+ * The picture a path stands for when asked for as one: a still's own path is what's listed, so a
+ * widget showing a still names it, and what it means is the attempt the still has chosen.
+ *
+ * @param db - The drive's index.
+ * @param homeDir - The user's home directory in storage.
+ * @param path - The home path asked for (`~/…`).
+ * @returns The picture's home path; the path itself when it isn't a still, undefined for a still with
+ *   nothing made yet.
+ */
+export async function pictureAt(db: PictureIndex, homeDir: string, path: string): Promise<string | undefined> {
+  if (!path.endsWith(STILL_EXTENSION)) return path;
+  const row = await db
+    .prepare('SELECT thumbnail FROM _r2_files WHERE path = ?')
+    .bind(picturePath(homeDir, path))
+    .first<{ thumbnail: string | null }>();
+  return row?.thumbnail ? pathFrom(path, row.thumbnail.replace(/^\//, '')) : undefined;
 }
 
 /**

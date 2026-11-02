@@ -24,6 +24,7 @@ One ask is one streaming call. Everything happens inside it:
 
 - **[AirLib](https://airlib.dev)** (open source, by the same author): reactive state, IRPC (type-safe calls with streaming and two-way ask/answer), r2-file (filesystem on Cloudflare R2 and D1), ai-kit (one API over AI providers), and AUI (the UI component library).
 - **Meta models:** Muse Spark for the agents and the router, Muse Voice Transcribe for speech, Muse Image and SAM 3.1 for photos.
+- **Open-source models:** BGE-M3 by BAAI (MIT) for the embeddings behind memory and file recall, and MeloTTS by MyShell (MIT) for speaking answers aloud, both on Cloudflare Workers AI.
 - **Cloudflare:** Workers, Durable Objects (one per session), R2, D1, Vectorize, Queues.
 
 ## What was built during the event

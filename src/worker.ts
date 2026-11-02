@@ -14,7 +14,7 @@ import { reportChanges } from '@/lib/kernel/workspace.js';
 import { logger } from '@/lib/logger.js';
 import { contentIndex } from '@/lib/memory/files.js';
 import { guardAgentFiles } from '@/lib/server/guard.js';
-import { isHomePath, picturePath, pictures } from '@/lib/server/images.js';
+import { isHomePath, pictureAt, picturePath, pictures } from '@/lib/server/images.js';
 import { seedHome } from '@/lib/server/seed.js';
 import { currentSession, homeOf, shortIdOf, userOf } from '@/lib/server/session.js';
 import { MODELS, picturesOf, type ServerEnv, setupServer } from '@/lib/server/setup.js';
@@ -135,13 +135,15 @@ function isCall(url: URL): boolean {
  * request's cookie, and the home path becomes that session's storage path, so no other user's file
  * can be named.
  *
- * Asked to resize, R2 Image answers. Otherwise the file comes as it's stored, whatever it is, from
- * r2-file's delivery, which answers the range requests a video's seeking makes.
+ * Asked to resize, R2 Image answers, and a still is the picture it has chosen. Otherwise the file
+ * comes as it's stored, whatever it is, from r2-file's delivery, which answers the range requests a
+ * video's seeking makes.
  *
  * @param request - The file's request: `/~/Motions/Lantern/take.mp4`, `/~/Pictures/cat.png?s=256`.
  * @param url - Its parsed URL.
  * @param env - The bindings the runtime passed, if any.
- * @returns The file; 403 without a session, 400 for a path outside the home.
+ * @returns The file; 403 without a session, 400 for a path outside the home, 404 for a still with
+ *   nothing made yet.
  */
 async function serveFile(request: Request, url: URL, env?: ServerEnv): Promise<Response> {
   const user = await userOf(request);
@@ -155,16 +157,20 @@ async function serveFile(request: Request, url: URL, env?: ServerEnv): Promise<R
   }
   if (!isHomePath(path)) return new Response('Bad Request', { status: 400 });
 
+  const { homeDir } = homeOf(user);
   const target = new URL(url);
-  target.pathname = picturePath(homeOf(user).homeDir, path);
-  const scoped = new Request(target, request);
+  target.pathname = picturePath(homeDir, path);
   const bindings = await bindingsOf(env);
 
   // R2 Image and r2-file's delivery are reached only from here: scoped to the session above.
   if (RESIZE_PARAMS.some((param) => url.searchParams.has(param))) {
+    const picture = await pictureAt(bindings.DB as never, homeDir, path);
+    if (!picture || !isHomePath(picture)) return new Response('Not Found', { status: 404 });
+    target.pathname = picturePath(homeDir, picture);
+    const scoped = new Request(target, request);
     return privately(await pictures.fetch(scoped, picturesOf(bindings)), `private, max-age=${IMAGE_BROWSER_TTL}`);
   }
-  return privately(await files.fetch(scoped, bindings, resolveCtx()), REVALIDATE);
+  return privately(await files.fetch(new Request(target, request), bindings, resolveCtx()), REVALIDATE);
 }
 
 /** A response only the asking browser keeps, since every user asks for the same URL. */

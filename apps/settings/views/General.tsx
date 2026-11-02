@@ -50,31 +50,27 @@ export const GeneralPage = setup(() => {
             value={$bind(files.settings, 'assistantName')}
           />
         </SettingsRow>
-        <SettingsRow label="Voice" labelId={ID.VOICE} description={<>How <Name /> sounds when it speaks.</>} stacked>
-          <RadioGroup aria-labelledby={ID.VOICE} name={ID.VOICE} value={$bind(shown, 'voice')} className={CLASS.VOICES}>
-            {VOICES.map((voice) => (
-              <div key={voice.value} className={CLASS.VOICE}>
-                <Radio value={voice.value}>
-                  <span className={CLASS.VOICE_TEXT}>
-                    <span>{voice.label}</span>
-                    <span className={CLASS.VOICE_DESCRIPTION}>{voice.description}</span>
-                  </span>
-                </Radio>
-                <Button
-                  size="sm"
-                  variant="text"
-                  aria-label={`Preview ${voice.label}`}
-                  disabled={$use(() => Boolean(previewing.voice))}
-                  onClick={() => void preview(voice.value)}
-                >
-                  <Snippet>{() => (previewing.voice === voice.value ? <Spinner size="sm" label={`Previewing ${voice.label}`} /> : <PreviewIcon />)}</Snippet>
-                  <span>Preview</span>
-                </Button>
-              </div>
-            ))}
-          </RadioGroup>
-        </SettingsRow>
-        <SettingsRow label="Speed" labelId={ID.RATE} description={<>How fast <Name /> speaks. Previews use it too.</>}>
+        <div hidden>
+          <SettingsRow label="Voice" labelId={ID.VOICE} description={<>How <Name /> sounds when it speaks.</>} stacked>
+            <RadioGroup aria-labelledby={ID.VOICE} name={ID.VOICE} value={$bind(shown, 'voice')} className={CLASS.VOICES} disabled>
+              {VOICES.map((voice) => (
+                <div key={voice.value} className={CLASS.VOICE}>
+                  <Radio value={voice.value}>
+                    <span className={CLASS.VOICE_TEXT}>
+                      <span>{voice.label}</span>
+                      <span className={CLASS.VOICE_DESCRIPTION}>{voice.description}</span>
+                    </span>
+                  </Radio>
+                  <Button size="sm" variant="text" aria-label={`Preview ${voice.label}`} disabled onClick={() => void preview(voice.value)}>
+                    <Snippet>{() => (previewing.voice === voice.value ? <Spinner size="sm" label={`Previewing ${voice.label}`} /> : <PreviewIcon />)}</Snippet>
+                    <span>Preview</span>
+                  </Button>
+                </div>
+              ))}
+            </RadioGroup>
+          </SettingsRow>
+        </div>
+        <SettingsRow label="Speed" labelId={ID.RATE} description={<>How fast <Name /> speaks.</>}>
           <span className={CLASS.RATE}>
             <Slider
               size="sm"
@@ -113,39 +109,41 @@ export const GeneralPage = setup(() => {
         </SettingsRow>
       </SettingsGroup>
 
-      <SettingsGroup title="Idle" anchor="idle" description={<>When you step away and come back, <Name /> catches you up on what happened.</>}>
-        <SettingsRow label="Count me away after" labelId={ID.IDLE} description="Minutes without typing, clicking or moving the pointer.">
-          <span className={CLASS.MINUTES}>
-            <NumberStepper
-              aria-labelledby={ID.IDLE}
-              aria-describedby={descriptionOf(ID.IDLE)}
-              min={1}
-              step={1}
-              valuetext={$use(() => minutesOf(shown.idleAfter))}
-              value={$bind(shown, 'idleAfter')}
-            />
-            <span aria-hidden="true">min</span>
-          </span>
-        </SettingsRow>
-        <SettingsRow label="Catch me up after" labelId={ID.BRIEF} description="Minutes away before you're caught up on your return. 0 catches you up every time.">
-          <span className={CLASS.MINUTES}>
-            <NumberStepper
-              aria-labelledby={ID.BRIEF}
-              aria-describedby={descriptionOf(ID.BRIEF)}
-              min={0}
-              step={1}
-              valuetext={$use(() => minutesOf(shown.briefAfter))}
-              value={$bind(shown, 'briefAfter')}
-            />
-            <span aria-hidden="true">min</span>
-          </span>
-        </SettingsRow>
-        <SettingsRow label="See how it works" labelId={ID.TRY} description="Counts you away after 1 minute and catches you up every time. Step away, then come back.">
-          <Button size="sm" variant="tonal" aria-describedby={descriptionOf(ID.TRY)} onClick={tryIdle}>
-            Try it now
-          </Button>
-        </SettingsRow>
-      </SettingsGroup>
+      <div hidden>
+        <SettingsGroup title="Idle" anchor="idle" description={<>When you step away and come back, <Name /> catches you up on what happened.</>}>
+          <SettingsRow label="Count me away after" labelId={ID.IDLE} description="Minutes without typing, clicking or moving the pointer.">
+            <span className={CLASS.MINUTES}>
+              <NumberStepper
+                aria-labelledby={ID.IDLE}
+                aria-describedby={descriptionOf(ID.IDLE)}
+                min={1}
+                step={1}
+                valuetext={$use(() => minutesOf(shown.idleAfter))}
+                value={$bind(shown, 'idleAfter')}
+              />
+              <span aria-hidden="true">min</span>
+            </span>
+          </SettingsRow>
+          <SettingsRow label="Catch me up after" labelId={ID.BRIEF} description="Minutes away before you're caught up on your return. 0 catches you up every time.">
+            <span className={CLASS.MINUTES}>
+              <NumberStepper
+                aria-labelledby={ID.BRIEF}
+                aria-describedby={descriptionOf(ID.BRIEF)}
+                min={0}
+                step={1}
+                valuetext={$use(() => minutesOf(shown.briefAfter))}
+                value={$bind(shown, 'briefAfter')}
+              />
+              <span aria-hidden="true">min</span>
+            </span>
+          </SettingsRow>
+          <SettingsRow label="See how it works" labelId={ID.TRY} description="Counts you away after 1 minute and catches you up every time. Step away, then come back.">
+            <Button size="sm" variant="tonal" aria-describedby={descriptionOf(ID.TRY)} onClick={tryIdle}>
+              Try it now
+            </Button>
+          </SettingsRow>
+        </SettingsGroup>
+      </div>
     </>
   );
 }, 'GeneralPage');

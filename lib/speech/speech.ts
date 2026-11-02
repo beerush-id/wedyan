@@ -7,6 +7,7 @@ import {
   hear,
   type PlayChunk,
   SPEAK_LIMIT,
+  SPEECH_TYPE,
   speak,
   speech,
   type Voice,
@@ -19,8 +20,11 @@ export interface SpeechModel {
   run(model: string, input: Record<string, unknown>): Promise<unknown>;
 }
 
-/** Deepgram's Aura-2 on Workers AI: English, with both of Wedyan's voices. */
-export const SPEECH_MODEL = '@cf/deepgram/aura-2-en';
+/** MeloTTS on Workers AI: open source under MIT, and one voice for each language it speaks. */
+export const SPEECH_MODEL = '@cf/myshell-ai/melotts';
+
+/** The language answers are spoken in. */
+const SPEECH_LANGUAGE = 'en';
 
 /** Meta's speech-to-text, heard live. */
 export const TRANSCRIBE_MODEL = 'muse-voice-transcribe-1.0';
@@ -43,10 +47,10 @@ export function setupSpeech(binding: SpeechModel, key?: string): void {
   metaKey = key;
 }
 
-speech.construct(speak, async (text, speaker) => {
+speech.construct(speak, async (text) => {
   await spend('speech');
-  const result = await model().run(SPEECH_MODEL, { text, speaker: speaker ?? DEFAULT_VOICE, encoding: 'mp3' });
-  return { audio: base64Of(await bytesOf(result)), type: 'audio/mpeg' };
+  const result = await model().run(SPEECH_MODEL, { prompt: text, lang: SPEECH_LANGUAGE });
+  return { audio: base64Of(await bytesOf(result)), type: SPEECH_TYPE };
 });
 
 speech.construct(voice, (speaker) =>
@@ -197,7 +201,7 @@ function createSpeaking(speaker: Voice, play: (chunk: PlayChunk) => void) {
     enqueue(async () => {
       for (const piece of piecesOf(text)) {
         if (stopped) return;
-        const result = await model().run(SPEECH_MODEL, { text: piece, speaker, encoding: 'mp3' });
+        const result = await model().run(SPEECH_MODEL, { prompt: piece, lang: SPEECH_LANGUAGE });
         if (!(result instanceof ReadableStream)) {
           play({ part, audio: base64Of(await bytesOf(result)), last: false });
           continue;
@@ -289,6 +293,8 @@ async function bytesOf(result: unknown): Promise<Uint8Array> {
   if (result instanceof ReadableStream) return new Uint8Array(await new Response(result).arrayBuffer());
   if (result instanceof ArrayBuffer) return new Uint8Array(result);
   if (result instanceof Uint8Array) return result;
+  const { audio } = (result ?? {}) as { audio?: string };
+  if (audio) return Uint8Array.from(atob(audio), (char) => char.charCodeAt(0));
   throw new Error('Speech model returned no audio');
 }
 

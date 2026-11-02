@@ -907,6 +907,13 @@ function rolesIn(nodes: unknown[]): string[] {
   });
 }
 
+/** Whether something is a widget node, all the way down: text, or a role with children that are nodes. */
+function isNode(node: unknown): boolean {
+  if (typeof node === 'string') return true;
+  const { role, children } = (node ?? {}) as { role?: unknown; children?: unknown };
+  return typeof role === 'string' && (!Array.isArray(children) || children.every(isNode));
+}
+
 /**
  * What the composer's answer gives a widget: JSON, fenced or not. The widget itself, a node with no
  * role since the host draws its card, with what it declares about that card; or just what goes in it.
@@ -924,9 +931,6 @@ function composedOf(text: string): Composed {
   const { children, role, ...declared } = (parsed ?? {}) as Record<string, IRPCData> & { role?: unknown };
   const widget = !Array.isArray(parsed) && !role && Array.isArray(children);
   const nodes = widget ? (children as IRPCData[]) : Array.isArray(parsed) ? parsed : [parsed];
-  const isNode = (node: unknown) =>
-    typeof node === 'string' ||
-    (typeof node === 'object' && node !== null && typeof (node as { role?: unknown }).role === 'string');
   if (!nodes.length || !nodes.every(isNode))
     throw new Error(`The composer's answer isn't widget nodes: ${summaryOf(text)}`);
   const unknown = rolesIn(nodes).filter((role) => !isWidgetRole(role));

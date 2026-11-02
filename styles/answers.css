@@ -19,18 +19,6 @@
   color: var(--color-on-surface-variant);
 }
 
-/* A pinned answer's ribbon: hung from the top edge of the entry, whose pane is what it's placed against. */
-.answer-ribbon {
-  position: absolute;
-  inset-block-start: -1px;
-  inset-inline-end: var(--spacing-xl);
-  inline-size: 1.5rem;
-  block-size: 2rem;
-  background-color: var(--color-primary);
-  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%);
-  pointer-events: none;
-}
-
 .answer-time {
   margin-inline: var(--spacing-sm);
   font-size: var(--font-label-sm-size);

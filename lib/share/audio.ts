@@ -1,10 +1,13 @@
-import { HEAR_RATE } from '@/lib/speech/speech.h.js';
+import { HEAR_RATE, SPEECH_TYPE } from '@/lib/speech/speech.h.js';
 
 /** How much mic audio goes in one frame, in samples: about 80 ms, as hearing takes it. */
 const FRAME_SAMPLES = Math.round(HEAR_RATE * 0.08);
 
-/** How close to a part's end counts as played: playback can stop just short of what was buffered. */
-const PLAYED_MARGIN = 0.15;
+/** How much speech is raised: the model's peaks reach only about a third of full scale. */
+const SPEECH_GAIN = 2.5;
+
+/** Where the limiter takes over, in dB: a raised peak is held down here rather than clipped. */
+const LIMIT_AT = -3;
 
 /** The audio thread: turns the mic's samples into frames of signed 16-bit PCM. */
 const MIC_WORKLET = `class WedyanMic extends AudioWorkletProcessor {
@@ -25,7 +28,7 @@ registerProcessor('wedyan-mic', WedyanMic);`;
 
 /** Plays one answer's speech as it arrives. */
 export type Player = {
-  /** Plays base64 MP3 after what's already queued. */
+  /** Plays base64 speech after what's already queued. */
   push(audio: string): void;
   /** Calls `played` once everything pushed so far has played. */
   finish(played: () => void): void;
@@ -62,70 +65,60 @@ export async function openMicrophone(onFrame: (pcm: string) => void): Promise<()
 }
 
 /**
- * Creates a player for one answer's speech: its MP3 is appended to one Media Source buffer, so it
- * plays as it comes with no gap between chunks.
+ * Creates a player for one answer's speech. Each sentence comes as a whole recording, so one element
+ * plays them in turn, as they arrive.
  *
  * @param rate - How fast it plays, as a multiple of the speech's own pace.
  * @returns The player.
  */
 export function createPlayer(rate = 1): Player {
   const audio = new Audio();
-  const source = new MediaSource();
-  const url = URL.createObjectURL(source);
-  // The default too: loading the source resets the rate to it.
+  // The default too: loading a source resets the rate to it.
   audio.defaultPlaybackRate = rate;
   audio.playbackRate = rate;
-  audio.src = url;
+  const release = playInStereo(audio);
 
-  type Queued = { bytes: Uint8Array } | { played: () => void };
+  type Queued = { speech: string } | { played: () => void };
   const queue: Queued[] = [];
-  const waiting: { at: number; played: () => void }[] = [];
-  let buffer: SourceBuffer | undefined;
+  let playing = false;
 
-  /** Appends what's queued, one piece at a time, as a source buffer takes it. */
-  const pump = () => {
-    while (buffer && !buffer.updating && queue.length) {
-      const next = queue.shift() as Queued;
-      if ('bytes' in next) {
-        buffer.appendBuffer(next.bytes as BufferSource);
-        return;
+  /** Plays what's queued, one recording at a time; a wait is over once all before it has played. */
+  const next = () => {
+    while (!playing && queue.length) {
+      const item = queue.shift() as Queued;
+      if ('played' in item) {
+        item.played();
+        continue;
       }
-      const end = buffer.buffered.length ? buffer.buffered.end(buffer.buffered.length - 1) : 0;
-      waiting.push({ at: end, played: next.played });
-      settle();
+      playing = true;
+      audio.src = `data:${SPEECH_TYPE};base64,${item.speech}`;
+      void audio.play();
     }
   };
 
-  /** Tells whoever waits on what has now played. */
-  const settle = () => {
-    while (waiting.length && audio.currentTime >= waiting[0].at - PLAYED_MARGIN) waiting.shift()?.played();
+  const ended = () => {
+    playing = false;
+    next();
   };
-
-  source.addEventListener('sourceopen', () => {
-    buffer = source.addSourceBuffer('audio/mpeg');
-    buffer.addEventListener('updateend', pump);
-    pump();
-  });
-  audio.addEventListener('timeupdate', settle);
-  // Playback that ran out of audio stops short of its end, and may never reach it.
-  audio.addEventListener('waiting', settle);
-  void audio.play();
+  audio.addEventListener('ended', ended);
+  // A recording that can't play must not hold back the ones after it.
+  audio.addEventListener('error', ended);
 
   return {
-    push(chunk) {
-      queue.push({ bytes: bytesOf(chunk) });
-      pump();
+    push(speech) {
+      queue.push({ speech });
+      next();
     },
     finish(played) {
       queue.push({ played });
-      pump();
+      next();
     },
     stop() {
-      queue.length = 0;
+      const waiting = queue.splice(0);
       audio.pause();
       audio.removeAttribute('src');
-      URL.revokeObjectURL(url);
-      for (const { played } of waiting.splice(0)) played();
+      release();
+      for (const item of waiting) if ('played' in item) item.played();
     },
   };
 }
@@ -147,7 +140,9 @@ export function playClip(audio: string, type: string, rate = 1): Promise<void> {
     const element = new Audio(`data:${type};base64,${audio}`);
     element.defaultPlaybackRate = rate;
     element.playbackRate = rate;
+    const release = playInStereo(element);
     const ended = () => {
+      release();
       clip = undefined;
       resolve();
     };
@@ -164,6 +159,37 @@ export function stopClip(): void {
   clip?.ended();
 }
 
+/** Where speech plays. */
+let output: AudioContext | undefined;
+
+/**
+ * Plays speech in both speakers, raised to a normal level. Speech is one channel, and on a surround
+ * output one channel goes to the center alone, which a desk's two speakers don't have: heard as
+ * nothing at all.
+ *
+ * @param element - What's playing.
+ * @returns What lets go of it.
+ */
+function playInStereo(element: HTMLAudioElement): () => void {
+  output ??= new AudioContext();
+  void output.resume();
+  const source = output.createMediaElementSource(element);
+  const both = new GainNode(output, {
+    gain: SPEECH_GAIN,
+    channelCount: 2,
+    channelCountMode: 'explicit',
+    channelInterpretation: 'speakers',
+  });
+  const limiter = new DynamicsCompressorNode(output, { threshold: LIMIT_AT, knee: 0, ratio: 20 });
+  source.connect(both).connect(limiter).connect(output.destination);
+
+  return () => {
+    source.disconnect();
+    both.disconnect();
+    limiter.disconnect();
+  };
+}
+
 /** Bytes as Base64, a slice at a time so a long frame never overflows the call stack. */
 function base64Of(bytes: Uint8Array): string {
   let binary = '';
@@ -171,9 +197,4 @@ function base64Of(bytes: Uint8Array): string {
     binary += String.fromCharCode(...bytes.subarray(at, at + 0x8000));
   }
   return btoa(binary);
-}
-
-/** Base64 as bytes. */
-function bytesOf(base64: string): Uint8Array {
-  return Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
 }

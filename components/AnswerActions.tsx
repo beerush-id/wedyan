@@ -1,11 +1,11 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
-import { $bind, $static, $use, mutable, onCleanup, Show, Snippet, setup } from '@airlib/react';
-import { Button, Toggle, Tooltip } from '@airlib/react-aui';
+import { $static, $use, mutable, onCleanup, Show, Snippet, setup } from '@airlib/react';
+import { Button, Tooltip } from '@airlib/react-aui';
 import type { DockWidgetEntry } from '@airlib/react-aui/desktop';
 import { CheckIcon, StopIcon, VolumeUpIcon } from '@airlib/react-aui/icons';
 import { type Session, sessionCtx } from '@/lib/assistant/session.js';
 import type { UserTurn } from '@/lib/assistant/turns.js';
-import { CopyIcon, PinIcon, RetryIcon } from './icons.js';
+import { CopyIcon, RetryIcon } from './icons.js';
 
 /** How long something copied says so. */
 const COPIED = 1500;
@@ -18,13 +18,13 @@ const DAY = 24 * HOUR;
 const ago = new Intl.RelativeTimeFormat(undefined, { numeric: 'always' });
 
 /**
- * What can be done with an answer, and when it came: copy it, pin it, hear it. Only the agent's
- * answers have it, so anything else in the stack draws nothing here.
+ * What can be done with an answer, and when it came: copy it, hear it. Only the agent's answers have
+ * it, so anything else in the stack draws nothing here.
  */
 export const AnswerActions = setup<{ widget: DockWidgetEntry }>((props) => {
   const session = sessionCtx.get() as Session;
   const answer = $static(() => props.widget);
-  const state = mutable({ pinned: false, speaking: false });
+  const state = mutable({ speaking: false });
 
   // Only its words: a widget's data isn't something to read out or paste.
   const words = () =>
@@ -51,12 +51,7 @@ export const AnswerActions = setup<{ widget: DockWidgetEntry }>((props) => {
     <Show when={() => session.timeOf(answer) !== undefined && answer.from !== 'user' && answer.children?.length}>
       {() => (
         <div className="answer-actions">
-          <Show when={() => state.pinned}>{() => <span className="answer-ribbon" />}</Show>
           <Show when={words}>{() => <CopyButton text={words} />}</Show>
-          <Toggle aria-label="Pin" size="sm" variant="text" className={AUI_CLASS.CONTROL_ICON} pressed={$bind(state, 'pinned')}>
-            <PinIcon />
-            <Tooltip>Pin</Tooltip>
-          </Toggle>
           <Show when={words}>
             {() => (
               <Button

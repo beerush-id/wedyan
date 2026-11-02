@@ -103,7 +103,10 @@ export function createHandsFree(devices: HandsFreeDevices) {
   /** Speaks the oldest answer not yet spoken, one at a time, as the conversation streams it. */
   const speakNext = () => {
     if (!speech.listening) return;
-    if (speaker) return speaker.feed();
+    if (speaker) {
+      speech.speaking = speaker.feed();
+      return;
+    }
     const next = messages.find((message): message is AgentMessage => message.role === 'agent' && !past.has(message.id));
     if (!next) return;
     speaker = speakAnswer(next, devices, () => {

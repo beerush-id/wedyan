@@ -26,8 +26,11 @@ export const DEFAULT_VOICE: Voice = 'odysseus';
 /** Longest text spoken in one call: a sentence or two, so the first audio comes back quickly. */
 export const SPEAK_LIMIT = 1000;
 
-/** One spoken sentence: MP3 audio, base64-encoded. */
-export type Speech = { audio: string; type: 'audio/mpeg' };
+/** What the speech model answers in. */
+export const SPEECH_TYPE = 'audio/wav';
+
+/** One spoken sentence: audio in `SPEECH_TYPE`, base64-encoded. */
+export type Speech = { audio: string; type: typeof SPEECH_TYPE };
 
 export type SpeakFn = (text: string, voice?: Voice | null) => Promise<Speech>;
 
@@ -37,7 +40,7 @@ export type SpeakFn = (text: string, voice?: Voice | null) => Promise<Speech>;
  * another model. A voice passed as `undefined` arrives as `null` over the wire, so both mean the
  * default.
  */
-export const speak = speech.declare<SpeakFn>('speak', () => ({ audio: '', type: 'audio/mpeg' }), {
+export const speak = speech.declare<SpeakFn>('speak', () => ({ audio: '', type: SPEECH_TYPE }), {
   schema: { input: [z.string().trim().min(1).max(SPEAK_LIMIT), z.enum(VOICES).nullish()] },
 });
 
@@ -45,8 +48,8 @@ export const speak = speech.declare<SpeakFn>('speak', () => ({ audio: '', type: 
 export type SayInput = { part: number; text: string };
 
 /**
- * Audio of one answer part, as it is spoken: MP3, base64-encoded. `last` comes once, with no audio,
- * after the part's last audio: the part is fully spoken once it has played.
+ * Audio of one answer part, as it is spoken: in `SPEECH_TYPE`, base64-encoded. `last` comes once, with
+ * no audio, after the part's last audio: the part is fully spoken once it has played.
  */
 export type PlayChunk = { part: number; audio: string; last: boolean };
 
