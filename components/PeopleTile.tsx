@@ -1,4 +1,4 @@
-import { $static, mutable, Snippet, setup, template } from '@airlib/react';
+import { $static, Snippet, setup, template } from '@airlib/react';
 import { Button, Popover, Tooltip } from '@airlib/react-aui';
 import type { PersonaDocument } from '@/lib/documents/types.js';
 
@@ -12,6 +12,10 @@ type PeopleTileProps = {
    * @returns Its address, if it leads to one.
    */
   pictureOf: (source: string) => string | undefined;
+  /** Which of their pictures the generation takes along, as the persona writes them. */
+  picked: () => string[];
+  /** Says what's taken along now. */
+  onpick: (pictures: string[]) => void;
 };
 
 /** A run of a person's pictures, under its name. */
@@ -20,8 +24,7 @@ type PictureGroup = { label: string; sources: string[] };
 /**
  * Someone cast in a generation, as a square tile of their portrait. Hovered or focused, their name
  * shows below it; clicked, every picture of theirs — face, expressions, figure, poses, wardrobe — opens
- * above it, to pick which ones the generation takes along. Their defaults start picked when they
- * attach them; their face alone otherwise.
+ * above it, to pick which ones the generation takes along.
  */
 export const PeopleTile = setup<PeopleTileProps>((props) => {
   // The tile is made for one person; their pictures are read as it's made.
@@ -29,8 +32,6 @@ export const PeopleTile = setup<PeopleTileProps>((props) => {
   const name = $static(() => props.persona.name || 'Unnamed');
   // Theirs may still be on its way, so it's read as it's drawn.
   const portrait = () => (props.persona.head?.main ? props.pictureOf(props.persona.head.main) : undefined);
-  // Until the drive keeps the choice on the cast, what goes along is their defaults, or their face alone.
-  const choice = mutable({ picked: $static(() => defaultsOf(props.persona)) });
 
   /**
    * Takes a picture along, or leaves it out.
@@ -38,9 +39,8 @@ export const PeopleTile = setup<PeopleTileProps>((props) => {
    * @param source - The picture, as the persona writes it.
    */
   const toggle = (source: string) => {
-    const at = choice.picked.indexOf(source);
-    if (at < 0) choice.picked.push(source);
-    else choice.picked.splice(at, 1);
+    const picked = props.picked();
+    props.onpick(picked.includes(source) ? picked.filter((each) => each !== source) : [...picked, source]);
   };
 
   return () => (
@@ -67,7 +67,7 @@ export const PeopleTile = setup<PeopleTileProps>((props) => {
                       className="wedyan-people-picture"
                       aria-label={pictureName(source)}
                       title={pictureName(source)}
-                      aria-pressed={choice.picked.includes(source)}
+                      aria-pressed={props.picked().includes(source)}
                       onClick={() => toggle(source)}
                     >
                       <Picture src={props.pictureOf(source)} />
@@ -101,18 +101,6 @@ function groupsOf(persona: PersonaDocument): PictureGroup[] {
     { label: 'Wardrobe', sources: persona.wardrobe ? [persona.wardrobe.main, ...(persona.wardrobe.outfits ?? [])].filter(Boolean) : [] },
   ];
   return groups.filter((group) => group.sources.length);
-}
-
-/**
- * What casting a person takes along before anything's picked: with `attachDefault`, their main
- * face, figure and outfit; otherwise their face alone.
- *
- * @param persona - The person.
- * @returns Those pictures, as the persona writes them.
- */
-function defaultsOf(persona: PersonaDocument): string[] {
-  const defaults = persona.attachDefault ? [persona.head?.main, persona.body?.main, persona.wardrobe?.main] : [persona.head?.main];
-  return defaults.filter((source): source is string => !!source);
 }
 
 /**

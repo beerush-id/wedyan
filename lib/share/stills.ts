@@ -1,5 +1,5 @@
 import { settingsOf } from '@/lib/documents/generation.js';
-import type { GeneratedAttempt, StillDocument } from '@/lib/documents/types.js';
+import type { CastPictures, GeneratedAttempt, StillDocument } from '@/lib/documents/types.js';
 import type { StillRequest } from '@/lib/kernel/stills.h.js';
 
 // How a still is read and changed, the same on the desktop and the server: what it asks for, a
@@ -18,7 +18,18 @@ export function requestOf(still: StillDocument): StillRequest {
     settings: { model, aspect, batch },
     references: [...(still.references ?? [])],
     casts: [...(still.casts ?? [])],
+    castPictures: picturesOfCasts(still.castPictures),
   };
+}
+
+/**
+ * Which of each cast's pictures a document asks for, as a plain copy to send.
+ *
+ * @param picked - What it holds.
+ * @returns The copy.
+ */
+export function picturesOfCasts(picked: CastPictures = {}): CastPictures {
+  return Object.fromEntries(Object.entries(picked).map(([cast, pictures]) => [cast, [...pictures]]));
 }
 
 /**

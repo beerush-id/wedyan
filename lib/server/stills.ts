@@ -5,7 +5,7 @@ import { mutable } from '@irpclib/irpc/core';
 import { read, write } from '@irpclib/r2-file';
 import type { ImageWorkerEnv } from '@irpclib/r2-image/worker';
 import { DEFAULT_MODELS } from '@/lib/agents/index.js';
-import { chosenAttempt } from '@/lib/documents/generation.js';
+import { chosenAttempt, defaultPictures } from '@/lib/documents/generation.js';
 import type { PersonaDocument, StillDocument } from '@/lib/documents/types.js';
 import type { SysAsk, SysHandler } from '@/lib/kernel/agent.js';
 import { DOC_ATTEMPTS } from '@/lib/kernel/document.h.js';
@@ -87,15 +87,19 @@ async function generateForAgent(
     return { error: 'sys.still.generate needs path: a .still in the home (~/…)' };
   }
   const still = (await read<StillDocument>(path, { encoding: 'json' }).catch(() => undefined)) ?? newStill(path);
+  // What's being changed is made from, but never listed among what it's made from.
+  const itself = (reference: string) => pathFrom(path, reference) === path;
   applyRequest(still, {
     ...(prompt ? { prompt } : {}),
     settings: { model, aspect, batch },
-    ...(references ? { references } : {}),
+    ...(references ? { references: references.filter((reference) => !itself(reference)) } : {}),
   });
   if (!still.prompt) return { error: 'A new still needs a prompt' };
 
   const request = requestOf(still);
-  const attempts = await makeAttempts(adapter, pictures, path, request);
+  const changing = references?.some(itself) && chosenAttempt(still);
+  const made = changing ? { ...request, references: [...(request.references ?? []), path] } : request;
+  const attempts = await makeAttempts(adapter, pictures, path, made);
   // Nothing made: the still stays as it was, what was asked included.
   if (!attempts.length) return { error: 'No image came back from the model; the still is unchanged' };
   const taken = (await desktop({
@@ -156,11 +160,11 @@ export async function makeAttempts(
   request: StillRequest,
 ): Promise<StillAttempt[]> {
   const { model = 'standard', aspect, batch = 1 } = request.settings ?? {};
-  const [written, faces] = await Promise.all([
+  const [written, casted] = await Promise.all([
     Promise.all((request.references ?? []).map((reference) => referenceOf(pictures, path, reference))),
-    Promise.all((request.casts ?? []).map((cast) => faceOf(pictures, path, cast))),
+    Promise.all((request.casts ?? []).map((cast) => castImages(pictures, path, cast, request.castPictures?.[cast]))),
   ]);
-  const references = [...written, ...faces.filter((face): face is string => !!face)];
+  const references = [...written, ...casted.flat()];
   const count = Math.min(Math.max(Math.round(batch), 1), MAX_BATCH);
   const drawn = await Promise.all(
     Array.from({ length: count }, () =>
@@ -245,19 +249,21 @@ async function referenceOf(pictures: ImageWorkerEnv, still: string, reference: s
 }
 
 /**
- * Someone cast, as the picture the model is given to keep them the same: their main face. Someone
- * with no face yet has none to give, which is no reason not to make the picture.
+ * Someone cast, as the pictures the model is given to keep them the same: the ones picked of them,
+ * or their defaults. Someone with none to give is no reason not to make the picture.
  *
  * @param pictures - The bucket and the resizer.
  * @param still - The path of what's being made.
  * @param cast - The `.persona`, by path.
- * @returns Their face, if they have one.
+ * @param picked - Which of their pictures, as the persona writes them, if any were picked.
+ * @returns The images there are.
  */
-async function faceOf(pictures: ImageWorkerEnv, still: string, cast: string): Promise<string | undefined> {
+async function castImages(pictures: ImageWorkerEnv, still: string, cast: string, picked?: string[]): Promise<string[]> {
   const path = pathFrom(still, cast.replace(/^\//, ''));
   const persona = await read<PersonaDocument>(path, { encoding: 'json' }).catch(() => undefined);
-  const face = persona?.head?.main;
-  return face ? imageOf(pictures, path, face) : undefined;
+  if (!persona) return [];
+  const images = await Promise.all((picked ?? defaultPictures(persona)).map((picture) => imageOf(pictures, path, picture)));
+  return images.filter((image): image is string => !!image);
 }
 
 /**

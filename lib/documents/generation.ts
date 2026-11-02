@@ -1,6 +1,14 @@
 import { follow } from '../share/documents.js';
 import { pathFrom } from '../share/paths.js';
-import type { DocumentType, GeneratedAttempt, GenerationMode, GenerationSettings, GenerativeDocument, WedyanDocument } from './types.js';
+import type {
+  DocumentType,
+  GeneratedAttempt,
+  GenerationMode,
+  GenerationSettings,
+  GenerativeDocument,
+  PersonaDocument,
+  WedyanDocument,
+} from './types.js';
 
 /** The models a generation can be asked of, by what it makes. Placeholders until the kernel names its own. */
 export const MODELS: Record<GenerativeDocument['type'], Record<string, string>> = {
@@ -11,6 +19,18 @@ export const MODELS: Record<GenerativeDocument['type'], Record<string, string>> 
 
 /** Whether the tiers in `MODELS` are different models: while they're one, picking between them does nothing. */
 export const TIERED_MODELS = false;
+
+/**
+ * What casting a person takes along until their pictures are picked: with `attachDefault`, their
+ * main face, figure and outfit; otherwise their face alone.
+ *
+ * @param persona - The person.
+ * @returns Those pictures, as the persona writes them.
+ */
+export function defaultPictures(persona: PersonaDocument): string[] {
+  const defaults = persona.attachDefault ? [persona.head?.main, persona.body?.main, persona.wardrobe?.main] : [persona.head?.main];
+  return defaults.filter((source): source is string => !!source);
+}
 
 /**
  * Whether how long something runs is asked for: a picture has no length, and speech runs as long as its words.

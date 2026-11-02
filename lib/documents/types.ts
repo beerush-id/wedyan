@@ -136,6 +136,12 @@ export type PersonaDocument = DocumentHeader<'persona'> & {
  * long a video or a sound runs, in seconds, and how many attempts an image is made in at a time.
  * Kept on the document, so it's made again the same way.
  */
+/**
+ * Which of each cast's pictures a generation is made from, by the path it casts them under, each as
+ * the persona writes it. Someone with no entry goes by their defaults; an empty one sends nothing.
+ */
+export type CastPictures = Record<string, string[]>;
+
 /** How a generation is asked: its model, a picture's aspect ratio, how long a video or a sound runs, and how many it makes in one request. */
 export type GenerationSettings = { mode?: GenerationMode; model?: string; aspect?: string; seconds?: number; batch?: number};
 
@@ -151,6 +157,7 @@ export type StillDocument = DocumentHeader<'still'> & {
   references: string[];
   /** Who appears in it, by path to each `.persona`. */
   casts?: string[];
+  castPictures?: CastPictures;
   attempts: GeneratedAttempt[];
   /** Edits made to the chosen attempt, in order, e.g. a masked region painted over. */
   edits: StillEdit[];
@@ -165,6 +172,7 @@ export type TakeDocument = DocumentHeader<'take'> & {
   references: string[];
   /** Who appears in it, by path to each `.persona`. */
   casts?: string[];
+  castPictures?: CastPictures;
   attempts: (GeneratedAttempt & { poster?: string; seconds: number })[];
   chosen: string;
 };

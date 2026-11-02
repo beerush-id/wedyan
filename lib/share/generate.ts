@@ -2,7 +2,7 @@ import { settingsOf } from '@/lib/documents/generation.js';
 import type { SoundDocument, StillDocument, TakeDocument } from '@/lib/documents/types.js';
 import { type StillAttempt, type StillRequest, stillAttempts } from '@/lib/kernel/stills.h.js';
 import { type SoundAttempt, soundAttempt } from '@/lib/speech/speech.h.js';
-import { addAttempts, applyRequest, requestOf } from './stills.js';
+import { addAttempts, applyRequest, picturesOfCasts, requestOf } from './stills.js';
 import { edited } from './workspace.js';
 
 /**
@@ -60,6 +60,7 @@ export async function generateTakePicture(path: string): Promise<StillAttempt[]>
     settings: { model, aspect, batch: 1 },
     references: [...take.references],
     casts: [...(take.casts ?? [])],
+    castPictures: picturesOfCasts(take.castPictures),
   });
   addAttempts(take as never, attempts.map((attempt) => ({ ...attempt, seconds })));
   return attempts;

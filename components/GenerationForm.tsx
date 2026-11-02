@@ -22,6 +22,7 @@ import {
   asksSeconds,
   attemptPicture,
   chosenAttempt,
+  defaultPictures,
   GENERATION_MODES,
   MAKES_VIDEO,
   MODELS,
@@ -386,8 +387,17 @@ const castsGroup = (source: GenerativeDocument, subject: GenerationSubject) => {
     else (source.casts ??= []).push(cast);
   };
   const remove = (cast: string) => {
-    if (source.type === 'sound') source.voice = undefined;
-    else removeFrom(source.casts, cast);
+    if (source.type === 'sound') {
+      source.voice = undefined;
+      return;
+    }
+    removeFrom(source.casts, cast);
+    if (source.castPictures) delete source.castPictures[cast];
+  };
+  const pickedOf = (cast: string, persona: PersonaDocument) =>
+    (source.type !== 'sound' && source.castPictures?.[cast]) || defaultPictures(persona);
+  const pick = (cast: string, pictures: string[]) => {
+    if (source.type !== 'sound') (source.castPictures ??= {})[cast] = pictures;
   };
   const portraitOf = (cast: { path: string; document: PersonaDocument }) =>
     cast.document.head?.main && pictureAt(cast.path, cast.document.head.main);
@@ -402,7 +412,12 @@ const castsGroup = (source: GenerativeDocument, subject: GenerationSubject) => {
           {speech ? (
             <Thumb src={portraitOf(person)} />
           ) : (
-            <PeopleTile persona={person.document} pictureOf={(picture) => sized(pictureAt(person.path, picture))} />
+            <PeopleTile
+              persona={person.document}
+              pictureOf={(picture) => sized(pictureAt(person.path, picture))}
+              picked={() => pickedOf(cast, person.document)}
+              onpick={(pictures) => pick(cast, pictures)}
+            />
           )}
           <TileRemove
             label={speech ? 'Remove voice' : 'Remove cast'}

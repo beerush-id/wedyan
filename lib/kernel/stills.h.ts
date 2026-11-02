@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { GeneratedAttempt } from '@/lib/documents/types.js';
+import type { CastPictures, GeneratedAttempt } from '@/lib/documents/types.js';
 import { kernel } from './package.js';
 
 /** What a still is made from: its prompt, how it's made, and the images it's made from. */
@@ -9,8 +9,10 @@ export type StillRequest = {
   settings?: { model?: string; aspect?: string; batch?: number };
   /** Images it's made from: a `.still` (its chosen image), a picture, by path from the still, or an address. */
   references?: string[];
-  /** Who's in it, by path to each `.persona`: their face goes to the model with the references. */
+  /** Who's in it, by path to each `.persona`: their pictures go to the model with the references. */
   casts?: string[];
+  /** Which of their pictures go; someone with no entry goes by their defaults. */
+  castPictures?: CastPictures;
 };
 
 /** A new attempt of a still, and an address to show it at. */
@@ -43,6 +45,7 @@ export const stillAttempts = kernel.declare<(path: string, request: StillRequest
         settings: z.object({ model: z.string(), aspect: z.string(), batch: z.number().int() }).partial().optional(),
         references: z.array(z.string().max(2048)).max(8).optional(),
         casts: z.array(z.string().max(2048)).max(8).optional(),
+        castPictures: z.record(z.string().max(2048), z.array(z.string().max(2048)).max(16)).optional(),
       }),
     ],
   },
