@@ -12,7 +12,7 @@ import {
 import type { AIAdapter } from '@irpclib/ai-kit/worker';
 import { getAbortSignal, IRPC_STORE, type IRPCData, type IRPCRouter, setContext, stream } from '@irpclib/irpc';
 import { fsContext } from '@irpclib/r2-file/context';
-import { readsAsText } from '../documents/file-types.js';
+import { optionsOf, readsAsText } from '../documents/file-types.js';
 import { logger } from '../logger.js';
 import { isUsageLimit } from '../share/usage.js';
 import {
@@ -201,8 +201,8 @@ export async function askWith(options: AskOptions): Promise<void> {
         if (call.name === FILE_READ && !readsAsText(String(args?.[0]))) return { error: BINARY };
         if (tool && args) return inHomePaths((await tool.pkg.call(tool.spec.name, ...args)) as CallResult);
       }
-      // What the dock is set to is the user's choice, so what a model asked for doesn't replace it.
-      const args = call.name === STILL_GENERATE ? { ...(call.args as object), ...dockSettings(options.input) } : call.args;
+      // What the window in front says is the user's choice, so what a model asked for doesn't replace it.
+      const args = call.name === STILL_GENERATE ? { ...(call.args as object), ...frontSettings(options.input) } : call.args;
       return sys[call.name]?.(args, { agent: options.state.agent, desktop: options.desktop });
     },
     act: async (action) =>
@@ -360,11 +360,11 @@ function timeStep(state: AskState, kind: AskStep['kind'], name: string, agent: s
  * What a call is working on, for the row that shows it.
  *
  * @param args - The call's arguments.
- * @returns The path or query it's given, when it has one.
+ * @returns The path or query it's given, in its options or beside them, when it has one.
  */
 function detailOf(args: unknown): string | undefined {
-  const { path, query } = (args ?? {}) as { path?: unknown; query?: unknown };
-  const detail = path ?? query;
+  const { path, query, options } = (args ?? {}) as { path?: unknown; query?: unknown; options?: string | object };
+  const detail = path ?? query ?? optionsOf<{ query?: unknown }>(options)?.query;
   return typeof detail === 'string' ? detail : undefined;
 }
 
@@ -696,14 +696,18 @@ function inHomePaths(result: CallResult): CallResult {
 }
 
 /**
- * What the window in front says new images are made with, for the ask being answered.
+ * What the window in front says about the image being made, for the ask being answered: a still
+ * open there is what's made, in its own settings, and Photos' dock says how a new one is.
  *
  * @param input - The ask.
- * @returns The model, aspect ratio and how many to make; none when that window says nothing.
+ * @returns The still's path, or the model, aspect ratio and how many to make; none when that window says nothing.
  */
-function dockSettings(input: ChatInput): Record<string, IRPCData> | undefined {
-  const context = chatTurns(input).map(contextOf).find(Boolean) as { activeWindow?: { data?: { generation?: Record<string, IRPCData> } } } | undefined;
-  const generation = context?.activeWindow?.data?.generation;
+function frontSettings(input: ChatInput): Record<string, IRPCData> | undefined {
+  const context = chatTurns(input).map(contextOf).find(Boolean) as
+    | { activeWindow?: { data?: { still?: string; generation?: Record<string, IRPCData> } } }
+    | undefined;
+  const { still, generation } = context?.activeWindow?.data ?? {};
+  if (still) return { path: still };
   return generation && { model: generation.model, aspect: generation.aspect, batch: generation.batch };
 }
 

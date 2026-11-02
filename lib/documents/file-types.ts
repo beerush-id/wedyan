@@ -86,7 +86,7 @@ export function readsAsText(path: string): boolean {
  * @param options - The options as they came.
  * @returns The options, or nothing when they can't be read.
  */
-function optionsOf<T extends object>(options: T | string | undefined): T | undefined {
+export function optionsOf<T extends object>(options: T | string | undefined): T | undefined {
   if (typeof options !== 'string') return options;
   try {
     return JSON.parse(options) as T;

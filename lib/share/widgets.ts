@@ -92,10 +92,32 @@ function shownParts(message: AgentMessage): DockWidgetPart[] {
   return message.status === 'error' && message.reason ? [...shown, { type: 'text', text: message.reason }] : shown;
 }
 
+/** What the user reads a call as, whether it's under way or done. */
+const CALL_LABELS: Record<string, string> = {
+  'memory.recall': 'Memory search',
+  'memory.save': 'Memory note',
+  'r2-file.list': 'Folder',
+  'r2-file.read': 'File',
+  'r2-file.search': 'File search',
+  'r2-file.stat': 'File details',
+  'sys.photos.search': 'Photo search',
+  'sys.image.generate': 'New image',
+  'sys.still.generate': 'New image',
+};
+
 /** A call as a row of its answer: what it is, what it's working on, and how long it took. */
 function callRow({ name, detail, ms }: AskStep): DockWidgetPart {
-  const call = detail ? `${name} ${detail}` : name;
-  return { type: 'text', text: `\`${call}\` ${ms === undefined ? '…' : `${ms} ms`}` };
+  return { type: 'activity', label: CALL_LABELS[name] ?? name, detail, time: ms === undefined ? undefined : durationOf(ms) };
+}
+
+/**
+ * How long something took, as it's read.
+ *
+ * @param ms - The time, in milliseconds.
+ * @returns E.g. `640 ms` or `1.6 s`.
+ */
+function durationOf(ms: number): string {
+  return ms < 1000 ? `${ms} ms` : `${(ms / 1000).toFixed(1)} s`;
 }
 
 /** What a widget that couldn't be composed leaves in its place. */

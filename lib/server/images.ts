@@ -1,9 +1,12 @@
 import type { AIAdapter, ImageAspectRatio, ImageOptions, ImageOutput } from '@irpclib/ai-kit/worker';
 import type { IRPCData } from '@irpclib/irpc';
 import { mutable } from '@irpclib/irpc/core';
+import { read } from '@irpclib/r2-file';
 import { fsContext } from '@irpclib/r2-file/context';
 import { url } from '@irpclib/r2-image';
 import { createWorker as createImageWorker, type ImageWorkerEnv } from '@irpclib/r2-image/worker';
+import { chosenAttempt } from '@/lib/documents/generation.js';
+import type { StillDocument } from '@/lib/documents/types.js';
 import { recall } from '@/lib/memory/memory.h.js';
 import type { SavedOptions } from '@/lib/share/ai.js';
 import { IMAGE_SIZES } from '@/lib/share/image.js';
@@ -114,11 +117,25 @@ export async function searchPhotos(args: IRPCData): Promise<IRPCData> {
   const { query } = (args ?? {}) as { query?: string };
   if (!query?.trim()) return { error: 'sys.photos.search needs a query: what the photo shows' };
   const found = await recall({ query, scope: 'files', limit: SEARCHED_FILES });
-  const photos = found
-    .filter(({ path }) => PICTURE_FILE.test(path))
+  const pictures = found.filter(({ path }) => PICTURE_FILE.test(path));
+  const shown = await Promise.all(pictures.map(({ path }) => hasPicture(path)));
+  const photos = pictures
+    .filter((_, at) => shown[at])
     .slice(0, FOUND_PHOTOS)
     .map(({ path, name, text, score }) => ({ path, name, about: text, score }));
   return { photos };
+}
+
+/**
+ * Whether a file has a picture to show: a still has none until something's been made.
+ *
+ * @param path - The file's path in the home.
+ * @returns Whether it does.
+ */
+async function hasPicture(path: string): Promise<boolean> {
+  if (!path.endsWith(STILL_EXTENSION)) return true;
+  const still = await read<StillDocument>(path, { encoding: 'json' }).catch(() => undefined);
+  return !!still && !!chosenAttempt(still);
 }
 
 /** What an agent asks `sys.image.generate` for. */
