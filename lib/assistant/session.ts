@@ -7,7 +7,6 @@ import { ASK_REPLY } from '@/lib/kernel/chat.h.js';
 import { wedyan } from '@/lib/share/wedyan.js';
 import { isAppLink, requestLink, runCommand } from '@/lib/systems/registry.js';
 import { answerActions } from './actions.js';
-import { engine } from './mock.js';
 import type { Answer, UserTurn } from './turns.js';
 
 /** The open conversation, for what's drawn on the desktop. */
@@ -30,9 +29,6 @@ export function openSession() {
   const answers = mutable({ open: false });
 
   answerActions(answer as never);
-
-  // The commands not moved off the mock yet still draw through it, into this list.
-  engine.widgets = widgets;
 
   let problem = '';
   let heard = '';

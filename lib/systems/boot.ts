@@ -1,15 +1,11 @@
 import { mutable } from '@airlib/react';
 import { type AUISystemState, bootstrap } from '@airlib/react-aui/desktop';
-import calendarManifest from '@/apps/calendar/manifest.json';
-import calendarMain, { commands as calendarCommands, linkHandle as calendarLinks } from '@/apps/calendar/views/index.js';
 import filesManifest from '@/apps/files/manifest.json';
 import filesMain, { commands as filesCommands } from '@/apps/files/views/index.js';
 import loungeManifest from '@/apps/lounge/manifest.json';
 import loungeMain from '@/apps/lounge/views/index.js';
-import mailManifest from '@/apps/mail/manifest.json';
 import previewManifest from '@/apps/preview/manifest.json';
 import previewMain, { linkHandle as previewLinks } from '@/apps/preview/views/index.js';
-import mailMain, { commands as mailCommands, linkHandle as mailLinks } from '@/apps/mail/views/index.js';
 import memoManifest from '@/apps/memo/manifest.json';
 import memoMain, { commands as memoCommands, linkHandle as memoLinks } from '@/apps/memo/views/index.js';
 import motionsManifest from '@/apps/motions/manifest.json';
@@ -54,8 +50,6 @@ export async function boot(): Promise<void> {
       { manifest: photosManifest, main: photosMain, commands: photosCommands, linkHandle: photosLinks },
       { manifest: motionsManifest, main: motionsMain, commands: motionsCommands, linkHandle: motionsLinks },
       { manifest: memoManifest, main: memoMain, commands: memoCommands, linkHandle: memoLinks },
-      { manifest: mailManifest, main: mailMain, commands: mailCommands, linkHandle: mailLinks },
-      { manifest: calendarManifest, main: calendarMain, commands: calendarCommands, linkHandle: calendarLinks },
       { manifest: loungeManifest, main: loungeMain },
       { manifest: previewManifest, main: previewMain, linkHandle: previewLinks },
       { manifest: settingsManifest, main: settingsMain },

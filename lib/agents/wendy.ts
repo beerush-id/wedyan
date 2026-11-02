@@ -21,7 +21,7 @@ export function wendy(model: string): AgentProfile {
     webSearch: true,
     system: fill(wendySkill, {
       idle_settings_link: IDLE_SETTINGS_LINK,
-      actions: specList([ACTIONS.open, ACTIONS.mailOpen, ACTIONS.filesReveal, ACTIONS.filesDelete, ACTIONS.focus, ACTIONS.tile]),
+      actions: specList([ACTIONS.open, ACTIONS.filesReveal, ACTIONS.filesDelete, ACTIONS.focus, ACTIONS.tile]),
       asks: '',
     }),
   };
