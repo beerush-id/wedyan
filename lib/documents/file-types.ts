@@ -1,5 +1,5 @@
 import { HandlerError } from '@irpclib/irpc';
-import { fileModule, readStub, writeStub } from '@irpclib/r2-file';
+import { fileModule, readStub, search, writeStub } from '@irpclib/r2-file';
 
 /**
  * What each kind of document is, by its extension. r2-file types a file by how its data is carried,
@@ -27,13 +27,19 @@ export const FLAGGED = 'true';
 
 // Every write of a document, whoever makes it: the desktop, an agent or the seed, so none can forget.
 fileModule.hook(writeStub, (req) => {
-  const [path, data, options] = req.args;
+  const [path, data] = req.args;
+  const options = optionsOf(req.args[2]);
   const extension = path.split('.').pop() as string;
   const type = FILE_TYPES[extension];
-  if (!type) return;
+  const encoding = typeof data === 'string' && readsAsText(path) ? { encoding: 'text' as const } : {};
+  if (!type) {
+    req.args[2] = { ...options, ...encoding };
+    return;
+  }
   if (typeof data === 'string') assertDocument(path, data);
   req.args[2] = {
     ...options,
+    ...encoding,
     type,
     metadata: { ...options?.metadata, ...titleOf(data), ...(extension === 'motion' ? flagsOf(data) : {}) },
   };
@@ -42,12 +48,43 @@ fileModule.hook(writeStub, (req) => {
 // A document or a text file is words, whoever reads it: unencoded, a read gives a link to download,
 // which an agent on the server can't follow.
 fileModule.hook(readStub, (req) => {
-  const [path, options] = req.args;
-  const extension = path.split('.').pop() as string;
-  if (options?.encoding === undefined && (extension in FILE_TYPES || TEXT_EXTENSIONS.has(extension))) {
-    req.args[1] = { ...options, encoding: 'text' };
-  }
+  const [path] = req.args;
+  const options = optionsOf(req.args[1]);
+  req.args[1] = options?.encoding === undefined && readsAsText(path) ? { ...options, encoding: 'text' } : options;
 });
+
+// A model can write the whole search into its options: what's searched for is still the query.
+fileModule.hook(search, (req) => {
+  const { query, ...options } = (optionsOf(req.args[1]) ?? {}) as { query?: string };
+  req.args[0] = req.args[0] || (query ?? '');
+  req.args[1] = options;
+});
+
+/**
+ * Whether a file is words rather than a picture, a video or a sound.
+ *
+ * @param path - The file's path.
+ * @returns True for a document or a text file.
+ */
+export function readsAsText(path: string): boolean {
+  const extension = path.split('.').pop() as string;
+  return extension in FILE_TYPES || TEXT_EXTENSIONS.has(extension);
+}
+
+/**
+ * A call's options as an object: a model can write them as JSON text.
+ *
+ * @param options - The options as they came.
+ * @returns The options, or nothing when they can't be read.
+ */
+function optionsOf<T extends object>(options: T | string | undefined): T | undefined {
+  if (typeof options !== 'string') return options;
+  try {
+    return JSON.parse(options) as T;
+  } catch {
+    return undefined;
+  }
+}
 
 /**
  * Refuses a document written as text that isn't JSON: kept, it could never be opened again. An agent
