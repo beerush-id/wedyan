@@ -64,6 +64,9 @@ type MediaFile = {
 /** Each file opened, by its address. */
 const FILES = new Map<string, Promise<MediaFile | undefined>>();
 
+/** Each picture read, by its address. Every clip of it shows this one, so none lets go of it. */
+const PICTURES = new Map<string, Promise<ImageBitmap | undefined>>();
+
 /**
  * A loader for the stage, decoding media with mediabunny: each clip gets the file's length, its
  * pictures — read on its own, so two clips of one file never pull each other back and forth, and
@@ -110,10 +113,28 @@ export function mediaLoader(options: MediaLoaderOptions = {}): VideoMediaLoader 
  * @returns The media, or nothing when it can't be read.
  */
 async function openPicture(src: string): Promise<VideoMedia | undefined> {
-  const response = await fetch(src).catch(() => undefined);
-  if (!response?.ok) return;
-  const picture = await createImageBitmap(await response.blob());
-  return { duration: 0, frame: async () => picture, dispose: () => picture.close() };
+  const picture = await readPicture(src);
+  return picture && { duration: 0, frame: async () => picture };
+}
+
+/**
+ * A picture by its address, read once however many clips show it. One that can't be read isn't
+ * kept, so the next clip tries again.
+ *
+ * @param src - Where it is.
+ * @returns The picture, or nothing when it can't be read.
+ */
+function readPicture(src: string): Promise<ImageBitmap | undefined> {
+  let reading = PICTURES.get(src);
+  if (!reading) {
+    reading = (async () => {
+      const response = await fetch(src);
+      return response.ok ? createImageBitmap(await response.blob()) : undefined;
+    })().catch(() => undefined);
+    PICTURES.set(src, reading);
+    void reading.then((picture) => picture ?? PICTURES.delete(src));
+  }
+  return reading;
 }
 
 /**
