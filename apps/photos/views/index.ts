@@ -1,17 +1,22 @@
 import type { AUIBoot } from '@airlib/react-aui/desktop';
 import { type LinkHandle, linkTarget } from '@/lib/systems/public.js';
-import { openStill, photos } from './Main.js';
-import { CONTEXTS } from './prompt.js';
+import { STILL_FILE } from './listing.js';
+import { openPhotos, photos } from './Main.js';
+import { openStill, stillProject } from './Still.js';
 
 export { COMMANDS as commands } from './prompt.js';
-export { photos };
+export { photos, stillProject };
 
-/** What Photos opens: `photos:/Photos/boats.still`, in a window of its own. */
+/** What Photos opens: `photos:~/Photos/boats.still` in a window of its own, any other picture in the browser, picked. */
 export const linkHandle: Record<string, LinkHandle> = {
-  photos: (link) => void openStill(linkTarget(link)),
+  photos: (link) => {
+    const path = linkTarget(link);
+    if (STILL_FILE.test(path)) openStill(path);
+    else openPhotos(path);
+  },
 };
 
-/** Photos' entry: launching it opens the browser, with its photos for the prompt. */
-export default (({ open }) => {
-  open(photos, { name: 'browser', contexts: CONTEXTS });
+/** Photos' entry: launching it opens the browser. */
+export default (() => {
+  openPhotos();
 }) satisfies AUIBoot;

@@ -6,11 +6,7 @@ import { listing as calendarListing } from '@/apps/calendar/views/library.js';
 import { listing as mailListing, nameOfPerson } from '@/apps/mail/views/library.js';
 import { edit, memoAt, memos, memosOf, newMemo, shortDate } from '@/apps/memo/views/library.js';
 import { animation, newMotion, ROOT as MOTIONS_ROOT } from '@/apps/motions/views/motion.js';
-import { GENERATIVE, ROOT as PHOTOS_ROOT } from '@/apps/photos/views/library.js';
-import { generation } from '@/apps/photos/views/options.js';
-import { MODELS, settingsOf } from '@/lib/documents/generation.js';
-import { documentAt, freePath, newHeader, supply } from '@/lib/documents/store.js';
-import type { GeneratedAttempt, StillDocument } from '@/lib/documents/types.js';
+import { MODELS } from '@/lib/documents/generation.js';
 import { linkTo } from '@/lib/systems/links.js';
 import {
   type CommandHandle,
@@ -22,7 +18,7 @@ import {
   runCommand,
   type WidgetAck,
 } from '@/lib/systems/registry.js';
-import { type Answer, commandResult, motionMade, stillMade, type UserTurn, userTurn } from './turns.js';
+import { type Answer, commandResult, motionMade, type UserTurn, userTurn } from './turns.js';
 
 /** One answer being written, and what cuts it off. */
 type Turn = { answer: DockWidgetEntry; signal: AbortSignal };
@@ -235,7 +231,6 @@ async function respond({ text, signal, context }: PromptEvent): Promise<void> {
   if (/\b(compare|versus)\b/i.test(text)) return say(begin(signal), COMPARISON);
   if (/\bplan\b/i.test(text)) return say(begin(signal), PLAN);
   if (/\b(draft|reply)\b/i.test(text)) return say(begin(signal), DRAFT);
-  if (front?.app === 'photos') return makeStill(begin(signal), text, (front.data as { still?: string })?.still);
   if (front?.name === 'library') return makeMotion(begin(signal), text);
   if (/\breplay\b/i.test(text)) return replay(begin(signal));
   if (/\bmeet(ing)?\b/i.test(text)) return meeting(begin(signal, true), text);
@@ -245,15 +240,6 @@ async function respond({ text, signal, context }: PromptEvent): Promise<void> {
   if (/\bmemos?\b/i.test(text)) return showMemos(begin(signal));
   return say(begin(signal), `This is a stand-in answer until I'm wired up. You asked: **${text}**.`);
 }
-
-/** `/generate`: makes images of what the prompt says, keeps them, and shows what it made. */
-export const generateImages: CommandHandle = async ({ event, signal }) => {
-  const { activeWindow } = (event as PromptEvent).context;
-  const plan = stillPlan(promptText(event), (activeWindow?.data as { still?: string })?.still);
-  const attempts: GeneratedAttempt[] = [];
-  for (let at = 0; at < plan.count; at++) attempts.push(await drawImage(plan, signal));
-  return stillMade(plan.ask, keepStill(attempts, plan.ask, plan.still), attempts[0].src);
-};
 
 /** `/animate`: makes a motion of what the prompt says, keeps it, and shows what it made. */
 export const generateMotion: CommandHandle = async ({ event, signal }) => {
@@ -414,101 +400,6 @@ async function say(turn: Turn, text: string): Promise<void> {
   } finally {
     engine.state.speaking = false;
   }
-}
-
-/**
- * What a prompt asks of Photos: Photos' options in the dock, or a still window's own settings.
- *
- * @param prompt - What to make.
- * @param still - The still in front, if there's one.
- * @returns What to make, what with, and the still it joins, if any.
- */
-function stillPlan(prompt: string, still?: string) {
-  const target = still ? documentAt<'still'>(still) : undefined;
-  const settings = target ? settingsOf(target) : undefined;
-  return {
-    ask: prompt || target?.prompt || 'Something new',
-    model: settings?.model ?? generation.model,
-    aspect: settings?.aspect ?? generation.aspect,
-    count: settings?.batch ?? generation.count,
-    still: target && still,
-  };
-}
-
-/**
- * Makes one image.
- *
- * @param plan - What to make.
- * @param signal - What cuts it off.
- * @returns The image.
- */
-async function drawImage({ ask, model, aspect }: ReturnType<typeof stillPlan>, signal: AbortSignal): Promise<GeneratedAttempt> {
-  await pause(STEP, signal);
-  const id = crypto.randomUUID();
-  return { id, src: pictureFor(id, aspect), prompt: ask, settings: { model, aspect }, created: new Date().toISOString() };
-}
-
-/**
- * Makes images as the agent would, saying so and showing each as it arrives, and keeps them in a
- * still: the one in front, or a new one.
- *
- * @param turn - The answer.
- * @param prompt - What to make.
- * @param still - The still in front, if there's one.
- * @returns Once they're made.
- */
-async function makeStill(turn: Turn, prompt: string, still?: string): Promise<void> {
-  const plan = stillPlan(prompt, still);
-  const { ask, model, aspect, count } = plan;
-
-  await say(turn, `Making ${count === 1 ? 'an image' : `${count} images`} of **${ask}**.`);
-  add(turn, job(ask, `${MODELS.still[model]} · ${aspect}`, 'Images'));
-
-  const form = lastForm(turn);
-  const attempts: GeneratedAttempt[] = [];
-  for (let at = 0; at < count; at++) {
-    form.phase = `Making ${at + 1} of ${count}`;
-    form.progress = at / count + 0.1 / count;
-    const attempt = await drawImage(plan, turn.signal);
-    form.tiles.push({ value: attempt.id, src: attempt.src, alt: `${ask} ${at + 1}` });
-    form.progress = (at + 1) / count;
-    attempts.push(attempt);
-  }
-
-  const path = keepStill(attempts, ask, plan.still);
-  form.phase = 'Done';
-  await say(turn, `[Open in Photos](${linkTo('photos', path)}) or [see it large](${linkTo('preview', path)}).`);
-}
-
-/**
- * Keeps made images: as more attempts of a still, or as a new still in Photos.
- *
- * @param attempts - The images, the first of them shown.
- * @param prompt - What they were asked for.
- * @param still - The still they join, if any.
- * @returns The still's path.
- */
-function keepStill(attempts: GeneratedAttempt[], prompt: string, still?: string): string {
-  const existing = still ? documentAt<'still'>(still) : undefined;
-  if (still && existing) {
-    existing.attempts.push(...attempts);
-    existing.chosen = attempts[0].id;
-    return still;
-  }
-  const path = freePath(PHOTOS_ROOT, nameFrom(prompt), '.still');
-  const document: StillDocument = {
-    ...newHeader(path, '.still'),
-    author: { kind: 'agent', ask: prompt },
-    type: 'still',
-    tags: [GENERATIVE],
-    prompt,
-    references: [],
-    attempts,
-    edits: [],
-    chosen: attempts[0].id,
-  };
-  supply([[path, document]]);
-  return path;
 }
 
 /** What a new motion goes through, each a step of its job. */

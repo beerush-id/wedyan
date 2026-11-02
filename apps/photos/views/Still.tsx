@@ -1,15 +1,25 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
-import { $bind, $static, $use, Show, Snippet, setup } from '@airlib/react';
-import { Divider, EmptyState, Gallery, type GalleryEntry, ImageViewer, type ImageViewerEntry } from '@airlib/react-aui';
-import { Window, WindowTitle } from '@airlib/react-aui/desktop';
+import { $bind, $use, Show, Snippet } from '@airlib/react';
+import { Button, Divider, EmptyState, Gallery, type GalleryEntry, ImageViewer, type ImageViewerEntry, Spinner } from '@airlib/react-aui';
+import { defineWindow, Window, WindowTitle, type WindowRenderProps } from '@airlib/react-aui/desktop';
 import { FloatingDownload } from '@/components/FloatingDownload.js';
 import { generationCtx } from '@/components/generation.js';
 import { GenerationForm } from '@/components/GenerationForm.js';
 import { GenerativeIcon } from '@/components/icons.js';
-import { SaveButton } from '@/components/SaveButton.js';
 import { chosenAttempt } from '@/lib/documents/generation.js';
-import { documentAt } from '@/lib/documents/store.js';
-import { VIEWER_LABELS } from './library.js';
+import { nameOf } from '@/lib/documents/paths.js';
+import type { StillDocument } from '@/lib/documents/types.js';
+import { dfs } from '@/lib/share/dfs.js';
+import { documentAt } from '@/lib/share/documents.js';
+import { fullRect } from '@/lib/systems/window.js';
+import manifest from '../manifest.json';
+import { addressOf, VIEWER_LABELS } from './listing.js';
+import { makeAttempts, making, stillChanged } from './making.js';
+import { StillOptions } from './options.js';
+import { pictures } from './prompt.js';
+
+/** What a still project's window shows: the still, by path. */
+export type StillData = { still: string };
 
 const CLASS = {
   STILL: 'wedyan-still',
@@ -18,15 +28,69 @@ const CLASS = {
   PROMPT: 'wedyan-still-prompt',
 };
 
+/** How large an attempt is asked for in the row of attempts, its longest edge. */
+const ATTEMPT_SIZE = 128;
+
+/** How large a still is asked for as its window's thumbnail, its longest edge. */
+const THUMBNAIL_SIZE = 256;
+
 /**
- * A still project in its own window: the attempt it shows, large, with every attempt in a row
- * beneath to choose from, and beside them how it is asked for — its prompt, settings, references,
- * who's in it and its history — to change and make again.
+ * A still project's window: one definition, a window for each still. The attempt it shows, large,
+ * with every attempt in a row over it to choose from, and beside them how it's asked for — its
+ * prompt, settings, references, who's in it and its history — to change and make again.
  */
-export const StillProject = setup<{ path: string }>((props) => {
+export const stillProject = defineWindow({
+  name: `${manifest.name}-still`,
+  label: manifest.label,
+  title: manifest.label,
+  image: manifest.icon,
+  rect: fullRect(),
+  window: { snap: '.aui-window', minWidth: 520, minHeight: 360 },
+  multiple: true,
+  dockExtensions: StillOptions,
+}).render(StillWindow);
+
+/**
+ * Opens a still project in a window of its own, or brings forward the one already showing it.
+ *
+ * @param path - The still's path.
+ * @returns The window showing it.
+ */
+export function openStill(path: string) {
+  const showing = stillProject.instances.find((instance) => (instance.data as StillData).still === path);
+  if (showing) {
+    showing.focus();
+    return showing;
+  }
+
+  return stillProject.open({ still: path } satisfies StillData, {
+    name: 'still',
+    get contexts() {
+      return pictures();
+    },
+    get title() {
+      return documentAt<'still'>(path)?.name ?? nameOf(path);
+    },
+    get thumbnail() {
+      const document = documentAt<'still'>(path);
+      const attempt = document && chosenAttempt(document);
+      return attempt && addressOf(path, attempt.src, THUMBNAIL_SIZE);
+    },
+  });
+}
+
+/**
+ * A still project's window: holds the still for as long as it's open, so every change to it is saved.
+ *
+ * @param props - The window's props.
+ * @returns The window's view.
+ */
+function StillWindow(props: WindowRenderProps) {
   // A window shows one still for its whole life.
-  const path = $static(() => props.path);
-  const still = () => documentAt<'still'>(path);
+  const { still: path } = props.instance.data as StillData;
+  const binding = dfs.binding<StillDocument>(path);
+  const still = () => binding.data;
+  const made = () => making[path];
 
   /**
    * Chooses the attempt the still shows.
@@ -35,7 +99,9 @@ export const StillProject = setup<{ path: string }>((props) => {
    */
   const choose = (id: string) => {
     const document = still();
-    if (document) document.chosen = id;
+    if (!document || document.chosen === id) return;
+    document.chosen = id;
+    stillChanged(path, document);
   };
 
   generationCtx.set({
@@ -44,7 +110,7 @@ export const StillProject = setup<{ path: string }>((props) => {
       return still();
     },
     generate() {
-      // Nothing in Photos generates yet; the prompt and settings are kept for when it does.
+      void makeAttempts(path);
     },
     choose,
   });
@@ -74,11 +140,24 @@ export const StillProject = setup<{ path: string }>((props) => {
   };
 
   const slides = (): ImageViewerEntry[] =>
-    (still()?.attempts ?? []).map((attempt, at) => ({ src: attempt.src, alt: `Attempt ${at + 1}` }));
+    (still()?.attempts ?? []).map((attempt, at) => ({ src: addressOf(path, attempt.src), alt: `Attempt ${at + 1}` }));
 
   // Each attempt as its picture alone; what it was asked shows as the viewer's caption.
   const tiles = (): GalleryEntry[] =>
-    (still()?.attempts ?? []).map((attempt, at) => ({ value: attempt.id, src: attempt.src, alt: `Attempt ${at + 1}` }));
+    (still()?.attempts ?? []).map((attempt, at) => ({ value: attempt.id, src: addressOf(path, attempt.src, ATTEMPT_SIZE), alt: `Attempt ${at + 1}` }));
+
+  // What the preview says when there's no attempt to show: why, and what's on its way.
+  const emptyTitle = () => {
+    if (!binding.ready) return 'Loading';
+    if (!still()) return 'This still is gone';
+    if (made()?.busy) return 'Making it';
+    return made()?.error ? "Couldn't make it" : 'Nothing made yet';
+  };
+  const emptyLine = () => {
+    if (!binding.ready || !still()) return undefined;
+    if (made()?.busy) return 'It shows here as soon as it comes back.';
+    return made()?.error ?? 'Write what to make beside, then Generate.';
+  };
 
   return () => (
     <Window>
@@ -91,20 +170,46 @@ export const StillProject = setup<{ path: string }>((props) => {
       </Window.Snippet>
       <Window.Snippet for="actions">
         {() => (
-          <>
-            <SaveButton />
-            {/* Sets the app's own buttons apart from the window's. */}
-            <Divider orientation="vertical" variant="ghost" size="sm" />
-          </>
+          <Show when={() => made()?.busy}>
+            {() => (
+              <>
+                <Spinner label="Making it" />
+                {/* Sets the app's own buttons apart from the window's. */}
+                <Divider orientation="vertical" variant="ghost" size="sm" />
+              </>
+            )}
+          </Show>
         )}
       </Window.Snippet>
       <div className={CLASS.STILL}>
         <section className={CLASS.PREVIEW} aria-label="Preview">
           <Show
-            when={() => still()?.attempts.length}
+            when={() => !made()?.error && still()?.attempts.length}
             fallback={() => (
-              <EmptyState title="Nothing made yet" description="Write what to make beside, then Generate." level={3}>
-                <EmptyState.Snippet for="icon">{() => <GenerativeIcon />}</EmptyState.Snippet>
+              <EmptyState title={$use(emptyTitle)} description={$use(emptyLine)} level={3}>
+                <EmptyState.Snippet for="icon">{() => (made()?.busy ? <Spinner label="Making it" /> : <GenerativeIcon />)}</EmptyState.Snippet>
+                <EmptyState.Snippet for="action">
+                  {() =>
+                    made()?.error ? (
+                      <>
+                        <Button size="sm" variant="filled" onClick={() => void makeAttempts(path)}>
+                          Try again
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="text"
+                          onClick={() => {
+                            delete making[path];
+                          }}
+                        >
+                          Dismiss
+                        </Button>
+                      </>
+                    ) : (
+                      ''
+                    )
+                  }
+                </EmptyState.Snippet>
               </EmptyState>
             )}
           >
@@ -132,4 +237,4 @@ export const StillProject = setup<{ path: string }>((props) => {
       </div>
     </Window>
   );
-}, 'StillProject');
+}
