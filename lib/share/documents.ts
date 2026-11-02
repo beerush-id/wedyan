@@ -1,3 +1,4 @@
+import { readsAsText } from '@/lib/documents/file-types.js';
 import { resolvePath } from '@/lib/documents/paths.js';
 import type { DocumentOf, DocumentType } from '@/lib/documents/types.js';
 import { fileRef } from './workspace.js';
@@ -17,12 +18,13 @@ export function documentAt<T extends DocumentType = DocumentType>(path?: string)
  *
  * @param from - The path of the document it's written in.
  * @param path - The path as written.
- * @returns Where it leads, and the document there, once it has arrived.
+ * @returns Where it leads, and the document there, once it has arrived; none for a picture, a video
+ *   or a sound, which is never a document to read.
  */
 export function follow<T extends DocumentType = DocumentType>(
   from: string,
   path: string,
 ): { path: string; document: DocumentOf<T> | undefined } {
   const resolved = resolvePath(from, path);
-  return { path: resolved, document: documentAt<T>(resolved) };
+  return { path: resolved, document: readsAsText(resolved) ? documentAt<T>(resolved) : undefined };
 }
