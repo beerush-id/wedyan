@@ -1,17 +1,37 @@
 import type { DockSuggestion } from '@airlib/react-aui/desktop';
 import type { FC } from 'react';
+import { sizeOf } from '@/lib/documents/rows.js';
+import { dfs } from '@/lib/share/dfs.js';
 import type { Commands } from '@/lib/systems/public.js';
-import FILES from '../data/files.json';
+import { shown } from './context.js';
 import { DocumentsIcon, MusicsIcon, PhotosIcon, VideosIcon } from './icons.js';
 
 /** Each file kind's glyph; anything else reads as a document. */
 const KIND_ICONS: Record<string, FC> = { image: PhotosIcon, video: VideosIcon, audio: MusicsIcon };
 
+/** The longest edge a picture is shown at in a suggestion, as `dfs.image` serves it. */
+const SUGGESTION_SIZE = 64;
+
 /** What Files can do, at `system.files.name`. */
 export const COMMANDS: Commands = {};
 
-/** What a request can mention while Files is in front: its files, a picture by itself, anything else by its kind's glyph. */
-export const CONTEXTS: DockSuggestion[] = (FILES as Array<(typeof FILES)[number] & { src?: string }>).map((file) => {
-  const Icon = KIND_ICONS[file.kind] ?? DocumentsIcon;
-  return { value: file.id, label: file.name, hint: file.size, icon: file.src ?? <Icon /> };
-});
+/**
+ * What a request can mention while Files is in front: the files in the folder open, a picture by
+ * itself, anything else by its kind's glyph.
+ *
+ * @returns One suggestion each, by its path in the home.
+ */
+export function contexts(): DockSuggestion[] {
+  const rows = shown.files?.rows() ?? [];
+  return rows
+    .filter((row) => !row.isDirectory)
+    .map((row) => {
+      const Icon = KIND_ICONS[row.kind] ?? DocumentsIcon;
+      return {
+        value: row.path,
+        label: row.name,
+        hint: sizeOf(row.size),
+        icon: row.kind === 'image' ? dfs.image(row.path, { size: SUGGESTION_SIZE }) : <Icon />,
+      };
+    });
+}
