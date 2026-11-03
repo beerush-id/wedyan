@@ -18,6 +18,9 @@ export type StillRequest = {
 /** A new attempt of a still, and an address to show it at. */
 export type StillAttempt = GeneratedAttempt & { url: string };
 
+/** How long making a still's pictures may take, in ms: a model draws for well over a quick call's wait. */
+const GENERATION_TIMEOUT = 180_000;
+
 /**
  * What a still can be described for: `face`, who it shows, to draw them again in another picture,
  * and their expression as drawn, to adjust it; `subject`, what it shows (who or what, framed and posed how, where), to understand what's asked
@@ -37,6 +40,7 @@ export type DescribeOptions = { type: DescriptionType };
  */
 export const stillAttempts = kernel.declare<(path: string, request: StillRequest) => Promise<StillAttempt[]>>({
   name: 'still.attempts',
+  timeout: GENERATION_TIMEOUT,
   schema: {
     input: [
       z.string().min(1).max(1024),
