@@ -27,8 +27,8 @@ const COLUMNS: Record<string, string> = {
 /** The longest `ask` a row carries; a list only shows the start of one. */
 const ASK_LENGTH = 512;
 
-/** What's a picture to the user: an image or a still, but not an attempt kept in the folder beside its still. */
-const PICTURES = `f.kind IN ('image', 'still') AND NOT EXISTS (SELECT 1 FROM _r2_files s WHERE s.path = f.directory || '.still')`;
+/** What's a picture to the user: an image or a still, but not an attempt kept in the folder beside its still or its take. */
+const PICTURES = `f.kind IN ('image', 'still') AND NOT EXISTS (SELECT 1 FROM _r2_files s WHERE s.path IN (f.directory || '.still', f.directory || '.take'))`;
 
 /** What a file holds of other files: a project's assets and its casts. */
 const LINKS = '_wedyan_links';
