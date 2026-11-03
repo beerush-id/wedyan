@@ -18,6 +18,9 @@ const TRACK_KINDS = Object.entries(TRACK_NAMES).map(([name, label]) => ({ name, 
 const CORNER = 'aui-timeline-corner';
 const TIMELINE_LENGTH = '--aria-timeline-length';
 
+/** What shows beside the timeline while a clip is picked. */
+const BESIDE = 'wedyan-compose-prompt';
+
 /** What's left clear past the end when the timeline fits, in pixels: where it leads in, and a little room. */
 const FIT_MARGIN = 48;
 
@@ -99,8 +102,9 @@ export const TimelinePanel = setup(() => {
     const side = corner.offsetWidth + Number.parseFloat(getComputedStyle(body).columnGap);
     if (seconds > 0) composer.zoom = zoomWithin((editor.clientWidth - side - FIT_MARGIN) / seconds);
   };
+  // A panel beside it opens and closes with what's picked: picking a clip must not rescale them all.
   const resized = new ResizeObserver(() => {
-    if (composer.fit) fit();
+    if (composer.fit && !panel?.parentElement?.querySelector(`.${BESIDE}`)) fit();
   });
   const watch = (element: HTMLElement | null) => {
     resized.disconnect();
