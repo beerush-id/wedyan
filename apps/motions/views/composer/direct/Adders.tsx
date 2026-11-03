@@ -1,5 +1,5 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
-import { $use, setup } from '@airlib/react';
+import { $use, setup, untrack } from '@airlib/react';
 import { Button, Menu, Tooltip } from '@airlib/react-aui';
 import type { FileRow } from '@/lib/documents/rows.js';
 import { AddIcon } from '../../icons.js';
@@ -79,10 +79,14 @@ export const AddAsset = setup<{ made(asset: FileRow): void }>((props) => {
 export const AddCast = setup(() => {
   const composer = composerCtx.get() as Composer;
 
+  // The lists are what changes the menu; reading each row through them would watch everyone.
   const items = () => {
-    const cast = new Set(composer.casts.map(({ path }) => path));
-    const people = composer.people.filter(({ path }) => !cast.has(path)).map(({ path, name }) => ({ name: path, label: name }));
-    return [...people, { name: NEW_PERSON, label: 'New person' }];
+    const { casts, people } = composer;
+    return untrack(() => {
+      const cast = new Set(casts.map(({ path }) => path));
+      const rest = people.filter(({ path }) => !cast.has(path)).map(({ path, name }) => ({ name: path, label: name }));
+      return [...rest, { name: NEW_PERSON, label: 'New person' }];
+    });
   };
 
   const add = async (command: string) => {
