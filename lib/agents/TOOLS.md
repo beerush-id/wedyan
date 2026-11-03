@@ -55,6 +55,7 @@ sys.persona.read(personaPath) -> PersonaFile
 sys.persona.edit(personaPath, changes) -> PersonaFile
 sys.persona.delete(personaPath) -> Deleted
 sys.persona.generate(personaPath, part) -> PersonaFile
+sys.persona.picture.add(personaPath, part, ...PersonaPictureInit[]) -> StillFile[]
 
 // A picture
 sys.still.create(cwd, ...StillInit[]) -> StillFile[]
@@ -144,6 +145,10 @@ type PersonaInit = {
 type PersonaFile = PersonaDocument & { path: string; failed?: string };
 // sys.persona.generate's part: 'head' | 'body' | 'wardrobe'. `head.main`, `body.main` and
 // `wardrobe.main` are .still paths: sys.still.read and sys.still.edit reach their prompts.
+// sys.persona.picture.add adds to `head.poses`, `body.poses` or `wardrobe.outfits`, beside the
+// part's main picture, which it needs first. Each is drawn from their face, and an outfit from their
+// figure too; sys.still.generate draws one again.
+type PersonaPictureInit = { name: string; prompt: string; references?: string[] };
 
 type StillInit = Pick<StillDocument, 'name' | 'prompt'> &
   Partial<Pick<StillDocument, 'settings' | 'references' | 'casts' | 'castPictures'>>;

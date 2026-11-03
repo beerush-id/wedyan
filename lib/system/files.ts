@@ -16,10 +16,12 @@ import {
   personaDelete,
   personaEdit,
   personaGenerate,
+  personaPictureAdd,
   personaRead,
   type PersonaChanges,
   type PersonaFile,
   type PersonaInit,
+  type PersonaPictureInit,
   type SoundChange,
   type SoundFile,
   type SoundInit,
@@ -100,6 +102,7 @@ export function setupFiles(adapter: AIAdapter, pictures: ImageWorkerEnv) {
     return { deleted: 1 };
   });
   sys.construct(personaGenerate, (path, part) => drawPart(adapter, pictures, path, part));
+  sys.construct(personaPictureAdd, (path, part, items) => addPictures(adapter, pictures, path, part, items));
 
   sys.construct(stillCreate, (cwd, items) => eachOf(items, (init) => makers.still(cwd, init)));
   sys.construct(stillRead, async (path) => stillFile(path, await documentOf(path, 'still')));
@@ -251,6 +254,43 @@ async function drawPart(adapter: AIAdapter, pictures: ImageWorkerEnv, path: stri
   if (!main) throw new Error(`${persona.name} has no ${PARTS[which].label} to draw: give it a prompt with sys.persona.edit`);
   const made = await activity(PARTS[which].activity, persona.name, () => newStillAttempt(adapter, pictures, pathFrom(path, main)));
   return personaFile(path, persona, made.failed);
+}
+
+/**
+ * Gives a person more pictures of a part, as Lounge's add does: each a still in their folder, in the
+ * part's shape, listed among its poses or outfits. Each is drawn from their own face, and an outfit
+ * from their figure too, so it's the same person, as their figure and outfit are when they're made.
+ *
+ * @param adapter - The server's models.
+ * @param pictures - The bucket and the resizer.
+ * @param path - The person.
+ * @param which - The part they're of.
+ * @param items - What each shows.
+ * @returns Each still, saying when no picture came back; it's listed either way, to draw again.
+ */
+async function addPictures(adapter: AIAdapter, pictures: ImageWorkerEnv, path: string, which: Part, items: PersonaPictureInit[]): Promise<StillFile[]> {
+  const persona = await documentOf(path, 'persona');
+  const { label, aspect, activity: shown } = PARTS[which];
+  if (!persona[which]?.main) throw new Error(`${persona.name} has no ${label} yet: give them one with sys.persona.edit and sys.persona.generate`);
+  const own = (which === 'wardrobe' ? [persona.head?.main, persona.body?.main] : [persona.head?.main])
+    .filter((written): written is string => !!written)
+    .map((written) => pathFrom(path, written));
+  const id = path.slice(path.lastIndexOf('/') + 1, -'.persona'.length);
+
+  return eachOf(items, async ({ name, prompt, references = [] }) => {
+    const file = `${id}/${newId()}.still`;
+    const request = { prompt, settings: { model: MODEL, aspect, batch: 1 }, references: [...new Set([...own, ...references])], casts: [], ...faceOf(which) };
+    const still = await activity(shown, persona.name, () => makeStill(adapter, pictures, pathFrom(path, file), name, request));
+    await changeDocument(path, 'persona', (changed) => {
+      if (which === 'wardrobe') {
+        if (changed.wardrobe) (changed.wardrobe.outfits ??= []).push(file);
+      } else {
+        const look = changed[which];
+        if (look) (look.poses ??= []).push(file);
+      }
+    });
+    return stillFile(pathFrom(path, file), still);
+  });
 }
 
 /**

@@ -130,6 +130,18 @@ const personaInit = z.strictObject({
 
 const personaChanges = personaInit.partial();
 
+const personaPart = z.enum(['head', 'body', 'wardrobe']);
+
+const personaPictureInit = z.strictObject({
+  name: z.string().min(1),
+  prompt: z
+    .string()
+    .min(1)
+    .max(4000)
+    .describe('What to draw, written as your reference of people’s picture sheets says: one close-up or pose, or a sheet only when a sheet is asked for.'),
+  references: paths('Anything more it’s drawn from, by path. Their own face, and for an outfit their figure, are always among them.').optional(),
+});
+
 const stillInit = z.strictObject({
   name: z.string().min(1),
   prompt: z.string().min(1).max(4000).describe('What to draw: only what it shows.'),
@@ -191,6 +203,8 @@ export type ClipInit = z.infer<typeof clipInit>;
 export type ClipChange = z.infer<typeof clipChange>;
 export type PersonaInit = z.infer<typeof personaInit>;
 export type PersonaChanges = z.infer<typeof personaChanges>;
+export type PersonaPart = z.infer<typeof personaPart>;
+export type PersonaPictureInit = z.infer<typeof personaPictureInit>;
 export type StillInit = z.infer<typeof stillInit>;
 export type StillChanges = z.infer<typeof stillChanges>;
 export type StillGeneration = z.infer<typeof stillGeneration>;
@@ -423,11 +437,19 @@ export const personaDelete = sys.declare<(personaPath: string) => Promise<Delete
   mcp: { args: ['personaPath'], destructiveHint: true },
 });
 
-export const personaGenerate = sys.declare<(personaPath: string, part: 'head' | 'body' | 'wardrobe') => Promise<PersonaFile>>({
+export const personaGenerate = sys.declare<(personaPath: string, part: PersonaPart) => Promise<PersonaFile>>({
   name: 'persona.generate',
   description: 'Draws one of a person’s pictures again.',
-  schema: { input: [PERSONA_PATH, z.enum(['head', 'body', 'wardrobe'])] },
+  schema: { input: [PERSONA_PATH, personaPart] },
   mcp: { args: ['personaPath', 'part'] },
+});
+
+export const personaPictureAdd = sys.declare<(personaPath: string, part: PersonaPart, items: PersonaPictureInit[]) => Promise<StillFile[]>>({
+  name: 'persona.picture.add',
+  description:
+    'Gives a person more pictures of a part, beside its main one: head and body take poses — expressions, angles, stances — and wardrobe takes outfits. Each is a still in their folder, in the part’s shape, drawn once from their own pictures so it’s the same person. It’s kept even if no picture comes back, saying failed, so sys.still.generate can try again.',
+  schema: { input: [PERSONA_PATH, personaPart, list(personaPictureInit)] },
+  mcp: { args: ['personaPath', 'part', 'items'] },
 });
 
 export const stillCreate = sys.declare<(cwd: string | null | undefined, items: StillInit[]) => Promise<StillFile[]>>({
