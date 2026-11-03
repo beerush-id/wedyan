@@ -13,6 +13,7 @@
   "status": "draft",
   "assets": [
     "images/cover.jpg",
+    "images/wallpaper.webp",
     "images/still-01.webp",
     "images/still-02.webp",
     "images/still-03.webp",
@@ -35,6 +36,10 @@
     "images/icons/maximize.svg",
     "images/icons/close.svg",
     "images/icons/play.svg",
+    "images/icons/add.svg",
+    "images/icons/sparkle.svg",
+    "images/icons/sparkle-light.svg",
+    "images/icons/write.svg",
     "audio/vo-01.wav",
     "audio/vo-02.wav",
     "audio/vo-03.wav",

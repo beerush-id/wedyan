@@ -59,6 +59,24 @@
         ]
       },
       {
+        "id": "tWallpaper",
+        "options": { "type": "html", "name": "Wallpaper", "meta": {} },
+        "props": {},
+        "segments": [
+          {
+            "id": "wallpaper",
+            "options": { "type": "html", "name": "Wallpaper", "speed": 1, "duration": 36, "startFrame": 600, "meta": {} },
+            "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/wallpaper.webp", "alt": "" }, "objectFit": "cover", "x": 0, "y": 0, "width": 1920, "height": 1080, "opacity": 0 },
+            "scenes": [
+              { "id": "wp0", "options": { "atFrame": 250, "meta": { "ease": "power2.out" } }, "data": { "opacity": 0 } },
+              { "id": "wp1", "options": { "atFrame": 300 }, "data": { "opacity": 1 } },
+              { "id": "wp2", "options": { "atFrame": 948, "meta": { "ease": "power3.in" } }, "data": { "opacity": 1 } },
+              { "id": "wp3", "options": { "atFrame": 972 }, "data": { "opacity": 0 } }
+            ]
+          }
+        ]
+      },
+      {
         "id": "tClock",
         "options": { "type": "html", "name": "Clock", "meta": {} },
         "props": { "fontFamily": "Geist" },
@@ -362,7 +380,15 @@
                             { "id": "l3b", "atFrame": 60, "data": { "width": 264 } }
                           ] }
                       ] }, "scenes": [] },
-                    { "id": "swGenerate", "props": { "element": "div", "text": "✦  Generate", "x": 1364, "y": 188, "width": 111, "height": 36, "borderRadius": 18, "background": "#942347", "color": "#fbf4f5", "fontSize": 12, "fontWeight": 600, "lineHeight": 3, "textAlign": "center", "whiteSpace": "pre", "cornerShape": "superellipse(1.5)" },
+                    { "id": "swWrite", "props": { "element": "div", "x": 1323, "y": 188, "width": 36, "height": 36, "borderRadius": 18, "background": "#fcf6f7", "cornerShape": "superellipse(1.5)",
+                      "children": [
+                        { "id": "swWriteIcon", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/icons/write.svg", "alt": "" }, "x": 7.5, "y": 7.5, "width": 21, "height": 21 }, "scenes": [] }
+                      ] }, "scenes": [] },
+                    { "id": "swGenerate", "props": { "element": "div", "x": 1363, "y": 188, "width": 112, "height": 36, "borderRadius": 18, "background": "#942347", "cornerShape": "superellipse(1.5)",
+                      "children": [
+                        { "id": "swGenerateIcon", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/icons/sparkle-light.svg", "alt": "" }, "x": 8, "y": 7.5, "width": 21, "height": 21 }, "scenes": [] },
+                        { "id": "swGenerateText", "props": { "element": "span", "text": "Generate", "x": 38, "y": 10, "width": 58, "height": 16, "fontSize": 12, "fontWeight": 600, "lineHeight": 1.333, "color": "#fbf4f5" }, "scenes": [] }
+                      ] },
                       "scenes": [
                         { "id": "gn0", "atFrame": 75, "meta": { "ease": "power2.out" }, "data": { "scale": 1 } },
                         { "id": "gn1", "atFrame": 79, "meta": { "ease": "power2.out" }, "data": { "scale": 0.92 } },
@@ -384,14 +410,32 @@
                           ] }, "scenes": [] }
                       ] }, "scenes": [] },
                     { "id": "swLabelRefs", "props": { "element": "span", "text": "References", "x": 1195, "y": 384, "width": 100, "height": 17, "fontSize": 11, "fontWeight": 500, "lineHeight": 1.55, "color": "#2c2c2c" }, "scenes": [] },
-                    { "id": "swRefs", "props": { "element": "div", "x": 1187, "y": 405, "width": 288, "height": 56, "borderRadius": 28, "background": "#ece3e5", "cornerShape": "superellipse(1.5)",
+                    { "id": "swRefs", "props": { "element": "div", "x": 1187, "y": 405, "width": 288, "height": 101, "borderRadius": 30, "background": "#ece3e5", "cornerShape": "superellipse(1.5)",
                       "children": [
-                        { "id": "swRefAdd", "props": { "element": "span", "text": "+", "x": 12, "y": 8, "width": 40, "height": 40, "borderRadius": 20, "background": "rgba(0, 0, 0, 0.05)", "fontSize": 16, "lineHeight": 2.5, "textAlign": "center", "color": "#2c2c2c", "cornerShape": "superellipse(1.5)" }, "scenes": [] }
+                        { "id": "swRefAdd", "name": "Add reference", "props": { "element": "div", "x": 12, "y": 8, "width": 85, "height": 85, "borderRadius": 24, "border": "1px dashed rgba(44, 44, 44, 0.32)", "cornerShape": "superellipse(1.5)",
+                          "children": [
+                            { "id": "swRefAddIcon", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/icons/add.svg", "alt": "" }, "x": 34, "y": 34, "width": 16, "height": 16 }, "scenes": [] }
+                          ] }, "scenes": [] },
+                        { "id": "swRefPick", "name": "Pick a reference", "props": { "element": "div", "x": 101, "y": 8, "width": 85, "height": 85, "borderRadius": 24, "border": "1px dashed rgba(44, 44, 44, 0.32)", "cornerShape": "superellipse(1.5)",
+                          "children": [
+                            { "id": "swRefPickIcon", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/icons/sparkle.svg", "alt": "" }, "x": 34, "y": 34, "width": 16, "height": 16 }, "scenes": [] }
+                          ] }, "scenes": [] }
                       ] }, "scenes": [] },
-                    { "id": "swLabelCasts", "props": { "element": "span", "text": "Casts", "x": 1195, "y": 477, "width": 100, "height": 17, "fontSize": 11, "fontWeight": 500, "lineHeight": 1.55, "color": "#2c2c2c" }, "scenes": [] },
-                    { "id": "swCasts", "props": { "element": "div", "x": 1187, "y": 497, "width": 288, "height": 16, "borderRadius": 8, "background": "#ece3e5", "cornerShape": "superellipse(1.5)" }, "scenes": [] },
-                    { "id": "swLabelHistory", "props": { "element": "span", "text": "History", "x": 1195, "y": 529, "width": 100, "height": 17, "fontSize": 11, "fontWeight": 500, "lineHeight": 1.55, "color": "#2c2c2c" }, "scenes": [] },
-                    { "id": "swHistory", "name": "Attempt", "props": { "element": "div", "x": 1187, "y": 560, "width": 288, "height": 64, "borderRadius": 30, "background": "#ece3e5", "cornerShape": "superellipse(1.5)", "opacity": 0,
+                    { "id": "swLabelCasts", "props": { "element": "span", "text": "Casts", "x": 1195, "y": 521, "width": 100, "height": 17, "fontSize": 11, "fontWeight": 500, "lineHeight": 1.55, "color": "#2c2c2c" }, "scenes": [] },
+                    { "id": "swCasts", "props": { "element": "div", "x": 1187, "y": 542, "width": 288, "height": 101, "borderRadius": 30, "background": "#ece3e5", "cornerShape": "superellipse(1.5)",
+                      "children": [
+                        { "id": "swCastAdd", "name": "Add cast", "props": { "element": "div", "x": 12, "y": 8, "width": 85, "height": 85, "borderRadius": 24, "border": "1px dashed rgba(44, 44, 44, 0.32)", "cornerShape": "superellipse(1.5)",
+                          "children": [
+                            { "id": "swCastAddIcon", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/icons/add.svg", "alt": "" }, "x": 34, "y": 34, "width": 16, "height": 16 }, "scenes": [] }
+                          ] }, "scenes": [] }
+                      ] }, "scenes": [] },
+                    { "id": "swLabelHistory", "props": { "element": "span", "text": "History", "x": 1195, "y": 659, "width": 100, "height": 17, "fontSize": 11, "fontWeight": 500, "lineHeight": 1.55, "color": "#2c2c2c" }, "scenes": [] },
+                    { "id": "swHistoryNote", "name": "Nothing made yet", "props": { "element": "span", "text": "Nothing made yet.", "x": 1195, "y": 680, "width": 280, "height": 18, "fontSize": 12, "lineHeight": 1.5, "color": "#2c2c2c" },
+                      "scenes": [
+                        { "id": "hn0", "atFrame": 100, "meta": { "ease": "power2.out" }, "data": { "opacity": 1 } },
+                        { "id": "hn1", "atFrame": 108, "data": { "opacity": 0 } }
+                      ] },
+                    { "id": "swHistory", "name": "Attempt", "props": { "element": "div", "x": 1187, "y": 690, "width": 288, "height": 64, "borderRadius": 30, "background": "#ece3e5", "cornerShape": "superellipse(1.5)", "opacity": 0,
                       "children": [
                         { "id": "swItem", "props": { "element": "div", "x": 4, "y": 4, "width": 280, "height": 56, "borderRadius": 26, "background": "#942347", "cornerShape": "superellipse(1.5)",
                           "children": [
@@ -403,8 +447,8 @@
                           ] }, "scenes": [] }
                       ] },
                       "scenes": [
-                        { "id": "hs0", "atFrame": 100, "meta": { "ease": "power3.out" }, "data": { "opacity": 0, "y": 560 } },
-                        { "id": "hs1", "atFrame": 115, "data": { "opacity": 1, "y": 550 } }
+                        { "id": "hs0", "atFrame": 100, "meta": { "ease": "power3.out" }, "data": { "opacity": 0, "y": 690 } },
+                        { "id": "hs1", "atFrame": 115, "data": { "opacity": 1, "y": 680 } }
                       ] }
                   ] },
                   "scenes": [
