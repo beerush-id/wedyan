@@ -15,6 +15,8 @@ import type { FC } from 'react';
 import { type DirectItem, DirectList } from '@/components/Direct.js';
 import type { FileRow } from '@/lib/documents/rows.js';
 import { AGENT_EXTENSION } from '@/lib/share/agents.js';
+import { pathFrom } from '@/lib/share/paths.js';
+import { attachFacts } from '@/lib/systems/public.js';
 import { fullRect } from '@/lib/systems/window.js';
 import manifest from '../manifest.json';
 import { AgentEditor } from './Agent.js';
@@ -22,7 +24,7 @@ import { createLounge, type Group } from './context.js';
 import { AgentsIcon, PeopleIcon, PersonIcon, SidebarCloseIcon, SidebarOpenIcon } from './icons.js';
 import { opening, rowPortrait } from './library.js';
 import { PersonaEditor } from './Persona.js';
-import { loungeCtx, PERSON_TABS, type PersonTab } from './session.js';
+import { loungeCtx, PERSON_TABS, type PersonTab, pictureShown } from './session.js';
 
 /** Each group's name, its glyph, what one of it is called, and how a listed one reads as a row. */
 const GROUPS: Record<Group, { label: string; Icon: FC; one: string; item: (row: FileRow) => DirectItem }> = {
@@ -56,9 +58,17 @@ export const lounge = defineWindow({
   rect: fullRect(),
   // Wide enough for the side, a person, and how their picked picture was made, side by side.
   window: { snap: '.aui-window', minWidth: 1024, minHeight: 400 },
-}).render(() => {
+}).render((props) => {
   const library = createLounge();
   const { state, opened, rows } = library;
+  const picture = pictureShown();
+
+  attachFacts(props.instance, () => {
+    const path = opened();
+    if (state.group === 'agents') return { showing: 'agents', agent: path };
+    const picked = path && picture.read();
+    return { showing: 'people', person: path, tab: state.tab, ...(picked ? { picture: pathFrom(path as string, picked) } : {}) };
+  });
 
   // A link's person or agent opens in its group, picked.
   effect(() => {
@@ -83,6 +93,7 @@ export const lounge = defineWindow({
     remove() {
       void library.remove();
     },
+    showPicture: picture.show,
   });
 
   // What the toolbar's tabs pick: the group, which starts its search afresh.

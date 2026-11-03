@@ -1,4 +1,4 @@
-import { setup } from '@airlib/react';
+import { $static, setup } from '@airlib/react';
 import { PersonaEditor } from '@/apps/lounge/views/Persona.js';
 import { loungeCtx } from '@/apps/lounge/views/session.js';
 import { type Composer, composerCtx } from '../context.js';
@@ -18,6 +18,8 @@ export const CastView = setup(() => {
     get tab() {
       return composer.person ?? 'profile';
     },
+    // The holder is the window's for its whole life, never a change to watch.
+    showPicture: $static(() => composer.castPicture.show),
   });
 
   return () => {

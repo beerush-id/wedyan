@@ -1,5 +1,5 @@
 import { defineWindow, Window, WindowBody, WindowContent, type WindowRenderProps } from '@airlib/react-aui/desktop';
-import { attachCommands } from '@/lib/systems/public.js';
+import { attachCommands, attachFacts } from '@/lib/systems/public.js';
 import { fullRect } from '@/lib/systems/window.js';
 import manifest from '../manifest.json';
 import { createLibrary, libraryCtx, type PhotosData } from './library.js';
@@ -50,6 +50,16 @@ function PhotosWindow(props: WindowRenderProps) {
   const library = createLibrary(props.instance.data as PhotosData);
   libraryCtx.set(library);
   attachCommands(props.instance, browserCommands());
+  attachFacts(props.instance, () => {
+    const { picked, viewing, index, query } = library.state;
+    return {
+      ...(picked?.length ? { picked } : {}),
+      ...(viewing ? { viewing: library.images()[index]?.path } : {}),
+      ...(query ? { searching: query } : {}),
+      // How a new picture is made while this window is in front: the dock's settings.
+      generation,
+    };
+  });
 
   return () => (
     <Window>

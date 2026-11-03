@@ -2,12 +2,13 @@ import { effect, mutable, Show, setup, template } from '@airlib/react';
 import { isFrontWindow, Window, WindowBody, type WindowRenderProps } from '@airlib/react-aui/desktop';
 import type { FC } from 'react';
 import { dfs } from '@/lib/share/dfs.js';
+import { pathFrom } from '@/lib/share/paths.js';
 import type { FileRefEncoding } from '@/lib/share/workspace.js';
-import { attachCommands } from '@/lib/systems/public.js';
+import { attachCommands, attachFacts } from '@/lib/systems/public.js';
 import { composerCommands } from './commands.js';
 import { Compose } from './compose/Compose.js';
 import { ComposeDock, ComposeSubject } from './compose/Dock.js';
-import { type ComposerData, composerCtx, createComposer } from './context.js';
+import { type Composer, type ComposerData, composerCtx, createComposer } from './context.js';
 import { Direct } from './direct/Direct.js';
 import { DirectDock, DirectSubject } from './direct/Dock.js';
 import { ComposerToolbar } from './Toolbar.js';
@@ -30,10 +31,11 @@ export const MotionDockSubject = template(() => (MOTION_DOCK.subject ? <MOTION_D
  * @returns The window's view.
  */
 export function ComposerWindow({ instance }: WindowRenderProps) {
-  const { path, direct } = instance.data as ComposerData;
+  const { path, direct, animation } = instance.data as ComposerData;
   const composer = createComposer(path, direct);
   composerCtx.set(composer);
   attachCommands(instance, composerCommands(composer));
+  attachFacts(instance, () => ({ project: path, ...shownIn(composer), animation }));
 
   // The dock sits outside the window, so what it shows is made here, reading this composer.
   const docked = (Part: FC) =>
@@ -84,4 +86,44 @@ export function ComposerWindow({ instance }: WindowRenderProps) {
       </Window.Snippet>
     </Window>
   );
+}
+
+/**
+ * What a project window shows: in Direct, the view beside its list and what's open in it; in
+ * Compose, the stage and what's picked on its timeline.
+ *
+ * @param composer - The window's composer.
+ * @returns Its facts, by the mode it's in.
+ */
+function shownIn(composer: Composer) {
+  if (composer.mode === 'compose') {
+    const { stagePath, clips, track, node } = composer;
+    return {
+      mode: 'compose',
+      stage: stagePath,
+      ...(clips.length ? { clips } : {}),
+      ...(track ? { track } : {}),
+      ...(node ? { element: node } : {}),
+    };
+  }
+  const { activeView } = composer;
+  return {
+    mode: 'direct',
+    view: activeView,
+    ...(activeView === 'stage' ? { stage: composer.stagePath } : {}),
+    ...(activeView === 'asset' ? { asset: composer.activeAsset?.path } : {}),
+    ...(activeView === 'cast' ? castShown(composer) : {}),
+  };
+}
+
+/**
+ * The picked cast as a project window shows them: who, which tab, and the picture it has picked.
+ *
+ * @param composer - The window's composer.
+ * @returns Its facts about them.
+ */
+function castShown(composer: Composer) {
+  const cast = composer.activeCast;
+  const picked = cast && composer.castPicture.read();
+  return { cast, tab: composer.person ?? 'profile', ...(picked ? { picture: pathFrom(cast as string, picked) } : {}) };
 }

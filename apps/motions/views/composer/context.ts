@@ -1,7 +1,7 @@
 import { canCaptureVideo } from '@airlib/aria';
 import { type AnyType, createContext, derived, effect, type history, mutable, untrack } from '@airlib/react';
 import type { Timeline, TimelineSegment, TimelineTrack } from '@airlib/react/timeline';
-import type { PersonTab } from '@/apps/lounge/views/session.js';
+import { type PersonTab, type PictureShown, pictureShown } from '@/apps/lounge/views/session.js';
 import { attemptPicture, chosenAttempt, isGenerative, settingsOf } from '@/lib/documents/generation.js';
 import { parentOf, resolvePath } from '@/lib/documents/paths.js';
 import { type FileRow, rowsOf } from '@/lib/documents/rows.js';
@@ -42,6 +42,8 @@ export type Composer = {
   activeCast?: string;
   /** What the picked cast shows. */
   person?: PersonTab;
+  /** The picture the picked cast's tab has picked, read through their editor while it's open. */
+  readonly castPicture: PictureShown;
   viewMode: ViewMode;
   /** Whether the side panel shows: what the project holds in Direct, its sources in Compose. */
   sidebar: boolean;
@@ -200,6 +202,7 @@ export function createComposer(path: string, direct: boolean): Composer {
       path,
       mode: direct ? 'direct' : 'compose',
       activeView: 'overview',
+      castPicture: pictureShown(),
       viewMode: 'preview',
       sidebar: true,
       clips: [],

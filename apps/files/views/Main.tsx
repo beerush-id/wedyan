@@ -30,6 +30,7 @@ import { isMedia } from '@/lib/documents/words.js';
 import { dfs } from '@/lib/share/dfs.js';
 import { AGENTS_PATH, isSystemPath, MEMOS_PATH } from '@/lib/share/system.js';
 import { downloadImage } from '@/lib/systems/download.js';
+import { attachFacts } from '@/lib/systems/public.js';
 import { fullRect } from '@/lib/systems/window.js';
 import manifest from '../manifest.json';
 import { createFiles, type Files, filesCtx } from './context.js';
@@ -63,9 +64,13 @@ export const files = defineWindow({
   image: manifest.icon,
   rect: fullRect(),
   window: { snap: '.aui-window', minWidth: 520, minHeight: 340 },
-}).render(() => {
+}).render((props) => {
   const browser = createFiles();
   filesCtx.set(browser);
+  attachFacts(props.instance, () => {
+    const { here, picked, query } = browser.state;
+    return { folder: here.path, ...(query ? { searching: query } : {}), ...(picked?.length ? { picked } : {}) };
+  });
 
   return () => (
     <Window sidebarResizeLabel="Resize sidebar">

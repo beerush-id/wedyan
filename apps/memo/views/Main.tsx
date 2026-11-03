@@ -6,6 +6,7 @@ import { AddIcon } from '@airlib/react-aui/icons';
 import type { FC } from 'react';
 import { type DirectItem, DirectList } from '@/components/Direct.js';
 import { shortDate } from '@/lib/documents/rows.js';
+import { attachFacts } from '@/lib/systems/public.js';
 import { fullRect } from '@/lib/systems/window.js';
 import manifest from '../manifest.json';
 import { createMemos } from './context.js';
@@ -33,10 +34,15 @@ export const memo = defineWindow({
   image: manifest.icon,
   rect: fullRect(),
   window: { snap: '.aui-window', minWidth: 720, minHeight: 400 },
-}).render(() => {
+}).render((props) => {
   const memos = createMemos();
   const { state: view, opened } = memos;
   memoCtx.set({ remove: () => void memos.remove(), changed: memos.changed });
+  attachFacts(props.instance, () => ({
+    showing: view.group,
+    memo: opened.value,
+    ...(view.query ? { searching: view.query } : {}),
+  }));
 
   // A link's memo opens in its own tab, picked, once it's listed.
   effect(() => {

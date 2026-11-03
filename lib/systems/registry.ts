@@ -27,6 +27,8 @@ declare module '@airlib/react-aui/desktop' {
     commands?: Commands;
     /** What the prompt can mention while it's in front, e.g. its files. */
     contexts?: DockSuggestion[];
+    /** What it shows now — what's open, picked, in which view — read as each request is sent. */
+    facts?: () => unknown;
   }
 }
 
@@ -183,6 +185,19 @@ export function keepWindow(win: WindowInstance, options: Omit<AUIOpenOptions, 'd
 export function attachCommands(win: WindowInstance, commands: Commands): void {
   const options = opened.get(win.id);
   if (options) options.commands = commands;
+}
+
+/**
+ * Has an open window tell what it shows, for as long as it's open, in place of what it was opened
+ * with, which goes stale as soon as anything in it is picked. A window attaches them itself, from
+ * inside, because only it holds them.
+ *
+ * @param win - The window.
+ * @param facts - Reads what it shows now, from its own state.
+ */
+export function attachFacts(win: WindowInstance, facts: () => unknown): void {
+  const options = opened.get(win.id);
+  if (options) options.facts = facts;
 }
 
 /**
@@ -345,9 +360,11 @@ function offered(commands: Commands | undefined, prefix: string, group: string):
  * @returns What's known about it.
  */
 function factsOf(instance: WindowInstance): WindowFacts {
-  const { id, app, name, title, data } = instance;
-  const commands = agentCommands(opened.get(id)?.commands);
-  // A window's data can hold live state, like what the dock is set to; what leaves here is plain.
+  const { id, app, name, title } = instance;
+  const options = opened.get(id);
+  const commands = agentCommands(options?.commands);
+  const data = options?.facts ? options.facts() : instance.data;
+  // What a window shows is read from live state; what leaves here is plain.
   return { id, app: app.name, name, title, data: data && JSON.parse(stringify(data)), ...(commands.length ? { commands } : {}) };
 }
 

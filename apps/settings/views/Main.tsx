@@ -10,6 +10,7 @@ import {
   WindowTitle,
 } from '@airlib/react-aui/desktop';
 import type { ReactNode } from 'react';
+import { attachFacts } from '@/lib/systems/public.js';
 import manifest from '../manifest.json';
 import { AccountPage } from './Account.js';
 import { GeneralPage } from './General.js';
@@ -47,6 +48,7 @@ export const settings = defineWindow({
   // A window opened at a place shows it first.
   const opened = props.instance.data as SettingsData;
   if (opened) goTo(opened);
+  attachFacts(props.instance, () => ({ section: place.section }));
 
   const files = bindSettings();
   settingsCtx.set(files);

@@ -1,5 +1,5 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
-import { $bind, $static, $use, createContext, For, mutable, Show, Snippet, setup } from '@airlib/react';
+import { $bind, $static, $use, createContext, For, mutable, onCleanup, Show, Snippet, setup } from '@airlib/react';
 import { Avatar, Button, EmptyState, Select, Spinner, Switch, TextInput, Tooltip } from '@airlib/react-aui';
 import { WindowPanel } from '@airlib/react-aui/desktop';
 import { linkTo, requestLink } from '@/lib/systems/public.js';
@@ -183,6 +183,8 @@ const OpenPersona = setup<{ path: string }>((props) => {
     if (view.picked && picturesOf(document, tab).includes(view.picked)) return view.picked;
     return document[tab]?.main || null;
   };
+  const release = session.showPicture?.(picked);
+  if (release) onCleanup(release);
   personaViewCtx.set({
     path,
     get document() {

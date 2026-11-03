@@ -4,4 +4,4 @@
  */
 export { linkTarget, linkTo, mediaOf, previewLink, previewTarget } from './links.js';
 export type { Command, CommandEntry, CommandHandle, CommandInput, Commands, LinkHandle, WidgetAck } from './registry.js';
-export { attachCommands, requestLink } from './registry.js';
+export { attachCommands, attachFacts, requestLink } from './registry.js';
