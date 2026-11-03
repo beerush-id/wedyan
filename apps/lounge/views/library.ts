@@ -110,9 +110,10 @@ export async function newAgent(): Promise<string> {
  * @param personaPath - Where the persona is.
  * @param name - What the still is called, e.g. `Face`.
  * @param aspect - The shape it's made in, e.g. `1:1`.
+ * @param face - Whether it's their face, which its pictures are described as.
  * @returns The still as the persona writes it, by path from the persona, once it's written.
  */
-export async function newStill(personaPath: string, name: string, aspect: string): Promise<string> {
+export async function newStill(personaPath: string, name: string, aspect: string, face = false): Promise<string> {
   const folder = nameOf(personaPath).slice(0, -PERSONA_EXTENSION.length);
   const path = `${parentOf(personaPath)}/${folder}/${newId()}.still`;
   const still: StillDocument = {
@@ -125,6 +126,7 @@ export async function newStill(personaPath: string, name: string, aspect: string
     attempts: [],
     edits: [],
     chosen: '',
+    ...(face ? { describedAs: 'face' as const } : {}),
   };
   await dfs.write(path, still as never);
   return `${folder}/${nameOf(path)}`;

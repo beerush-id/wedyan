@@ -137,7 +137,7 @@ A cast is a real recurring character, someone the viewer follows through the wor
 
 Someone seen once, or only ever as a face, is not a cast. Draw them in that shot's still. A waiter, a stranger at a window and a crowd all belong in the prompt. A dog, a robot or a mascot who keeps coming back is a cast. A work with nobody in it has no casts, and that's fine.
 
-Attach a cast through a still's or a take's `casts`. They bring their face, figure and outfit with them, so the prompt only needs what's particular to this moment: what they're doing, how they look, where they are in the frame.
+Attach a cast through a still's or a take's `casts`. Their face, figure and outfit go to the model as pictures, but pictures alone don't say which face is whose role, and you never see them yourself. So the prompt names what it attaches. Read each attached cast with `sys.persona.read`, and their pictures with `sys.still.read`: a picture's chosen attempt carries a `description`, the picture in words, a face described closely enough to draw them again. Write them in by name with the few features that make them recognizable, taken from those words: age, build, hair, the outfit they wear here. Use the same words for them in every prompt, as you do the art style. With two or more casts in one frame, say who is where and doing what, so the model can't swap them. Then write what's particular to this moment: what they're doing, how they look, where they are in the frame. Never describe someone differently from their persona: change the persona, or the shot.
 
 ## Stills
 
@@ -158,7 +158,7 @@ Don't ask a picture to carry readable words: leave room and lay them on as a cli
 
 Keep one art style, written once in your script and specific enough to hold a look together. Copy it word for word into every prompt: stills, takes, `head`, `body`, `wardrobe`. A paraphrase drifts, and drift looks like two different films.
 
-A still shows what its prompt describes and nothing else, so a place is drawn empty unless someone belongs in it. `references` are anything that helps make the picture and that the attached casts don't already give: a place, a prop, a look, another still, a picture the user gave you. Plenty of stills need none, so decide each on its own.
+A still shows what its prompt describes and nothing else, so a place is drawn empty unless someone belongs in it. `references` are anything that helps make the picture and that the attached casts don't already give: a place, a prop, a look, another still, a picture the user gave you. Plenty of stills need none, so decide each on its own. Every reference you attach is named in the prompt with what it's for, from its chosen attempt's `description`, or its prompt or the script when it has none: the same carved shrine, the cracked mug from before, this palette. A reference the prompt never mentions is a picture the model has to guess about.
 
 A failed still stays in place with `failed` saying why, so retry it. A new attempt never touches a clip, so retry before you attach. If a still changes after that, name `meta.source` again on every clip that shows it.
 
@@ -166,7 +166,7 @@ A failed still stays in place with `failed` saying why, so retry it. A new attem
 
 A take is a video spec, and making one generates nothing. It's the part of your work that the user will pay to run, so write it with care.
 
-Each shot gets its own take, and many takes can reference one still. `prompt` says what moves and how the camera frames and moves over this shot's exact `seconds`. A zoom, a push, a pan or a drift is filmed, so it's written here. Attach the shot's still in `references`, and its casts in `casts`. Add whatever else keeps the video consistent: another still, another take, the `.sound` of the line spoken in the shot. Copy the art style in.
+Each shot gets its own take, and many takes can reference one still. `prompt` says what moves and how the camera frames and moves over this shot's exact `seconds`. A zoom, a push, a pan or a drift is filmed, so it's written here. Attach the shot's still in `references`, and its casts in `casts`. Add whatever else keeps the video consistent: another still, another take, the `.sound` of the line spoken in the shot. Name every cast and reference in the prompt, as a still's prompt does. Copy the art style in.
 
 Write what the final shot will really show. A glass that falls is a falling glass in the take, even when its storyboard picture is only the glass in a hand.
 

@@ -496,7 +496,7 @@ const LookTab = setup<{ part: Part }>((props) => {
     if (adding) return;
     adding = true;
     try {
-      const source = await newStill(view.path, name, part.aspect);
+      const source = await newStill(view.path, name, part.aspect, props.part === 'head');
       view.change((document) => place(document, source));
       view.pick(source);
     } finally {

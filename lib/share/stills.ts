@@ -19,6 +19,7 @@ export function requestOf(still: StillDocument): StillRequest {
     references: [...(still.references ?? [])],
     casts: [...(still.casts ?? [])],
     castPictures: picturesOfCasts(still.castPictures),
+    ...(still.describedAs ? { describedAs: still.describedAs } : {}),
   };
 }
 

@@ -82,6 +82,7 @@ export async function makeStill(
   const still: StillDocument = { ...newStill(path), name, casts: request.casts ?? [] };
   applyRequest(still, request);
   if (request.castPictures) still.castPictures = request.castPictures;
+  if (request.describedAs) still.describedAs = request.describedAs;
   addAttempts(still, await makeAttempts(adapter, pictures, path, requestOf(still)).catch(() => []));
   await write(path, still as never);
   return still;
@@ -123,20 +124,21 @@ export async function makeAttempts(
     ),
   );
   const created = new Date().toISOString();
-  return drawn.flatMap((output) =>
-    output?.url
-      ? [
-          {
-            id: output.id,
-            src: pathTo(path, output.url),
-            prompt: request.prompt,
-            settings: { model, ...(aspect ? { aspect } : {}) },
-            created,
-            url: imageUrl(output.url, { size: CARD_SIZE }),
-          },
-        ]
-      : [],
+  const made = drawn.filter((output): output is NonNullable<typeof output> & { url: string } => !!output?.url);
+  // Each picture is put into words once, as it's made, so whoever refers to it later reads it instead
+  // of looking again; a picture whose words don't come is still made.
+  const described = await Promise.all(
+    made.map((output) => describePicture(adapter, pictures, output.url, request.describedAs ?? 'subject').catch(() => undefined)),
   );
+  return made.map((output, at) => ({
+    id: output.id,
+    src: pathTo(path, output.url),
+    prompt: request.prompt,
+    settings: { model, ...(aspect ? { aspect } : {}) },
+    created,
+    ...(described[at] ? { description: described[at] } : {}),
+    url: imageUrl(output.url, { size: CARD_SIZE }),
+  }));
 }
 
 /**
@@ -161,10 +163,21 @@ async function describeStill(
   const still = await read<StillDocument>(path, { encoding: 'json' }).catch(() => undefined);
   const chosen = still && chosenAttempt(still);
   if (!chosen) throw new Error(`${path} has no image to describe yet`);
-  const picture = isAddress(chosen.src)
-    ? chosen.src
-    : await resizePicture(pictures, pathFrom(path, chosen.src), DESCRIBE_SIZE);
+  return describePicture(adapter, pictures, isAddress(chosen.src) ? chosen.src : pathFrom(path, chosen.src), type);
+}
 
+/**
+ * Puts a picture into words for one purpose, read by the describer at a size that keeps every detail
+ * the words need.
+ *
+ * @param adapter - The server's models.
+ * @param pictures - The bucket and the resizer.
+ * @param source - The picture: its home path, or its address.
+ * @param type - What the description is for.
+ * @returns The description.
+ */
+async function describePicture(adapter: AIAdapter, pictures: ImageWorkerEnv, source: string, type: DescriptionType): Promise<string> {
+  const picture = isAddress(source) ? source : await resizePicture(pictures, source, DESCRIBE_SIZE);
   const live = mutable<{ data?: ChatOutput }>({});
   await new Promise<void>((resolve, reject) => {
     void adapter.ask(
@@ -174,7 +187,7 @@ async function describeStill(
     );
   });
   const described = (live.data?.text || (live.data?.chunks ?? []).join('')).trim();
-  if (!described) throw new Error(`No description came back for ${path}`);
+  if (!described) throw new Error(`No description came back for ${source}`);
   return described;
 }
 

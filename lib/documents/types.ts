@@ -163,6 +163,8 @@ export type StillDocument = DocumentHeader<'still'> & {
   edits: StillEdit[];
   /** The attempt it shows, by id. */
   chosen: string;
+  /** `face` for a person's face, whose pictures are described to draw them again; anything else is described by what it shows. */
+  describedAs?: 'face';
 };
 
 /** One generated video as an editable source, like a still: how it was asked for, every attempt, and the one chosen. */
@@ -201,7 +203,15 @@ export type SoundDocument = DocumentHeader<'sound'> & {
 export type GenerativeDocument = StillDocument | TakeDocument | SoundDocument;
 
 /** One try at a generation: its result, and the prompt and settings it was made with, to make it again from. */
-export type GeneratedAttempt = { id: string; src: string; prompt: string; settings: Omit<GenerationSettings, 'batch'>; created: string };
+export type GeneratedAttempt = {
+  id: string;
+  src: string;
+  prompt: string;
+  settings: Omit<GenerationSettings, 'batch'>;
+  created: string;
+  /** Its picture in words, made once when it was drawn, so whoever refers to it reads it instead of looking again. */
+  description?: string;
+};
 
 /** One edit to a still's picture. */
 export type StillEdit = {

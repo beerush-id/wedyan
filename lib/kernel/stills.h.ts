@@ -13,6 +13,8 @@ export type StillRequest = {
   casts?: string[];
   /** Which of their pictures go; someone with no entry goes by their defaults. */
   castPictures?: CastPictures;
+  /** `face` when it's a person's face, which its pictures are described as. */
+  describedAs?: 'face';
 };
 
 /** A new attempt of a still, and an address to show it at. */
@@ -50,6 +52,7 @@ export const stillAttempts = kernel.declare<(path: string, request: StillRequest
         references: z.array(z.string().max(2048)).max(8).optional(),
         casts: z.array(z.string().max(2048)).max(8).optional(),
         castPictures: z.record(z.string().max(2048), z.array(z.string().max(2048)).max(16)).optional(),
+        describedAs: z.literal('face').optional(),
       }),
     ],
   },

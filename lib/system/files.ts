@@ -72,6 +72,9 @@ const PARTS = {
 
 type Part = keyof typeof PARTS;
 
+/** A person's face, among their pictures, is described as one, to draw them again. */
+const faceOf = (which: Part) => (which === 'head' ? { describedAs: 'face' as const } : {});
+
 /**
  * Sets up the system's files: people, stills, sounds and takes.
  *
@@ -176,9 +179,8 @@ async function makePerson(adapter: AIAdapter, pictures: ImageWorkerEnv, cwd: str
   const part = (which: Part, prompt: string, references: string[]) => {
     const { file, label, aspect, activity: shown } = PARTS[which];
     const settings = { model: MODEL, aspect, batch: 1 };
-    return activity(shown, name, () =>
-      makeStill(adapter, pictures, `${cwd}/${id}/${file}`, `${name} ${label}`, { prompt, settings, references, casts: [] }),
-    );
+    const request = { prompt, settings, references, casts: [], ...faceOf(which) };
+    return activity(shown, name, () => makeStill(adapter, pictures, `${cwd}/${id}/${file}`, `${name} ${label}`, request));
   };
   const face = await part('head', head, []);
   const headPath = `${cwd}/${id}/${PARTS.head.file}`;
@@ -237,7 +239,7 @@ async function askPart(path: string, persona: PersonaDocument, which: Part, prom
     return;
   }
   const main = `${path.slice(path.lastIndexOf('/') + 1, -'.persona'.length)}/${file}`;
-  const still = { ...newStill(pathFrom(path, main)), name: `${persona.name} ${label}`, prompt };
+  const still = { ...newStill(pathFrom(path, main)), name: `${persona.name} ${label}`, prompt, ...faceOf(which) };
   await write(pathFrom(path, main), still as never);
   persona[which] = { main };
 }
