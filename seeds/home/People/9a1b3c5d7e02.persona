@@ -1,0 +1,15 @@
+{
+  "type": "persona",
+  "version": 1,
+  "id": "9a1b3c5d7e02",
+  "name": "Nina",
+  "description": "Nina, 29, a product designer on Leo's floor. Shoulder-length curly auburn hair, round tortoiseshell glasses, mustard knit sweater. Unflappable, sharp, secretly hoping Leo would ask.",
+  "created": "2026-11-03T06:57:30.000Z",
+  "updated": "2026-11-03T06:59:00.000Z",
+  "author": { "kind": "user" },
+  "kind": "person",
+  "head": { "main": "9a1b3c5d7e02/9a1b3c5d7e21.still" },
+  "body": { "main": "9a1b3c5d7e02/9a1b3c5d7e22.still" },
+  "voice": { "name": "Calm, dry, quietly amused" },
+  "attachDefault": true
+}

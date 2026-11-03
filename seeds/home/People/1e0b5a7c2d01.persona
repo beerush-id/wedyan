@@ -1,0 +1,15 @@
+{
+  "type": "persona",
+  "version": 1,
+  "id": "1e0b5a7c2d01",
+  "name": "Leo",
+  "description": "Leo, 28, a product engineer in an open-plan office. Short messy dark hair, light stubble, grey hoodie over a white t-shirt. Kind, overthinks everything, has had a crush on his coworker Nina for a year.",
+  "created": "2026-11-03T06:55:00.000Z",
+  "updated": "2026-11-03T06:57:00.000Z",
+  "author": { "kind": "user" },
+  "kind": "person",
+  "head": { "main": "1e0b5a7c2d01/1e0b5a7c2d11.still" },
+  "body": { "main": "1e0b5a7c2d01/1e0b5a7c2d12.still" },
+  "voice": { "name": "Warm, quick, a little nervous" },
+  "attachDefault": true
+}

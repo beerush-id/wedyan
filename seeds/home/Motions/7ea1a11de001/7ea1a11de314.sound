@@ -1,0 +1,18 @@
+{
+  "type": "sound",
+  "version": 1,
+  "id": "7ea1a11de314",
+  "name": "E1 Nina: …Huh.",
+  "created": "2026-11-03T07:50:00.000Z",
+  "updated": "2026-11-03T07:50:00.000Z",
+  "author": { "kind": "user" },
+  "kind": "speech",
+  "prompt": "Amused, under her breath.",
+  "text": "Huh.",
+  "voice": "../../People/9a1b3c5d7e02.persona",
+  "references": [],
+  "attempts": [
+    { "id": "78aca251-ca59-45f2-8646-e8cc0212abe4", "src": "7ea1a11de314/78aca251-ca59-45f2-8646-e8cc0212abe4.wav", "prompt": "Huh.", "settings": {}, "created": "2026-11-03T08:03:07.580Z", "seconds": 0.6304988662131519 }
+  ],
+  "chosen": "78aca251-ca59-45f2-8646-e8cc0212abe4"
+}

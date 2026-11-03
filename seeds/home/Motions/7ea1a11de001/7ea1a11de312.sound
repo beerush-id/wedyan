@@ -1,0 +1,18 @@
+{
+  "type": "sound",
+  "version": 1,
+  "id": "7ea1a11de312",
+  "name": "E1 Leo: Coffee after work? Just us.",
+  "created": "2026-11-03T07:50:00.000Z",
+  "updated": "2026-11-03T07:50:00.000Z",
+  "author": { "kind": "user" },
+  "kind": "speech",
+  "prompt": "A hopeful murmur as he types the message.",
+  "text": "Coffee after work? Just us.",
+  "voice": "../../People/1e0b5a7c2d01.persona",
+  "references": [],
+  "attempts": [
+    { "id": "be3227c5-a36d-41c9-be0d-5d7033e41374", "src": "7ea1a11de312/be3227c5-a36d-41c9-be0d-5d7033e41374.wav", "prompt": "Coffee after work? Just us.", "settings": {}, "created": "2026-11-03T08:02:24.194Z", "seconds": 1.895986394557823 }
+  ],
+  "chosen": "be3227c5-a36d-41c9-be0d-5d7033e41374"
+}

@@ -1,0 +1,23 @@
+{
+  "type": "still",
+  "version": 1,
+  "id": "1e0b5a7c2d12",
+  "name": "Leo, figure",
+  "created": "2026-11-03T06:57:00.000Z",
+  "updated": "2026-11-03T06:57:00.000Z",
+  "author": { "kind": "user" },
+  "prompt": "Full-body photo of Leo standing relaxed, front view: 28-year-old man, slim build, short tousled dark hair, light stubble, grey hoodie over a white t-shirt, dark slim jeans, white sneakers. Plain warm grey studio background, soft even light, photorealistic, no text.",
+  "settings": { "model": "standard", "aspect": "16:9" },
+  "references": [],
+  "attempts": [
+    {
+      "id": "2635c3d7-30c9-4002-a9f8-0b49cde50308",
+      "src": "1e0b5a7c2d12/2635c3d7-30c9-4002-a9f8-0b49cde50308.webp",
+      "prompt": "Full-body photo of Leo standing relaxed, front view: 28-year-old man, slim build, short tousled dark hair, light stubble, grey hoodie over a white t-shirt, dark slim jeans, white sneakers. Plain warm grey studio background, soft even light, photorealistic, no text.",
+      "settings": { "model": "standard", "aspect": "16:9" },
+      "created": "2026-11-03T06:57:00.000Z"
+    }
+  ],
+  "chosen": "2635c3d7-30c9-4002-a9f8-0b49cde50308",
+  "edits": []
+}

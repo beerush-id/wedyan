@@ -1,0 +1,25 @@
+{
+  "type": "take",
+  "version": 1,
+  "id": "7ea1a11de114",
+  "name": "E1-4 Heads rise",
+  "created": "2026-11-03T07:12:00.000Z",
+  "updated": "2026-11-03T07:12:00.000Z",
+  "author": { "kind": "user" },
+  "prompt": "Wide shot of the open-plan office: a dozen coworkers slowly rising above their monitors and turning toward the same desk, some covering their mouths, comedic tension. Wide and still as heads rise one by one across the room. Vertical 9:16 cinematic film still, modern bright open-plan tech office, warm late-afternoon window light, shallow depth of field, photorealistic, no text, no logos.",
+  "settings": { "mode": "image", "aspect": "9:16", "seconds": 5 },
+  "references": [],
+  "casts": [],
+  "attempts": [
+    {
+      "id": "2e5ec0bf-c9ea-4138-b631-3a083e96679d",
+      "src": "7ea1a11de114/2e5ec0bf-c9ea-4138-b631-3a083e96679d.webp",
+      "prompt": "Wide shot of the open-plan office: a dozen coworkers slowly rising above their monitors and turning toward the same desk, some covering their mouths, comedic tension. Wide and still as heads rise one by one across the room. Vertical 9:16 cinematic film still, modern bright open-plan tech office, warm late-afternoon window light, shallow depth of field, photorealistic, no text, no logos.",
+      "settings": { "model": "standard", "aspect": "9:16" },
+      "seconds": 5,
+      "created": "2026-11-03T07:29:56.966Z"
+    }
+  ],
+  "chosen": "2e5ec0bf-c9ea-4138-b631-3a083e96679d",
+  "edits": []
+}

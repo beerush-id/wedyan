@@ -1,0 +1,16 @@
+{
+  "type": "sound",
+  "version": 1,
+  "id": "7ea1a11de323",
+  "name": "E2 Leo: Best email I ever sent.",
+  "created": "2026-11-03T07:50:00.000Z",
+  "updated": "2026-11-03T07:50:00.000Z",
+  "author": { "kind": "user" },
+  "kind": "speech",
+  "prompt": "Relieved and grinning as they walk out.",
+  "text": "Best email I ever sent.",
+  "voice": "../../People/1e0b5a7c2d01.persona",
+  "references": [],
+  "attempts": [],
+  "chosen": ""
+}

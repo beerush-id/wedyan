@@ -1,0 +1,21 @@
+{
+  "type": "motion",
+  "version": 1,
+  "id": "7ea1a11de001",
+  "name": "Reply All",
+  "description": "A two-episode vertical micro-drama: Leo asks Nina for coffee and sends it to the whole company.",
+  "created": "2026-11-03T07:10:00.000Z",
+  "updated": "2026-11-03T07:15:00.000Z",
+  "author": { "kind": "user" },
+  "aspect": "9:16",
+  "cover": "/~/Motions/7ea1a11de001/7ea1a11de111/f5ebd3c7-eeff-4fa4-9997-d25c72a4c68c.webp",
+  "status": "draft",
+  "script": { "path": "7ea1a11de0a0.md" },
+  "casts": ["../../People/1e0b5a7c2d01.persona", "../../People/9a1b3c5d7e02.persona"],
+  "assets": [
+    "7ea1a11de111.take", "7ea1a11de112.take", "7ea1a11de113.take", "7ea1a11de114.take", "7ea1a11de115.take", "7ea1a11de116.take",
+    "7ea1a11de211.take", "7ea1a11de212.take", "7ea1a11de213.take", "7ea1a11de214.take", "7ea1a11de215.take", "7ea1a11de216.take",
+    "7ea1a11de311.sound", "7ea1a11de312.sound", "7ea1a11de313.sound", "7ea1a11de314.sound",
+    "7ea1a11de321.sound", "7ea1a11de322.sound", "7ea1a11de323.sound"
+  ]
+}

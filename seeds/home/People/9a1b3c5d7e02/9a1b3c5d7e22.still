@@ -1,0 +1,23 @@
+{
+  "type": "still",
+  "version": 1,
+  "id": "9a1b3c5d7e22",
+  "name": "Nina, figure",
+  "created": "2026-11-03T06:59:00.000Z",
+  "updated": "2026-11-03T06:59:00.000Z",
+  "author": { "kind": "user" },
+  "prompt": "Full-body photo of Nina standing relaxed, front view: 29-year-old woman, shoulder-length curly auburn hair, round tortoiseshell glasses, mustard knit sweater, black wide-leg trousers, white sneakers. Plain warm grey studio background, soft even light, photorealistic, no text.",
+  "settings": { "model": "standard", "aspect": "16:9" },
+  "references": [],
+  "attempts": [
+    {
+      "id": "e24429d5-aecf-4a12-9353-65f184a0abbc",
+      "src": "9a1b3c5d7e22/e24429d5-aecf-4a12-9353-65f184a0abbc.webp",
+      "prompt": "Full-body photo of Nina standing relaxed, front view: 29-year-old woman, shoulder-length curly auburn hair, round tortoiseshell glasses, mustard knit sweater, black wide-leg trousers, white sneakers. Plain warm grey studio background, soft even light, photorealistic, no text.",
+      "settings": { "model": "standard", "aspect": "16:9" },
+      "created": "2026-11-03T06:59:00.000Z"
+    }
+  ],
+  "chosen": "e24429d5-aecf-4a12-9353-65f184a0abbc",
+  "edits": []
+}

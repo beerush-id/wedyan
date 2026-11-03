@@ -1,0 +1,16 @@
+{
+  "type": "sound",
+  "version": 1,
+  "id": "7ea1a11de321",
+  "name": "E2 Nina: Give me five minutes.",
+  "created": "2026-11-03T07:50:00.000Z",
+  "updated": "2026-11-03T07:50:00.000Z",
+  "author": { "kind": "user" },
+  "kind": "speech",
+  "prompt": "Calm and confident, to the whole room.",
+  "text": "Give me five minutes.",
+  "voice": "../../People/9a1b3c5d7e02.persona",
+  "references": [],
+  "attempts": [],
+  "chosen": ""
+}

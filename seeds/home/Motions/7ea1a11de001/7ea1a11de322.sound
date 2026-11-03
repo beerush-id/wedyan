@@ -1,0 +1,16 @@
+{
+  "type": "sound",
+  "version": 1,
+  "id": "7ea1a11de322",
+  "name": "E2 Nina: Coffee's on you.",
+  "created": "2026-11-03T07:50:00.000Z",
+  "updated": "2026-11-03T07:50:00.000Z",
+  "author": { "kind": "user" },
+  "kind": "speech",
+  "prompt": "Warm and teasing, smiling down at him.",
+  "text": "Coffee's on you.",
+  "voice": "../../People/9a1b3c5d7e02.persona",
+  "references": [],
+  "attempts": [],
+  "chosen": ""
+}

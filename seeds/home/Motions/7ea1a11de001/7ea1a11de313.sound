@@ -1,0 +1,18 @@
+{
+  "type": "sound",
+  "version": 1,
+  "id": "7ea1a11de313",
+  "name": "E1 Leo: Wait… To: All Staff?",
+  "created": "2026-11-03T07:50:00.000Z",
+  "updated": "2026-11-03T07:50:00.000Z",
+  "author": { "kind": "user" },
+  "kind": "speech",
+  "prompt": "Sudden panic, voice cracking on the last words.",
+  "text": "Wait… To: All Staff?",
+  "voice": "../../People/1e0b5a7c2d01.persona",
+  "references": [],
+  "attempts": [
+    { "id": "e2ea132c-2b3b-48cd-af4f-9334747fcbe9", "src": "7ea1a11de313/e2ea132c-2b3b-48cd-af4f-9334747fcbe9.wav", "prompt": "Wait… To: All Staff?", "settings": {}, "created": "2026-11-03T08:02:45.567Z", "seconds": 1.280657596371882 }
+  ],
+  "chosen": "e2ea132c-2b3b-48cd-af4f-9334747fcbe9"
+}

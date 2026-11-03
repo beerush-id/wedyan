@@ -1,0 +1,18 @@
+{
+  "type": "sound",
+  "version": 1,
+  "id": "7ea1a11de311",
+  "name": "E1 Leo: Okay. Just ask her.",
+  "created": "2026-11-03T07:50:00.000Z",
+  "updated": "2026-11-03T07:50:00.000Z",
+  "author": { "kind": "user" },
+  "kind": "speech",
+  "prompt": "Quietly to himself, nervous, psyching himself up.",
+  "text": "Okay. Just ask her.",
+  "voice": "../../People/1e0b5a7c2d01.persona",
+  "references": [],
+  "attempts": [
+    { "id": "7d010764-b6ca-472d-abfd-f2856fc66bbe", "src": "7ea1a11de311/7d010764-b6ca-472d-abfd-f2856fc66bbe.wav", "prompt": "Okay. Just ask her.", "settings": {}, "created": "2026-11-03T08:01:53.944Z", "seconds": 1.570907029478458 }
+  ],
+  "chosen": "7d010764-b6ca-472d-abfd-f2856fc66bbe"
+}

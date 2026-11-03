@@ -1,0 +1,23 @@
+{
+  "type": "still",
+  "version": 1,
+  "id": "9a1b3c5d7e21",
+  "name": "Nina, face",
+  "created": "2026-11-03T06:58:00.000Z",
+  "updated": "2026-11-03T06:58:00.000Z",
+  "author": { "kind": "user" },
+  "prompt": "Head-and-shoulders portrait of Nina, a 29-year-old product designer: shoulder-length curly auburn hair, round tortoiseshell glasses, freckles, a calm knowing half-smile, mustard knit sweater. Facing camera, soft window light, plain warm grey background, photorealistic, cinematic, no text.",
+  "settings": { "model": "standard", "aspect": "1:1" },
+  "references": [],
+  "attempts": [
+    {
+      "id": "72310748-8a8a-43cc-868b-eec391be207f",
+      "src": "9a1b3c5d7e21/72310748-8a8a-43cc-868b-eec391be207f.webp",
+      "prompt": "Head-and-shoulders portrait of Nina, a 29-year-old product designer: shoulder-length curly auburn hair, round tortoiseshell glasses, freckles, a calm knowing half-smile, mustard knit sweater. Facing camera, soft window light, plain warm grey background, photorealistic, cinematic, no text.",
+      "settings": { "model": "standard", "aspect": "1:1" },
+      "created": "2026-11-03T06:58:00.000Z"
+    }
+  ],
+  "chosen": "72310748-8a8a-43cc-868b-eec391be207f",
+  "edits": []
+}

@@ -1,0 +1,23 @@
+{
+  "type": "still",
+  "version": 1,
+  "id": "1e0b5a7c2d11",
+  "name": "Leo, face",
+  "created": "2026-11-03T06:56:00.000Z",
+  "updated": "2026-11-03T06:56:00.000Z",
+  "author": { "kind": "user" },
+  "prompt": "Head-and-shoulders portrait of Leo, a 28-year-old product engineer: short tousled dark hair, light stubble, warm brown eyes, a shy awkward half-smile, friendly and likeable. Grey hoodie over a white t-shirt. Facing camera, soft window light, plain warm grey background, photorealistic, cinematic, no text.",
+  "settings": { "model": "standard", "aspect": "1:1" },
+  "references": [],
+  "attempts": [
+    {
+      "id": "f6bc567c-714e-4394-8853-ec0594b4e986",
+      "src": "1e0b5a7c2d11/f6bc567c-714e-4394-8853-ec0594b4e986.webp",
+      "prompt": "Head-and-shoulders portrait of Leo, a 28-year-old product engineer: short tousled dark hair, light stubble, warm brown eyes, a shy awkward half-smile, friendly and likeable. Grey hoodie over a white t-shirt. Facing camera, soft window light, plain warm grey background, photorealistic, cinematic, no text.",
+      "settings": { "model": "standard", "aspect": "1:1" },
+      "created": "2026-11-03T06:56:00.000Z"
+    }
+  ],
+  "chosen": "f6bc567c-714e-4394-8853-ec0594b4e986",
+  "edits": []
+}

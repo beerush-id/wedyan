@@ -1,0 +1,25 @@
+{
+  "type": "take",
+  "version": 1,
+  "id": "7ea1a11de113",
+  "name": "E1-3 Sent to everyone",
+  "created": "2026-11-03T07:12:00.000Z",
+  "updated": "2026-11-03T07:12:00.000Z",
+  "author": { "kind": "user" },
+  "prompt": "Close-up of Leo's face, eyes wide with sudden embarrassment, mouth slightly open, lit by his laptop screen, a comedic moment of realization. Quick push-in. Vertical 9:16 cinematic film still, modern bright open-plan tech office, warm late-afternoon window light, shallow depth of field, photorealistic, no text, no logos.",
+  "settings": { "mode": "image", "aspect": "9:16", "seconds": 5 },
+  "references": [],
+  "casts": ["../../People/1e0b5a7c2d01.persona"],
+  "attempts": [
+    {
+      "id": "99b88437-6d27-44e9-90eb-ef47cd361d1b",
+      "src": "7ea1a11de113/99b88437-6d27-44e9-90eb-ef47cd361d1b.webp",
+      "prompt": "Close-up of Leo's face, eyes wide with sudden embarrassment, mouth slightly open, lit by his laptop screen, a comedic moment of realization. Quick push-in. Vertical 9:16 cinematic film still, modern bright open-plan tech office, warm late-afternoon window light, shallow depth of field, photorealistic, no text, no logos.",
+      "settings": { "model": "standard", "aspect": "9:16" },
+      "seconds": 5,
+      "created": "2026-11-03T07:36:14.926Z"
+    }
+  ],
+  "chosen": "99b88437-6d27-44e9-90eb-ef47cd361d1b",
+  "edits": []
+}

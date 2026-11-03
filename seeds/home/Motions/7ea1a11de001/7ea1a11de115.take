@@ -1,0 +1,25 @@
+{
+  "type": "take",
+  "version": 1,
+  "id": "7ea1a11de115",
+  "name": "E1-5 Nina reads it",
+  "created": "2026-11-03T07:12:00.000Z",
+  "updated": "2026-11-03T07:12:00.000Z",
+  "author": { "kind": "user" },
+  "prompt": "Nina at her desk across the office, reading her monitor, one eyebrow raised, an unreadable half-smile. Slow push-in as she glances up from the screen. Vertical 9:16 cinematic film still, modern bright open-plan tech office, warm late-afternoon window light, shallow depth of field, photorealistic, no text, no logos.",
+  "settings": { "mode": "image", "aspect": "9:16", "seconds": 5 },
+  "references": [],
+  "casts": ["../../People/9a1b3c5d7e02.persona"],
+  "attempts": [
+    {
+      "id": "78270468-deff-4b4b-8d9d-a1a06195254c",
+      "src": "7ea1a11de115/78270468-deff-4b4b-8d9d-a1a06195254c.webp",
+      "prompt": "Nina at her desk across the office, reading her monitor, one eyebrow raised, an unreadable half-smile. Slow push-in as she glances up from the screen. Vertical 9:16 cinematic film still, modern bright open-plan tech office, warm late-afternoon window light, shallow depth of field, photorealistic, no text, no logos.",
+      "settings": { "model": "standard", "aspect": "9:16" },
+      "seconds": 5,
+      "created": "2026-11-03T07:37:11.558Z"
+    }
+  ],
+  "chosen": "78270468-deff-4b4b-8d9d-a1a06195254c",
+  "edits": []
+}

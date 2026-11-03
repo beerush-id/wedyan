@@ -1,0 +1,83 @@
+{
+  "type": "stage",
+  "version": 1,
+  "id": "7ea1a11de0e1",
+  "name": "Episode 1: Sent",
+  "created": "2026-11-03T07:15:00.000Z",
+  "updated": "2026-11-03T07:15:00.000Z",
+  "author": { "kind": "user" },
+  "projectId": "7ea1a11de001",
+  "order": 0,
+  "script": "7ea1a11de0b1.md",
+  "casts": ["../../People/1e0b5a7c2d01.persona", "../../People/9a1b3c5d7e02.persona"],
+  "composition": {
+    "id": "e1",
+    "options": { "frameRate": 30 },
+    "props": { "width": 1080, "height": 1920, "background": "#0b0b10" },
+    "tracks": [
+      {
+        "id": "e1Video",
+        "options": { "type": "video", "name": "Video", "meta": {} },
+        "props": { "fit": "cover", "x": 0, "y": 0, "width": 1080, "height": 1920 },
+        "segments": [
+          { "id": "e1s1", "options": { "type": "video", "name": "E1-1 Leo hesitates", "speed": 1, "duration": 5, "startFrame": 0, "meta": { "source": "7ea1a11de111.take", "thumbnail": "/~/Motions/7ea1a11de001/7ea1a11de111/f5ebd3c7-eeff-4fa4-9997-d25c72a4c68c.webp", "shows": "Leo hesitates over a message at his desk", "guide": "Leo hesitates at his desk", "who": "Leo" } }, "props": { "src": "/~/Motions/7ea1a11de001/7ea1a11de111/f5ebd3c7-eeff-4fa4-9997-d25c72a4c68c.webp" },
+            "scenes": [ { "id": "e1s1a", "options": { "atFrame": 0 }, "data": { "scale": 1 } }, { "id": "e1s1b", "options": { "atFrame": 150 }, "data": { "scale": 1.06 } } ] },
+          { "id": "e1s2", "options": { "type": "video", "name": "E1-2 The message", "speed": 1, "duration": 5, "startFrame": 150, "meta": { "source": "7ea1a11de112.take", "thumbnail": "/~/Motions/7ea1a11de001/7ea1a11de112/136fab11-d3f9-4d73-afef-382ed4e6e8cb.webp", "shows": "Over Leo's shoulder, his finger hovers, then sends", "guide": "Close: his finger hovers, then sends", "who": "Leo" } }, "props": { "src": "/~/Motions/7ea1a11de001/7ea1a11de112/136fab11-d3f9-4d73-afef-382ed4e6e8cb.webp" },
+            "scenes": [ { "id": "e1s2a", "options": { "atFrame": 0 }, "data": { "scale": 1.04 } }, { "id": "e1s2b", "options": { "atFrame": 150 }, "data": { "scale": 1 } } ] },
+          { "id": "e1s3", "options": { "type": "video", "name": "E1-3 Sent to everyone", "speed": 1, "duration": 5, "startFrame": 300, "meta": { "source": "7ea1a11de113.take", "thumbnail": "/~/Motions/7ea1a11de001/7ea1a11de113/99b88437-6d27-44e9-90eb-ef47cd361d1b.webp", "shows": "Leo's face freezes as he sees it went to All Staff", "guide": "Close: Leo freezes", "who": "Leo" } }, "props": { "src": "/~/Motions/7ea1a11de001/7ea1a11de113/99b88437-6d27-44e9-90eb-ef47cd361d1b.webp" },
+            "scenes": [ { "id": "e1s3a", "options": { "atFrame": 0, "meta": { "ease": "power2.out" } }, "data": { "scale": 1 } }, { "id": "e1s3b", "options": { "atFrame": 60 }, "data": { "scale": 1.1 } } ] },
+          { "id": "e1s4", "options": { "type": "video", "name": "E1-4 Heads rise", "speed": 1, "duration": 5, "startFrame": 450, "meta": { "source": "7ea1a11de114.take", "thumbnail": "/~/Motions/7ea1a11de001/7ea1a11de114/2e5ec0bf-c9ea-4138-b631-3a083e96679d.webp", "shows": "Across the office, heads rise above the monitors", "guide": "Wide: heads rise across the office", "who": "" } }, "props": { "src": "/~/Motions/7ea1a11de001/7ea1a11de114/2e5ec0bf-c9ea-4138-b631-3a083e96679d.webp" },
+            "scenes": [ { "id": "e1s4a", "options": { "atFrame": 0 }, "data": { "scale": 1.06 } }, { "id": "e1s4b", "options": { "atFrame": 150 }, "data": { "scale": 1 } } ] },
+          { "id": "e1s5", "options": { "type": "video", "name": "E1-5 Nina reads it", "speed": 1, "duration": 5, "startFrame": 600, "meta": { "source": "7ea1a11de115.take", "thumbnail": "/~/Motions/7ea1a11de001/7ea1a11de115/78270468-deff-4b4b-8d9d-a1a06195254c.webp", "shows": "Nina reads it, one eyebrow raised", "guide": "Nina reads it", "who": "Nina" } }, "props": { "src": "/~/Motions/7ea1a11de001/7ea1a11de115/78270468-deff-4b4b-8d9d-a1a06195254c.webp" },
+            "scenes": [ { "id": "e1s5a", "options": { "atFrame": 0 }, "data": { "scale": 1 } }, { "id": "e1s5b", "options": { "atFrame": 150 }, "data": { "scale": 1.06 } } ] },
+          { "id": "e1s6", "options": { "type": "video", "name": "E1-6 CEO is typing", "speed": 1, "duration": 5, "startFrame": 750, "meta": { "source": "7ea1a11de116.take", "thumbnail": "/~/Motions/7ea1a11de001/7ea1a11de116/f4215452-e155-4c7a-a79f-7be4495de3a8.webp", "shows": "Leo sinks into his chair as the CEO starts typing", "guide": "Leo sinks into his chair", "who": "Leo" } }, "props": { "src": "/~/Motions/7ea1a11de001/7ea1a11de116/f4215452-e155-4c7a-a79f-7be4495de3a8.webp" },
+            "scenes": [ { "id": "e1s6a", "options": { "atFrame": 0 }, "data": { "scale": 1.08 } }, { "id": "e1s6b", "options": { "atFrame": 150 }, "data": { "scale": 1 } } ] }
+        ]
+      },
+      {
+        "id": "e1Title",
+        "options": { "type": "title", "name": "Title", "meta": {} },
+        "props": { "x": 60, "y": 220, "width": 960, "height": 150, "display": "grid", "alignItems": "center", "textAlign": "center", "color": "#ffffff", "fontSize": 112, "fontWeight": 800, "letterSpacing": -2, "lineHeight": 1, "fontFamily": "Geist", "textShadow": "0 4px 24px rgba(0, 0, 0, 0.5)" },
+        "segments": [
+          { "id": "e1t", "options": { "type": "title", "name": "Reply All", "speed": 1, "duration": 2.5, "startFrame": 0, "meta": {} }, "props": { "text": "REPLY ALL" },
+            "scenes": [ { "id": "e1ta", "options": { "atFrame": 0, "meta": { "ease": "power3.out" } }, "data": { "opacity": 0, "y": 250 } }, { "id": "e1tb", "options": { "atFrame": 12 }, "data": { "opacity": 1, "y": 220 } }, { "id": "e1tc", "options": { "atFrame": 60, "meta": { "ease": "power2.in" } }, "data": { "opacity": 1 } }, { "id": "e1td", "options": { "atFrame": 75 }, "data": { "opacity": 0 } } ] }
+        ]
+      },
+      {
+        "id": "e1Episode",
+        "options": { "type": "title", "name": "Episode", "meta": {} },
+        "props": { "x": 60, "y": 372, "width": 960, "height": 64, "display": "grid", "alignItems": "center", "textAlign": "center", "color": "#ffffff", "fontSize": 40, "fontWeight": 500, "fontFamily": "Geist", "textShadow": "0 2px 12px rgba(0, 0, 0, 0.5)" },
+        "segments": [
+          { "id": "e1ep", "options": { "type": "title", "name": "Episode 1 · Sent", "speed": 1, "duration": 2.3, "startFrame": 6, "meta": {} }, "props": { "text": "Episode 1 · Sent" },
+            "scenes": [ { "id": "e1epa", "options": { "atFrame": 0, "meta": { "ease": "power3.out" } }, "data": { "opacity": 0 } }, { "id": "e1epb", "options": { "atFrame": 12 }, "data": { "opacity": 1 } }, { "id": "e1epc", "options": { "atFrame": 54, "meta": { "ease": "power2.in" } }, "data": { "opacity": 1 } }, { "id": "e1epd", "options": { "atFrame": 69 }, "data": { "opacity": 0 } } ] },
+          { "id": "e1end", "options": { "type": "title", "name": "To be continued", "speed": 1, "duration": 2, "startFrame": 840, "meta": {} }, "props": { "text": "To be continued…", "y": 900 },
+            "scenes": [ { "id": "e1enda", "options": { "atFrame": 0, "meta": { "ease": "power2.out" } }, "data": { "opacity": 0 } }, { "id": "e1endb", "options": { "atFrame": 15 }, "data": { "opacity": 1 } } ] }
+        ]
+      },
+      {
+        "id": "e1Subs",
+        "options": { "type": "title", "name": "Subtitles", "meta": {} },
+        "props": { "x": 90, "y": 1500, "width": 900, "height": 150, "display": "grid", "alignItems": "center", "textAlign": "center", "color": "#ffffff", "fontSize": 44, "fontWeight": 600, "lineHeight": 1.25, "fontFamily": "Geist", "background": "rgba(0, 0, 0, 0.45)", "borderRadius": 28, "cornerShape": "superellipse(1.5)" },
+        "segments": [
+          { "id": "e1sub1", "options": { "type": "title", "name": "Subtitle", "speed": 1, "duration": 3, "startFrame": 15, "meta": { "speaker": "Leo" } }, "props": { "text": "Leo: Okay. Just ask her." }, "scenes": [] },
+          { "id": "e1sub2", "options": { "type": "title", "name": "Subtitle", "speed": 1, "duration": 3, "startFrame": 165, "meta": {} }, "props": { "text": "“Coffee after work? Just us.” — Leo" }, "scenes": [] },
+          { "id": "e1sub3", "options": { "type": "title", "name": "Subtitle", "speed": 1, "duration": 3, "startFrame": 315, "meta": { "speaker": "Leo" } }, "props": { "text": "Leo: Wait… To: All Staff?" }, "scenes": [] },
+          { "id": "e1sub4", "options": { "type": "title", "name": "Subtitle", "speed": 1, "duration": 3, "startFrame": 465, "meta": {} }, "props": { "text": "Sent to 1,204 people." }, "scenes": [] },
+          { "id": "e1sub5", "options": { "type": "title", "name": "Subtitle", "speed": 1, "duration": 3, "startFrame": 615, "meta": { "speaker": "Nina" } }, "props": { "text": "Nina: …Huh." }, "scenes": [] },
+          { "id": "e1sub6", "options": { "type": "title", "name": "Subtitle", "speed": 1, "duration": 2.5, "startFrame": 765, "meta": {} }, "props": { "text": "Dana (CEO) is typing…" }, "scenes": [] }
+        ]
+      },
+      {
+        "id": "e1Voice",
+        "options": { "type": "audio", "name": "Voice", "meta": {} },
+        "props": { "volume": 1 },
+        "segments": [
+          { "id": "e1v1", "options": { "type": "audio", "name": "Leo: Okay. Just ask her.", "speed": 1, "duration": 1.570907029478458, "startFrame": 15, "contentFrames": 47, "meta": { "source": "7ea1a11de311.sound", "speaker": "Leo" } }, "props": { "src": "/~/Motions/7ea1a11de001/7ea1a11de311/7d010764-b6ca-472d-abfd-f2856fc66bbe.wav" }, "scenes": [] },
+          { "id": "e1v2", "options": { "type": "audio", "name": "Leo: Coffee after work? Just us.", "speed": 1, "duration": 1.895986394557823, "startFrame": 165, "contentFrames": 57, "meta": { "source": "7ea1a11de312.sound", "speaker": "Leo" } }, "props": { "src": "/~/Motions/7ea1a11de001/7ea1a11de312/be3227c5-a36d-41c9-be0d-5d7033e41374.wav" }, "scenes": [] },
+          { "id": "e1v3", "options": { "type": "audio", "name": "Leo: Wait… To: All Staff?", "speed": 1, "duration": 1.280657596371882, "startFrame": 315, "contentFrames": 38, "meta": { "source": "7ea1a11de313.sound", "speaker": "Leo" } }, "props": { "src": "/~/Motions/7ea1a11de001/7ea1a11de313/e2ea132c-2b3b-48cd-af4f-9334747fcbe9.wav" }, "scenes": [] },
+          { "id": "e1v4", "options": { "type": "audio", "name": "Nina: Huh.", "speed": 1, "duration": 0.6304988662131519, "startFrame": 615, "contentFrames": 19, "meta": { "source": "7ea1a11de314.sound", "speaker": "Nina" } }, "props": { "src": "/~/Motions/7ea1a11de001/7ea1a11de314/78aca251-ca59-45f2-8646-e8cc0212abe4.wav" }, "scenes": [] }
+        ]
+      }
+    ]
+  }
+}

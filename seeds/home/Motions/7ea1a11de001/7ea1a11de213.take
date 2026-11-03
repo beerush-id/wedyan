@@ -1,0 +1,16 @@
+{
+  "type": "take",
+  "version": 1,
+  "id": "7ea1a11de213",
+  "name": "E2-3 Nina stands",
+  "created": "2026-11-03T07:12:00.000Z",
+  "updated": "2026-11-03T07:12:00.000Z",
+  "author": { "kind": "user" },
+  "prompt": "Nina calmly stands up from her desk and lifts her coat from the chair, a quiet confident smile. One smooth, unhurried motion. Vertical 9:16 cinematic film still, modern bright open-plan tech office, warm late-afternoon window light, shallow depth of field, photorealistic, no text, no logos.",
+  "settings": { "mode": "image", "aspect": "9:16", "seconds": 5 },
+  "references": [],
+  "casts": ["../../People/9a1b3c5d7e02.persona"],
+  "attempts": [],
+  "chosen": "",
+  "edits": []
+}

@@ -1,0 +1,25 @@
+{
+  "type": "take",
+  "version": 1,
+  "id": "7ea1a11de116",
+  "name": "E1-6 CEO is typing",
+  "created": "2026-11-03T07:12:00.000Z",
+  "updated": "2026-11-03T07:12:00.000Z",
+  "author": { "kind": "user" },
+  "prompt": "Leo slumped low in his office chair, face lit by his laptop, a coworker peeking over the partition behind him, tense comedic cliffhanger. Slow pull-back as he sinks lower. Vertical 9:16 cinematic film still, modern bright open-plan tech office, warm late-afternoon window light, shallow depth of field, photorealistic, no text, no logos.",
+  "settings": { "mode": "image", "aspect": "9:16", "seconds": 5 },
+  "references": [],
+  "casts": ["../../People/1e0b5a7c2d01.persona"],
+  "attempts": [
+    {
+      "id": "f4215452-e155-4c7a-a79f-7be4495de3a8",
+      "src": "7ea1a11de116/f4215452-e155-4c7a-a79f-7be4495de3a8.webp",
+      "prompt": "Leo slumped low in his office chair, face lit by his laptop, a coworker peeking over the partition behind him, tense comedic cliffhanger. Slow pull-back as he sinks lower. Vertical 9:16 cinematic film still, modern bright open-plan tech office, warm late-afternoon window light, shallow depth of field, photorealistic, no text, no logos.",
+      "settings": { "model": "standard", "aspect": "9:16" },
+      "seconds": 5,
+      "created": "2026-11-03T07:38:08.415Z"
+    }
+  ],
+  "chosen": "f4215452-e155-4c7a-a79f-7be4495de3a8",
+  "edits": []
+}

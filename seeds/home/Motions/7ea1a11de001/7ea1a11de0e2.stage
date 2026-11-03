@@ -1,0 +1,83 @@
+{
+  "type": "stage",
+  "version": 1,
+  "id": "7ea1a11de0e2",
+  "name": "Episode 2: Reply",
+  "created": "2026-11-03T07:15:00.000Z",
+  "updated": "2026-11-03T07:15:00.000Z",
+  "author": { "kind": "user" },
+  "projectId": "7ea1a11de001",
+  "order": 1,
+  "script": "7ea1a11de0b2.md",
+  "casts": ["../../People/1e0b5a7c2d01.persona", "../../People/9a1b3c5d7e02.persona"],
+  "composition": {
+    "id": "e2",
+    "options": { "frameRate": 30 },
+    "props": { "width": 1080, "height": 1920, "background": "#0b0b10" },
+    "tracks": [
+      {
+        "id": "e2Video",
+        "options": { "type": "video", "name": "Video", "meta": {} },
+        "props": { "fit": "cover", "x": 0, "y": 0, "width": 1080, "height": 1920 },
+        "segments": [
+          { "id": "e2s1", "options": { "type": "video", "name": "E2-1 The reply", "speed": 1, "duration": 5, "startFrame": 0, "meta": { "source": "7ea1a11de211.take", "shows": "Leo stares at the reply while the office watches him", "guide": "Leo stares at the reply", "who": "Leo" } }, "props": {},
+            "scenes": [ { "id": "e2s1a", "options": { "atFrame": 0 }, "data": { "scale": 1 } }, { "id": "e2s1b", "options": { "atFrame": 150 }, "data": { "scale": 1.06 } } ] },
+          { "id": "e2s2", "options": { "type": "video", "name": "E2-2 Everyone turns", "speed": 1, "duration": 5, "startFrame": 150, "meta": { "source": "7ea1a11de212.take", "shows": "Every chair on the floor turns toward Nina", "guide": "Wide: everyone turns to Nina", "who": "Nina" } }, "props": {},
+            "scenes": [ { "id": "e2s2a", "options": { "atFrame": 0 }, "data": { "scale": 1.06 } }, { "id": "e2s2b", "options": { "atFrame": 150 }, "data": { "scale": 1 } } ] },
+          { "id": "e2s3", "options": { "type": "video", "name": "E2-3 Nina stands", "speed": 1, "duration": 5, "startFrame": 300, "meta": { "source": "7ea1a11de213.take", "shows": "Nina stands and picks up her coat", "guide": "Nina stands, takes her coat", "who": "Nina" } }, "props": {},
+            "scenes": [ { "id": "e2s3a", "options": { "atFrame": 0 }, "data": { "scale": 1 } }, { "id": "e2s3b", "options": { "atFrame": 150 }, "data": { "scale": 1.06 } } ] },
+          { "id": "e2s4", "options": { "type": "video", "name": "E2-4 The walk", "speed": 1, "duration": 5, "startFrame": 450, "meta": { "source": "7ea1a11de214.take", "shows": "Nina walks the aisle toward Leo as the office grins", "guide": "Nina walks toward Leo", "who": "Nina" } }, "props": {},
+            "scenes": [ { "id": "e2s4a", "options": { "atFrame": 0 }, "data": { "scale": 1 } }, { "id": "e2s4b", "options": { "atFrame": 150 }, "data": { "scale": 1.08 } } ] },
+          { "id": "e2s5", "options": { "type": "video", "name": "E2-5 Coffee's on you", "speed": 1, "duration": 5, "startFrame": 600, "meta": { "source": "7ea1a11de215.take", "shows": "Nina at Leo's desk; he looks up, stunned", "guide": "Nina at Leo's desk", "who": "Leo, Nina" } }, "props": {},
+            "scenes": [ { "id": "e2s5a", "options": { "atFrame": 0 }, "data": { "scale": 1.04 } }, { "id": "e2s5b", "options": { "atFrame": 150 }, "data": { "scale": 1 } } ] },
+          { "id": "e2s6", "options": { "type": "video", "name": "E2-6 Out the door", "speed": 1, "duration": 5, "startFrame": 750, "meta": { "source": "7ea1a11de216.take", "shows": "Leo and Nina walk out into golden light as the office claps", "guide": "Wide: they walk out together", "who": "Leo, Nina" } }, "props": {},
+            "scenes": [ { "id": "e2s6a", "options": { "atFrame": 0 }, "data": { "scale": 1 } }, { "id": "e2s6b", "options": { "atFrame": 150 }, "data": { "scale": 1.05 } } ] }
+        ]
+      },
+      {
+        "id": "e2Title",
+        "options": { "type": "title", "name": "Title", "meta": {} },
+        "props": { "x": 60, "y": 220, "width": 960, "height": 150, "display": "grid", "alignItems": "center", "textAlign": "center", "color": "#ffffff", "fontSize": 112, "fontWeight": 800, "letterSpacing": -2, "lineHeight": 1, "fontFamily": "Geist", "textShadow": "0 4px 24px rgba(0, 0, 0, 0.5)" },
+        "segments": [
+          { "id": "e2t", "options": { "type": "title", "name": "Reply All", "speed": 1, "duration": 2.5, "startFrame": 0, "meta": {} }, "props": { "text": "REPLY ALL" },
+            "scenes": [ { "id": "e2ta", "options": { "atFrame": 0, "meta": { "ease": "power3.out" } }, "data": { "opacity": 0, "y": 250 } }, { "id": "e2tb", "options": { "atFrame": 12 }, "data": { "opacity": 1, "y": 220 } }, { "id": "e2tc", "options": { "atFrame": 60, "meta": { "ease": "power2.in" } }, "data": { "opacity": 1 } }, { "id": "e2td", "options": { "atFrame": 75 }, "data": { "opacity": 0 } } ] },
+          { "id": "e2tend", "options": { "type": "title", "name": "Reply All", "speed": 1, "duration": 2, "startFrame": 840, "meta": {} }, "props": { "text": "REPLY ALL", "y": 820 },
+            "scenes": [ { "id": "e2tenda", "options": { "atFrame": 0, "meta": { "ease": "power3.out" } }, "data": { "opacity": 0, "scale": 1.1 } }, { "id": "e2tendb", "options": { "atFrame": 15 }, "data": { "opacity": 1, "scale": 1 } } ] }
+        ]
+      },
+      {
+        "id": "e2Episode",
+        "options": { "type": "title", "name": "Episode", "meta": {} },
+        "props": { "x": 60, "y": 372, "width": 960, "height": 64, "display": "grid", "alignItems": "center", "textAlign": "center", "color": "#ffffff", "fontSize": 40, "fontWeight": 500, "fontFamily": "Geist", "textShadow": "0 2px 12px rgba(0, 0, 0, 0.5)" },
+        "segments": [
+          { "id": "e2ep", "options": { "type": "title", "name": "Episode 2 · Reply", "speed": 1, "duration": 2.3, "startFrame": 6, "meta": {} }, "props": { "text": "Episode 2 · Reply" },
+            "scenes": [ { "id": "e2epa", "options": { "atFrame": 0, "meta": { "ease": "power3.out" } }, "data": { "opacity": 0 } }, { "id": "e2epb", "options": { "atFrame": 12 }, "data": { "opacity": 1 } }, { "id": "e2epc", "options": { "atFrame": 54, "meta": { "ease": "power2.in" } }, "data": { "opacity": 1 } }, { "id": "e2epd", "options": { "atFrame": 69 }, "data": { "opacity": 0 } } ] },
+          { "id": "e2end", "options": { "type": "title", "name": "The end", "speed": 1, "duration": 2, "startFrame": 840, "meta": {} }, "props": { "text": "The end", "y": 972 },
+            "scenes": [ { "id": "e2enda", "options": { "atFrame": 0, "meta": { "ease": "power2.out" } }, "data": { "opacity": 0 } }, { "id": "e2endb", "options": { "atFrame": 15 }, "data": { "opacity": 1 } } ] }
+        ]
+      },
+      {
+        "id": "e2Subs",
+        "options": { "type": "title", "name": "Subtitles", "meta": {} },
+        "props": { "x": 90, "y": 1500, "width": 900, "height": 150, "display": "grid", "alignItems": "center", "textAlign": "center", "color": "#ffffff", "fontSize": 44, "fontWeight": 600, "lineHeight": 1.25, "fontFamily": "Geist", "background": "rgba(0, 0, 0, 0.45)", "borderRadius": 28, "cornerShape": "superellipse(1.5)" },
+        "segments": [
+          { "id": "e2sub1", "options": { "type": "title", "name": "Subtitle", "speed": 1, "duration": 3, "startFrame": 15, "meta": { "speaker": "Dana" } }, "props": { "text": "Dana (CEO): Bold move, Leo. Nina?" }, "scenes": [] },
+          { "id": "e2sub2", "options": { "type": "title", "name": "Subtitle", "speed": 1, "duration": 3, "startFrame": 165, "meta": {} }, "props": { "text": "All eyes on Nina." }, "scenes": [] },
+          { "id": "e2sub3", "options": { "type": "title", "name": "Subtitle", "speed": 1, "duration": 3, "startFrame": 315, "meta": { "speaker": "Nina" } }, "props": { "text": "Nina: Give me five minutes." }, "scenes": [] },
+          { "id": "e2sub4", "options": { "type": "title", "name": "Subtitle", "speed": 1, "duration": 3, "startFrame": 615, "meta": { "speaker": "Nina" } }, "props": { "text": "Nina: Coffee's on you." }, "scenes": [] },
+          { "id": "e2sub5", "options": { "type": "title", "name": "Subtitle", "speed": 1, "duration": 2.5, "startFrame": 765, "meta": { "speaker": "Leo" } }, "props": { "text": "Leo: Best email I ever sent." }, "scenes": [] }
+        ]
+      },
+      {
+        "id": "e2Voice",
+        "options": { "type": "audio", "name": "Voice", "meta": {} },
+        "props": { "volume": 1 },
+        "segments": [
+          { "id": "e2v1", "options": { "type": "audio", "name": "Nina: Give me five minutes.", "speed": 1, "duration": 2, "startFrame": 315, "meta": { "source": "7ea1a11de321.sound", "speaker": "Nina" } }, "props": {}, "scenes": [] },
+          { "id": "e2v2", "options": { "type": "audio", "name": "Nina: Coffee's on you.", "speed": 1, "duration": 2, "startFrame": 615, "meta": { "source": "7ea1a11de322.sound", "speaker": "Nina" } }, "props": {}, "scenes": [] },
+          { "id": "e2v3", "options": { "type": "audio", "name": "Leo: Best email I ever sent.", "speed": 1, "duration": 2, "startFrame": 765, "meta": { "source": "7ea1a11de323.sound", "speaker": "Leo" } }, "props": {}, "scenes": [] }
+        ]
+      }
+    ]
+  }
+}

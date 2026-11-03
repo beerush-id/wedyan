@@ -1,0 +1,25 @@
+{
+  "type": "take",
+  "version": 1,
+  "id": "7ea1a11de112",
+  "name": "E1-2 The message",
+  "created": "2026-11-03T07:12:00.000Z",
+  "updated": "2026-11-03T07:12:00.000Z",
+  "author": { "kind": "user" },
+  "prompt": "Over-the-shoulder close-up of Leo, his finger hovering above the laptop trackpad, the screen's glow on his face, a chat window open but unreadable, office blurred behind. Static shot; his finger drops and clicks send. Vertical 9:16 cinematic film still, modern bright open-plan tech office, warm late-afternoon window light, shallow depth of field, photorealistic, no text, no logos.",
+  "settings": { "mode": "image", "aspect": "9:16", "seconds": 5 },
+  "references": [],
+  "casts": ["../../People/1e0b5a7c2d01.persona"],
+  "attempts": [
+    {
+      "id": "136fab11-d3f9-4d73-afef-382ed4e6e8cb",
+      "src": "7ea1a11de112/136fab11-d3f9-4d73-afef-382ed4e6e8cb.webp",
+      "prompt": "Over-the-shoulder close-up of Leo, his finger hovering above the laptop trackpad, the screen's glow on his face, a chat window open but unreadable, office blurred behind. Static shot; his finger drops and clicks send. Vertical 9:16 cinematic film still, modern bright open-plan tech office, warm late-afternoon window light, shallow depth of field, photorealistic, no text, no logos.",
+      "settings": { "model": "standard", "aspect": "9:16" },
+      "seconds": 5,
+      "created": "2026-11-03T07:33:56.407Z"
+    }
+  ],
+  "chosen": "136fab11-d3f9-4d73-afef-382ed4e6e8cb",
+  "edits": []
+}
