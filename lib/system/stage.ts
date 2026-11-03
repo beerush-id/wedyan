@@ -234,7 +234,7 @@ async function newTrack(path: string, stage: StageDocument, { name, type, props,
  */
 async function addClips(path: string, stage: StageDocument, track: StoredTrack, items: ClipInit[]): Promise<string[]> {
   const made = await Promise.all(items.map((item) => newClip(path, stage.composition, track, item)));
-  refuseOverlaps({ ...track, segments: [...track.segments, ...made] }, stage.composition.options.frameRate);
+  refuseOverlaps({ ...track, segments: [...track.segments, ...made] }, made, stage.composition.options.frameRate);
   track.segments.push(...made);
   return made.map(({ id }) => id);
 }
@@ -278,8 +278,10 @@ async function changeClips(path: string, stage: StageDocument, trackId: string, 
   const { frameRate } = composition.options;
   const size = composition.props;
   const from = trackIn(composition, trackId);
+  const changed: StoredClip[] = [];
   for (const { clipId, trackId: to, type, at, seconds, name, speed, props, meta, motion } of items) {
     const clip = clipIn(from, clipId);
+    changed.push(clip);
     const { options } = clip;
     const shown = meta?.source ? await shownBy(path, meta.source) : undefined;
     if (type) options.type = type;
@@ -297,8 +299,8 @@ async function changeClips(path: string, stage: StageDocument, trackId: string, 
     }
   }
   for (const track of composition.tracks) {
-    for (const clip of track.segments) refuseKind(track, clip.options.type as string);
-    refuseOverlaps(track, frameRate);
+    for (const clip of track.segments) if (changed.includes(clip)) refuseKind(track, clip.options.type as string);
+    refuseOverlaps(track, changed, frameRate);
   }
 }
 
@@ -308,17 +310,25 @@ function refuseKind(track: StoredTrack, type: string): void {
   if (!HOLDS[kind]?.includes(type)) throw new Error(`${name} is a ${kind} track: it can't hold a ${type} clip`);
 }
 
-/** Refuses clips that cover each other on a track, naming them. */
-function refuseOverlaps(track: StoredTrack, frameRate: number): void {
-  const framesOf = ({ options }: StoredClip) => Math.round(options.duration * frameRate);
-  const clips = [...track.segments].sort((a, b) => a.options.startFrame - b.options.startFrame);
-  for (const [index, clip] of clips.entries()) {
-    const next = clips[index + 1];
-    if (!next || clip.options.startFrame + framesOf(clip) <= next.options.startFrame) continue;
-    const seconds = (frames: number) => `${(frames / frameRate).toFixed(2)}s`;
-    const ends = clip.options.startFrame + framesOf(clip);
+/**
+ * Refuses a clip that's added or moved over another on its track, naming both. Only those are
+ * checked: clips already overlapping, placed so by hand, are the user's to keep.
+ *
+ * @param track - The track, as it would be.
+ * @param placed - The clips added or moved.
+ * @param frameRate - The stage's frames a second.
+ */
+function refuseOverlaps(track: StoredTrack, placed: StoredClip[], frameRate: number): void {
+  const endOf = ({ options }: StoredClip) => options.startFrame + Math.round(options.duration * frameRate);
+  const seconds = (frames: number) => `${(frames / frameRate).toFixed(2)}s`;
+  for (const clip of placed) {
+    if (!track.segments.includes(clip)) continue;
+    const other = track.segments.find(
+      (each) => each !== clip && each.options.startFrame < endOf(clip) && clip.options.startFrame < endOf(each),
+    );
+    if (!other) continue;
     throw new Error(
-      `${clip.options.name} runs to ${seconds(ends)} but ${next.options.name} starts at ${seconds(next.options.startFrame)} on ${track.options.name}: pick other times or another track`,
+      `${clip.options.name} (${seconds(clip.options.startFrame)}–${seconds(endOf(clip))}) overlaps ${other.options.name} (${seconds(other.options.startFrame)}–${seconds(endOf(other))}) on ${track.options.name}: pick other times or another track`,
     );
   }
 }
