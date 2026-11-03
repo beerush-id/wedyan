@@ -10,11 +10,16 @@ import {
   DraftIcon,
   MovieIcon,
   TitleIcon,
+  ZoomInIcon,
+  ZoomOutIcon,
 } from '@airlib/react-aui/icons';
 import type { FC, ReactNode } from 'react';
-import { LoopIcon, PauseIcon, PlayIcon, RedoIcon, SnapIcon, SplitIcon, ToEndIcon, ToStartIcon, UndoIcon } from '../../icons.js';
+import { FitIcon, LoopIcon, PauseIcon, PlayIcon, RedoIcon, SnapIcon, SplitIcon, ToEndIcon, ToStartIcon, UndoIcon } from '../../icons.js';
 import { type Composer, composerCtx } from '../context.js';
 import { GeneratedTile, RegenerateOptions, SubjectTile } from '../dock/Regenerate.js';
+
+/** How much one press of a zoom button widens or narrows the timeline. */
+const ZOOM_STEP = 1.5;
 
 /** A lane's glyph, by its track's type, for a clip without a picture of its own. */
 const LANE_GLYPHS: Record<string, FC> = {
@@ -57,6 +62,19 @@ export const ComposeDock = setup(() => {
           <SplitIcon />
           <Tooltip>Split at the playhead (⌘B)</Tooltip>
         </Button>
+        <Divider orientation="vertical" size="sm" className="wedyan-motions-options-divider" />
+        <Button aria-label="Zoom out" size="sm" variant="text" className={AUI_CLASS.CONTROL_ICON} onClick={() => composer.zoomBy(1 / ZOOM_STEP)}>
+          <ZoomOutIcon />
+          <Tooltip>Zoom out</Tooltip>
+        </Button>
+        <Button aria-label="Zoom in" size="sm" variant="text" className={AUI_CLASS.CONTROL_ICON} onClick={() => composer.zoomBy(ZOOM_STEP)}>
+          <ZoomInIcon />
+          <Tooltip>Zoom in</Tooltip>
+        </Button>
+        <Toggle aria-label="Fit timeline" size="sm" className={AUI_CLASS.CONTROL_ICON} pressed={$bind(composer, 'fit')}>
+          <FitIcon />
+          <Tooltip>Fit timeline</Tooltip>
+        </Toggle>
       </Toolbar>
     );
   };

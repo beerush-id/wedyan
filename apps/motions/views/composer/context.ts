@@ -57,6 +57,10 @@ export type Composer = {
   node: string;
   /** Whether dragging on the timeline snaps clips and the playhead to what's near. */
   snap: boolean;
+  /** How wide a second is on the timeline, in pixels. */
+  zoom: number;
+  /** Whether the timeline keeps the whole stage in view, however long it gets. */
+  fit: boolean;
   /** Counts edits to keyframes, which aren't observed, for what reads them. */
   edits: number;
   /** What the stage's render says now. */
@@ -91,6 +95,8 @@ export type Composer = {
   readonly stage: StageDocument | undefined;
   /** Where a path written in the project leads. Stages live beside their `.motion`, so theirs too. */
   pathOf(written: string): string;
+  /** Widens or narrows the timeline by a step, which lets go of fitting it. */
+  zoomBy(factor: number): void;
   /** The clip picked on the timeline, when it's the only one. */
   hostClip(): TimelineSegment | undefined;
   /** The track picked on the timeline. */
@@ -135,6 +141,19 @@ export type Composer = {
 
 /** The composer of the window a part is in. */
 export const composerCtx = createContext<Composer>();
+
+/** How wide a second starts on the timeline, and the narrowest and widest it gets, in pixels. */
+const ZOOM = 56;
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 960;
+
+/**
+ * A zoom the timeline can show.
+ *
+ * @param zoom - How wide a second is asked to be, in pixels.
+ * @returns It, within what the timeline can show.
+ */
+export const zoomWithin = (zoom: number): number => Math.min(Math.max(zoom, MIN_ZOOM), MAX_ZOOM);
 
 /** Where turning HTML-in-Canvas on lives, for people whose Chrome doesn't have it yet. */
 const CAPTURE_FLAG = 'chrome://flags/#canvas-draw-element';
@@ -187,6 +206,8 @@ export function createComposer(path: string, direct: boolean): Composer {
       track: '',
       node: '',
       snap: false,
+      zoom: ZOOM,
+      fit: true,
       edits: 0,
       status: '',
       generating: false,
@@ -248,6 +269,11 @@ export function createComposer(path: string, direct: boolean): Composer {
         composer.status = '';
         composer.timeline?.pause();
         composer.rendering = true;
+      },
+
+      zoomBy(factor) {
+        composer.fit = false;
+        composer.zoom = zoomWithin(composer.zoom * factor);
       },
 
       hostClip() {

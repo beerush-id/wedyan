@@ -1,9 +1,10 @@
-import { $bind, $use, Snippet, setup } from '@airlib/react';
+import { AUI_CLASS } from '@airlib/aui/utils';
+import { $bind, $use, effect, onCleanup, Snippet, setup } from '@airlib/react';
 import type { Timeline, TimelineSegment } from '@airlib/react/timeline';
 import { Menu, TimelineEditor, type TimelineLaneCommand, type TimelineLaneDrop } from '@airlib/react-aui';
 import { WindowPanel } from '@airlib/react-aui/desktop';
 import { AddIcon } from '../../icons.js';
-import { type Composer, composerCtx } from '../context.js';
+import { type Composer, composerCtx, zoomWithin } from '../context.js';
 import { addGenerated, isGeneratedKind } from '../generated.js';
 import { buffers } from '../media.js';
 import { ASSET_DRAG, addTrack, placeBox, placeOnStage, placeShape, placeTitle, TRACK_NAMES, type TrackType } from '../placement.js';
@@ -12,6 +13,13 @@ import { AssigneeAvatar } from './assignment.js';
 import { timelineFrame } from './keyframes.js';
 
 const TRACK_KINDS = Object.entries(TRACK_NAMES).map(([name, label]) => ({ name, label: `${label} track` }));
+
+/** What the timeline shows beside its lanes, and the variable carrying how long it runs, in seconds. */
+const CORNER = 'aui-timeline-corner';
+const TIMELINE_LENGTH = '--aria-timeline-length';
+
+/** What's left clear past the end when the timeline fits, in pixels: where it leads in, and a little room. */
+const FIT_MARGIN = 48;
 
 /** What an empty spot on a track offers, by the track's type: a new clip of its kind there. */
 const LANE_COMMANDS: Record<string, { name: string; label: string }[]> = {
@@ -79,6 +87,34 @@ export const TimelinePanel = setup(() => {
     return composer.picked()?.scenes.map((scene) => timelineFrame(clip, scene.atFrame) / rate);
   };
 
+  // While it fits, the stage's whole length is shared out over the width there is, again whenever
+  // either changes: a longer stage makes the timeline's body wider, which is heard here too.
+  let panel: HTMLElement | null = null;
+  const fit = () => {
+    const editor = panel?.querySelector<HTMLElement>(`.${AUI_CLASS.TIMELINE_EDITOR}`);
+    const corner = editor?.querySelector<HTMLElement>(`.${CORNER}`);
+    const body = corner?.parentElement;
+    if (!editor || !corner || !body) return;
+    const seconds = Number.parseFloat(getComputedStyle(editor).getPropertyValue(TIMELINE_LENGTH));
+    const side = corner.offsetWidth + Number.parseFloat(getComputedStyle(body).columnGap);
+    if (seconds > 0) composer.zoom = zoomWithin((editor.clientWidth - side - FIT_MARGIN) / seconds);
+  };
+  const resized = new ResizeObserver(() => {
+    if (composer.fit) fit();
+  });
+  const watch = (element: HTMLElement | null) => {
+    resized.disconnect();
+    panel = element;
+    if (!element) return;
+    resized.observe(element);
+    const body = element.querySelector(`.${CORNER}`)?.parentElement;
+    if (body) resized.observe(body);
+  };
+  effect(() => {
+    if (composer.fit) fit();
+  });
+  onCleanup(() => resized.disconnect());
+
   const laneCommand = (event: CustomEvent<TimelineLaneCommand>) => {
     const { name, track, frame } = event.detail;
     if (isGeneratedKind(name)) {
@@ -95,7 +131,7 @@ export const TimelinePanel = setup(() => {
   return () => {
     const timeline = composer.timeline as Timeline;
     return (
-    <WindowPanel role="region" aria-label="Timeline" className="wedyan-compose-timeline">
+    <WindowPanel ref={watch} role="region" aria-label="Timeline" className="wedyan-compose-timeline">
       <TimelineEditor
         label={`Clips in ${composer.stage?.name}`}
         timeline={timeline}
@@ -107,7 +143,7 @@ export const TimelinePanel = setup(() => {
         progress={buffering}
         playheadLabel="Playhead"
         keyframes={pickedKeyframes}
-        zoom={56}
+        zoom={$use(() => composer.zoom)}
         laneCommands={(track) => LANE_COMMANDS[track.type ?? '']}
         onlanecommand={laneCommand}
         onlanedrop={dropAsset}
