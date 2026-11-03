@@ -2,6 +2,8 @@ import { $bind, $static, $use, onMount, page, Show, setup } from '@airlib/react'
 import { ToastHost } from '@airlib/react-aui';
 import { Desktop, DesktopClock, DesktopWidgets, Dock, DockWidgets, WindowHost } from '@airlib/react-aui/desktop';
 import type { ReactNode } from 'react';
+import lightWallpaper from '@/assets/wedyan-dark.jpg?asset' with { sizes: '1920' };
+import darkWallpaper from '@/assets/wedyan-light.jpg?asset' with { sizes: '1920' };
 import { AnswerActions, TurnActions } from '@/components/AnswerActions.js';
 import { ConfirmHost } from '@/components/ConfirmHost.js';
 import { Splash } from '@/components/Splash.js';
@@ -48,7 +50,7 @@ const WedyanDesktop = setup<{ children?: ReactNode }>((props) => {
   });
 
   return () => (
-  <Desktop className="wedyan-desktop">
+  <Desktop className="wedyan-desktop" wallpaper={{ light: lightWallpaper.src, dark: darkWallpaper.src }}>
     <DesktopWidgets label="Widgets">
       <DesktopClock title="Today" />
     </DesktopWidgets>
