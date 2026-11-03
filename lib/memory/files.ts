@@ -4,7 +4,7 @@ import type { FileDriver } from '@irpclib/r2-file/adapter';
 import { fsContext } from '@irpclib/r2-file/context';
 import { hasWords, isMedia, titleOf, wordsOf } from '@/lib/documents/words.js';
 import { logger } from '../logger.js';
-import { configured, ownerOf, TEXT_LIMIT, vectorId } from './memory.js';
+import { configured, hasMemory, ownerOf, TEXT_LIMIT, vectorId } from './memory.js';
 
 /** The index's log: what it indexed, at debug level, so a dev server shows it. */
 const log = logger.create({ tags: ['index'] });
@@ -19,7 +19,8 @@ const log = logger.create({ tags: ['index'] });
  * @returns The driver, to append with r2-file's `drivers`.
  */
 export function contentIndex(): FileDriver {
-  const indexed = (path?: string): path is string => !!path && hasWords(path);
+  // Without memory, there's no index to keep in step.
+  const indexed = (path?: string): path is string => !!path && hasMemory() && hasWords(path);
 
   return {
     async write(ctx, _path, data, options) {

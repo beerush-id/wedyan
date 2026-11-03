@@ -43,10 +43,10 @@ let metaKey: string | undefined;
  * Sets what speech runs on. Called once by the server entry with its Workers AI binding, and the
  * Meta key hearing sends Muse Voice Transcribe.
  *
- * @param binding - The Workers AI binding.
+ * @param binding - The Workers AI binding; without it, nothing is spoken, and hearing still runs.
  * @param key - The Meta Model API key; hearing is refused without it.
  */
-export function setupSpeech(binding: SpeechModel, key?: string): void {
+export function setupSpeech(binding: SpeechModel | undefined, key?: string): void {
   ai = binding;
   metaKey = key;
 }
@@ -303,7 +303,7 @@ function wavSeconds(bytes: Uint8Array): number {
 
 /** The model speech runs on; throws before `setupSpeech`. */
 function model(): SpeechModel {
-  if (!ai) throw new Error('Speech is not set up');
+  if (!ai) throw new Error("Speaking isn't available here: it runs on Workers AI, which this server runs without");
   return ai;
 }
 

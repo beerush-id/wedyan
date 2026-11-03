@@ -52,7 +52,23 @@ export type ServerEnv = FileWorkerEnv & {
   RESIZER?: ImageWorkerEnv['RESIZER'];
   /** The picture resizer in development: R2 Image's image running locally. */
   RESIZER_URL?: string;
+  /**
+   * `false` runs without what lives in a Cloudflare account, Vectorize and Workers AI, so nothing
+   * needs `wrangler login`: no memory or file search, and no spoken voice.
+   */
+  REMOTE_BINDINGS?: string;
 };
+
+/**
+ * Whether the server runs with its remote bindings, Vectorize and Workers AI: on unless
+ * `REMOTE_BINDINGS` is `false`.
+ *
+ * @param env - Where it's set: the bindings, or the process's environment before they're resolved.
+ * @returns Whether to use them.
+ */
+export function remoteBindingsOf(env?: { REMOTE_BINDINGS?: string }): boolean {
+  return env?.REMOTE_BINDINGS !== 'false';
+}
 
 /** One running container, as far as resizing reaches it. */
 type ContainerStub = { fetch: typeof fetch };
@@ -65,7 +81,7 @@ let ready = false;
 /**
  * Sets up the kernel and memory with the server's bindings, once per process: the agents and
  * their skills, the tools of r2-file and memory, the models (Spark Open routing and composing when
- * Baseten's key is set), the vector index, and the voice.
+ * Baseten's key is set), and, with the remote bindings, the vector index and the voice.
  *
  * @param env - The resolved bindings.
  */
@@ -102,8 +118,10 @@ export function setupServer(env: ServerEnv): void {
     },
   });
   setupConversation({ briefer: BRIEFER });
-  setupMemory({ vectors: env.VECTORIZE, embed: embedWith(env.AI) });
-  setupSpeech(env.AI, keys.meta);
+  // Memory and the voice run on Vectorize and Workers AI; without them, hearing still runs on Muse.
+  const remote = remoteBindingsOf({ REMOTE_BINDINGS: env.REMOTE_BINDINGS ?? globalThis.process?.env?.REMOTE_BINDINGS });
+  if (remote) setupMemory({ vectors: env.VECTORIZE, embed: embedWith(env.AI) });
+  setupSpeech(remote ? env.AI : undefined, keys.meta);
 }
 
 /**

@@ -126,11 +126,20 @@ const NAME_LIMIT = 60;
 /**
  * The index and embedder memory was set up with; files are indexed into the same index.
  *
- * @returns The vector store and the embedder; throws before `setupMemory`.
+ * @returns The vector store and the embedder; throws where memory isn't set up.
  */
 export function configured(): MemoryConfig {
-  if (!config) throw new Error('Memory is not set up');
+  if (!config) throw new Error("Memory isn't available here: this server runs without its vector index, so nothing can be saved or searched by meaning");
   return config;
+}
+
+/**
+ * Whether memory is set up: not where the server runs without its vector index.
+ *
+ * @returns True once `setupMemory` has run.
+ */
+export function hasMemory(): boolean {
+  return !!config;
 }
 
 /**

@@ -116,7 +116,7 @@ Everything in this repository was written during the event. It builds on AirLib 
 
 ## Running it locally
 
-You need [Bun](https://bun.sh), [Docker](https://www.docker.com), a Cloudflare account, and a Muse API key.
+You need [Bun](https://bun.sh), [Docker](https://www.docker.com) and a Muse API key. A Cloudflare account is optional.
 
 1. Install the dependencies:
 
@@ -124,13 +124,7 @@ You need [Bun](https://bun.sh), [Docker](https://www.docker.com), a Cloudflare a
    bun install
    ```
 
-2. Sign in to Cloudflare. Workers AI and Vectorize are reached in your account while developing:
-
-   ```bash
-   bunx wrangler login
-   ```
-
-3. Put your keys in `.env`:
+2. Put your keys in `.env`:
 
    ```bash
    MUSE_API_KEY=…
@@ -139,6 +133,20 @@ You need [Bun](https://bun.sh), [Docker](https://www.docker.com), a Cloudflare a
    # Optional: lists Google Fonts in Motions.
    GOOGLE_API_KEY=…
    ```
+
+3. Choose how it runs with Cloudflare. Memory, file search and the spoken voice run on Vectorize and Workers AI, in a Cloudflare account. Either sign in, to have them:
+
+   ```bash
+   bunx wrangler login
+   ```
+
+   Or run without them, and without signing in, by adding to `.env`:
+
+   ```bash
+   REMOTE_BINDINGS=false
+   ```
+
+   Everything else works the same. Files, documents and pictures stay local either way.
 
 4. Start the picture resizer, which `RESIZER_URL` in `wrangler.json` points at:
 

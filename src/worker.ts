@@ -18,7 +18,7 @@ import { guardAgentFiles } from '@/lib/server/guard.js';
 import { isHomePath, pictureAt, picturePath, pictures } from '@/lib/server/images.js';
 import { seedHome } from '@/lib/server/seed.js';
 import { currentSession, homeOf, shortIdOf, userOf } from '@/lib/server/session.js';
-import { MODELS, picturesOf, type ServerEnv, setupServer } from '@/lib/server/setup.js';
+import { MODELS, picturesOf, remoteBindingsOf, type ServerEnv, setupServer } from '@/lib/server/setup.js';
 import { ai } from '@/lib/share/ai.js';
 import { AI_ENDPOINT, FILES_ENDPOINT, httpTransport, WRPC, wsTransport } from './api.js';
 import App from './app.js';
@@ -207,7 +207,8 @@ function privately(response: Response, cacheControl: string): Response {
  * @returns The bindings to run with.
  */
 async function bindingsOf(env?: ServerEnv): Promise<ServerEnv> {
-  const bindings = await resolveBinding<ServerEnv>(env);
+  // Read before the bindings exist: off, development opens no session in a Cloudflare account.
+  const bindings = await resolveBinding<ServerEnv>(env, { remoteBindings: remoteBindingsOf(globalThis.process?.env) });
   setupServer(bindings);
   return bindings;
 }
