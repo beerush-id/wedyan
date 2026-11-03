@@ -45,6 +45,8 @@ export type ServerEnv = FileWorkerEnv & {
   BASETEN_API_KEY?: string;
   /** Google's key, which lists Google Fonts. */
   GOOGLE_API_KEY?: string;
+  /** The key a private deployment is opened with, by link; unset, it's open to everyone. */
+  WEDYAN_ACCESS_KEY?: string;
   /** The picture resizer: R2 Image's container, which runs only where Wedyan is deployed. */
   RESIZER?: ImageWorkerEnv['RESIZER'];
   /** The picture resizer in development: R2 Image's image running locally. */

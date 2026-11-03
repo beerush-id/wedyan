@@ -49,6 +49,10 @@ export class AirDurableLink {
 
 export default {
   async fetch(req, env) {
+    // A private deployment lets in only who came by its link: before the socket, the calls and the page.
+    const refused = await worker.admit(req, env);
+    if (refused) return refused;
+
     // Every call runs in its user's own Durable Object, so all of a user's live calls share one
     // process and reach each other.
     if (env.DURABLE_LINK && worker.isCall(new URL(req.url))) {

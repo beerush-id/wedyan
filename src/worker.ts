@@ -13,6 +13,7 @@ import { fileRows } from '@/lib/kernel/rows.js';
 import { reportChanges } from '@/lib/kernel/workspace.js';
 import { logger } from '@/lib/logger.js';
 import { contentIndex } from '@/lib/memory/files.js';
+import { admit } from '@/lib/server/access.js';
 import { guardAgentFiles } from '@/lib/server/guard.js';
 import { isHomePath, pictureAt, picturePath, pictures } from '@/lib/server/images.js';
 import { seedHome } from '@/lib/server/seed.js';
@@ -106,13 +107,16 @@ export default {
   ...app,
   isCall,
   userOf,
+  admit: async (request: Request, env?: ServerEnv) => admit(request, (await bindingsOf(env)).WEDYAN_ACCESS_KEY),
   async fetch(request: Request, env?: ServerEnv, signal?: AbortSignal) {
+    const bindings = await bindingsOf(env);
+    const refused = await admit(request, bindings.WEDYAN_ACCESS_KEY);
+    if (refused) return refused;
     const url = new URL(request.url);
-    if (url.pathname === AI_ENDPOINT) return models.fetch(request, await bindingsOf(env));
+    if (url.pathname === AI_ENDPOINT) return models.fetch(request, bindings);
     if (request.method === 'GET' && url.pathname.includes(HOME_PATH)) return serveFile(request, url, env);
     if (url.pathname !== FILES_ENDPOINT) return app.fetch(request, env, signal);
 
-    const bindings = await bindingsOf(env);
     return files.fetch(request, bindings, resolveCtx());
   },
 };
