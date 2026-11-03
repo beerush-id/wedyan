@@ -25,7 +25,6 @@ export const TIERED_MODELS = false;
  * sheet of them from four angles side by side.
  */
 export const LOOK_ASPECTS = { head: '1:1', body: '16:9', wardrobe: '16:9' } as const;
-
 /**
  * What casting a person takes along until their pictures are picked: with `attachDefault`, their
  * main face, figure and outfit; otherwise their face alone.
@@ -72,7 +71,7 @@ export const WORK_MODEL_NAMES = Object.fromEntries(Object.entries(WORK_MODELS).m
 export const ASPECTS = { '16:9': '16:9', '9:16': '9:16', '1:1': '1:1' };
 
 /** What a generation is made with when its document doesn't say. */
-const DEFAULT_SETTINGS: Required<GenerationSettings> = { mode: 'image', model: 'standard', aspect: '16:9', seconds: 4, batch: 2 };
+const DEFAULT_SETTINGS: Required<GenerationSettings> = { mode: 'image', model: 'standard', aspect: '16:9', seconds: 4, batch: 1 };
 
 /** What a take's Generate can make: pictures first, since a video costs far more to get wrong. */
 export const GENERATION_MODES = { image: 'Image', video: 'Video' };
