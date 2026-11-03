@@ -11,9 +11,16 @@ export { motionComposer, motionLibrary };
 /** A stage's file, which opens the project it's in. */
 const STAGE_FILE = /\.stage$/;
 
-/** What Motions opens: `motions:~/Motions/Teaser/Teaser.motion`, in Direct; a stage opens its project. */
+/**
+ * What Motions opens: `motions:~/Motions/Teaser/Teaser.motion`, in Direct; a stage opens its
+ * project; anything else, like `motions:~/Motions`, opens the library.
+ */
 export const linkHandle: Record<string, LinkHandle> = {
-  motions: (link) => void openMotion(projectOf(linkTarget(link)), true),
+  motions: (link) => {
+    const target = linkTarget(link);
+    if (opens(target)) void openMotion(projectOf(target), true);
+    else openLibrary();
+  },
 };
 
 /**
