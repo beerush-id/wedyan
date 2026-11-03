@@ -129,7 +129,8 @@ export function openSession() {
     },
 
     /**
-     * Opens a link pressed in an answer, when it's Wedyan's to open.
+     * Opens a link pressed in an answer, when it's Wedyan's to open. The chat steps back, so what it
+     * opens isn't under it, even when that's the window already in front.
      *
      * @param href - The link.
      * @param event - The press.
@@ -137,6 +138,7 @@ export function openSession() {
     link(href: string, event: MouseEvent<HTMLElement>): void {
       if (!isAppLink(href)) return;
       event.preventDefault();
+      answers.open = false;
       void requestLink(href);
     },
 

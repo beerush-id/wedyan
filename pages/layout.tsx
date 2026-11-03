@@ -1,4 +1,4 @@
-import { $bind, $static, $use, cookies, onMount, page, Show, setup } from '@airlib/react';
+import { $bind, $static, $use, cookies, effect, onMount, page, Show, setup, untrack } from '@airlib/react';
 import { ToastHost } from '@airlib/react-aui';
 import { Desktop, DesktopClock, DesktopWidgets, Dock, DockWidgets, WindowHost } from '@airlib/react-aui/desktop';
 import type { ReactNode } from 'react';
@@ -8,7 +8,7 @@ import { AnswerActions, TurnActions } from '@/components/AnswerActions.js';
 import { ConfirmHost } from '@/components/ConfirmHost.js';
 import { Splash } from '@/components/Splash.js';
 import { openSession, sessionCtx } from '@/lib/assistant/session.js';
-import { BOOT_STAT } from '@/lib/systems/boot.js';
+import { BOOT_STAT, SYSTEM } from '@/lib/systems/boot.js';
 import { focusPrompt, PROMPT_LABEL } from '@/lib/systems/focus.js';
 import { promptSuggestions } from '@/lib/systems/prompt.js';
 import { isAppLink } from '@/lib/systems/registry.js';
@@ -39,6 +39,15 @@ const WedyanDesktop = setup<{ children?: ReactNode }>((props) => {
   sessionCtx.set(session);
   const theme = cookies<Theme>(THEME_COOKIE, { mode: 'dark' });
   themeCtx.set(theme);
+
+  // A window brought to the front, opened from the chat or anywhere else, is what's looked at next:
+  // the chat steps back from over it.
+  effect(() => {
+    if (!SYSTEM?.activeWindow) return;
+    untrack(() => {
+      session.answers.open = false;
+    });
+  });
 
   onMount(() => {
     focusPrompt();
