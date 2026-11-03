@@ -41,6 +41,18 @@ const WIDGET_SKIP = new Set(['widget', 'params', 'text', 'style']);
 /** A widget on a stage is a picture: the pointer goes through it to what's under it. */
 const PICTURE_ONLY = { pointerEvents: 'none' } as const;
 
+/** How a shot with no picture yet reads, in stage units: its words in the middle of a dark frame. */
+const GUIDE_CSS: CSSProperties = {
+  display: 'grid',
+  placeItems: 'center',
+  padding: 120,
+  background: '#1c1b1f',
+  color: '#ffffffb3',
+  fontSize: 44,
+  lineHeight: 1.3,
+  textAlign: 'center',
+};
+
 /** CSS properties a bare number is written to as it is; every other number is a length, in stage units. */
 const UNITLESS = new Set(['opacity', 'zIndex', 'fontWeight', 'lineHeight', 'flex', 'flexGrow', 'flexShrink', 'order']);
 
@@ -94,35 +106,54 @@ const AudioClipView = template<{ segment: TimelineSegment<AudioClip> }>(
   'AudioClipView'
 );
 
+/** A shot with nothing to show yet: what it's meant to be, in words, so the cut can be watched before any picture exists. */
+const GuideClipView = template<{ segment: TimelineSegment<VideoClip | ImageClip> }>(
+  (props) => {
+    const { guide, shows } = (props.segment.meta ?? {}) as { guide?: string; shows?: string };
+    return (
+      <StageClip segment={props.segment} style={GUIDE_CSS}>
+        {guide ?? shows ?? props.segment.name}
+      </StageClip>
+    );
+  },
+  'GuideClipView'
+);
+
 /** A video clip: its footage, decoded by the stage, drawn frame by frame into its box, and heard unless muted. */
 const VideoClipView = template<{ segment: TimelineSegment<VideoClip> }>(
-  (props) => (
-    <StageClip
-      as="canvas"
-      segment={props.segment}
-      media={props.segment.props.src}
-      fit={props.segment.props.fit}
-      muted={props.segment.props.muted}
-      volume={clipValues(props.segment).volume as number}
-      pan={clipValues(props.segment).pan as number}
-    />
-  ),
+  (props) =>
+    props.segment.props.src ? (
+      <StageClip
+        as="canvas"
+        segment={props.segment}
+        media={props.segment.props.src}
+        fit={props.segment.props.fit}
+        muted={props.segment.props.muted}
+        volume={clipValues(props.segment).volume as number}
+        pan={clipValues(props.segment).pan as number}
+      />
+    ) : (
+      <GuideClipView segment={props.segment} />
+    ),
   'VideoClipView'
 );
 
 /** An image clip: its picture filling its box, cropped to cover it or fitted inside. */
 const ImageClipView = template<{ segment: TimelineSegment<ImageClip> }>(
-  (props) => (
-    <StageClip
-      as="img"
-      segment={props.segment}
-      src={props.segment.props.src}
-      alt={props.segment.name ?? ''}
-      // Pictures from another origin can only be drawn into a rendered frame when fetched with CORS.
-      crossOrigin="anonymous"
-      style={{ objectFit: props.segment.props.fit ?? 'cover' }}
-    />
-  ),
+  (props) =>
+    props.segment.props.src ? (
+      <StageClip
+        as="img"
+        segment={props.segment}
+        src={props.segment.props.src}
+        alt={props.segment.name ?? ''}
+        // Pictures from another origin can only be drawn into a rendered frame when fetched with CORS.
+        crossOrigin="anonymous"
+        style={{ objectFit: props.segment.props.fit ?? 'cover' }}
+      />
+    ) : (
+      <GuideClipView segment={props.segment} />
+    ),
   'ImageClipView'
 );
 
