@@ -13,8 +13,9 @@ import { ADDRESS } from '@/lib/documents/generation.js';
 import { resolvePath } from '@/lib/documents/paths.js';
 import type { PersonaDocument, StillDocument } from '@/lib/documents/types.js';
 import { dfs } from '@/lib/share/dfs.js';
+import { pictureOf, stillAt } from '@/lib/share/pictures.js';
 import { AddIcon, CloseIcon, DeleteIcon, ImageIcon, PeopleIcon, PersonIcon } from './icons.js';
-import { announceName, announcePortrait, edit, KINDS, largePicture, newStill, type PersonaKind, pictureOf, portraitOf, stillAt, tilePicture } from './library.js';
+import { announceName, announcePortrait, edit, KINDS, largePicture, newStill, type PersonaKind, portraitOf, tilePicture } from './library.js';
 import { type LoungeSession, loungeCtx, PERSON_TABS, type PersonTab } from './session.js';
 
 /** The id naming the Profile's attach-defaults switch, and its hint as `-hint` after it. */

@@ -5,8 +5,9 @@ import { ImageIcon } from '@airlib/react-aui/icons';
 import { FloatingDownload } from '@/components/FloatingDownload.js';
 import { addressAt, attemptPicture, chosenAttempt, PICTURE_FILE } from '@/lib/documents/generation.js';
 import { nameOf } from '@/lib/documents/paths.js';
-import type { DocumentOf, DocumentType, SoundDocument, StillDocument, TakeDocument } from '@/lib/documents/types.js';
+import type { DocumentOf, DocumentType, PersonaDocument, SoundDocument, StillDocument, TakeDocument } from '@/lib/documents/types.js';
 import { dfs } from '@/lib/share/dfs.js';
+import { pictureOf } from '@/lib/share/pictures.js';
 import type { PreviewTarget } from '@/lib/systems/system.js';
 import { fullRect } from '@/lib/systems/window.js';
 import manifest from '../manifest.json';
@@ -30,9 +31,9 @@ const CLASS = {
 
 /**
  * Preview: one window for each thing an app asks to see larger, through a `preview:` link. A still
- * shows every attempt, the chosen one first, to step through and zoom; a take plays its chosen
- * attempt, a sound plays its own; a picture, a video or a sound by its address shows as it is. A
- * picture can be downloaded from its corner.
+ * shows every attempt, the chosen one first, to step through and zoom; a person shows their face,
+ * figure and outfits; a take plays its chosen attempt, a sound plays its own; a picture, a video or
+ * a sound by its address shows as it is. A picture can be downloaded from its corner.
  */
 export const preview = defineWindow({
   name: manifest.name,
@@ -120,6 +121,7 @@ export function openPreview(target: PreviewTarget): void {
 type Shape =
   | { kind: 'image' | 'video' | 'audio'; src: string; name: string }
   | { kind: 'still'; path: string; document: StillDocument }
+  | { kind: 'persona'; path: string; document: PersonaDocument }
   | { kind: 'take' | 'sound'; path: string; document: TakeDocument | SoundDocument }
   | { kind: 'none'; name: string };
 
@@ -146,6 +148,24 @@ const Shown = setup<{ target: PreviewTarget }>((props) => {
           start={still.attempts.indexOf(chosenAttempt(still) ?? still.attempts[0])}
         />
       );
+    }
+    case 'persona': {
+      const { path, document: person } = shape;
+      return () => {
+        if (!picturesWritten(person).length) return <Nothing title="No pictures yet" description={`${person.name} has no pictures yet.`} />;
+        // A picture shows once its still has arrived.
+        return (
+          <Pictures
+            slides={() =>
+              picturesWritten(person)
+                .map((source) => pictureOf(path, source))
+                .filter((src): src is string => !!src)
+                .map((src, at) => ({ src, alt: `${person.name}, picture ${at + 1}` }))
+            }
+            name={person.name}
+          />
+        );
+      };
     }
     case 'take':
     case 'sound': {
@@ -175,8 +195,23 @@ function shapeOf(target: PreviewTarget): Shape {
   if (typeof target !== 'string') return { kind: target.type, src: target.src, name: target.name ?? 'Picture' };
   const document = documentOf(target);
   if (document?.type === 'still') return { kind: 'still', path: target, document };
+  if (document?.type === 'persona') return { kind: 'persona', path: target, document };
   if (document?.type === 'take' || document?.type === 'sound') return { kind: document.type, path: target, document };
   return { kind: 'none', name: nameOf(target) };
+}
+
+/**
+ * A person's pictures, as the persona writes them: their face, their figure, then their outfits,
+ * each main one before its others.
+ *
+ * @param person - The persona.
+ * @returns Each picture, by path to its `.still` or by address.
+ */
+function picturesWritten(person: PersonaDocument): string[] {
+  const { head, body, wardrobe } = person;
+  return [head?.main, ...(head?.poses ?? []), body?.main, ...(body?.poses ?? []), wardrobe?.main, ...(wardrobe?.outfits ?? [])].filter(
+    (source): source is string => !!source
+  );
 }
 
 /** Pictures in the viewer, to step through and zoom, with downloading the one shown at its corner. */
@@ -248,4 +283,5 @@ function thumbnailOf(target: PreviewTarget): string | undefined {
   if (typeof target !== 'string') return target.type === 'image' ? target.src : undefined;
   const document = documentOf(target);
   if (document?.type === 'still' || document?.type === 'take') return attemptPicture(target, document, chosenAttempt(document));
+  if (document?.type === 'persona') return document.head?.main ? pictureOf(target, document.head.main) : undefined;
 }

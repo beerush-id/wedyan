@@ -7,8 +7,7 @@ import type { PersonaDocument, StillDocument } from '@/lib/documents/types.js';
 import { LOUNGE, LOUNGE_EVENT } from '@/lib/kernel/workspace.h.js';
 import { AGENT_EXTENSION, type AgentFile } from '@/lib/share/agents.js';
 import { dfs } from '@/lib/share/dfs.js';
-import { follow } from '@/lib/share/documents.js';
-import { pathFrom } from '@/lib/share/paths.js';
+import { addressOf, pictureOf, stillAt } from '@/lib/share/pictures.js';
 import { AGENTS_PATH } from '@/lib/share/system.js';
 
 /** Where the people and characters live. */
@@ -180,39 +179,11 @@ export function portraitOf(path: string, persona: PersonaDocument): string | und
   return main ? pictureOf(path, main, SMALL_PICTURE) : undefined;
 }
 
-/**
- * One of a persona's pictures as a picture to show: the attempt its `.still` shows.
- *
- * @param from - The path of the persona it is written in.
- * @param source - The picture, by path from the persona to its `.still`.
- * @param size - Its longest edge, where it shows small; the picture as made without one.
- * @returns The picture's address, unless the path leads to no still or the still has no attempt yet.
- */
-export function pictureOf(from: string, source: string, size?: number): string | undefined {
-  if (ADDRESS.test(source)) return addressOf(from, source, size);
-  const still = stillAt(from, source);
-  const src = still && chosenAttempt(still.document)?.src;
-  return still && src ? addressOf(still.path, src, size) : undefined;
-}
-
 /** A large picture, for the main one on a tab of a person's pictures. */
 export const largePicture = (from: string, source: string): string | undefined => pictureOf(from, source, LARGE_PICTURE);
 
 /** A small picture, for a tile of a person's pictures. */
 export const tilePicture = (from: string, source: string): string | undefined => pictureOf(from, source, SMALL_PICTURE);
-
-/**
- * The `.still` one of a persona's pictures is: what keeps its prompt, settings, references and attempts.
- *
- * @param from - The path of the persona it is written in.
- * @param source - The picture, by path from the persona to its `.still`.
- * @returns The still and where it is, unless the path leads to none, or it hasn't arrived.
- */
-export function stillAt(from: string, source: string): { path: string; document: StillDocument } | undefined {
-  if (ADDRESS.test(source)) return;
-  const { path, document } = follow(from, source);
-  return document?.type === 'still' ? { path, document } : undefined;
-}
 
 /**
  * Who made an agent and when it last changed, in a line: Wedyan's with the ask it came from.
@@ -226,18 +197,6 @@ export function factsOf(document: AgentFile): string {
   return `${by} · Updated ${longDate(document.updated)}`;
 }
 
-/**
- * A picture written in a file as an address for `<img src>`: an attempt keeps its picture by path
- * from its still.
- *
- * @param file - The file it's written in, by its path in the home.
- * @param src - The picture, as written.
- * @param size - Its longest edge, if it's resized.
- * @returns Its address.
- */
-function addressOf(file: string, src: string, size?: number): string {
-  return dfs.image(ADDRESS.test(src) ? src : pathFrom(file, src), size ? { size } : undefined);
-}
 
 /**
  * A date and time as the open item shows it, e.g. `Oct 30, 2026, 9:00 AM`.
