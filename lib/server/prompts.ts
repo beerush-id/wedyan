@@ -62,7 +62,7 @@ async function writePrompt(adapter: AIAdapter, path: string, draft: string): Pro
   const facts = [
     `It is a ${source.type === 'take' ? `video, ${seconds} seconds long,` : 'picture'} in ${aspect}, called "${source.name}".`,
     owner
-      ? `It is ${owner.persona.name}'s ${owner.part}: write it as that sheet.${owner.persona.description ? ` Who they are: ${owner.persona.description}` : ''}\n\n${SHEETS}`
+      ? `It is ${owner.persona.name}'s ${owner.part}: write it as the picture below that fits.${owner.persona.description ? ` Who they are: ${owner.persona.description}` : ''}\n\n${SHEETS}`
       : '',
     `The draft:\n${draft.trim() || '(empty: write it from the rest)'}`,
     people.length ? `Who's in it:\n${people.join('\n')}` : 'Nobody is cast in it.',
@@ -98,7 +98,7 @@ async function ownerOf(path: string): Promise<{ persona: PersonaDocument; part: 
   if (!persona) return;
   const is = (written?: string) => !!written && pathFrom(personaPath, written) === path;
   if (is(persona.head?.main)) return { persona, part: 'face' };
-  if (persona.head?.poses?.some(is)) return { persona, part: 'other head picture, its facial features or expressions, as the draft asks' };
+  if (persona.head?.poses?.some(is)) return { persona, part: 'other head picture: a close-up as the draft asks, or a sheet of facial features or expressions only when the draft asks for one' };
   if (is(persona.body?.main) || persona.body?.poses?.some(is)) return { persona, part: 'figure' };
   if (is(persona.wardrobe?.main) || persona.wardrobe?.outfits?.some(is)) return { persona, part: 'outfit' };
 }

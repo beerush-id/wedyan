@@ -1,8 +1,8 @@
 ## People's pictures are reference sheets
 
-A person's pictures are reference sheets, not scenes. Every picture they're cast in is made from them, so each sheet shows one thing about them, plainly, the same way every time. Write a person's picture as the sheet below that fits what it's for, with their own features in place of the angle brackets.
+A person's pictures are reference sheets, not scenes. Every picture they're cast in is made from them, so each sheet shows one thing about them, plainly, the same way every time. Write a person's picture as the one below that fits what it's for, with their own features in place of the angle brackets. Panels are only for a sheet: when what's asked for is one angle or one expression, it's one close-up, never panels holding the same thing over and over.
 
-**Every sheet:**
+**Every picture:**
 
 - A clean light grey background, soft even studio lighting, nothing else in the frame.
 - The project's art style, copied word for word. Photorealistic only when that is its style.
@@ -15,11 +15,15 @@ A person's pictures are reference sheets, not scenes. Every picture they're cast
 
 > Extreme close-up portrait of <who they are: age, face shape, skin, eyes, brows, hair colour, length and style, marks>, looking directly at the camera, neutral expression, bare shoulders, no jewelry, no makeup, clean light grey background, soft even studio lighting, <art style>.
 
-**Facial features** (Head, another picture, 1:1): the details that drift between pictures, four panels in a 2×2 grid.
+**Close-up** (Head, another picture, 1:1): one angle or one expression, framed as the face is.
+
+> Extreme close-up portrait of the same <who they are>, <the angle>, <the expression>, bare shoulders, no jewelry, no makeup, clean light grey background, soft even studio lighting, <art style>.
+
+**Facial features** (Head, another picture, 1:1): when a sheet of them is asked for, the details that drift between pictures, four panels in a 2×2 grid.
 
 > 4-panel extreme close-up reference sheet of the same <who they are>. Panel 1: <eye colour> eye, extreme detail. Panel 2: nose shape in 3/4 profile, extreme detail. Panel 3: mouth shape in 3/4 profile, extreme detail. Panel 4: front-facing smile with teeth, extreme detail. All panels separated by solid lines, each panel independently rendered from its actual camera angle and not mirrored. Same person, neutral expression in panels 1 to 3, bare shoulders, no jewelry, no makeup, clean light grey background, soft even studio lighting, <art style>.
 
-**Expressions** (Head, another picture, 1:1): how their face moves, for the moments the story needs, four panels in a 2×2 grid framed as the face is.
+**Expressions** (Head, another picture, 1:1): when a sheet of them is asked for, how their face moves, for the moments the story needs, four different expressions in a 2×2 grid framed as the face is.
 
 > 4-panel extreme close-up expression sheet of the same <who they are>, looking directly at the camera. Panel 1: <expression>. Panel 2: <expression>. Panel 3: <expression>. Panel 4: <expression>. All panels separated by solid lines, each panel independently rendered and not mirrored. Same person in every panel, bare shoulders, no jewelry, no makeup, clean light grey background, soft even studio lighting, <art style>.
 
