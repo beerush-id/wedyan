@@ -62,7 +62,7 @@
     {
       "binding": "DB",
       "database_name": "wedyan-index",
-      "database_id": "8eb662b1-9ca2-4e9f-90c3-6ece4bbf83b0",
+      "database_id": "098b2494-f59d-44b3-8895-c6a2a1dd3534",
       "preview_database_id": "local-wedyan-index"
     }
   ],
@@ -110,7 +110,7 @@
         {
           "binding": "DB",
           "database_name": "wedyan-index",
-          "database_id": "8eb662b1-9ca2-4e9f-90c3-6ece4bbf83b0"
+          "database_id": "098b2494-f59d-44b3-8895-c6a2a1dd3534"
         }
       ]
     }
