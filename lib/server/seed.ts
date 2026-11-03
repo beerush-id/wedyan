@@ -33,6 +33,9 @@ export const HOME_SEEDS: Record<string, string> = Object.fromEntries(
 /** A seed bundled inline, and the media type it carries, unlike any text seed. */
 const INLINE = /^data:([^;,]+)/;
 
+/** Text seeds that are pictures, not documents, by extension: written as files of their type. */
+const TEXT_MEDIA: Record<string, string> = { svg: 'image/svg+xml' };
+
 /** The hidden file recording that a home was seeded, so it's never seeded again. */
 export const SEED_MARKER = '~/.seeded';
 
@@ -63,11 +66,14 @@ async function plant(seeds: Record<string, string>): Promise<void> {
   if (await exists(SEED_MARKER)) return;
   await Promise.all(
     Object.entries(seeds).map(([path, content]) => {
-      const [, type] = INLINE.exec(content) ?? [];
+      const [, inline] = INLINE.exec(content) ?? [];
+      const type = inline ?? TEXT_MEDIA[path.slice(path.lastIndexOf('.') + 1)];
       // Files are named by id, so what a seed file is called comes with it, as an upload's does.
       const title = (TITLES as Record<string, string>)[path];
       const options = title ? { metadata: { title } } : undefined;
-      return type ? write(`~/${path}`, fileOf(path, type, content), options) : write(`~/${path}`, content, options);
+      if (!type) return write(`~/${path}`, content, options);
+      const bytes = inline ? decoded(content) : new TextEncoder().encode(content);
+      return write(`~/${path}`, fileOf(path, type, bytes), options);
     }),
   );
   await write(SEED_MARKER, { seeded: new Date().toISOString() }, { hidden: true });
@@ -78,10 +84,14 @@ async function plant(seeds: Record<string, string>): Promise<void> {
  *
  * @param path - Its path in the home.
  * @param type - Its media type.
- * @param content - Its data URL.
+ * @param bytes - Its content.
  * @returns The file.
  */
-function fileOf(path: string, type: string, content: string): IRPCFile {
-  const bytes = Uint8Array.from(atob(content.slice(content.indexOf(',') + 1)), (byte) => byte.charCodeAt(0));
+function fileOf(path: string, type: string, bytes: Uint8Array): IRPCFile {
   return new IRPCFile({ name: path.slice(path.lastIndexOf('/') + 1), size: bytes.byteLength, type }, new Blob([bytes], { type }));
+}
+
+/** The bytes a base64 data URL holds. */
+function decoded(content: string): Uint8Array {
+  return Uint8Array.from(atob(content.slice(content.indexOf(',') + 1)), (byte) => byte.charCodeAt(0));
 }
