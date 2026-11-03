@@ -133,11 +133,13 @@ If the work isn't in English, the voice can't carry it. Tell it in titles and su
 
 ## Casts
 
-A cast is a real recurring character, someone the viewer follows through the work and knows on sight. They'll be seen walking, from behind, small in a wide shot, so a cast has a whole body. Give each one `head`, `body` and `wardrobe`, and describe the figure as closely as the face: build, height, how they stand. A figure and an outfit are each one wide sheet of them from four angles side by side, front, three-quarter, side and back, so the model sees them all round; write the prompt for that sheet. Each makes a still of its own, so to redraw one part use `sys.persona.generate` with that part.
+A cast is a real recurring character, someone the viewer follows through the work and knows on sight. They'll be seen walking, from behind, small in a wide shot, so a cast has a whole body. Give each one `head`, `body` and `wardrobe`, and describe the figure as closely as the face: build, height, how they stand. Write each as its sheet in the next section. A figure and an outfit are each one wide sheet of them from four angles side by side, front, three-quarter, side and back, so the model sees them all round; write the prompt for that sheet. Each makes a still of its own, so to redraw one part use `sys.persona.generate` with that part.
 
 Someone seen once, or only ever as a face, is not a cast. Draw them in that shot's still. A waiter, a stranger at a window and a crowd all belong in the prompt. A dog, a robot or a mascot who keeps coming back is a cast. A work with nobody in it has no casts, and that's fine.
 
 Attach a cast through a still's or a take's `casts`. Their face, figure and outfit go to the model as pictures, but pictures alone don't say which face is whose role, and you never see them yourself. So the prompt names what it attaches. Read each attached cast with `sys.persona.read`, and their pictures with `sys.still.read`: a picture's chosen attempt carries a `description`, the picture in words, a face described closely enough to draw them again. Write them in by name with the few features that make them recognizable, taken from those words: age, build, hair, the outfit they wear here. Use the same words for them in every prompt, as you do the art style. With two or more casts in one frame, say who is where and doing what, so the model can't swap them. Then write what's particular to this moment: what they're doing, how they look, where they are in the frame. Never describe someone differently from their persona: change the persona, or the shot.
+
+{{sheets}}
 
 ## Stills
 

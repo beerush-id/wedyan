@@ -4,14 +4,19 @@ import { WORK_MODELS } from '../documents/generation.js';
 import type { AgentSkill } from '../kernel/agent.js';
 import type { Callable, SkillFile } from '../share/skills.js';
 import { capabilities } from './format.js';
+import sheets from './SHEETS.md?raw';
 import { ACTIONS_BY_NAME, TOOLS_BY_NAME } from './tools.js';
+
+/** Where a skill takes the reference of people's picture sheets, filled in as it's read. */
+const SHEETS_PLACE = '{{sheets}}';
 
 /**
  * The skills Lita can be handed, one per app, read from each app's `SKILL.md` on the server. Rita
  * picks one by name; the kernel resolves the name here, so a skill is never chosen by the client.
  */
 export const SKILLS: Record<string, AgentSkill> = Object.fromEntries(
-  [photosSkill, motionsSkill].map((text) => {
+  [photosSkill, motionsSkill].map((source) => {
+    const text = source.replace(SHEETS_PLACE, sheets.trim());
     const skill = parseSkill(text);
     return [skill.name, skill];
   }),

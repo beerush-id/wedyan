@@ -119,15 +119,9 @@ const stageChanges = z.strictObject({
 
 const personaInit = z.strictObject({
   name: z.string().min(1),
-  head: z.string().min(1).describe('What to draw: a close portrait of their face and head, with age, features, hair and the art style.'),
-  body: z
-    .string()
-    .optional()
-    .describe('What to draw: their whole body from four angles side by side (front, three-quarter, side, back) on one wide sheet, neutral and plain, showing build, height and posture.'),
-  wardrobe: z
-    .string()
-    .optional()
-    .describe('What to draw: them full length from four angles side by side (front, three-quarter, side, back) on one wide sheet, the focus on what they wear.'),
+  head: z.string().min(1).describe('What to draw: their face, written as the face sheet in your reference of people’s picture sheets.'),
+  body: z.string().optional().describe('What to draw: their figure, written as the headless figure sheet in your reference of people’s picture sheets.'),
+  wardrobe: z.string().optional().describe('What to draw: their outfit, written as the headless outfit sheet in your reference of people’s picture sheets.'),
   kind: z.enum(['person', 'character', 'mascot']).optional(),
   description: z.string().max(255).optional(),
   voice: z.strictObject({ name: z.string(), sample: z.string().optional() }).optional(),
