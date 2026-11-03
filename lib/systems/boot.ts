@@ -14,6 +14,8 @@ import photosManifest from '@/apps/photos/manifest.json';
 import photosMain, { commands as photosCommands, linkHandle as photosLinks, opens as photosOpens } from '@/apps/photos/views/index.js';
 import settingsManifest from '@/apps/settings/manifest.json';
 import settingsMain from '@/apps/settings/views/index.js';
+import { homeReady } from '@/lib/kernel/home.h.js';
+import { showIndexing } from './home.js';
 import { dropWindow, keepWindow, type WedyanApp } from './registry.js';
 
 /** What the splash says from the first paint until the apps install. */
@@ -59,10 +61,13 @@ export async function boot(): Promise<void> {
     ];
     system.system.apps?.push(...apps);
   });
+  // A first visit seeds the home; nothing opens before its files are there.
+  await step('Setting up your home...', homeReady);
   step('Preparing your desktop');
 
   BOOT_STAT.status = 'Ready';
   BOOT_STAT.ready = true;
+  showIndexing();
 }
 
 /**
@@ -70,8 +75,9 @@ export async function boot(): Promise<void> {
  *
  * @param status - What the splash says during the step.
  * @param work - What the step does, if anything.
+ * @returns Once it's done.
  */
-function step(status: string, work?: () => void): void {
+async function step(status: string, work?: () => void | Promise<void>): Promise<void> {
   BOOT_STAT.status = status;
-  work?.();
+  await work?.();
 }
