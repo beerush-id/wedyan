@@ -3,7 +3,7 @@ import { $bind, $static, $use, createContext, For, mutable, Show, Snippet, setup
 import { Avatar, Button, EmptyState, Select, Spinner, Switch, TextInput, Tooltip } from '@airlib/react-aui';
 import { WindowPanel } from '@airlib/react-aui/desktop';
 import { linkTo, requestLink } from '@/lib/systems/public.js';
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import { ConfirmButton } from '@/components/ConfirmButton.js';
 import { FloatingDownload } from '@/components/FloatingDownload.js';
 import { generationCtx } from '@/components/generation.js';
@@ -506,7 +506,7 @@ const LookTab = setup<{ part: Part }>((props) => {
 
   return () => (
     <div className={CLASS.TAB}>
-      <figure className={CLASS.SLOT} data-part={props.part} aria-label={part.main}>
+      <figure className={CLASS.SLOT} style={{ '--wedyan-look-aspect': part.aspect.replace(':', ' / ') } as CSSProperties} aria-label={part.main}>
         <Snippet data={() => (main() ? (picture() ?? '') : null)}>
           {(src) => {
             if (src) {

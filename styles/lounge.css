@@ -213,32 +213,17 @@
   position: relative;
 }
 
-/* The main picture fills the column's width in its look's frame — a face square, a figure wide; while it's missing, its empty place fills the frame. */
+/* The main picture fills the column's width in its look's shape, which the slot is given; while it's missing, its empty place fills the frame. */
 .wedyan-lounge-slot-picture {
   display: grid;
   place-items: center;
   box-sizing: border-box;
   inline-size: 100%;
-  aspect-ratio: 1;
+  aspect-ratio: var(--wedyan-look-aspect, 1);
   max-block-size: calc(var(--spacing) * 140);
   object-fit: cover;
   border-radius: var(--radius-sm);
   background: color-mix(in oklch, currentColor 6%, transparent);
-
-  .wedyan-lounge-slot[data-part='body'] & {
-    aspect-ratio: 16 / 9;
-  }
-
-  .wedyan-lounge-slot[data-part='wardrobe'] & {
-    aspect-ratio: 9 / 16;
-  }
-}
-
-/* A default outfit stands tall: kept narrow, so it doesn't run far down the tab, and centred in it. */
-.wedyan-lounge-slot[data-part='wardrobe'] {
-  inline-size: 100%;
-  max-inline-size: 20rem;
-  margin-inline: auto;
 }
 
 div.wedyan-lounge-slot-picture {
