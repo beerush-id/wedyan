@@ -296,8 +296,11 @@ async function newStillAttempt(adapter: AIAdapter, pictures: ImageWorkerEnv, ite
   const made = changing ? { ...request, references: [...(request.references ?? []), target] } : request;
   const attempts = await activity(MOTION_PICTURE, still.name, () => makeAttempts(adapter, pictures, target, made).catch(() => []));
   if (!attempts.length) return { ...still, path: target, failed: 'No picture came back' };
-  const taken = await takenByDesktop(target, request, attempts);
-  if (taken) return stillFile(target, await documentOf(target, 'still'));
+  // A desktop that took them saves its copy in its own time, so the drive can't say yet that it has them.
+  if (await takenByDesktop(target, request, attempts)) {
+    addAttempts(still, attempts);
+    return stillFile(target, still);
+  }
   return stillFile(target, await changeDocument(target, 'still', (changed) => {
     applyRequest(changed, asked);
     addAttempts(changed, attempts);
@@ -350,7 +353,11 @@ async function newSoundAttempt(path: string): Promise<SoundFile> {
   if (!text) throw new Error(`${sound.name} has no words to say`);
   const attempt = await activity(MOTION_VOICE, sound.name, () => speakAttempt(path, text).catch(() => undefined));
   if (!attempt) return { ...sound, path, failed: 'Its words could not be spoken' };
-  if (await takenByDesktop(path, {}, [attempt])) return soundFile(path, await documentOf(path, 'sound'));
+  // A desktop that took it saves its copy in its own time, so the drive can't say yet that it has it.
+  if (await takenByDesktop(path, {}, [attempt])) {
+    addAttempts(sound as never, [attempt]);
+    return soundFile(path, sound);
+  }
   return soundFile(path, await changeDocument(path, 'sound', (changed) => addAttempts(changed as never, [attempt])));
 }
 
