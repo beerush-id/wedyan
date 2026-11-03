@@ -1,7 +1,7 @@
 import type { AIAdapter } from '@irpclib/ai-kit/worker';
 import { write } from '@irpclib/r2-file';
 import type { ImageWorkerEnv } from '@irpclib/r2-image/worker';
-import { chosenAttempt, settingsOf } from '@/lib/documents/generation.js';
+import { chosenAttempt, LOOK_ASPECTS, settingsOf } from '@/lib/documents/generation.js';
 import { newHeader, newId } from '@/lib/documents/paths.js';
 import type { GeneratedAttempt, PersonaDocument, SoundDocument, StillDocument, TakeDocument } from '@/lib/documents/types.js';
 import { MOTION_FACE, MOTION_FIGURE, MOTION_OUTFIT, MOTION_PICTURE, MOTION_VOICE } from '@/lib/kernel/agent.h.js';
@@ -65,9 +65,9 @@ const MAX_VIDEO_SECONDS = 10;
 
 /** A persona's pictures: the still each is kept in, what it's called, and what shows it being made. */
 const PARTS = {
-  head: { file: 'Head.still', label: 'face', aspect: '1:1', activity: MOTION_FACE },
-  body: { file: 'Figure.still', label: 'figure', aspect: '3:4', activity: MOTION_FIGURE },
-  wardrobe: { file: 'Outfit.still', label: 'outfit', aspect: '3:4', activity: MOTION_OUTFIT },
+  head: { file: 'Head.still', label: 'face', aspect: LOOK_ASPECTS.head, activity: MOTION_FACE },
+  body: { file: 'Figure.still', label: 'figure', aspect: LOOK_ASPECTS.body, activity: MOTION_FIGURE },
+  wardrobe: { file: 'Outfit.still', label: 'outfit', aspect: LOOK_ASPECTS.wardrobe, activity: MOTION_OUTFIT },
 };
 
 type Part = keyof typeof PARTS;

@@ -133,7 +133,7 @@ If the work isn't in English, the voice can't carry it. Tell it in titles and su
 
 ## Casts
 
-A cast is a real recurring character, someone the viewer follows through the work and knows on sight. They'll be seen walking, from behind, small in a wide shot, so a cast has a whole body. Give each one `head`, `body` and `wardrobe`, and describe the figure as closely as the face: build, height, how they stand. Each makes a still of its own, so to redraw one part use `sys.persona.generate` with that part.
+A cast is a real recurring character, someone the viewer follows through the work and knows on sight. They'll be seen walking, from behind, small in a wide shot, so a cast has a whole body. Give each one `head`, `body` and `wardrobe`, and describe the figure as closely as the face: build, height, how they stand. A figure and an outfit are each one wide sheet of them from four angles side by side, front, three-quarter, side and back, so the model sees them all round; write the prompt for that sheet. Each makes a still of its own, so to redraw one part use `sys.persona.generate` with that part.
 
 Someone seen once, or only ever as a face, is not a cast. Draw them in that shot's still. A waiter, a stranger at a window and a crowd all belong in the prompt. A dog, a robot or a mascot who keeps coming back is a cast. A work with nobody in it has no casts, and that's fine.
 

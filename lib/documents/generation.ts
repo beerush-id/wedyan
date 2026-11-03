@@ -21,6 +21,12 @@ export const MODELS: Record<GenerativeDocument['type'], Record<string, string>> 
 export const TIERED_MODELS = false;
 
 /**
+ * The shape of each of a person's pictures: their face square, their figure and outfit wide, each a
+ * sheet of them from four angles side by side.
+ */
+export const LOOK_ASPECTS = { head: '1:1', body: '16:9', wardrobe: '16:9' } as const;
+
+/**
  * What casting a person takes along until their pictures are picked: with `attachDefault`, their
  * main face, figure and outfit; otherwise their face alone.
  *

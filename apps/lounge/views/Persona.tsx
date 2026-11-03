@@ -9,7 +9,7 @@ import { FloatingDownload } from '@/components/FloatingDownload.js';
 import { generationCtx } from '@/components/generation.js';
 import { GenerationForm } from '@/components/GenerationForm.js';
 import { GenerativeIcon } from '@/components/icons.js';
-import { ADDRESS } from '@/lib/documents/generation.js';
+import { ADDRESS, LOOK_ASPECTS } from '@/lib/documents/generation.js';
 import { resolvePath } from '@/lib/documents/paths.js';
 import type { PersonaDocument, StillDocument } from '@/lib/documents/types.js';
 import { dfs } from '@/lib/share/dfs.js';
@@ -67,7 +67,7 @@ const PARTS: Record<
     promote: 'Make face',
     remove: 'Remove pose',
     removeHint: 'It’s taken off their poses. Its still stays in their folder.',
-    aspect: '1:1',
+    aspect: LOOK_ASPECTS.head,
   },
   body: {
     main: 'Figure',
@@ -81,7 +81,7 @@ const PARTS: Record<
     promote: 'Make figure',
     remove: 'Remove pose',
     removeHint: 'It’s taken off their poses. Its still stays in their folder.',
-    aspect: '16:9',
+    aspect: LOOK_ASPECTS.body,
   },
   wardrobe: {
     main: 'Outfit',
@@ -95,7 +95,7 @@ const PARTS: Record<
     promote: 'Make default',
     remove: 'Remove outfit',
     removeHint: 'It’s taken out of their wardrobe. Its still stays in their folder.',
-    aspect: '9:16',
+    aspect: LOOK_ASPECTS.wardrobe,
   },
 };
 
