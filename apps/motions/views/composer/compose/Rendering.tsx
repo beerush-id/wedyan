@@ -1,7 +1,7 @@
 import type { VideoStageAria } from '@airlib/aria';
 import { $static, onMount, setup, snapshot } from '@airlib/react';
 import { createTimeline } from '@airlib/react/timeline';
-import { Button, Stage } from '@airlib/react-aui';
+import { Button, Stage, toast } from '@airlib/react-aui';
 import type { StageDocument } from '@/lib/documents/types.js';
 import { download } from '@/lib/systems/download.js';
 import { type Composer, composerCtx } from '../context.js';
@@ -29,20 +29,25 @@ export const Rendering = setup(() => {
   timeline.hydrate(composition);
   let stage: VideoStageAria;
 
-  const finish = (result?: RenderedVideo) => {
+  // How it ended shows in a toast too: a render runs on its own, and the window may be out of sight.
+  const finish = (result: RenderedVideo) => {
+    const file = `${source.name}.mp4`;
     composer.rendering = false;
-    composer.status = result ? describe(result) : '';
-    if (result) download(result.file, `${source.name}.mp4`);
+    composer.status = describe(result);
+    download(result.file, file);
+    toast.success(`${file} is rendered and downloaded. ${composer.status}.`);
+  };
+  const fail = (error: Error) => {
+    composer.rendering = false;
+    // Cancelling is the user's own doing: nothing to tell.
+    composer.status = stop.signal.aborted ? '' : `Rendering failed: ${error.message}`;
+    if (!stop.signal.aborted) toast.error(`${source.name} couldn't be rendered: ${error.message}`);
   };
 
   onMount(() => {
     composer.status = 'Rendering…';
     renderMp4(stage, renderMedia, ({ done, total }) => (composer.status = `Rendering ${done} of ${total} frames`), stop.signal)
-      .then(finish)
-      .catch((error) => {
-        if (!stop.signal.aborted) console.error(error);
-        finish();
-      })
+      .then(finish, fail)
       .finally(() => timeline.destroy());
 
     return () => stop.abort();
