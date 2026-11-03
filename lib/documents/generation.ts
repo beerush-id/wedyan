@@ -77,6 +77,9 @@ export const MAKES_VIDEO = false;
 /** What's a picture rather than footage, by its address: a take can hold either as an attempt. */
 export const PICTURE_FILE = /\.(webp|png|jpe?g|avif)(\?|$)/i;
 
+/** What's a generated document by its path, known before the document itself has arrived. */
+export const GENERATED_FILE = /\.(still|take|sound)$/;
+
 /** What's a document that shows a picture, rather than a picture, by its path. */
 const DOCUMENT_FILE = /\.(still|take|persona)$/;
 

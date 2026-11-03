@@ -2,7 +2,9 @@ import { effect, history, Show, Snippet, setup, untrack } from '@airlib/react';
 import { createTimeline, type Timeline } from '@airlib/react/timeline';
 import { EmptyState, Stage } from '@airlib/react-aui';
 import { WindowPanel } from '@airlib/react-aui/desktop';
+import { GENERATED_FILE } from '@/lib/documents/generation.js';
 import { ComposeIcon } from '../../icons.js';
+import { follow } from '../../motion.js';
 import { type Composer, composerCtx } from '../context.js';
 import { mediaLoader } from '../media.js';
 import { sampleClip, watchKeyframes } from '../sampling.js';
@@ -57,6 +59,14 @@ const ComposeStage = setup(() => {
       const made = history(stage, { group: true });
       watchKeyframes(composition);
       Object.assign(composer, { timeline, stageHistory: made, clips: [], node: '', snap: false, status: '', rendering: false });
+      // What a clip was made from is on its way before it's picked: arriving after, it would rebuild
+      // everything that shows it.
+      for (const track of composition.tracks) {
+        for (const { options } of track.segments) {
+          const source = String(options.meta?.source);
+          if (GENERATED_FILE.test(source)) follow(composer.path, source);
+        }
+      }
       return made;
     });
     return () => {
@@ -101,7 +111,7 @@ const ComposeStage = setup(() => {
         {/* How the picked clip's source was made, beside the timeline, while a generated clip is picked. */}
         <Snippet>
           {() =>
-            composer.generativeClip() && (
+            GENERATED_FILE.test(String(composer.hostClip()?.meta?.source)) && (
               <WindowPanel role="region" aria-label="Prompt" className="wedyan-compose-group wedyan-compose-prompt">
                 <Prompt />
               </WindowPanel>
