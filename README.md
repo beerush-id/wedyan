@@ -107,6 +107,7 @@ One ask is one streaming call. Everything happens inside it:
 - **[AirLib](https://airlib.dev)** (open source, by the same author): reactive state, IRPC (type-safe calls with streaming and two-way ask/answer), r2-file (filesystem on Cloudflare R2 and D1), r2-image (picture resizing on R2 and Containers), ai-kit (one API over AI providers), Aria (headless UI behavior, including the video stage and its renderer) and AUI (the UI component library).
 - **Meta models:** Muse Spark 1.3 for the assistant, Muse Spark Open on Baseten for the router, Wonder by default for generating a motion project, Muse Voice Transcribe for speech, Muse Image for photos.
 - **Open-source models:** BGE-M3 by BAAI (MIT) for the embeddings behind memory and file recall, and MeloTTS by MyShell (MIT) for speaking answers aloud, both on Cloudflare Workers AI.
+- **Libraries:** [GSAP](https://gsap.com) for the keyframed motion of every clip, [Mediabunny](https://mediabunny.dev) for decoding a project's media and encoding its MP4, [Zod](https://zod.dev) for the schemas of every tool and call, and React, through AirLib, for JSX.
 - **Cloudflare:** Workers, Durable Objects (one per session), Containers, R2, D1, Vectorize, Queues, Workers AI.
 
 ## What was built during the event
