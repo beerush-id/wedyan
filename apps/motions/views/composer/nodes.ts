@@ -1,16 +1,23 @@
+import { untrack } from '@airlib/react';
 import type { ClipNode, HtmlClip } from './composition.js';
 
 /**
- * Finds a node anywhere under some nodes.
+ * Finds a node anywhere under some nodes. An id never changes, so finding one by it watches nothing
+ * it passes: whoever looks watches the id it's looking for, and the node it finds.
  *
  * @param nodes - The nodes.
  * @param id - The node's id.
  * @returns The node, and the list it's in; nothing when it isn't there.
  */
 export function findNode(nodes: ClipNode[] | undefined, id: string): { node: ClipNode; siblings: ClipNode[] } | undefined {
+  return untrack(() => search(nodes, id));
+}
+
+/** Walks the nodes for one by its id. */
+function search(nodes: ClipNode[] | undefined, id: string): { node: ClipNode; siblings: ClipNode[] } | undefined {
   for (const node of nodes ?? []) {
     if (node.id === id) return { node, siblings: nodes as ClipNode[] };
-    const found = findNode(node.props.children, id);
+    const found = search(node.props.children, id);
     if (found) return found;
   }
 }
