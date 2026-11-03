@@ -39,6 +39,15 @@ const IMAGE_BROWSER_TTL = 86400;
 /** Kept by the asking browser, and checked with the server before it's used again. */
 const REVALIDATE = 'private, no-cache';
 
+/** An SVG file, by its path. */
+const SVG_FILE = /\.svg$/i;
+
+/** What an SVG is served as. */
+const SVG_TYPE = 'image/svg+xml';
+
+/** What an SVG opened on its own may load: its own inline styles, nothing else, no scripts. */
+const SVG_POLICY = "default-src 'none'; style-src 'unsafe-inline'";
+
 const httpRouter = new HTTPRouter(httpTransport);
 const wsRouter = new WebSocketRouter(wsTransport);
 
@@ -176,6 +185,13 @@ async function serveFile(request: Request, url: URL, env?: ServerEnv): Promise<R
     () => seedHome(user),
   );
 
+  // An SVG is the picture it is, whatever it was stored as, at any size: never resized, and always
+  // answered whole, so no copy a browser kept as something else is ever reused.
+  if (SVG_FILE.test(path)) {
+    const whole = new Request(target, { method: request.method, headers: withoutValidators(request.headers) });
+    return privately(asSvg(await files.fetch(whole, bindings, resolveCtx())), REVALIDATE);
+  }
+
   // R2 Image and r2-file's delivery are reached only from here: scoped to the session above.
   if (RESIZE_PARAMS.some((param) => url.searchParams.has(param))) {
     const picture = await pictureAt(bindings.DB as never, home.homeDir, path);
@@ -186,6 +202,34 @@ async function serveFile(request: Request, url: URL, env?: ServerEnv): Promise<R
     return privately(resized, resized.ok ? `private, max-age=${IMAGE_BROWSER_TTL}` : REVALIDATE);
   }
   return privately(await files.fetch(new Request(target, request), bindings, resolveCtx()), REVALIDATE);
+}
+
+/**
+ * A file's response as an SVG: its type, and a policy that keeps any script in it from running when
+ * it's opened on its own.
+ *
+ * @param response - The file as delivered.
+ * @returns The same response, as an SVG; anything but a found file as it is.
+ */
+function asSvg(response: Response): Response {
+  if (!response.ok) return response;
+  const headers = new Headers(response.headers);
+  headers.set('Content-Type', SVG_TYPE);
+  headers.set('Content-Security-Policy', SVG_POLICY);
+  return new Response(response.body, { status: response.status, headers });
+}
+
+/**
+ * A request's headers without what asks to revalidate a copy, so the answer is always whole.
+ *
+ * @param headers - The request's headers.
+ * @returns The headers, without `If-None-Match` and `If-Modified-Since`.
+ */
+function withoutValidators(headers: Headers): Headers {
+  const whole = new Headers(headers);
+  whole.delete('If-None-Match');
+  whole.delete('If-Modified-Since');
+  return whole;
 }
 
 /**
