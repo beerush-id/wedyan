@@ -294,6 +294,10 @@ const StillPanel = setup<{ path: string }>((props) => {
     },
     // A persona's own pictures are of the persona; no one else is cast in them.
     casts: false,
+    // What it can be made from, beside uploading one: the person's other pictures, a figure from their face.
+    get pictures() {
+      return othersOf(view.path, view.document, path);
+    },
     get busy() {
       return making.busy;
     },
@@ -705,6 +709,24 @@ function removeButton(remove: { label: string; description: string; run: (source
 function picturesOf(document: PersonaDocument, part: Part): string[] {
   const side: Side | undefined = document[part];
   return side ? [side.main, ...(side[PARTS[part].others] ?? [])].filter(Boolean) : [];
+}
+
+/**
+ * A person's pictures that one of theirs can be made from: every other one already drawn.
+ *
+ * @param personaPath - Where the persona is, which its pictures' paths are written from.
+ * @param document - The persona, once it has arrived.
+ * @param still - The picture being made, by its path in the home.
+ * @returns Each, by its path in the home and its name.
+ */
+function othersOf(personaPath: string, document: PersonaDocument | undefined, still: string): GenerationChoice[] {
+  if (!document) return [];
+  return (['head', 'body', 'wardrobe'] as Part[]).flatMap((part) =>
+    picturesOf(document, part).flatMap((source) => {
+      const found = stillAt(personaPath, source);
+      return found && found.path !== still && found.document.chosen ? [{ path: found.path, name: found.document.name }] : [];
+    })
+  );
 }
 
 /**

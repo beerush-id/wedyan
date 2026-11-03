@@ -30,6 +30,39 @@
   }
 }
 
+/* What it takes of them, along the tile's bottom: up to three pictures overlapping, then how many more, the face clear above them. */
+.wedyan-people-tile-stack {
+  position: absolute;
+  inset-block-end: var(--spacing-xs);
+  inset-inline-end: var(--spacing-xs);
+  display: flex;
+
+  & > * {
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    box-sizing: border-box;
+    inline-size: 1.375rem;
+    aspect-ratio: 1;
+    border: 2px solid var(--aui-glass-surface-bg);
+    border-radius: var(--radius-xs);
+    background: var(--color-surface-high);
+    color: var(--color-on-surface);
+    font-size: var(--font-label-sm-size);
+    font-weight: 600;
+
+    & + * {
+      margin-inline-start: calc(var(--spacing) * -2);
+    }
+  }
+
+  & img {
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+  }
+}
+
 /* Their pictures to pick, above the tile: each kind under its name, a row of small squares, kept clear of the popover's rounded corners. */
 .wedyan-people-pictures {
   display: flex;

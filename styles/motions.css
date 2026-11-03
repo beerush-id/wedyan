@@ -799,14 +799,55 @@
   cursor: pointer;
 }
 
-/* A generation's references: pictures in a row that wraps. */
+/* A generation's references and casts: three to a row, each square filling its column, large enough to read at the panel's width. */
 .wedyan-compose-thumbs {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--spacing-xs);
   margin: 0;
   padding: 0;
   list-style: none;
+
+  & .wedyan-compose-thumb,
+  & .wedyan-people-tile {
+    inline-size: 100%;
+  }
+}
+
+/* Picking a reference: what's found, four to a row, each picture over its name, scrolling once there are many. */
+.wedyan-compose-picker-results {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--spacing-sm);
+  max-block-size: 50vh;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+
+  & button {
+    display: grid;
+    gap: var(--spacing-xs);
+    inline-size: 100%;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+  }
+
+  & .wedyan-compose-thumb {
+    inline-size: 100%;
+  }
+
+  & span {
+    overflow: hidden;
+    font-size: var(--font-label-sm-size);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
 /* A reference or a cast, holding its remove button, which floats at its top right while it's hovered or focused. */

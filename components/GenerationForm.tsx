@@ -1,7 +1,11 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
-import { $bind, $use, mutable, Snippet, setup, template } from '@airlib/react';
+import { $bind, $use, derived, mutable, Snippet, setup, template, untrack } from '@airlib/react';
 import {
   Button,
+  Dialog,
+  DialogClose,
+  DialogPanel,
+  DialogTitle,
   Listbox,
   ListboxOption,
   Menu,
@@ -35,12 +39,13 @@ import {
   TIERED_MODELS,
 } from '@/lib/documents/generation.js';
 import { nameOf, newId, parentOf } from '@/lib/documents/paths.js';
+import { PICTURES_LISTING, rowsOf } from '@/lib/documents/rows.js';
 import type { GeneratedAttempt, GenerativeDocument, PersonaDocument, SoundDocument } from '@/lib/documents/types.js';
 import { promptWrite } from '@/lib/kernel/prompts.h.js';
 import { dfs } from '@/lib/share/dfs.js';
 import { follow } from '@/lib/share/documents.js';
 import { ConfirmButton } from './ConfirmButton.js';
-import { type GenerationSubject, generationCtx } from './generation.js';
+import { type GenerationChoice, type GenerationSubject, generationCtx } from './generation.js';
 import { GenerativeIcon, SoundIcon, WriteIcon } from './icons.js';
 import { PeopleTile } from './PeopleTile.js';
 
@@ -52,6 +57,18 @@ const SPOKEN = 'speech';
 
 /** The longest edge a small square picture is asked for at, as `dfs.image` serves it. */
 const THUMB_SIZE = 128;
+
+/** The user's home, whose pictures a reference is picked from. */
+const HOME = '~';
+
+/** How many of the newest pictures show before anything is typed. */
+const RECENT_COUNT = 20;
+
+/** How long typing pauses before the home is searched for a reference, in ms. */
+const SEARCH_WAIT = 250;
+
+/** The most pictures one search for a reference shows. */
+const FOUND_LIMIT = 40;
 
 /** The dashed box everything added to a generation is added from, whatever its icon. */
 const ADD_TILE = 'wedyan-compose-thumb wedyan-compose-thumb-add';
@@ -282,11 +299,7 @@ const referencesGroup = (source: GenerativeDocument, subject: GenerationSubject)
       <li>
         <ReferenceAdd source={source} path={subject.path} />
       </li>
-      {source.type !== 'sound' && (
-        <li>
-          <ReferencePick source={source} subject={subject} />
-        </li>
-      )}
+      {source.type !== 'sound' && <ReferencePick source={source} subject={subject} />}
     </ul>,
     true
   );
@@ -343,30 +356,85 @@ const ReferenceAdd = template<{ source: GenerativeDocument; path?: string }>(
   'ReferenceAdd'
 );
 
-/** Adding a reference from the pictures on hand: what isn't one already, and never what's being made. */
+/**
+ * Picks a picture to make it from: before anything is typed, the pictures on hand where it's made,
+ * then the newest of the home's; as it's typed, the home's pictures that match, searched, never
+ * listed whole. Never what's being made, nor what's a reference already.
+ */
 const ReferencePick = setup<{ source: GenerativeDocument; subject: GenerationSubject }>((props) => {
-  const items = () =>
-    (props.subject.pictures ?? [])
-      .filter(({ path }) => path !== props.subject.path && !props.source.references?.includes(path))
-      .map(({ path, name }) => ({ name: path, label: name }));
+  const picking = mutable({ open: false, query: '' });
+  // The newest pictures, asked for each time it opens: what shows before anything is typed.
+  const recent = dfs.list.when(() => {
+    void picking.open;
+    return [HOME, { ...PICTURES_LISTING, limit: RECENT_COUNT }] as [string, object];
+  });
+  const found = dfs.search.when(() => [picking.query.trim(), { limit: FOUND_LIMIT }] as [string, object], SEARCH_WAIT);
+
+  // Each answer's pictures, sorted out once: what a row is never changes.
+  const newest = derived(() => {
+    const rows = rowsOf(recent);
+    void rows.length;
+    return untrack(() => rows.map(({ path, name }) => ({ path, name })));
+  });
+  const matches = derived(() => {
+    const rows = rowsOf(found);
+    void rows.length;
+    return untrack(() =>
+      rows.filter((row) => row.kind === 'image' || (row.kind === 'still' && !!row.thumbnail)).map(({ path, name }) => ({ path, name }))
+    );
+  });
+
+  // Typed, what matches; otherwise what's on hand where it's made, then the newest of the rest.
+  const choices = (): GenerationChoice[] => {
+    const onHand = props.subject.pictures ?? [];
+    const offered = new Set(onHand.map(({ path }) => path));
+    const shown = picking.query.trim() ? matches.value : [...onHand, ...newest.value.filter(({ path }) => !offered.has(path))];
+    return shown.filter(({ path }) => path !== props.subject.path && !props.source.references?.includes(path));
+  };
+
+  const pick = (path: string) => {
+    (props.source.references ??= []).push(path);
+    picking.open = false;
+    picking.query = '';
+  };
 
   return () => (
-    <Snippet>
-      {() =>
-        items().length ? (
-          <Menu
-            label="Pick a reference"
-            size="xs"
-            variant="text"
-            className={ADD_TILE}
-            items={$use(items)}
-            oncommand={(event) => (props.source.references ??= []).push(String(event.detail))}
-          >
-            <Menu.Snippet for="trigger">{() => <GenerativeIcon />}</Menu.Snippet>
-          </Menu>
-        ) : null
-      }
-    </Snippet>
+    <li>
+      <button type="button" className={ADD_TILE} aria-label="Pick a reference" onClick={() => (picking.open = true)}>
+        <GenerativeIcon />
+      </button>
+      <Dialog open={$bind(picking, 'open')} modality="modal">
+        <DialogPanel className="wedyan-compose-picker">
+          <DialogTitle>Pick a reference</DialogTitle>
+          <TextInput size="sm" label="Search your pictures" placeholder="A name, or what it shows" value={$bind(picking, 'query')} />
+          <Snippet>
+            {() => {
+              const shown = choices();
+              if (!shown.length) {
+                return (
+                  <p className="wedyan-compose-property-note">
+                    {picking.query.trim() ? 'No pictures match.' : 'No pictures yet.'}
+                  </p>
+                );
+              }
+              return (
+                <ul className="wedyan-compose-picker-results">
+                  {shown.map(({ path, name }) => (
+                    <li key={path}>
+                      <button type="button" title={name} onClick={() => pick(path)}>
+                        <Thumb src={pictureAt(props.subject.path ?? '', path)} />
+                        <span>{name}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              );
+            }}
+          </Snippet>
+          <DialogClose>Cancel</DialogClose>
+        </DialogPanel>
+      </Dialog>
+    </li>
   );
 }, 'ReferencePick');
 
@@ -380,18 +448,21 @@ const CastAdd = setup<{ source: GenerativeDocument; subject: GenerationSubject; 
   return () => (
     <Snippet>
       {() =>
+        // A tile only while someone's left to add, so the list keeps no empty place for it.
         items().length ? (
-          <Menu
-            label="Add cast"
-            size="xs"
-            variant="text"
-            className={ADD_TILE}
-            disabled={props.source.type === 'sound'}
-            items={$use(items)}
-            oncommand={(event) => props.add(String(event.detail))}
-          >
-            <Menu.Snippet for="trigger">{() => <AddIcon />}</Menu.Snippet>
-          </Menu>
+          <li>
+            <Menu
+              label="Add cast"
+              size="xs"
+              variant="text"
+              className={ADD_TILE}
+              disabled={props.source.type === 'sound'}
+              items={$use(items)}
+              oncommand={(event) => props.add(String(event.detail))}
+            >
+              <Menu.Snippet for="trigger">{() => <AddIcon />}</Menu.Snippet>
+            </Menu>
+          </li>
         ) : null
       }
     </Snippet>
@@ -470,9 +541,7 @@ const castsGroup = (source: GenerativeDocument, subject: GenerationSubject) => {
     speech ? 'Voice' : 'Casts',
     <ul className="wedyan-compose-thumbs">
       <Snippet>{shown}</Snippet>
-      <li>
-        <CastAdd source={source} subject={subject} casts={written} add={add} />
-      </li>
+      <CastAdd source={source} subject={subject} casts={written} add={add} />
     </ul>,
     true
   );

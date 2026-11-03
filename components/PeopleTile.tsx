@@ -21,10 +21,14 @@ type PeopleTileProps = {
 /** A run of a person's pictures, under its name. */
 type PictureGroup = { label: string; sources: string[] };
 
+/** How many picked pictures the tile stacks before it counts the rest. */
+const STACKED = 3;
+
 /**
- * Someone cast in a generation, as a square tile of their portrait. Hovered or focused, their name
- * shows below it; clicked, every picture of theirs — face, expressions, figure, poses, wardrobe — opens
- * above it, to pick which ones the generation takes along.
+ * Someone cast in a generation, as a square tile of their portrait, with the pictures it takes of
+ * them stacked small along its bottom. Hovered or focused, their name shows below it; clicked, every
+ * picture of theirs — face, expressions, figure, poses, wardrobe — opens above it, to pick which ones
+ * the generation takes along.
  */
 export const PeopleTile = setup<PeopleTileProps>((props) => {
   // The tile is made for one person; their pictures are read as it's made.
@@ -47,6 +51,22 @@ export const PeopleTile = setup<PeopleTileProps>((props) => {
     <Button variant="text" aria-label={name} className="wedyan-people-tile">
       <Snippet data={portrait}>
         {(src) => (src ? <img src={src} alt="" /> : <span aria-hidden="true">{initialsOf(name)}</span>)}
+      </Snippet>
+      {/* What it takes of them, at a glance: the first three picked, then how many more. */}
+      <Snippet>
+        {() => {
+          const picked = props.picked();
+          return picked.length > 0 ? (
+            <span className="wedyan-people-tile-stack" aria-hidden="true">
+              {picked.slice(0, STACKED).map((source) => (
+                <span key={source}>
+                  <Picture src={props.pictureOf(source)} />
+                </span>
+              ))}
+              {picked.length > STACKED && <span>{`+${picked.length - STACKED}`}</span>}
+            </span>
+          ) : null;
+        }}
       </Snippet>
       <Tooltip yDir="below" xDir="between">
         {name}

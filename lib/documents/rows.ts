@@ -1,4 +1,7 @@
-import type { FileInfo } from '@irpclib/r2-file';
+import type { FileInfo, ListOptions } from '@irpclib/r2-file';
+
+/** Every picture in the home, wherever it's kept, newest first: its images and stills, not a still's own attempts. */
+export const PICTURES_LISTING: ListOptions = { recursive: true, sort: '-mtime', scope: { pictures: 'true' } };
 
 /** What a row is: a kind of document, a kind of media, or a folder. */
 export type RowKind = 'folder' | 'motion' | 'stage' | 'still' | 'take' | 'sound' | 'persona' | 'agent' | 'memo' | 'image' | 'video' | 'audio';

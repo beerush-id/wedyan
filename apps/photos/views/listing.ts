@@ -1,7 +1,7 @@
 import type { ListOptions } from '@irpclib/r2-file';
 import { kindArt, type WedyanFileKind } from '@/components/WedyanGallery.js';
 import { ADDRESS } from '@/lib/documents/generation.js';
-import { type FileRow, shortDate, sizeOf } from '@/lib/documents/rows.js';
+import { type FileRow, PICTURES_LISTING, shortDate, sizeOf } from '@/lib/documents/rows.js';
 import { isMedia } from '@/lib/documents/words.js';
 import { dfs } from '@/lib/share/dfs.js';
 import { pathFrom } from '@/lib/share/paths.js';
@@ -13,7 +13,7 @@ export const ROOT = '~/Photos';
 export const HOME = '~';
 
 /** Every picture on the drive, wherever it's kept, newest first. */
-export const PICTURES: [string, ListOptions] = [HOME, { recursive: true, sort: '-mtime', scope: { pictures: 'true' } }];
+export const PICTURES: [string, ListOptions] = [HOME, PICTURES_LISTING];
 
 /** A still project's own file. */
 export const STILL_FILE = /\.still$/;
