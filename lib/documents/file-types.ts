@@ -1,4 +1,4 @@
-import { HandlerError } from '@irpclib/irpc';
+import { HandlerError, IRPCFile } from '@irpclib/irpc';
 import { fileModule, list, readStub, search, writeStub } from '@irpclib/r2-file';
 import { isSystemPath } from '../share/system.js';
 
@@ -27,11 +27,15 @@ const TEXT_EXTENSIONS = new Set(['md', 'txt', 'json', 'eml', 'ics']);
 export const FLAGGED = 'true';
 
 // Every write of a document, whoever makes it: the desktop, an agent or the seed, so none can forget.
-fileModule.hook(writeStub, (req) => {
-  const [path, data] = req.args;
+fileModule.hook(writeStub, async (req) => {
+  const [path] = req.args;
   const options = optionsOf(req.args[2]);
   const extension = path.split('.').pop() as string;
   const type = FILE_TYPES[extension];
+  // A document made anywhere else arrives as a file: it's read as the words it is, so it's checked,
+  // named and listed as one written here is.
+  if (type) req.args[1] = (await textOf(req.args[1])) as never;
+  const data = req.args[1];
   const encoding = typeof data === 'string' && readsAsText(path) ? { encoding: 'text' as const } : {};
   // What's the system's own stays out of every listing and search.
   const hidden = isSystemPath(path, 'file') ? { hidden: true } : {};
@@ -78,6 +82,17 @@ fileModule.hook(search, (req) => {
 export function readsAsText(path: string): boolean {
   const extension = path.split('.').pop() as string;
   return extension in FILE_TYPES || TEXT_EXTENSIONS.has(extension);
+}
+
+/**
+ * A document's content as its text when it came as a file, an upload or a blob; anything else as it is.
+ *
+ * @param data - What's written.
+ * @returns Its text, or it unchanged.
+ */
+async function textOf(data: unknown): Promise<unknown> {
+  const blob = data instanceof IRPCFile ? data.data : data;
+  return blob instanceof Blob && blob.size ? blob.text() : data;
 }
 
 /**
