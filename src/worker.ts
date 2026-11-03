@@ -3,7 +3,7 @@ import { LogLevel } from '@beerush/logger';
 import { consoleAdapter } from '@beerush/logger/adapters/console';
 import { createWorker as createAIWorker } from '@irpclib/ai-kit/worker';
 import { HTTPRouter } from '@irpclib/http/router';
-import { envCtx, IRPC_STORE, IRPC_STORE_EVENT, SESSION_STORE, setContext } from '@irpclib/irpc';
+import { envCtx, IRPC_STORE, IRPC_STORE_EVENT, SESSION_STORE, setContext, withContext } from '@irpclib/irpc';
 import { resolveBinding, resolveCtx } from '@irpclib/irpc/wrangler';
 import { fileModule } from '@irpclib/r2-file';
 import { fsContext } from '@irpclib/r2-file/context';
@@ -161,18 +161,29 @@ async function serveFile(request: Request, url: URL, env?: ServerEnv): Promise<R
   }
   if (!isHomePath(path)) return new Response('Bad Request', { status: 400 });
 
-  const { homeDir } = homeOf(user);
+  const home = homeOf(user);
   const target = new URL(url);
-  target.pathname = picturePath(homeDir, path);
+  target.pathname = picturePath(home.homeDir, path);
   const bindings = await bindingsOf(env);
+
+  // A page asks for its pictures before its first call, which is what seeds a new home.
+  await withContext(
+    [
+      [envCtx.key, bindings],
+      [SESSION_KEY, user],
+      [fsContext.key, home],
+    ],
+    () => seedHome(user),
+  );
 
   // R2 Image and r2-file's delivery are reached only from here: scoped to the session above.
   if (RESIZE_PARAMS.some((param) => url.searchParams.has(param))) {
-    const picture = await pictureAt(bindings.DB as never, homeDir, path);
+    const picture = await pictureAt(bindings.DB as never, home.homeDir, path);
     if (!picture || !isHomePath(picture)) return new Response('Not Found', { status: 404 });
-    target.pathname = picturePath(homeDir, picture);
-    const scoped = new Request(target, request);
-    return privately(await pictures.fetch(scoped, picturesOf(bindings)), `private, max-age=${IMAGE_BROWSER_TTL}`);
+    target.pathname = picturePath(home.homeDir, picture);
+    const resized = await pictures.fetch(new Request(target, request), picturesOf(bindings));
+    // Only a picture is kept: what failed is asked again.
+    return privately(resized, resized.ok ? `private, max-age=${IMAGE_BROWSER_TTL}` : REVALIDATE);
   }
   return privately(await files.fetch(new Request(target, request), bindings, resolveCtx()), REVALIDATE);
 }
