@@ -10,7 +10,7 @@ import { makeAttempts, makeStill, newStill } from '@/lib/server/stills.js';
 import { pathFrom } from '@/lib/share/paths.js';
 import { addAttempts, applyRequest, requestOf } from '@/lib/share/stills.js';
 import { speakAttempt } from '@/lib/speech/speech.js';
-import { activity, askOf, changeDocument, documentOf, eachOf, trash, userAgrees } from './store.js';
+import { activity, askOf, changeDocument, documentOf, eachOf, folderOf, trash, userAgrees } from './store.js';
 import {
   personaCreate,
   personaDelete,
@@ -81,10 +81,10 @@ type Part = keyof typeof PARTS;
  */
 export function setupFiles(adapter: AIAdapter, pictures: ImageWorkerEnv) {
   const makers = {
-    persona: (cwd: string | null | undefined, init: PersonaInit) => makePerson(adapter, pictures, cwd ?? PEOPLE, init),
-    still: (cwd: string | null | undefined, init: StillInit) => makeNewStill(adapter, pictures, cwd ?? STILLS, init),
-    sound: (cwd: string | null | undefined, init: SoundInit) => makeSound(cwd ?? SOUNDS, init),
-    take: (cwd: string | null | undefined, init: TakeInit) => makeTake(cwd ?? TAKES, init),
+    persona: (cwd: string | null | undefined, init: PersonaInit) => makePerson(adapter, pictures, folderOf(cwd, PEOPLE), init),
+    still: (cwd: string | null | undefined, init: StillInit) => makeNewStill(adapter, pictures, folderOf(cwd, STILLS), init),
+    sound: (cwd: string | null | undefined, init: SoundInit) => makeSound(folderOf(cwd, SOUNDS), init),
+    take: (cwd: string | null | undefined, init: TakeInit) => makeTake(folderOf(cwd, TAKES), init),
   };
 
   sys.construct(personaCreate, (cwd, items) => eachOf(items, (init) => makers.persona(cwd, init)));

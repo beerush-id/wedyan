@@ -8,7 +8,7 @@ import { pathFrom, pathTo } from '@/lib/share/paths.js';
 import type { setupFiles } from './files.js';
 import { soundFile } from './files.js';
 import { layOut, stageFile } from './stage.js';
-import { changeDocument, documentOf, eachOf, trash, userAgrees } from './store.js';
+import { changeDocument, documentOf, eachOf, folderOf, trash, userAgrees } from './store.js';
 import {
   type AssetFile,
   type AssetInit,
@@ -45,7 +45,7 @@ type Makers = ReturnType<typeof setupFiles>;
  * @param makers - What makes what they hold.
  */
 export function setupMotion(makers: Makers): void {
-  sys.construct(motionCreate, (cwd, items) => Promise.all(items.map((init) => makeMotion(cwd ?? MOTIONS, init))));
+  sys.construct(motionCreate, (cwd, items) => Promise.all(items.map((init) => makeMotion(folderOf(cwd, MOTIONS), init))));
   sys.construct(motionRead, async (path) => motionFile(path, await documentOf(path, 'motion')));
   sys.construct(motionEdit, editMotion);
   sys.construct(motionDelete, async (path) => {

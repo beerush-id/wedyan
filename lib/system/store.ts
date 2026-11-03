@@ -27,6 +27,21 @@ export function activity<T>(name: string, detail: string, work: () => Promise<T>
 }
 
 /**
+ * The folder a new file goes in. A model can write "no folder" as the word `null`, which would
+ * otherwise become a folder of that name.
+ *
+ * @param cwd - The folder asked for, if any.
+ * @param home - Where this kind of file lives.
+ * @returns The folder; throws when it isn't in the home.
+ */
+export function folderOf(cwd: string | null | undefined, home: string): string {
+  const folder = cwd?.trim().replace(/\/+$/, '');
+  if (!folder || folder === 'null' || folder === 'undefined') return home;
+  if (!folder.startsWith('~/')) throw new Error(`${cwd} isn't a folder in the home (~/…): pass null for ${home}`);
+  return folder;
+}
+
+/**
  * Makes each of a list, a few at a time, in its order.
  *
  * @param items - What's asked for.
