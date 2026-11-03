@@ -8,9 +8,10 @@
   "updated": "2026-11-03T03:58:24.000Z",
   "author": { "kind": "user" },
   "aspect": "16:9",
-  "cover": "",
+  "cover": "/~/Motions/00ffea9a5314/images/cover.jpg",
   "status": "draft",
   "assets": [
+    "images/cover.jpg",
     "images/still-01.webp",
     "images/still-02.webp",
     "images/still-03.webp",

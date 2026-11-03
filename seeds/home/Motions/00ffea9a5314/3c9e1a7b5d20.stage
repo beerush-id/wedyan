@@ -29,7 +29,7 @@
       {
         "id": "tBg",
         "options": { "type": "html", "name": "Background", "meta": {} },
-        "props": {},
+        "props": { "cornerShape": "superellipse(1.5)" },
         "segments": [
           {
             "id": "bg",
@@ -45,7 +45,7 @@
       {
         "id": "tGrid",
         "options": { "type": "html", "name": "Desktop grid", "meta": {} },
-        "props": {},
+        "props": { "cornerShape": "superellipse(1.5)" },
         "segments": [
           {
             "id": "grid",
@@ -61,7 +61,7 @@
       {
         "id": "tClock",
         "options": { "type": "html", "name": "Clock", "meta": {} },
-        "props": { "fontFamily": "Geist" },
+        "props": { "fontFamily": "Geist", "cornerShape": "superellipse(1.5)" },
         "segments": [
           {
             "id": "clock",
@@ -84,7 +84,7 @@
       {
         "id": "tFeed",
         "options": { "type": "html", "name": "Feed", "meta": {} },
-        "props": {},
+        "props": { "cornerShape": "superellipse(1.5)" },
         "segments": [
           {
             "id": "feed",
@@ -126,7 +126,7 @@
       {
         "id": "tChaos",
         "options": { "type": "html", "name": "App windows", "meta": {} },
-        "props": { "fontFamily": "Geist" },
+        "props": { "fontFamily": "Geist", "cornerShape": "superellipse(1.5)" },
         "segments": [
           {
             "id": "chaos",
@@ -272,7 +272,7 @@
       {
         "id": "tReel",
         "options": { "type": "html", "name": "Reel", "meta": {} },
-        "props": {},
+        "props": { "cornerShape": "superellipse(1.5)" },
         "segments": [
           {
             "id": "reel",
@@ -312,7 +312,7 @@
       {
         "id": "tStill",
         "options": { "type": "html", "name": "Still window", "meta": {} },
-        "props": { "fontFamily": "Geist" },
+        "props": { "fontFamily": "Geist", "cornerShape": "superellipse(1.5)" },
         "segments": [
           {
             "id": "stillWin",
@@ -389,7 +389,7 @@
       {
         "id": "tMotions",
         "options": { "type": "html", "name": "Motions window", "meta": {} },
-        "props": { "fontFamily": "Geist" },
+        "props": { "fontFamily": "Geist", "cornerShape": "superellipse(1.5)" },
         "segments": [
           {
             "id": "motionsWin",
@@ -520,7 +520,7 @@
       {
         "id": "tPicture",
         "options": { "type": "html", "name": "The picture", "meta": {} },
-        "props": {},
+        "props": { "cornerShape": "superellipse(1.5)" },
         "segments": [
           {
             "id": "picture",
@@ -540,7 +540,7 @@
       {
         "id": "tGhosts",
         "options": { "type": "html", "name": "Old windows converge", "meta": {} },
-        "props": {},
+        "props": { "cornerShape": "superellipse(1.5)" },
         "segments": [
           {
             "id": "ghosts",
@@ -568,7 +568,7 @@
       {
         "id": "tDock",
         "options": { "type": "html", "name": "Dock", "meta": {} },
-        "props": { "fontFamily": "Geist" },
+        "props": { "fontFamily": "Geist", "cornerShape": "superellipse(1.5)" },
         "segments": [
           {
             "id": "dock",
@@ -691,7 +691,7 @@
       {
         "id": "tCircle",
         "options": { "type": "html", "name": "Dot, mic, logo", "meta": {} },
-        "props": {},
+        "props": { "cornerShape": "superellipse(1.5)" },
         "segments": [
           {
             "id": "circle",
@@ -734,7 +734,7 @@
       {
         "id": "tBar1",
         "options": { "type": "html", "name": "Bar 1", "meta": {} },
-        "props": {},
+        "props": { "cornerShape": "superellipse(1.5)" },
         "segments": [
           {
             "id": "bar1",
@@ -762,7 +762,7 @@
       {
         "id": "tBar2",
         "options": { "type": "html", "name": "Bar 2", "meta": {} },
-        "props": {},
+        "props": { "cornerShape": "superellipse(1.5)" },
         "segments": [
           {
             "id": "bar2",
@@ -790,7 +790,7 @@
       {
         "id": "tBar3",
         "options": { "type": "html", "name": "Bar 3", "meta": {} },
-        "props": {},
+        "props": { "cornerShape": "superellipse(1.5)" },
         "segments": [
           {
             "id": "bar3",
@@ -818,7 +818,7 @@
       {
         "id": "tBar4",
         "options": { "type": "html", "name": "Bar 4", "meta": {} },
-        "props": {},
+        "props": { "cornerShape": "superellipse(1.5)" },
         "segments": [
           {
             "id": "bar4",
@@ -846,7 +846,7 @@
       {
         "id": "tWordmark",
         "options": { "type": "html", "name": "Wordmark", "meta": {} },
-        "props": { "fontFamily": "Geist" },
+        "props": { "fontFamily": "Geist", "cornerShape": "superellipse(1.5)" },
         "segments": [
           {
             "id": "wordmark",
@@ -864,7 +864,7 @@
       {
         "id": "tRings",
         "options": { "type": "html", "name": "One app, one tab, one dock", "meta": {} },
-        "props": {},
+        "props": { "cornerShape": "superellipse(1.5)" },
         "segments": [
           {
             "id": "ringApp",
@@ -904,7 +904,7 @@
       {
         "id": "tSpeak",
         "options": { "type": "html", "name": "SPEAK", "meta": {} },
-        "props": { "fontFamily": "Geist" },
+        "props": { "fontFamily": "Geist", "cornerShape": "superellipse(1.5)" },
         "segments": [
           {
             "id": "speak",
