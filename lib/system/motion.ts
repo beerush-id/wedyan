@@ -1,4 +1,5 @@
 import { list, move, remove, write } from '@irpclib/r2-file';
+import { GENERATIVE_TAG } from '@/lib/documents/generation.js';
 import { homePath, newHeader, newId, parentOf } from '@/lib/documents/paths.js';
 import type { FileRow } from '@/lib/documents/rows.js';
 import { stageAt } from '@/lib/documents/stage.js';
@@ -158,6 +159,7 @@ async function makeMotion(cwd: string, { name, script, aspect = '16:9', descript
     name,
     description,
     author: { kind: 'agent' },
+    tags: [GENERATIVE_TAG],
     type: 'motion',
     aspect,
     cover,

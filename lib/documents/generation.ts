@@ -80,6 +80,9 @@ export const PICTURE_FILE = /\.(webp|png|jpe?g|avif)(\?|$)/i;
 /** What's a generated document by its path, known before the document itself has arrived. */
 export const GENERATED_FILE = /\.(still|take|sound)$/;
 
+/** The tag of a project an agent made: what the library's Generative view lists. */
+export const GENERATIVE_TAG = 'generative';
+
 /** What's a document that shows a picture, rather than a picture, by its path. */
 const DOCUMENT_FILE = /\.(still|take|persona)$/;
 
