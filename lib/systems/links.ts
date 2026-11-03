@@ -52,11 +52,16 @@ export function mediaOf(path: string): 'image' | 'video' | 'audio' | undefined {
 }
 
 /**
- * What a link points at: everything after its scheme.
+ * What a link points at: everything after its scheme. A home file's address, `/~/…`, names the same
+ * file as its path, so it's read as the path.
  *
- * @param link - The link, e.g. `mail:/Mail/m1.eml`.
- * @returns Its target, e.g. `/Mail/m1.eml`.
+ * @param link - The link, e.g. `mail:/Mail/m1.eml` or `/~/Motions/a/a.motion`.
+ * @returns Its target, e.g. `/Mail/m1.eml` or `~/Motions/a/a.motion`.
  */
 export function linkTarget(link: string): string {
-  return decodeURI(link.slice(link.indexOf(':') + 1));
+  const target = decodeURI(link.slice(link.indexOf(':') + 1));
+  return target.startsWith(HOME_ADDRESS) ? target.slice(1) : target;
 }
+
+/** How a home file's address starts: its path, served from the root. */
+const HOME_ADDRESS = '/~/';
