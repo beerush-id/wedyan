@@ -1,0 +1,1056 @@
+{
+  "type": "stage",
+  "version": 1,
+  "id": "3c9e1a7b5d20",
+  "name": "Everything is just speak",
+  "description": "From the app-switching loop to one desktop you speak to.",
+  "created": "2026-11-03T03:58:24.000Z",
+  "updated": "2026-11-03T03:58:24.000Z",
+  "author": { "kind": "user" },
+  "projectId": "00ffea9a5314",
+  "order": 0,
+  "composition": {
+    "id": "c0",
+    "options": { "frameRate": 30 },
+    "props": { "width": 1920, "height": 1080, "background": "#dfe1e6" },
+    "markers": [
+      { "id": "mk1", "options": { "atFrame": 0, "name": "Reel" } },
+      { "id": "mk2", "options": { "atFrame": 276, "name": "Loop" } },
+      { "id": "mk3", "options": { "atFrame": 510, "name": "Collapse" } },
+      { "id": "mk4", "options": { "atFrame": 585, "name": "Question" } },
+      { "id": "mk5", "options": { "atFrame": 780, "name": "Wedyan" } },
+      { "id": "mk6", "options": { "atFrame": 860, "name": "Desktop" } },
+      { "id": "mk7", "options": { "atFrame": 1035, "name": "Image" } },
+      { "id": "mk8", "options": { "atFrame": 1170, "name": "Series" } },
+      { "id": "mk9", "options": { "atFrame": 1350, "name": "Converge" } },
+      { "id": "mk10", "options": { "atFrame": 1548, "name": "Speak" } }
+    ],
+    "tracks": [
+      {
+        "id": "tBg",
+        "options": { "type": "html", "name": "Background", "meta": {} },
+        "props": {},
+        "segments": [
+          {
+            "id": "bg",
+            "options": { "type": "html", "name": "Background", "speed": 1, "duration": 56, "startFrame": 0, "meta": {} },
+            "props": { "element": "div", "x": 0, "y": 0, "width": 1920, "height": 1080, "background": "#dfe1e6" },
+            "scenes": [
+              { "id": "bg0", "options": { "atFrame": 520, "meta": { "ease": "power2.inOut" } }, "data": { "background": "#dfe1e6" } },
+              { "id": "bg1", "options": { "atFrame": 700 }, "data": { "background": "#f5eff0" } }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "tGrid",
+        "options": { "type": "html", "name": "Desktop grid", "meta": {} },
+        "props": {},
+        "segments": [
+          {
+            "id": "grid",
+            "options": { "type": "html", "name": "Dot grid", "speed": 1, "duration": 36, "startFrame": 600, "meta": {} },
+            "props": { "element": "div", "x": 0, "y": 0, "width": 1920, "height": 1080, "backgroundImage": "radial-gradient(circle, rgba(70, 58, 61, 0.2) 1.5px, rgba(0, 0, 0, 0) 2.25px)", "backgroundSize": "36px 36px", "opacity": 0 },
+            "scenes": [
+              { "id": "gr0", "options": { "atFrame": 250, "meta": { "ease": "power2.out" } }, "data": { "opacity": 0 } },
+              { "id": "gr1", "options": { "atFrame": 300 }, "data": { "opacity": 1 } }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "tClock",
+        "options": { "type": "html", "name": "Clock", "meta": {} },
+        "props": { "fontFamily": "Geist" },
+        "segments": [
+          {
+            "id": "clock",
+            "options": { "type": "html", "name": "Clock", "speed": 1, "duration": 27, "startFrame": 870, "meta": {} },
+            "props": { "element": "div", "x": 660, "y": 140, "width": 600, "height": 170, "display": "grid", "justifyItems": "center", "alignContent": "center", "rowGap": 8, "color": "#1c1a1b", "opacity": 0,
+              "children": [
+                { "id": "clockTime", "name": "Time", "props": { "element": "span", "text": "10:28 AM", "fontSize": 84, "fontWeight": 300, "lineHeight": 1 }, "scenes": [] },
+                { "id": "clockDate", "name": "Date", "props": { "element": "span", "text": "Tuesday, November 3", "fontSize": 22, "color": "#4a4547" }, "scenes": [] }
+              ]
+            },
+            "scenes": [
+              { "id": "ck0", "options": { "atFrame": 0, "meta": { "ease": "power2.out" } }, "data": { "opacity": 0, "y": 140 } },
+              { "id": "ck1", "options": { "atFrame": 30 }, "data": { "opacity": 1, "y": 120 } },
+              { "id": "ck2", "options": { "atFrame": 676, "meta": { "ease": "power2.out" } }, "data": { "opacity": 1 } },
+              { "id": "ck3", "options": { "atFrame": 696 }, "data": { "opacity": 0 } }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "tFeed",
+        "options": { "type": "html", "name": "Feed", "meta": {} },
+        "props": {},
+        "segments": [
+          {
+            "id": "feed",
+            "options": { "type": "html", "name": "Feed", "speed": 1, "duration": 3.667, "startFrame": 40, "meta": {} },
+            "props": { "element": "div", "x": 0, "y": 80, "width": 1920, "height": 1080, "opacity": 0,
+              "children": [
+                { "id": "postA", "name": "Post above", "props": { "element": "div", "x": 660, "y": -660, "width": 600, "height": 760, "background": "#ffffff", "borderRadius": 28, "boxShadow": "0 4px 18px rgba(20, 22, 30, 0.08)",
+                  "children": [
+                    { "id": "postA1", "props": { "element": "div", "x": 40, "y": 700, "width": 34, "height": 34, "borderRadius": 17, "background": "#e1e3e8" }, "scenes": [] },
+                    { "id": "postA2", "props": { "element": "div", "x": 92, "y": 700, "width": 34, "height": 34, "borderRadius": 17, "background": "#e1e3e8" }, "scenes": [] },
+                    { "id": "postA3", "props": { "element": "div", "x": 144, "y": 700, "width": 34, "height": 34, "borderRadius": 17, "background": "#e1e3e8" }, "scenes": [] }
+                  ] }, "scenes": [] },
+                { "id": "postB", "name": "Post with the Reel", "props": { "element": "div", "x": 660, "y": 140, "width": 600, "height": 800, "background": "#ffffff", "borderRadius": 28, "boxShadow": "0 4px 18px rgba(20, 22, 30, 0.08)",
+                  "children": [
+                    { "id": "postBAvatar", "props": { "element": "div", "x": 28, "y": 26, "width": 52, "height": 52, "borderRadius": 26, "background": "#c9ccd4" }, "scenes": [] },
+                    { "id": "postBName", "props": { "element": "div", "x": 96, "y": 34, "width": 180, "height": 14, "borderRadius": 7, "background": "#c9ccd4" }, "scenes": [] },
+                    { "id": "postBSub", "props": { "element": "div", "x": 96, "y": 58, "width": 110, "height": 12, "borderRadius": 6, "background": "#e1e3e8" }, "scenes": [] },
+                    { "id": "postBSlot", "name": "Reel slot", "props": { "element": "div", "x": 131, "y": 96, "width": 338, "height": 600, "borderRadius": 14, "background": "#e9ebef" }, "scenes": [] },
+                    { "id": "postB1", "props": { "element": "div", "x": 40, "y": 732, "width": 34, "height": 34, "borderRadius": 17, "background": "#e1e3e8" }, "scenes": [] },
+                    { "id": "postB2", "props": { "element": "div", "x": 92, "y": 732, "width": 34, "height": 34, "borderRadius": 17, "background": "#e1e3e8" }, "scenes": [] },
+                    { "id": "postB3", "props": { "element": "div", "x": 144, "y": 732, "width": 34, "height": 34, "borderRadius": 17, "background": "#e1e3e8" }, "scenes": [] }
+                  ] }, "scenes": [] },
+                { "id": "postC", "name": "Post below", "props": { "element": "div", "x": 660, "y": 980, "width": 600, "height": 760, "background": "#ffffff", "borderRadius": 28, "boxShadow": "0 4px 18px rgba(20, 22, 30, 0.08)",
+                  "children": [
+                    { "id": "postCAvatar", "props": { "element": "div", "x": 28, "y": 26, "width": 52, "height": 52, "borderRadius": 26, "background": "#c9ccd4" }, "scenes": [] },
+                    { "id": "postCName", "props": { "element": "div", "x": 96, "y": 34, "width": 180, "height": 14, "borderRadius": 7, "background": "#c9ccd4" }, "scenes": [] }
+                  ] }, "scenes": [] }
+              ]
+            },
+            "scenes": [
+              { "id": "fd0", "options": { "atFrame": 0, "meta": { "ease": "power3.out" } }, "data": { "opacity": 0, "y": 80 } },
+              { "id": "fd1", "options": { "atFrame": 22 }, "data": { "opacity": 1, "y": 0 } },
+              { "id": "fd2", "options": { "atFrame": 60, "meta": { "ease": "power3.in" } }, "data": { "opacity": 1, "y": 0 } },
+              { "id": "fd3", "options": { "atFrame": 90 }, "data": { "opacity": 0, "y": 140 } }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "tChaos",
+        "options": { "type": "html", "name": "App windows", "meta": {} },
+        "props": { "fontFamily": "Geist" },
+        "segments": [
+          {
+            "id": "chaos",
+            "options": { "type": "html", "name": "App-switching loop", "speed": 1, "duration": 13.5, "startFrame": 140, "meta": {} },
+            "props": { "element": "div", "x": 0, "y": 0, "width": 1920, "height": 1080,
+              "children": [
+                { "id": "winE", "name": "File explorer", "props": { "element": "div", "x": -760, "y": 210, "width": 720, "height": 520, "background": "#f4f5f7", "borderRadius": 18, "boxShadow": "0 18px 50px rgba(20, 22, 30, 0.18), 0 2px 8px rgba(20, 22, 30, 0.08)", "border": "1.5px solid rgba(255, 255, 255, 0.9)", "overflow": "hidden",
+                  "children": [
+                    { "id": "winEBar", "props": { "element": "div", "x": 0, "y": 0, "width": 720, "height": 44, "background": "#e8eaee" }, "scenes": [] },
+                    { "id": "winED1", "props": { "element": "div", "x": 18, "y": 16, "width": 12, "height": 12, "borderRadius": 6, "background": "#c4c7ce" }, "scenes": [] },
+                    { "id": "winED2", "props": { "element": "div", "x": 38, "y": 16, "width": 12, "height": 12, "borderRadius": 6, "background": "#c4c7ce" }, "scenes": [] },
+                    { "id": "winED3", "props": { "element": "div", "x": 58, "y": 16, "width": 12, "height": 12, "borderRadius": 6, "background": "#c4c7ce" }, "scenes": [] },
+                    { "id": "winELabel", "props": { "element": "span", "text": "Files", "x": 84, "y": 0, "width": 200, "height": 44, "fontSize": 18, "lineHeight": 2.4, "color": "#5d6270" }, "scenes": [] },
+                    { "id": "winESide", "props": { "element": "div", "x": 0, "y": 44, "width": 150, "height": 476, "background": "#eceef1" }, "scenes": [] },
+                    { "id": "winES1", "props": { "element": "div", "x": 20, "y": 74, "width": 100, "height": 10, "borderRadius": 5, "background": "#d5d8de" }, "scenes": [] },
+                    { "id": "winES2", "props": { "element": "div", "x": 20, "y": 104, "width": 84, "height": 10, "borderRadius": 5, "background": "#d5d8de" }, "scenes": [] },
+                    { "id": "winES3", "props": { "element": "div", "x": 20, "y": 134, "width": 92, "height": 10, "borderRadius": 5, "background": "#d5d8de" }, "scenes": [] },
+                    { "id": "winET1", "props": { "element": "div", "x": 180, "y": 80, "width": 120, "height": 120, "borderRadius": 12, "background": "#dfe2e7" }, "scenes": [] },
+                    { "id": "winET2", "props": { "element": "div", "x": 324, "y": 80, "width": 120, "height": 120, "borderRadius": 12, "background": "#dfe2e7" }, "scenes": [] },
+                    { "id": "winET3", "props": { "element": "div", "x": 468, "y": 80, "width": 120, "height": 120, "borderRadius": 12, "background": "#dfe2e7" }, "scenes": [] },
+                    { "id": "winET4", "props": { "element": "div", "x": 180, "y": 230, "width": 120, "height": 120, "borderRadius": 12, "background": "#dfe2e7" }, "scenes": [] },
+                    { "id": "winET5", "props": { "element": "div", "x": 324, "y": 230, "width": 120, "height": 120, "borderRadius": 12, "background": "#dfe2e7" }, "scenes": [] },
+                    { "id": "winET6", "props": { "element": "div", "x": 468, "y": 230, "width": 120, "height": 120, "borderRadius": 12, "background": "#dfe2e7" }, "scenes": [] }
+                  ] },
+                  "scenes": [
+                    { "id": "e0", "atFrame": 10, "meta": { "ease": "power3.out" }, "data": { "x": -760 } },
+                    { "id": "e1", "atFrame": 35, "data": { "x": 160 } },
+                    { "id": "e2", "atFrame": 138, "meta": { "ease": "power2.out" }, "data": { "scale": 1 } },
+                    { "id": "e3", "atFrame": 148, "meta": { "ease": "power2.inOut" }, "data": { "scale": 1.03 } },
+                    { "id": "e4", "atFrame": 160, "data": { "scale": 1 } },
+                    { "id": "e5", "atFrame": 230, "meta": { "ease": "power2.out" }, "data": { "scale": 1 } },
+                    { "id": "e6", "atFrame": 240, "meta": { "ease": "power2.inOut" }, "data": { "scale": 1.03 } },
+                    { "id": "e7", "atFrame": 252, "data": { "scale": 1 } },
+                    { "id": "e8", "atFrame": 370, "meta": { "ease": "power4.in" }, "data": { "x": 160, "y": 210, "scale": 1, "opacity": 1 } },
+                    { "id": "e9", "atFrame": 400, "data": { "x": 600, "y": 280, "scale": 0.02, "opacity": 0 } }
+                  ] },
+                { "id": "winB", "name": "Browser", "props": { "element": "div", "x": 1960, "y": 230, "width": 720, "height": 520, "background": "#f4f5f7", "borderRadius": 18, "boxShadow": "0 18px 50px rgba(20, 22, 30, 0.18), 0 2px 8px rgba(20, 22, 30, 0.08)", "border": "1.5px solid rgba(255, 255, 255, 0.9)", "overflow": "hidden",
+                  "children": [
+                    { "id": "winBBar", "props": { "element": "div", "x": 0, "y": 0, "width": 720, "height": 44, "background": "#e8eaee" }, "scenes": [] },
+                    { "id": "winBD1", "props": { "element": "div", "x": 18, "y": 16, "width": 12, "height": 12, "borderRadius": 6, "background": "#c4c7ce" }, "scenes": [] },
+                    { "id": "winBD2", "props": { "element": "div", "x": 38, "y": 16, "width": 12, "height": 12, "borderRadius": 6, "background": "#c4c7ce" }, "scenes": [] },
+                    { "id": "winBD3", "props": { "element": "div", "x": 58, "y": 16, "width": 12, "height": 12, "borderRadius": 6, "background": "#c4c7ce" }, "scenes": [] },
+                    { "id": "winBLabel", "props": { "element": "span", "text": "Browser", "x": 84, "y": 0, "width": 200, "height": 44, "fontSize": 18, "lineHeight": 2.4, "color": "#5d6270" }, "scenes": [] },
+                    { "id": "winBUrl", "props": { "element": "div", "x": 20, "y": 60, "width": 680, "height": 40, "borderRadius": 20, "background": "#e6e8ec" }, "scenes": [] },
+                    { "id": "winBUrlText", "props": { "element": "span", "text": "upload.example.com", "x": 44, "y": 60, "width": 400, "height": 40, "fontSize": 16, "lineHeight": 2.5, "color": "#7a7f8a" }, "scenes": [] },
+                    { "id": "winBDrop", "props": { "element": "div", "x": 160, "y": 130, "width": 400, "height": 300, "borderRadius": 16, "background": "#eef0f3", "border": "2px dashed #c3c7cf" }, "scenes": [] },
+                    { "id": "winBDropText", "props": { "element": "span", "text": "Drop a file to upload", "x": 160, "y": 392, "width": 400, "height": 24, "textAlign": "center", "fontSize": 16, "color": "#8a8f99" }, "scenes": [] },
+                    { "id": "winBTrack", "props": { "element": "div", "x": 180, "y": 456, "width": 360, "height": 10, "borderRadius": 5, "background": "#dde0e5" }, "scenes": [] },
+                    { "id": "winBFill", "name": "Upload progress", "props": { "element": "div", "x": 180, "y": 456, "width": 0, "height": 10, "borderRadius": 5, "background": "#6b7280" },
+                      "scenes": [
+                        { "id": "uf0", "atFrame": 200, "meta": { "ease": "power1.inOut" }, "data": { "width": 0 } },
+                        { "id": "uf1", "atFrame": 228, "data": { "width": 360 } },
+                        { "id": "uf2", "atFrame": 229, "data": { "width": 360 } },
+                        { "id": "uf3", "atFrame": 230, "data": { "width": 0 } },
+                        { "id": "uf4", "atFrame": 285, "meta": { "ease": "power1.inOut" }, "data": { "width": 0 } },
+                        { "id": "uf5", "atFrame": 300, "data": { "width": 360 } },
+                        { "id": "uf6", "atFrame": 301, "data": { "width": 360 } },
+                        { "id": "uf7", "atFrame": 302, "data": { "width": 0 } },
+                        { "id": "uf8", "atFrame": 328, "meta": { "ease": "power1.inOut" }, "data": { "width": 0 } },
+                        { "id": "uf9", "atFrame": 336, "data": { "width": 360 } },
+                        { "id": "uf10", "atFrame": 337, "data": { "width": 360 } },
+                        { "id": "uf11", "atFrame": 338, "data": { "width": 0 } }
+                      ] }
+                  ] },
+                  "scenes": [
+                    { "id": "b0", "atFrame": 25, "meta": { "ease": "power3.out" }, "data": { "x": 1960 } },
+                    { "id": "b1", "atFrame": 50, "data": { "x": 1040 } },
+                    { "id": "b2", "atFrame": 188, "meta": { "ease": "power2.out" }, "data": { "scale": 1 } },
+                    { "id": "b3", "atFrame": 198, "meta": { "ease": "power2.inOut" }, "data": { "scale": 1.03 } },
+                    { "id": "b4", "atFrame": 210, "data": { "scale": 1 } },
+                    { "id": "b5", "atFrame": 276, "meta": { "ease": "power2.out" }, "data": { "scale": 1 } },
+                    { "id": "b6", "atFrame": 286, "meta": { "ease": "power2.inOut" }, "data": { "scale": 1.03 } },
+                    { "id": "b7", "atFrame": 298, "data": { "scale": 1 } },
+                    { "id": "b8", "atFrame": 370, "meta": { "ease": "power4.in" }, "data": { "x": 1040, "y": 230, "scale": 1, "opacity": 1 } },
+                    { "id": "b9", "atFrame": 400, "data": { "x": 600, "y": 280, "scale": 0.02, "opacity": 0 } }
+                  ] },
+                { "id": "win1", "name": "Downloads", "props": { "element": "div", "x": 420, "y": -520, "width": 640, "height": 460, "background": "#f4f5f7", "borderRadius": 18, "boxShadow": "0 18px 50px rgba(20, 22, 30, 0.18), 0 2px 8px rgba(20, 22, 30, 0.08)", "border": "1.5px solid rgba(255, 255, 255, 0.9)", "overflow": "hidden",
+                  "children": [
+                    { "id": "win1Bar", "props": { "element": "div", "x": 0, "y": 0, "width": 640, "height": 44, "background": "#e8eaee" }, "scenes": [] },
+                    { "id": "win1Label", "props": { "element": "span", "text": "Downloads", "x": 24, "y": 0, "width": 300, "height": 44, "fontSize": 18, "lineHeight": 2.4, "color": "#5d6270" }, "scenes": [] },
+                    { "id": "win1Body", "props": { "element": "div", "x": 20, "y": 64, "width": 600, "height": 376, "borderRadius": 12, "background": "#e6e8ec" }, "scenes": [] }
+                  ] },
+                  "scenes": [
+                    { "id": "w1a", "atFrame": 307, "meta": { "ease": "power3.out" }, "data": { "y": -520 } },
+                    { "id": "w1b", "atFrame": 319, "data": { "y": 120 } },
+                    { "id": "w1c", "atFrame": 370, "meta": { "ease": "power4.in" }, "data": { "x": 420, "y": 120, "scale": 1, "opacity": 1 } },
+                    { "id": "w1d", "atFrame": 400, "data": { "x": 640, "y": 310, "scale": 0.02, "opacity": 0 } }
+                  ] },
+                { "id": "win2", "name": "Browser again", "props": { "element": "div", "x": 980, "y": 1100, "width": 640, "height": 460, "background": "#f4f5f7", "borderRadius": 18, "boxShadow": "0 18px 50px rgba(20, 22, 30, 0.18), 0 2px 8px rgba(20, 22, 30, 0.08)", "border": "1.5px solid rgba(255, 255, 255, 0.9)", "overflow": "hidden",
+                  "children": [
+                    { "id": "win2Bar", "props": { "element": "div", "x": 0, "y": 0, "width": 640, "height": 44, "background": "#e8eaee" }, "scenes": [] },
+                    { "id": "win2Label", "props": { "element": "span", "text": "Browser", "x": 24, "y": 0, "width": 300, "height": 44, "fontSize": 18, "lineHeight": 2.4, "color": "#5d6270" }, "scenes": [] },
+                    { "id": "win2Body", "props": { "element": "div", "x": 20, "y": 64, "width": 600, "height": 376, "borderRadius": 12, "background": "#e6e8ec" }, "scenes": [] }
+                  ] },
+                  "scenes": [
+                    { "id": "w2a", "atFrame": 320, "meta": { "ease": "power3.out" }, "data": { "y": 1100 } },
+                    { "id": "w2b", "atFrame": 330, "data": { "y": 470 } },
+                    { "id": "w2c", "atFrame": 370, "meta": { "ease": "power4.in" }, "data": { "x": 980, "y": 470, "scale": 1, "opacity": 1 } },
+                    { "id": "w2d", "atFrame": 400, "data": { "x": 640, "y": 310, "scale": 0.02, "opacity": 0 } }
+                  ] },
+                { "id": "win3", "name": "Files again", "props": { "element": "div", "x": -700, "y": 520, "width": 600, "height": 430, "background": "#f4f5f7", "borderRadius": 18, "boxShadow": "0 18px 50px rgba(20, 22, 30, 0.18), 0 2px 8px rgba(20, 22, 30, 0.08)", "border": "1.5px solid rgba(255, 255, 255, 0.9)", "overflow": "hidden",
+                  "children": [
+                    { "id": "win3Bar", "props": { "element": "div", "x": 0, "y": 0, "width": 600, "height": 44, "background": "#e8eaee" }, "scenes": [] },
+                    { "id": "win3Label", "props": { "element": "span", "text": "Files", "x": 24, "y": 0, "width": 300, "height": 44, "fontSize": 18, "lineHeight": 2.4, "color": "#5d6270" }, "scenes": [] },
+                    { "id": "win3Body", "props": { "element": "div", "x": 20, "y": 64, "width": 560, "height": 346, "borderRadius": 12, "background": "#e6e8ec" }, "scenes": [] }
+                  ] },
+                  "scenes": [
+                    { "id": "w3a", "atFrame": 346, "meta": { "ease": "power3.out" }, "data": { "x": -700 } },
+                    { "id": "w3b", "atFrame": 354, "data": { "x": 120 } },
+                    { "id": "w3c", "atFrame": 370, "meta": { "ease": "power4.in" }, "data": { "x": 120, "y": 520, "scale": 1, "opacity": 1 } },
+                    { "id": "w3d", "atFrame": 400, "data": { "x": 660, "y": 325, "scale": 0.02, "opacity": 0 } }
+                  ] },
+                { "id": "win4", "name": "Browser once more", "props": { "element": "div", "x": 1960, "y": 90, "width": 600, "height": 430, "background": "#f4f5f7", "borderRadius": 18, "boxShadow": "0 18px 50px rgba(20, 22, 30, 0.18), 0 2px 8px rgba(20, 22, 30, 0.08)", "border": "1.5px solid rgba(255, 255, 255, 0.9)", "overflow": "hidden",
+                  "children": [
+                    { "id": "win4Bar", "props": { "element": "div", "x": 0, "y": 0, "width": 600, "height": 44, "background": "#e8eaee" }, "scenes": [] },
+                    { "id": "win4Label", "props": { "element": "span", "text": "Browser", "x": 24, "y": 0, "width": 300, "height": 44, "fontSize": 18, "lineHeight": 2.4, "color": "#5d6270" }, "scenes": [] },
+                    { "id": "win4Body", "props": { "element": "div", "x": 20, "y": 64, "width": 560, "height": 346, "borderRadius": 12, "background": "#e6e8ec" }, "scenes": [] }
+                  ] },
+                  "scenes": [
+                    { "id": "w4a", "atFrame": 352, "meta": { "ease": "power3.out" }, "data": { "x": 1960 } },
+                    { "id": "w4b", "atFrame": 360, "data": { "x": 1180 } },
+                    { "id": "w4c", "atFrame": 370, "meta": { "ease": "power4.in" }, "data": { "x": 1180, "y": 90, "scale": 1, "opacity": 1 } },
+                    { "id": "w4d", "atFrame": 400, "data": { "x": 660, "y": 325, "scale": 0.02, "opacity": 0 } }
+                  ] },
+                { "id": "win5", "name": "Upload again", "props": { "element": "div", "x": 640, "y": 300, "width": 640, "height": 460, "background": "#f4f5f7", "borderRadius": 18, "boxShadow": "0 18px 50px rgba(20, 22, 30, 0.18), 0 2px 8px rgba(20, 22, 30, 0.08)", "border": "1.5px solid rgba(255, 255, 255, 0.9)", "overflow": "hidden", "opacity": 0,
+                  "children": [
+                    { "id": "win5Bar", "props": { "element": "div", "x": 0, "y": 0, "width": 640, "height": 44, "background": "#e8eaee" }, "scenes": [] },
+                    { "id": "win5Label", "props": { "element": "span", "text": "Upload", "x": 24, "y": 0, "width": 300, "height": 44, "fontSize": 18, "lineHeight": 2.4, "color": "#5d6270" }, "scenes": [] },
+                    { "id": "win5Body", "props": { "element": "div", "x": 20, "y": 64, "width": 600, "height": 376, "borderRadius": 12, "background": "#e6e8ec" }, "scenes": [] }
+                  ] },
+                  "scenes": [
+                    { "id": "w5a", "atFrame": 358, "meta": { "ease": "power3.out" }, "data": { "scale": 0.8, "opacity": 0 } },
+                    { "id": "w5b", "atFrame": 364, "data": { "scale": 1, "opacity": 1 } },
+                    { "id": "w5c", "atFrame": 370, "meta": { "ease": "power4.in" }, "data": { "x": 640, "y": 300, "scale": 1, "opacity": 1 } },
+                    { "id": "w5d", "atFrame": 400, "data": { "x": 640, "y": 310, "scale": 0.02, "opacity": 0 } }
+                  ] }
+              ]
+            },
+            "scenes": []
+          }
+        ]
+      },
+      {
+        "id": "tReel",
+        "options": { "type": "html", "name": "Reel", "meta": {} },
+        "props": {},
+        "segments": [
+          {
+            "id": "reel",
+            "options": { "type": "html", "name": "Reel, then the file", "speed": 1, "duration": 18.167, "startFrame": 0, "meta": {} },
+            "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-01.webp", "alt": "" }, "objectFit": "cover", "x": 718, "y": 110, "width": 484, "height": 860, "borderRadius": 28, "boxShadow": "0 24px 60px rgba(20, 22, 30, 0.25)", "opacity": 0 },
+            "scenes": [
+              { "id": "r0", "options": { "atFrame": 0, "meta": { "ease": "power2.out" } }, "data": { "opacity": 0, "scale": 1 } },
+              { "id": "r1", "options": { "atFrame": 10 }, "data": { "opacity": 1 } },
+              { "id": "r3", "options": { "atFrame": 58, "meta": { "ease": "power3.inOut" } }, "data": { "x": 718, "y": 110, "width": 484, "height": 860, "borderRadius": 28, "scale": 1.03 } },
+              { "id": "r4", "options": { "atFrame": 84 }, "data": { "x": 791, "y": 236, "width": 338, "height": 600, "borderRadius": 14, "scale": 1 } },
+              { "id": "r5", "options": { "atFrame": 100, "meta": { "ease": "power3.inOut" } }, "data": { "x": 791, "y": 236, "width": 338, "height": 600, "borderRadius": 14 } },
+              { "id": "r6", "options": { "atFrame": 125 }, "data": { "x": 718, "y": 110, "width": 484, "height": 860, "borderRadius": 28 } },
+              { "id": "r7", "options": { "atFrame": 150, "meta": { "ease": "power3.inOut" } }, "data": { "x": 718, "y": 110, "width": 484, "height": 860, "borderRadius": 28 } },
+              { "id": "r8", "options": { "atFrame": 178 }, "data": { "x": 510, "y": 290, "width": 68, "height": 120, "borderRadius": 8 } },
+              { "id": "r9", "options": { "atFrame": 322, "meta": { "ease": "power2.inOut" } }, "data": { "x": 510, "y": 290 } },
+              { "id": "r10", "options": { "atFrame": 340 }, "data": { "x": 1366, "y": 440 } },
+              { "id": "r11", "options": { "atFrame": 372, "meta": { "ease": "power2.inOut" } }, "data": { "x": 1366, "y": 440 } },
+              { "id": "r12", "options": { "atFrame": 390 }, "data": { "x": 510, "y": 290 } },
+              { "id": "r13", "options": { "atFrame": 410, "meta": { "ease": "power2.inOut" } }, "data": { "x": 510, "y": 290 } },
+              { "id": "r14", "options": { "atFrame": 425 }, "data": { "x": 1366, "y": 440 } },
+              { "id": "r15", "options": { "atFrame": 447, "meta": { "ease": "power2.inOut" } }, "data": { "x": 1366, "y": 440 } },
+              { "id": "r16", "options": { "atFrame": 457 }, "data": { "x": 510, "y": 290 } },
+              { "id": "r17", "options": { "atFrame": 460, "meta": { "ease": "power2.inOut" } }, "data": { "x": 510, "y": 290 } },
+              { "id": "r18", "options": { "atFrame": 468 }, "data": { "x": 1366, "y": 440 } },
+              { "id": "r19", "options": { "atFrame": 486, "meta": { "ease": "power2.inOut" } }, "data": { "x": 1366, "y": 440 } },
+              { "id": "r20", "options": { "atFrame": 491 }, "data": { "x": 510, "y": 290 } },
+              { "id": "r21", "options": { "atFrame": 492, "meta": { "ease": "power2.inOut" } }, "data": { "x": 510, "y": 290 } },
+              { "id": "r22", "options": { "atFrame": 498 }, "data": { "x": 1366, "y": 440 } },
+              { "id": "r23", "options": { "atFrame": 499, "meta": { "ease": "power2.inOut" } }, "data": { "x": 1366, "y": 440 } },
+              { "id": "r24", "options": { "atFrame": 504 }, "data": { "x": 510, "y": 290 } },
+              { "id": "r25", "options": { "atFrame": 510, "meta": { "ease": "power4.in" } }, "data": { "x": 510, "y": 290, "scale": 1, "opacity": 1 } },
+              { "id": "r26", "options": { "atFrame": 540 }, "data": { "x": 926, "y": 480, "scale": 0.02, "opacity": 0 } }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "tStill",
+        "options": { "type": "html", "name": "Still window", "meta": {} },
+        "props": { "fontFamily": "Geist" },
+        "segments": [
+          {
+            "id": "stillWin",
+            "options": { "type": "html", "name": "Still window", "speed": 1, "duration": 5.667, "startFrame": 1035, "meta": {} },
+            "props": { "element": "div", "x": 410, "y": 120, "width": 1100, "height": 675, "borderRadius": 24, "background": "rgba(250, 246, 247, 0.94)", "backdropFilter": "blur(24px)", "border": "1.5px solid rgba(255, 255, 255, 0.9)", "boxShadow": "0 24px 70px rgba(40, 10, 20, 0.18), 0 2px 8px rgba(40, 10, 20, 0.08)", "overflow": "hidden", "opacity": 0,
+              "children": [
+                { "id": "sw", "name": "Content", "props": { "element": "div", "x": 0, "y": 0, "width": 1100, "height": 675,
+                  "children": [
+                    { "id": "swTitle", "props": { "element": "span", "text": "Bawang Putih at the river", "x": 24, "y": 0, "width": 600, "height": 54, "fontSize": 20, "fontWeight": 500, "lineHeight": 2.7, "color": "#1c1a1b" }, "scenes": [] },
+                    { "id": "swCtrl", "props": { "element": "span", "text": "–    □    ×", "x": 940, "y": 0, "width": 136, "height": 54, "textAlign": "right", "whiteSpace": "pre", "fontSize": 20, "lineHeight": 2.7, "color": "#6a6466" }, "scenes": [] },
+                    { "id": "swViewer", "props": { "element": "div", "x": 16, "y": 54, "width": 720, "height": 605, "borderRadius": 16, "background": "#121214" }, "scenes": [] },
+                    { "id": "swPromptLabel", "props": { "element": "span", "text": "Prompt", "x": 752, "y": 66, "width": 200, "height": 22, "fontSize": 15, "fontWeight": 500, "color": "#6a6466" }, "scenes": [] },
+                    { "id": "swPrompt", "props": { "element": "div", "x": 752, "y": 94, "width": 332, "height": 118, "borderRadius": 14, "background": "rgba(255, 255, 255, 0.92)", "border": "1.5px solid rgba(0, 0, 0, 0.06)",
+                      "children": [
+                        { "id": "swL1", "props": { "element": "div", "text": "Wide shot, Bawang Putih washing", "x": 14, "y": 12, "width": 0, "height": 28, "overflow": "hidden", "whiteSpace": "nowrap", "fontSize": 17, "lineHeight": 1.65, "color": "#2a2628" },
+                          "scenes": [
+                            { "id": "l1a", "atFrame": 28, "meta": { "ease": "steps(31)" }, "data": { "width": 0 } },
+                            { "id": "l1b", "atFrame": 40, "data": { "width": 300 } }
+                          ] },
+                        { "id": "swL2", "props": { "element": "div", "text": "cloth at a jungle river, painterly", "x": 14, "y": 43, "width": 0, "height": 28, "overflow": "hidden", "whiteSpace": "nowrap", "fontSize": 17, "lineHeight": 1.65, "color": "#2a2628" },
+                          "scenes": [
+                            { "id": "l2a", "atFrame": 40, "meta": { "ease": "steps(34)" }, "data": { "width": 0 } },
+                            { "id": "l2b", "atFrame": 52, "data": { "width": 300 } }
+                          ] },
+                        { "id": "swL3", "props": { "element": "div", "text": "folktale style, golden hour", "x": 14, "y": 74, "width": 0, "height": 28, "overflow": "hidden", "whiteSpace": "nowrap", "fontSize": 17, "lineHeight": 1.65, "color": "#2a2628" },
+                          "scenes": [
+                            { "id": "l3a", "atFrame": 52, "meta": { "ease": "steps(27)" }, "data": { "width": 0 } },
+                            { "id": "l3b", "atFrame": 62, "data": { "width": 300 } }
+                          ] }
+                      ] }, "scenes": [] },
+                    { "id": "swGenerate", "props": { "element": "div", "text": "✦  Generate", "x": 952, "y": 226, "width": 132, "height": 44, "borderRadius": 22, "background": "#b0004c", "color": "#fff7ef", "fontSize": 17, "fontWeight": 500, "textAlign": "center", "whiteSpace": "pre", "lineHeight": 2.6 },
+                      "scenes": [
+                        { "id": "gn0", "atFrame": 75, "meta": { "ease": "power2.out" }, "data": { "scale": 1 } },
+                        { "id": "gn1", "atFrame": 79, "meta": { "ease": "power2.out" }, "data": { "scale": 0.92 } },
+                        { "id": "gn2", "atFrame": 87, "data": { "scale": 1 } }
+                      ] },
+                    { "id": "swSettingsLabel", "props": { "element": "span", "text": "Settings", "x": 752, "y": 292, "width": 200, "height": 22, "fontSize": 15, "fontWeight": 500, "color": "#6a6466" }, "scenes": [] },
+                    { "id": "swSettings", "props": { "element": "div", "x": 752, "y": 320, "width": 332, "height": 92, "borderRadius": 14, "background": "rgba(0, 0, 0, 0.04)",
+                      "children": [
+                        { "id": "swModel", "props": { "element": "span", "text": "Model", "x": 16, "y": 12, "width": 150, "height": 28, "fontSize": 16, "lineHeight": 1.75, "color": "#2a2628" }, "scenes": [] },
+                        { "id": "swModelValue", "props": { "element": "span", "text": "Standard", "x": 180, "y": 12, "width": 136, "height": 28, "textAlign": "right", "fontSize": 16, "lineHeight": 1.75, "color": "#6a6466" }, "scenes": [] },
+                        { "id": "swAspect", "props": { "element": "span", "text": "Aspect ratio", "x": 16, "y": 52, "width": 150, "height": 28, "fontSize": 16, "lineHeight": 1.75, "color": "#2a2628" }, "scenes": [] },
+                        { "id": "swAspectValue", "props": { "element": "span", "text": "9:16", "x": 262, "y": 52, "width": 54, "height": 28, "borderRadius": 10, "background": "#b0004c", "color": "#fff7ef", "fontSize": 14, "textAlign": "center", "lineHeight": 2 }, "scenes": [] }
+                      ] }, "scenes": [] },
+                    { "id": "swHistoryLabel", "props": { "element": "span", "text": "History", "x": 752, "y": 432, "width": 200, "height": 22, "fontSize": 15, "fontWeight": 500, "color": "#6a6466" }, "scenes": [] },
+                    { "id": "swCard", "name": "Attempt", "props": { "element": "div", "x": 772, "y": 460, "width": 332, "height": 64, "borderRadius": 16, "background": "#8f1d45", "opacity": 0,
+                      "children": [
+                        { "id": "swCardThumb", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-01.webp", "alt": "" }, "objectFit": "cover", "x": 10, "y": 8, "width": 48, "height": 48, "borderRadius": 10 }, "scenes": [] },
+                        { "id": "swCardText", "props": { "element": "span", "text": "Wide shot, Bawang Putih washing…", "x": 68, "y": 10, "width": 250, "height": 22, "fontSize": 14, "color": "#fff7ef", "whiteSpace": "nowrap", "overflow": "hidden" }, "scenes": [] },
+                        { "id": "swCardSub", "props": { "element": "span", "text": "Standard · 9:16", "x": 68, "y": 34, "width": 250, "height": 20, "fontSize": 13, "color": "rgba(255, 247, 239, 0.75)" }, "scenes": [] }
+                      ] },
+                      "scenes": [
+                        { "id": "cd0", "atFrame": 100, "meta": { "ease": "power3.out" }, "data": { "opacity": 0, "x": 772 } },
+                        { "id": "cd1", "atFrame": 115, "data": { "opacity": 1, "x": 752 } }
+                      ] }
+                  ] },
+                  "scenes": [
+                    { "id": "sw0", "atFrame": 128, "meta": { "ease": "power2.in" }, "data": { "opacity": 1 } },
+                    { "id": "sw1", "atFrame": 138, "data": { "opacity": 0 } }
+                  ] }
+              ]
+            },
+            "scenes": [
+              { "id": "v0", "options": { "atFrame": 5, "meta": { "ease": "power3.out" } }, "data": { "opacity": 0, "scale": 0.94 } },
+              { "id": "v1", "options": { "atFrame": 25 }, "data": { "opacity": 1, "scale": 1 } },
+              { "id": "v2", "options": { "atFrame": 135, "meta": { "ease": "power3.inOut" } }, "data": { "x": 410, "y": 120, "width": 1100, "height": 675 } },
+              { "id": "v4", "options": { "atFrame": 158 }, "data": { "opacity": 1 } },
+              { "id": "v3", "options": { "atFrame": 160 }, "data": { "x": 210, "y": 60, "width": 1500, "height": 800 } },
+              { "id": "v5", "options": { "atFrame": 168 }, "data": { "opacity": 0 } }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "tMotions",
+        "options": { "type": "html", "name": "Motions window", "meta": {} },
+        "props": { "fontFamily": "Geist" },
+        "segments": [
+          {
+            "id": "motionsWin",
+            "options": { "type": "html", "name": "Motions window", "speed": 1, "duration": 11.733, "startFrame": 1188, "meta": {} },
+            "props": { "element": "div", "x": 210, "y": 60, "width": 1500, "height": 800, "borderRadius": 24, "background": "rgba(250, 246, 247, 0.94)", "backdropFilter": "blur(24px)", "border": "1.5px solid rgba(255, 255, 255, 0.9)", "boxShadow": "0 24px 70px rgba(40, 10, 20, 0.18), 0 2px 8px rgba(40, 10, 20, 0.08)", "overflow": "hidden", "opacity": 0,
+              "children": [
+                { "id": "mwIcon", "props": { "element": "div", "x": 16, "y": 12, "width": 36, "height": 36, "borderRadius": 11, "background": "rgba(176, 0, 76, 0.12)" }, "scenes": [] },
+                { "id": "mwTabs", "props": { "element": "div", "x": 64, "y": 11, "width": 196, "height": 38, "borderRadius": 19, "background": "rgba(0, 0, 0, 0.05)",
+                  "children": [
+                    { "id": "mwTabDirect", "props": { "element": "span", "text": "Direct", "x": 4, "y": 4, "width": 90, "height": 30, "textAlign": "center", "fontSize": 15, "lineHeight": 2, "color": "#4a4547" }, "scenes": [] },
+                    { "id": "mwTabCompose", "props": { "element": "span", "text": "Compose", "x": 98, "y": 4, "width": 94, "height": 30, "borderRadius": 15, "background": "rgba(176, 0, 76, 0.12)", "color": "#8f1d45", "fontSize": 15, "fontWeight": 500, "textAlign": "center", "lineHeight": 2 }, "scenes": [] }
+                  ] }, "scenes": [] },
+                { "id": "mwTitle", "props": { "element": "span", "text": "Episode 1: The River Cloth", "x": 280, "y": 11, "width": 500, "height": 38, "fontSize": 19, "fontWeight": 500, "lineHeight": 2, "color": "#1c1a1b" }, "scenes": [] },
+                { "id": "mwRender", "props": { "element": "span", "text": "Render", "x": 1350, "y": 11, "width": 120, "height": 38, "borderRadius": 12, "background": "#8f1d45", "color": "#fff7ef", "fontSize": 16, "fontWeight": 500, "textAlign": "center", "lineHeight": 2.375 }, "scenes": [] },
+                { "id": "mwChips", "props": { "element": "span", "text": "All      Video      Audio      Cast", "x": 26, "y": 56, "width": 500, "height": 20, "whiteSpace": "pre", "fontSize": 14, "color": "#6a6466" }, "scenes": [] },
+                { "id": "tile1", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-02.webp", "alt": "" }, "objectFit": "cover", "x": 180, "y": 80, "width": 140, "height": 140, "borderRadius": 12, "opacity": 0 },
+                  "scenes": [ { "id": "ti1a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti1b", "atFrame": 18, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti1c", "atFrame": 26, "data": { "opacity": 1, "scale": 1 } } ] },
+                { "id": "tile2", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-03.webp", "alt": "" }, "objectFit": "cover", "x": 334, "y": 80, "width": 140, "height": 140, "borderRadius": 12, "opacity": 0 },
+                  "scenes": [ { "id": "ti2a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti2b", "atFrame": 22, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti2c", "atFrame": 30, "data": { "opacity": 1, "scale": 1 } } ] },
+                { "id": "tile3", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-04.webp", "alt": "" }, "objectFit": "cover", "x": 488, "y": 80, "width": 140, "height": 140, "borderRadius": 12, "opacity": 0 },
+                  "scenes": [ { "id": "ti3a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti3b", "atFrame": 26, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti3c", "atFrame": 34, "data": { "opacity": 1, "scale": 1 } } ] },
+                { "id": "tile4", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-05.webp", "alt": "" }, "objectFit": "cover", "x": 642, "y": 80, "width": 140, "height": 140, "borderRadius": 12, "opacity": 0 },
+                  "scenes": [ { "id": "ti4a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti4b", "atFrame": 30, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti4c", "atFrame": 38, "data": { "opacity": 1, "scale": 1 } } ] },
+                { "id": "tile5", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-06.webp", "alt": "" }, "objectFit": "cover", "x": 796, "y": 80, "width": 140, "height": 140, "borderRadius": 12, "opacity": 0 },
+                  "scenes": [ { "id": "ti5a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti5b", "atFrame": 34, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti5c", "atFrame": 42, "data": { "opacity": 1, "scale": 1 } } ] },
+                { "id": "tile6", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-07.webp", "alt": "" }, "objectFit": "cover", "x": 26, "y": 234, "width": 140, "height": 140, "borderRadius": 12, "opacity": 0 },
+                  "scenes": [ { "id": "ti6a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti6b", "atFrame": 38, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti6c", "atFrame": 46, "data": { "opacity": 1, "scale": 1 } } ] },
+                { "id": "tile7", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-08.webp", "alt": "" }, "objectFit": "cover", "x": 180, "y": 234, "width": 140, "height": 140, "borderRadius": 12, "opacity": 0 },
+                  "scenes": [ { "id": "ti7a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti7b", "atFrame": 42, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti7c", "atFrame": 50, "data": { "opacity": 1, "scale": 1 } } ] },
+                { "id": "tile8", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-09.webp", "alt": "" }, "objectFit": "cover", "x": 334, "y": 234, "width": 140, "height": 140, "borderRadius": 12, "opacity": 0 },
+                  "scenes": [ { "id": "ti8a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti8b", "atFrame": 46, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti8c", "atFrame": 54, "data": { "opacity": 1, "scale": 1 } } ] },
+                { "id": "tile9", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-10.webp", "alt": "" }, "objectFit": "cover", "x": 488, "y": 234, "width": 140, "height": 140, "borderRadius": 12, "opacity": 0 },
+                  "scenes": [ { "id": "ti9a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti9b", "atFrame": 50, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti9c", "atFrame": 58, "data": { "opacity": 1, "scale": 1 } } ] },
+                { "id": "tile10", "props": { "element": "div", "text": "♪", "x": 642, "y": 234, "width": 140, "height": 140, "borderRadius": 12, "background": "#6f5aa6", "color": "#fff7ef", "fontSize": 48, "textAlign": "center", "lineHeight": 2.9, "opacity": 0 },
+                  "scenes": [ { "id": "ti10a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti10b", "atFrame": 54, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti10c", "atFrame": 62, "data": { "opacity": 1, "scale": 1 } } ] },
+                { "id": "tile11", "props": { "element": "div", "text": "♪", "x": 796, "y": 234, "width": 140, "height": 140, "borderRadius": 12, "background": "#6f5aa6", "color": "#fff7ef", "fontSize": 48, "textAlign": "center", "lineHeight": 2.9, "opacity": 0 },
+                  "scenes": [ { "id": "ti11a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti11b", "atFrame": 58, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti11c", "atFrame": 66, "data": { "opacity": 1, "scale": 1 } } ] },
+                { "id": "mwPreview", "name": "Preview", "props": { "element": "div", "x": 1078, "y": 62, "width": 406, "height": 722, "borderRadius": 16, "background": "#0e0e10", "overflow": "hidden",
+                  "children": [
+                    { "id": "pv1", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-01.webp", "alt": "" }, "objectFit": "cover", "x": 0, "y": 0, "width": 406, "height": 722, "opacity": 0 },
+                      "scenes": [ { "id": "pv1a", "atFrame": 0, "data": { "opacity": 0 } }, { "id": "pv1b", "atFrame": 40, "data": { "opacity": 0 } }, { "id": "pv1c", "atFrame": 44, "data": { "opacity": 1 } }, { "id": "pv1d", "atFrame": 67, "data": { "opacity": 1 } }, { "id": "pv1e", "atFrame": 71, "data": { "opacity": 0 } } ] },
+                    { "id": "pv2", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-02.webp", "alt": "" }, "objectFit": "cover", "x": 0, "y": 0, "width": 406, "height": 722, "opacity": 0 },
+                      "scenes": [ { "id": "pv2a", "atFrame": 0, "data": { "opacity": 0 } }, { "id": "pv2b", "atFrame": 67, "data": { "opacity": 0 } }, { "id": "pv2c", "atFrame": 71, "data": { "opacity": 1 } }, { "id": "pv2d", "atFrame": 94, "data": { "opacity": 1 } }, { "id": "pv2e", "atFrame": 98, "data": { "opacity": 0 } } ] },
+                    { "id": "pv3", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-03.webp", "alt": "" }, "objectFit": "cover", "x": 0, "y": 0, "width": 406, "height": 722, "opacity": 0 },
+                      "scenes": [ { "id": "pv3a", "atFrame": 0, "data": { "opacity": 0 } }, { "id": "pv3b", "atFrame": 94, "data": { "opacity": 0 } }, { "id": "pv3c", "atFrame": 98, "data": { "opacity": 1 } }, { "id": "pv3d", "atFrame": 121, "data": { "opacity": 1 } }, { "id": "pv3e", "atFrame": 125, "data": { "opacity": 0 } } ] },
+                    { "id": "pv4", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-04.webp", "alt": "" }, "objectFit": "cover", "x": 0, "y": 0, "width": 406, "height": 722, "opacity": 0 },
+                      "scenes": [ { "id": "pv4a", "atFrame": 0, "data": { "opacity": 0 } }, { "id": "pv4b", "atFrame": 121, "data": { "opacity": 0 } }, { "id": "pv4c", "atFrame": 125, "data": { "opacity": 1 } }, { "id": "pv4d", "atFrame": 148, "data": { "opacity": 1 } }, { "id": "pv4e", "atFrame": 152, "data": { "opacity": 0 } } ] },
+                    { "id": "pv5", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-05.webp", "alt": "" }, "objectFit": "cover", "x": 0, "y": 0, "width": 406, "height": 722, "opacity": 0 },
+                      "scenes": [ { "id": "pv5a", "atFrame": 0, "data": { "opacity": 0 } }, { "id": "pv5b", "atFrame": 148, "data": { "opacity": 0 } }, { "id": "pv5c", "atFrame": 152, "data": { "opacity": 1 } }, { "id": "pv5d", "atFrame": 175, "data": { "opacity": 1 } }, { "id": "pv5e", "atFrame": 179, "data": { "opacity": 0 } } ] },
+                    { "id": "pv6", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-06.webp", "alt": "" }, "objectFit": "cover", "x": 0, "y": 0, "width": 406, "height": 722, "opacity": 0 },
+                      "scenes": [ { "id": "pv6a", "atFrame": 0, "data": { "opacity": 0 } }, { "id": "pv6b", "atFrame": 175, "data": { "opacity": 0 } }, { "id": "pv6c", "atFrame": 179, "data": { "opacity": 1 } }, { "id": "pv6d", "atFrame": 202, "data": { "opacity": 1 } }, { "id": "pv6e", "atFrame": 206, "data": { "opacity": 0 } } ] },
+                    { "id": "pv7", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-07.webp", "alt": "" }, "objectFit": "cover", "x": 0, "y": 0, "width": 406, "height": 722, "opacity": 0 },
+                      "scenes": [ { "id": "pv7a", "atFrame": 0, "data": { "opacity": 0 } }, { "id": "pv7b", "atFrame": 202, "data": { "opacity": 0 } }, { "id": "pv7c", "atFrame": 206, "data": { "opacity": 1 } }, { "id": "pv7d", "atFrame": 229, "data": { "opacity": 1 } }, { "id": "pv7e", "atFrame": 233, "data": { "opacity": 0 } } ] },
+                    { "id": "pv8", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-08.webp", "alt": "" }, "objectFit": "cover", "x": 0, "y": 0, "width": 406, "height": 722, "opacity": 0 },
+                      "scenes": [ { "id": "pv8a", "atFrame": 0, "data": { "opacity": 0 } }, { "id": "pv8b", "atFrame": 229, "data": { "opacity": 0 } }, { "id": "pv8c", "atFrame": 233, "data": { "opacity": 1 } }, { "id": "pv8d", "atFrame": 256, "data": { "opacity": 1 } }, { "id": "pv8e", "atFrame": 260, "data": { "opacity": 0 } } ] },
+                    { "id": "pv9", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-09.webp", "alt": "" }, "objectFit": "cover", "x": 0, "y": 0, "width": 406, "height": 722, "opacity": 0 },
+                      "scenes": [ { "id": "pv9a", "atFrame": 0, "data": { "opacity": 0 } }, { "id": "pv9b", "atFrame": 256, "data": { "opacity": 0 } }, { "id": "pv9c", "atFrame": 260, "data": { "opacity": 1 } }, { "id": "pv9d", "atFrame": 283, "data": { "opacity": 1 } }, { "id": "pv9e", "atFrame": 287, "data": { "opacity": 0 } } ] },
+                    { "id": "pv10", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-10.webp", "alt": "" }, "objectFit": "cover", "x": 0, "y": 0, "width": 406, "height": 722, "opacity": 0 },
+                      "scenes": [ { "id": "pv10a", "atFrame": 0, "data": { "opacity": 0 } }, { "id": "pv10b", "atFrame": 283, "data": { "opacity": 0 } }, { "id": "pv10c", "atFrame": 287, "data": { "opacity": 1 } } ] },
+                    { "id": "pvTrack", "props": { "element": "div", "x": 16, "y": 696, "width": 374, "height": 4, "borderRadius": 2, "background": "rgba(255, 255, 255, 0.3)" }, "scenes": [] },
+                    { "id": "pvFill", "props": { "element": "div", "x": 16, "y": 696, "width": 0, "height": 4, "borderRadius": 2, "background": "#fff7ef" },
+                      "scenes": [ { "id": "pf0", "atFrame": 40, "data": { "width": 0 } }, { "id": "pf1", "atFrame": 312, "data": { "width": 374 } } ] }
+                  ] }, "scenes": [] },
+                { "id": "mwTimeline", "name": "Timeline", "props": { "element": "div", "x": 16, "y": 430, "width": 1040, "height": 354, "borderRadius": 14, "background": "rgba(0, 0, 0, 0.025)",
+                  "children": [
+                    { "id": "tlRuler", "props": { "element": "div", "x": 110, "y": 12, "width": 920, "height": 10, "backgroundImage": "repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.28) 0 1.5px, rgba(0, 0, 0, 0) 1.5px 46px)" }, "scenes": [] },
+                    { "id": "tlLabelTitles", "props": { "element": "span", "text": "Titles", "x": 16, "y": 40, "width": 90, "height": 52, "fontSize": 14, "lineHeight": 3.7, "color": "#6a6466" }, "scenes": [] },
+                    { "id": "tlLabelSubs", "props": { "element": "span", "text": "Subtitles", "x": 16, "y": 104, "width": 90, "height": 52, "fontSize": 14, "lineHeight": 3.7, "color": "#6a6466" }, "scenes": [] },
+                    { "id": "tlLabelVideo", "props": { "element": "span", "text": "Video", "x": 16, "y": 168, "width": 90, "height": 60, "fontSize": 14, "lineHeight": 4.3, "color": "#6a6466" }, "scenes": [] },
+                    { "id": "tlLabelAudio", "props": { "element": "span", "text": "Audio", "x": 16, "y": 240, "width": 90, "height": 60, "fontSize": 14, "lineHeight": 4.3, "color": "#6a6466" }, "scenes": [] },
+                    { "id": "laneTitles", "props": { "element": "div", "x": 110, "y": 40, "width": 0, "height": 52, "overflow": "hidden",
+                      "children": [
+                        { "id": "ltc1", "props": { "element": "div", "text": "Ep1 title", "x": 0, "y": 4, "width": 150, "height": 44, "borderRadius": 8, "background": "#a8732f", "color": "#fff7ef", "fontSize": 13, "lineHeight": 3.4, "textIndent": 10, "whiteSpace": "nowrap" }, "scenes": [] }
+                      ] },
+                      "scenes": [ { "id": "lt0", "atFrame": 60, "meta": { "ease": "power2.inOut" }, "data": { "width": 0 } }, { "id": "lt1", "atFrame": 80, "data": { "width": 920 } } ] },
+                    { "id": "laneSubs", "props": { "element": "div", "x": 110, "y": 104, "width": 0, "height": 52, "overflow": "hidden",
+                      "children": [
+                        { "id": "lsc1", "props": { "element": "div", "text": "Sub Putih", "x": 300, "y": 4, "width": 120, "height": 44, "borderRadius": 8, "background": "#a8732f", "color": "#fff7ef", "fontSize": 13, "lineHeight": 3.4, "textIndent": 10, "whiteSpace": "nowrap" }, "scenes": [] },
+                        { "id": "lsc2", "props": { "element": "div", "text": "Sub Merah", "x": 440, "y": 4, "width": 120, "height": 44, "borderRadius": 8, "background": "#a8732f", "color": "#fff7ef", "fontSize": 13, "lineHeight": 3.4, "textIndent": 10, "whiteSpace": "nowrap" }, "scenes": [] },
+                        { "id": "lsc3", "props": { "element": "div", "text": "Sub Nenek", "x": 760, "y": 4, "width": 120, "height": 44, "borderRadius": 8, "background": "#a8732f", "color": "#fff7ef", "fontSize": 13, "lineHeight": 3.4, "textIndent": 10, "whiteSpace": "nowrap" }, "scenes": [] }
+                      ] },
+                      "scenes": [ { "id": "ls0", "atFrame": 70, "meta": { "ease": "power2.inOut" }, "data": { "width": 0 } }, { "id": "ls1", "atFrame": 105, "data": { "width": 920 } } ] },
+                    { "id": "laneVideo", "props": { "element": "div", "x": 110, "y": 168, "width": 0, "height": 60, "overflow": "hidden",
+                      "children": [
+                        { "id": "lv1", "props": { "element": "div", "x": 0, "y": 4, "width": 120, "height": 52, "borderRadius": 8, "background": "#7d2a45", "overflow": "hidden",
+                          "children": [ { "id": "lv1t", "props": { "element": "span", "text": "River wide", "x": 8, "y": 0, "width": 74, "height": 52, "fontSize": 12, "lineHeight": 4.3, "color": "#fff7ef", "whiteSpace": "nowrap", "overflow": "hidden" }, "scenes": [] }, { "id": "lv1i", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-01.webp", "alt": "" }, "objectFit": "cover", "x": 84, "y": 6, "width": 30, "height": 40, "borderRadius": 5 }, "scenes": [] } ] }, "scenes": [] },
+                        { "id": "lv2", "props": { "element": "div", "x": 124, "y": 4, "width": 70, "height": 52, "borderRadius": 8, "background": "#7d2a45", "overflow": "hidden",
+                          "children": [ { "id": "lv2t", "props": { "element": "span", "text": "Nenek stumbles", "x": 8, "y": 0, "width": 24, "height": 52, "fontSize": 12, "lineHeight": 4.3, "color": "#fff7ef", "whiteSpace": "nowrap", "overflow": "hidden" }, "scenes": [] }, { "id": "lv2i", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-02.webp", "alt": "" }, "objectFit": "cover", "x": 34, "y": 6, "width": 30, "height": 40, "borderRadius": 5 }, "scenes": [] } ] }, "scenes": [] },
+                        { "id": "lv3", "props": { "element": "div", "x": 198, "y": 4, "width": 60, "height": 52, "borderRadius": 8, "background": "#7d2a45", "overflow": "hidden",
+                          "children": [ { "id": "lv3t", "props": { "element": "span", "text": "Merah jealous", "x": 8, "y": 0, "width": 14, "height": 52, "fontSize": 12, "lineHeight": 4.3, "color": "#fff7ef", "whiteSpace": "nowrap", "overflow": "hidden" }, "scenes": [] }, { "id": "lv3i", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-03.webp", "alt": "" }, "objectFit": "cover", "x": 24, "y": 6, "width": 30, "height": 40, "borderRadius": 5 }, "scenes": [] } ] }, "scenes": [] },
+                        { "id": "lv4", "props": { "element": "div", "x": 262, "y": 4, "width": 104, "height": 52, "borderRadius": 8, "background": "#7d2a45", "overflow": "hidden",
+                          "children": [ { "id": "lv4t", "props": { "element": "span", "text": "Red cloth", "x": 8, "y": 0, "width": 58, "height": 52, "fontSize": 12, "lineHeight": 4.3, "color": "#fff7ef", "whiteSpace": "nowrap", "overflow": "hidden" }, "scenes": [] }, { "id": "lv4i", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-04.webp", "alt": "" }, "objectFit": "cover", "x": 68, "y": 6, "width": 30, "height": 40, "borderRadius": 5 }, "scenes": [] } ] }, "scenes": [] },
+                        { "id": "lv5", "props": { "element": "div", "x": 370, "y": 4, "width": 96, "height": 52, "borderRadius": 8, "background": "#7d2a45", "overflow": "hidden",
+                          "children": [ { "id": "lv5t", "props": { "element": "span", "text": "Points downstream", "x": 8, "y": 0, "width": 50, "height": 52, "fontSize": 12, "lineHeight": 4.3, "color": "#fff7ef", "whiteSpace": "nowrap", "overflow": "hidden" }, "scenes": [] }, { "id": "lv5i", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-05.webp", "alt": "" }, "objectFit": "cover", "x": 60, "y": 6, "width": 30, "height": 40, "borderRadius": 5 }, "scenes": [] } ] }, "scenes": [] },
+                        { "id": "lv6", "props": { "element": "div", "x": 470, "y": 4, "width": 60, "height": 52, "borderRadius": 8, "background": "#7d2a45", "overflow": "hidden",
+                          "children": [ { "id": "lv6t", "props": { "element": "span", "text": "Two pumpkins", "x": 8, "y": 0, "width": 14, "height": 52, "fontSize": 12, "lineHeight": 4.3, "color": "#fff7ef", "whiteSpace": "nowrap", "overflow": "hidden" }, "scenes": [] }, { "id": "lv6i", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-06.webp", "alt": "" }, "objectFit": "cover", "x": 24, "y": 6, "width": 30, "height": 40, "borderRadius": 5 }, "scenes": [] } ] }, "scenes": [] },
+                        { "id": "lv7", "props": { "element": "div", "x": 534, "y": 4, "width": 116, "height": 52, "borderRadius": 8, "background": "#7d2a45", "overflow": "hidden",
+                          "children": [ { "id": "lv7t", "props": { "element": "span", "text": "Gold spills", "x": 8, "y": 0, "width": 70, "height": 52, "fontSize": 12, "lineHeight": 4.3, "color": "#fff7ef", "whiteSpace": "nowrap", "overflow": "hidden" }, "scenes": [] }, { "id": "lv7i", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-07.webp", "alt": "" }, "objectFit": "cover", "x": 80, "y": 6, "width": 30, "height": 40, "borderRadius": 5 }, "scenes": [] } ] }, "scenes": [] },
+                        { "id": "lv8", "props": { "element": "div", "x": 654, "y": 4, "width": 70, "height": 52, "borderRadius": 8, "background": "#7d2a45", "overflow": "hidden",
+                          "children": [ { "id": "lv8t", "props": { "element": "span", "text": "Ibu sends Merah", "x": 8, "y": 0, "width": 24, "height": 52, "fontSize": 12, "lineHeight": 4.3, "color": "#fff7ef", "whiteSpace": "nowrap", "overflow": "hidden" }, "scenes": [] }, { "id": "lv8i", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-08.webp", "alt": "" }, "objectFit": "cover", "x": 34, "y": 6, "width": 30, "height": 40, "borderRadius": 5 }, "scenes": [] } ] }, "scenes": [] },
+                        { "id": "lv9", "props": { "element": "div", "x": 728, "y": 4, "width": 84, "height": 52, "borderRadius": 8, "background": "#7d2a45", "overflow": "hidden",
+                          "children": [ { "id": "lv9t", "props": { "element": "span", "text": "Huge pumpkin", "x": 8, "y": 0, "width": 38, "height": 52, "fontSize": 12, "lineHeight": 4.3, "color": "#fff7ef", "whiteSpace": "nowrap", "overflow": "hidden" }, "scenes": [] }, { "id": "lv9i", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-09.webp", "alt": "" }, "objectFit": "cover", "x": 48, "y": 6, "width": 30, "height": 40, "borderRadius": 5 }, "scenes": [] } ] }, "scenes": [] },
+                        { "id": "lv10", "props": { "element": "div", "x": 816, "y": 4, "width": 104, "height": 52, "borderRadius": 8, "background": "#7d2a45", "overflow": "hidden",
+                          "children": [ { "id": "lv10t", "props": { "element": "span", "text": "Snakes", "x": 8, "y": 0, "width": 58, "height": 52, "fontSize": 12, "lineHeight": 4.3, "color": "#fff7ef", "whiteSpace": "nowrap", "overflow": "hidden" }, "scenes": [] }, { "id": "lv10i", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-10.webp", "alt": "" }, "objectFit": "cover", "x": 68, "y": 6, "width": 30, "height": 40, "borderRadius": 5 }, "scenes": [] } ] }, "scenes": [] }
+                      ] },
+                      "scenes": [ { "id": "lvs0", "atFrame": 50, "meta": { "ease": "power2.inOut" }, "data": { "width": 0 } }, { "id": "lvs1", "atFrame": 95, "data": { "width": 920 } } ] },
+                    { "id": "laneAudio", "props": { "element": "div", "x": 110, "y": 240, "width": 0, "height": 60, "overflow": "hidden",
+                      "children": [
+                        { "id": "lac1", "props": { "element": "div", "text": "Sound", "x": 300, "y": 4, "width": 120, "height": 52, "borderRadius": 8, "background": "#a9c6ee", "backgroundImage": "repeating-linear-gradient(90deg, rgba(40, 80, 140, 0.45) 0 2px, rgba(0, 0, 0, 0) 2px 5px)", "backgroundSize": "100% 40%", "backgroundPosition": "center", "backgroundRepeat": "no-repeat", "fontSize": 12, "lineHeight": 1.5, "textIndent": 8, "color": "#26446e" }, "scenes": [] },
+                        { "id": "lac2", "props": { "element": "div", "text": "Sound", "x": 440, "y": 4, "width": 120, "height": 52, "borderRadius": 8, "background": "#a9c6ee", "backgroundImage": "repeating-linear-gradient(90deg, rgba(40, 80, 140, 0.45) 0 2px, rgba(0, 0, 0, 0) 2px 5px)", "backgroundSize": "100% 40%", "backgroundPosition": "center", "backgroundRepeat": "no-repeat", "fontSize": 12, "lineHeight": 1.5, "textIndent": 8, "color": "#26446e" }, "scenes": [] },
+                        { "id": "lac3", "props": { "element": "div", "text": "Sound", "x": 760, "y": 4, "width": 120, "height": 52, "borderRadius": 8, "background": "#a9c6ee", "backgroundImage": "repeating-linear-gradient(90deg, rgba(40, 80, 140, 0.45) 0 2px, rgba(0, 0, 0, 0) 2px 5px)", "backgroundSize": "100% 40%", "backgroundPosition": "center", "backgroundRepeat": "no-repeat", "fontSize": 12, "lineHeight": 1.5, "textIndent": 8, "color": "#26446e" }, "scenes": [] }
+                      ] },
+                      "scenes": [ { "id": "la0", "atFrame": 78, "meta": { "ease": "power2.inOut" }, "data": { "width": 0 } }, { "id": "la1", "atFrame": 110, "data": { "width": 920 } } ] },
+                    { "id": "tlPlayhead", "props": { "element": "div", "x": 110, "y": 30, "width": 2.5, "height": 314, "background": "#b0004c", "opacity": 0 },
+                      "scenes": [ { "id": "ph0", "atFrame": 0, "data": { "opacity": 0, "x": 110 } }, { "id": "ph1", "atFrame": 94, "data": { "opacity": 0 } }, { "id": "ph2", "atFrame": 95, "data": { "opacity": 1, "x": 110 } }, { "id": "ph3", "atFrame": 312, "data": { "x": 1030 } } ] }
+                  ] }, "scenes": [] }
+              ]
+            },
+            "scenes": [
+              { "id": "mw0", "options": { "atFrame": 0 }, "data": { "opacity": 0, "scale": 1 } },
+              { "id": "mw1", "options": { "atFrame": 8 }, "data": { "opacity": 1 } },
+              { "id": "mw2", "options": { "atFrame": 312, "meta": { "ease": "power3.in" } }, "data": { "opacity": 1, "scale": 1 } },
+              { "id": "mw3", "options": { "atFrame": 345 }, "data": { "opacity": 0, "scale": 0.94 } }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "tPicture",
+        "options": { "type": "html", "name": "The picture", "meta": {} },
+        "props": {},
+        "segments": [
+          {
+            "id": "picture",
+            "options": { "type": "html", "name": "Generated picture", "speed": 1, "duration": 14.167, "startFrame": 1115, "meta": {} },
+            "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-01.webp", "alt": "" }, "objectFit": "cover", "x": 615.85, "y": 174, "width": 340.3, "height": 605, "borderRadius": 0, "opacity": 0 },
+            "scenes": [
+              { "id": "pc0", "options": { "atFrame": 0, "meta": { "ease": "power2.out" } }, "data": { "opacity": 0, "scale": 1.06 } },
+              { "id": "pc1", "options": { "atFrame": 30 }, "data": { "opacity": 1, "scale": 1 } },
+              { "id": "pc2", "options": { "atFrame": 55, "meta": { "ease": "power3.inOut" } }, "data": { "x": 615.85, "y": 174, "width": 340.3, "height": 605, "borderRadius": 0 } },
+              { "id": "pc3", "options": { "atFrame": 85 }, "data": { "x": 236, "y": 140, "width": 140, "height": 140, "borderRadius": 12 } },
+              { "id": "pc4", "options": { "atFrame": 385, "meta": { "ease": "power3.in" } }, "data": { "x": 236, "y": 140, "opacity": 1, "scale": 1 } },
+              { "id": "pc5", "options": { "atFrame": 418 }, "data": { "x": 275.2, "y": 155, "opacity": 0, "scale": 0.94 } }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "tGhosts",
+        "options": { "type": "html", "name": "Old windows converge", "meta": {} },
+        "props": {},
+        "segments": [
+          {
+            "id": "ghosts",
+            "options": { "type": "html", "name": "Old windows converge", "speed": 1, "duration": 2, "startFrame": 1345, "meta": {} },
+            "props": { "element": "div", "x": 0, "y": 0, "width": 1920, "height": 1080,
+              "children": [
+                { "id": "g1", "props": { "element": "div", "x": -700, "y": 200, "width": 560, "height": 380, "borderRadius": 18, "background": "#e4e6ea", "boxShadow": "0 18px 50px rgba(20, 22, 30, 0.18)", "border": "1.5px solid rgba(255, 255, 255, 0.9)", "overflow": "hidden", "opacity": 0.95,
+                  "children": [ { "id": "g1Bar", "props": { "element": "div", "x": 0, "y": 0, "width": 560, "height": 40, "background": "#d9dce1" }, "scenes": [] } ] },
+                  "scenes": [ { "id": "g1a", "atFrame": 0, "meta": { "ease": "power3.in" }, "data": { "x": -700, "y": 200, "scale": 1, "opacity": 0.95 } }, { "id": "g1b", "atFrame": 40, "data": { "x": 680, "y": 270, "scale": 0.3, "opacity": 0 } } ] },
+                { "id": "g2", "props": { "element": "div", "x": 2060, "y": 420, "width": 560, "height": 380, "borderRadius": 18, "background": "#e4e6ea", "boxShadow": "0 18px 50px rgba(20, 22, 30, 0.18)", "border": "1.5px solid rgba(255, 255, 255, 0.9)", "overflow": "hidden", "opacity": 0.95,
+                  "children": [ { "id": "g2Bar", "props": { "element": "div", "x": 0, "y": 0, "width": 560, "height": 40, "background": "#d9dce1" }, "scenes": [] } ] },
+                  "scenes": [ { "id": "g2a", "atFrame": 4, "meta": { "ease": "power3.in" }, "data": { "x": 2060, "y": 420, "scale": 1, "opacity": 0.95 } }, { "id": "g2b", "atFrame": 44, "data": { "x": 680, "y": 270, "scale": 0.3, "opacity": 0 } } ] },
+                { "id": "g3", "props": { "element": "div", "x": 300, "y": -500, "width": 560, "height": 380, "borderRadius": 18, "background": "#e4e6ea", "boxShadow": "0 18px 50px rgba(20, 22, 30, 0.18)", "border": "1.5px solid rgba(255, 255, 255, 0.9)", "overflow": "hidden", "opacity": 0.95,
+                  "children": [ { "id": "g3Bar", "props": { "element": "div", "x": 0, "y": 0, "width": 560, "height": 40, "background": "#d9dce1" }, "scenes": [] } ] },
+                  "scenes": [ { "id": "g3a", "atFrame": 8, "meta": { "ease": "power3.in" }, "data": { "x": 300, "y": -500, "scale": 1, "opacity": 0.95 } }, { "id": "g3b", "atFrame": 48, "data": { "x": 680, "y": 270, "scale": 0.3, "opacity": 0 } } ] },
+                { "id": "g4", "props": { "element": "div", "x": 1100, "y": 1100, "width": 560, "height": 380, "borderRadius": 18, "background": "#e4e6ea", "boxShadow": "0 18px 50px rgba(20, 22, 30, 0.18)", "border": "1.5px solid rgba(255, 255, 255, 0.9)", "overflow": "hidden", "opacity": 0.95,
+                  "children": [ { "id": "g4Bar", "props": { "element": "div", "x": 0, "y": 0, "width": 560, "height": 40, "background": "#d9dce1" }, "scenes": [] } ] },
+                  "scenes": [ { "id": "g4a", "atFrame": 12, "meta": { "ease": "power3.in" }, "data": { "x": 1100, "y": 1100, "scale": 1, "opacity": 0.95 } }, { "id": "g4b", "atFrame": 52, "data": { "x": 680, "y": 270, "scale": 0.3, "opacity": 0 } } ] }
+              ]
+            },
+            "scenes": []
+          }
+        ]
+      },
+      {
+        "id": "tDock",
+        "options": { "type": "html", "name": "Dock", "meta": {} },
+        "props": { "fontFamily": "Geist" },
+        "segments": [
+          {
+            "id": "dock",
+            "options": { "type": "html", "name": "Dock", "speed": 1, "duration": 27.667, "startFrame": 850, "meta": {} },
+            "props": { "element": "div", "x": 0, "y": 0, "width": 1920, "height": 1080,
+              "children": [
+                { "id": "dockBody", "name": "Dock body", "props": { "element": "div", "x": 573, "y": 976.5, "width": 66, "height": 66, "borderRadius": 33, "background": "rgba(247, 242, 243, 0.72)", "backdropFilter": "blur(32px) saturate(1.4)", "border": "1.5px solid rgba(255, 255, 255, 0.85)", "boxShadow": "0 2px 9px rgba(0, 0, 0, 0.18)", "opacity": 0 },
+                  "scenes": [
+                    { "id": "db0", "atFrame": 10, "meta": { "ease": "power3.out" }, "data": { "x": 573, "y": 976.5, "width": 66, "height": 66, "borderRadius": 33, "opacity": 0 } },
+                    { "id": "db1", "atFrame": 12, "data": { "opacity": 1 } },
+                    { "id": "db2", "atFrame": 36, "data": { "x": 559.5, "y": 963, "width": 801, "height": 93, "borderRadius": 46.5 } }
+                  ] },
+                { "id": "dockPill", "name": "Prompt", "props": { "element": "div", "x": 621, "y": 976.5, "width": 696, "height": 66, "borderRadius": 33, "background": "rgba(255, 255, 255, 0.78)", "boxShadow": "0 1.5px 3px rgba(0, 0, 0, 0.18)", "opacity": 0,
+                  "children": [
+                    { "id": "dockPlaceholder", "props": { "element": "span", "text": "Ask anything", "x": 24, "y": 0, "width": 380, "height": 66, "fontSize": 24, "lineHeight": 2.75, "color": "#8b8587" },
+                      "scenes": [
+                        { "id": "ph_0", "atFrame": 0, "data": { "opacity": 1, "text": "Ask anything" } },
+                        { "id": "ph_1", "atFrame": 152, "data": { "opacity": 1 } },
+                        { "id": "ph_2", "atFrame": 153, "data": { "opacity": 0 } },
+                        { "id": "ph_3", "atFrame": 186, "data": { "opacity": 0 } },
+                        { "id": "ph_4", "atFrame": 192, "data": { "opacity": 1 } },
+                        { "id": "ph_5", "atFrame": 698, "data": { "text": "Listening…" } }
+                      ] },
+                    { "id": "dockTyped", "props": { "element": "div", "text": "Make episode 1 of Bawang Putih", "x": 24, "y": 0, "width": 0, "height": 66, "overflow": "hidden", "whiteSpace": "nowrap", "fontSize": 24, "lineHeight": 2.75, "color": "#1c1a1b", "borderRight": "2px solid #b0004c", "opacity": 0 },
+                      "scenes": [
+                        { "id": "ty0", "atFrame": 0, "data": { "opacity": 0, "width": 0 } },
+                        { "id": "ty1", "atFrame": 152, "data": { "opacity": 0 } },
+                        { "id": "ty2", "atFrame": 153, "meta": { "ease": "steps(30)" }, "data": { "opacity": 1, "width": 0 } },
+                        { "id": "ty3", "atFrame": 183, "data": { "width": 400 } },
+                        { "id": "ty4", "atFrame": 186, "data": { "opacity": 1 } },
+                        { "id": "ty5", "atFrame": 187, "data": { "opacity": 0 } }
+                      ] },
+                    { "id": "dockKbd", "props": { "element": "span", "text": "⌘K", "x": 450, "y": 18, "width": 48, "height": 30, "borderRadius": 9, "background": "rgba(0, 0, 0, 0.06)", "fontSize": 15, "lineHeight": 2, "textAlign": "center", "color": "#5a5557" }, "scenes": [] },
+                    { "id": "dockChat", "props": { "element": "div", "x": 529, "y": 22, "width": 24, "height": 20, "borderRadius": 5, "border": "2.5px solid #4a4547" }, "scenes": [] },
+                    { "id": "dockMic", "name": "Mic", "props": { "element": "div", "x": 576, "y": 6, "width": 54, "height": 54, "borderRadius": 27,
+                      "children": [
+                        { "id": "micFill", "props": { "element": "div", "x": 0, "y": 0, "width": 54, "height": 54, "borderRadius": 27, "background": "#b0004c", "opacity": 0 },
+                          "scenes": [
+                            { "id": "mf0", "atFrame": 0, "data": { "opacity": 0 } },
+                            { "id": "mf1", "atFrame": 131, "meta": { "ease": "power2.out" }, "data": { "opacity": 0 } },
+                            { "id": "mf2", "atFrame": 137, "data": { "opacity": 1 } },
+                            { "id": "mf3", "atFrame": 150, "meta": { "ease": "power2.inOut" }, "data": { "opacity": 1 } },
+                            { "id": "mf4", "atFrame": 160, "data": { "opacity": 0 } },
+                            { "id": "mf5", "atFrame": 698, "meta": { "ease": "power2.out" }, "data": { "opacity": 0 } },
+                            { "id": "mf6", "atFrame": 704, "data": { "opacity": 1 } }
+                          ] },
+                        { "id": "micCap", "props": { "element": "div", "x": 21, "y": 12, "width": 12, "height": 19, "borderRadius": 6, "background": "#4a4547" },
+                          "scenes": [
+                            { "id": "mc0", "atFrame": 0, "data": { "background": "#4a4547" } },
+                            { "id": "mc1", "atFrame": 131, "data": { "background": "#4a4547" } },
+                            { "id": "mc2", "atFrame": 137, "data": { "background": "#fff7ef" } },
+                            { "id": "mc3", "atFrame": 150, "data": { "background": "#fff7ef" } },
+                            { "id": "mc4", "atFrame": 160, "data": { "background": "#4a4547" } },
+                            { "id": "mc5", "atFrame": 698, "data": { "background": "#4a4547" } },
+                            { "id": "mc6", "atFrame": 704, "data": { "background": "#fff7ef" } }
+                          ] },
+                        { "id": "micArc", "props": { "element": "div", "x": 16, "y": 21, "width": 22, "height": 15, "borderStyle": "solid", "borderWidth": "0 2.5px 2.5px 2.5px", "borderColor": "#4a4547", "borderRadius": "0 0 11px 11px" },
+                          "scenes": [
+                            { "id": "ma0", "atFrame": 0, "data": { "borderColor": "#4a4547" } },
+                            { "id": "ma1", "atFrame": 131, "data": { "borderColor": "#4a4547" } },
+                            { "id": "ma2", "atFrame": 137, "data": { "borderColor": "#fff7ef" } },
+                            { "id": "ma3", "atFrame": 150, "data": { "borderColor": "#fff7ef" } },
+                            { "id": "ma4", "atFrame": 160, "data": { "borderColor": "#4a4547" } },
+                            { "id": "ma5", "atFrame": 698, "data": { "borderColor": "#4a4547" } },
+                            { "id": "ma6", "atFrame": 704, "data": { "borderColor": "#fff7ef" } }
+                          ] },
+                        { "id": "micStem", "props": { "element": "div", "x": 25.75, "y": 37, "width": 2.5, "height": 6, "background": "#4a4547" },
+                          "scenes": [
+                            { "id": "ms0", "atFrame": 0, "data": { "background": "#4a4547" } },
+                            { "id": "ms1", "atFrame": 131, "data": { "background": "#4a4547" } },
+                            { "id": "ms2", "atFrame": 137, "data": { "background": "#fff7ef" } },
+                            { "id": "ms3", "atFrame": 150, "data": { "background": "#fff7ef" } },
+                            { "id": "ms4", "atFrame": 160, "data": { "background": "#4a4547" } },
+                            { "id": "ms5", "atFrame": 698, "data": { "background": "#4a4547" } },
+                            { "id": "ms6", "atFrame": 704, "data": { "background": "#fff7ef" } }
+                          ] }
+                      ] }, "scenes": [] },
+                    { "id": "dockSend", "name": "Send", "props": { "element": "div", "x": 635, "y": 6, "width": 54, "height": 54, "borderRadius": 27, "background": "#8f1d45",
+                      "children": [
+                        { "id": "sendTri", "props": { "element": "div", "x": 21, "y": 17, "width": 0, "height": 0, "borderStyle": "solid", "borderWidth": "10px 0 10px 16px", "borderColor": "transparent transparent transparent #fff3f0" }, "scenes": [] }
+                      ] },
+                      "scenes": [
+                        { "id": "sd0", "atFrame": 183, "meta": { "ease": "power2.out" }, "data": { "scale": 1 } },
+                        { "id": "sd1", "atFrame": 187, "meta": { "ease": "power2.out" }, "data": { "scale": 0.88 } },
+                        { "id": "sd2", "atFrame": 195, "data": { "scale": 1 } }
+                      ] }
+                  ] },
+                  "scenes": [
+                    { "id": "dp0", "atFrame": 18, "meta": { "ease": "power3.out" }, "data": { "opacity": 0, "x": 621 } },
+                    { "id": "dp1", "atFrame": 38, "data": { "opacity": 1, "x": 651 } }
+                  ] },
+                { "id": "micRing", "name": "Listening ring", "props": { "element": "div", "x": 1227, "y": 982.5, "width": 54, "height": 54, "borderRadius": 27, "border": "3px solid #b0004c", "opacity": 0 },
+                  "scenes": [
+                    { "id": "rg0", "atFrame": 0, "data": { "opacity": 0, "scale": 1 } },
+                    { "id": "rg1", "atFrame": 131, "meta": { "ease": "power1.out" }, "data": { "opacity": 0.8, "scale": 1 } },
+                    { "id": "rg2", "atFrame": 146, "data": { "opacity": 0, "scale": 1.7 } },
+                    { "id": "rg3", "atFrame": 147, "meta": { "ease": "power1.out" }, "data": { "opacity": 0.8, "scale": 1 } },
+                    { "id": "rg4", "atFrame": 162, "data": { "opacity": 0, "scale": 1.7 } },
+                    { "id": "rg5", "atFrame": 698, "meta": { "ease": "power1.out" }, "data": { "opacity": 0.8, "scale": 1 } },
+                    { "id": "rg6", "atFrame": 716, "data": { "opacity": 0, "scale": 1.7 } },
+                    { "id": "rg7", "atFrame": 717, "meta": { "ease": "power1.out" }, "data": { "opacity": 0.8, "scale": 1 } },
+                    { "id": "rg8", "atFrame": 735, "data": { "opacity": 0, "scale": 1.7 } },
+                    { "id": "rg9", "atFrame": 736, "meta": { "ease": "power1.out" }, "data": { "opacity": 0.8, "scale": 1 } },
+                    { "id": "rg10", "atFrame": 754, "data": { "opacity": 0, "scale": 1.7 } },
+                    { "id": "rg11", "atFrame": 755, "meta": { "ease": "power1.out" }, "data": { "opacity": 0.8, "scale": 1 } },
+                    { "id": "rg12", "atFrame": 773, "data": { "opacity": 0, "scale": 1.7 } },
+                    { "id": "rg13", "atFrame": 774, "meta": { "ease": "power1.out" }, "data": { "opacity": 0.8, "scale": 1 } },
+                    { "id": "rg14", "atFrame": 792, "data": { "opacity": 0, "scale": 1.7 } },
+                    { "id": "rg15", "atFrame": 793, "meta": { "ease": "power1.out" }, "data": { "opacity": 0.8, "scale": 1 } },
+                    { "id": "rg16", "atFrame": 811, "data": { "opacity": 0, "scale": 1.7 } },
+                    { "id": "rg17", "atFrame": 812, "meta": { "ease": "power1.out" }, "data": { "opacity": 0.8, "scale": 1 } },
+                    { "id": "rg18", "atFrame": 830, "data": { "opacity": 0, "scale": 1.7 } }
+                  ] }
+              ]
+            },
+            "scenes": []
+          }
+        ]
+      },
+      {
+        "id": "tCircle",
+        "options": { "type": "html", "name": "Dot, mic, logo", "meta": {} },
+        "props": {},
+        "segments": [
+          {
+            "id": "circle",
+            "options": { "type": "html", "name": "Dot to mic to logo", "speed": 1, "duration": 38.167, "startFrame": 535, "meta": {} },
+            "props": { "element": "div", "x": 952, "y": 532, "width": 16, "height": 16, "borderRadius": 8, "background": "#1b1c20", "display": "grid", "placeItems": "center", "opacity": 0,
+              "children": [
+                { "id": "micGlyph", "name": "Mic", "props": { "element": "div", "width": 80, "height": 120, "opacity": 0,
+                  "children": [
+                    { "id": "mgCap", "props": { "element": "div", "x": 20, "y": 0, "width": 40, "height": 66, "borderRadius": 20, "background": "#fff7ef" }, "scenes": [] },
+                    { "id": "mgArc", "props": { "element": "div", "x": 0, "y": 32, "width": 80, "height": 58, "borderStyle": "solid", "borderWidth": "0 7px 7px 7px", "borderColor": "#fff7ef", "borderRadius": "0 0 40px 40px" }, "scenes": [] },
+                    { "id": "mgStem", "props": { "element": "div", "x": 36.5, "y": 90, "width": 7, "height": 20, "background": "#fff7ef" }, "scenes": [] },
+                    { "id": "mgBase", "props": { "element": "div", "x": 22, "y": 108, "width": 36, "height": 7, "borderRadius": 3.5, "background": "#fff7ef" }, "scenes": [] }
+                  ] },
+                  "scenes": [
+                    { "id": "mg0", "atFrame": 0, "data": { "opacity": 0 } },
+                    { "id": "mg1", "atFrame": 150, "data": { "opacity": 0 } },
+                    { "id": "mg2", "atFrame": 160, "data": { "opacity": 1 } },
+                    { "id": "mg3", "atFrame": 177, "data": { "opacity": 1 } },
+                    { "id": "mg4", "atFrame": 185, "data": { "opacity": 0 } }
+                  ] }
+              ]
+            },
+            "scenes": [
+              { "id": "cr0", "options": { "atFrame": 0, "meta": { "ease": "power2.out" } }, "data": { "opacity": 0, "scale": 1 } },
+              { "id": "c1", "options": { "atFrame": 8, "meta": { "ease": "sine.inOut" } }, "data": { "opacity": 1, "scale": 1 } },
+              { "id": "c2", "options": { "atFrame": 30, "meta": { "ease": "sine.inOut" } }, "data": { "scale": 1.35 } },
+              { "id": "c3", "options": { "atFrame": 50, "meta": { "ease": "sine.inOut" } }, "data": { "scale": 1 } },
+              { "id": "c3b", "options": { "atFrame": 75, "meta": { "ease": "sine.inOut" } }, "data": { "scale": 1.35 } },
+              { "id": "c3c", "options": { "atFrame": 100 }, "data": { "scale": 1 } },
+              { "id": "c4", "options": { "atFrame": 136, "meta": { "ease": "back.out(1.6)" } }, "data": { "x": 952, "y": 532, "width": 16, "height": 16, "borderRadius": 8, "background": "#1b1c20" } },
+              { "id": "c5", "options": { "atFrame": 154 }, "data": { "x": 860, "y": 440, "width": 200, "height": 200, "borderRadius": 100, "background": "#b0004c" } },
+              { "id": "c6", "options": { "atFrame": 247, "meta": { "ease": "power3.inOut" } }, "data": { "x": 860, "y": 440, "width": 200, "height": 200, "borderRadius": 100 } },
+              { "id": "c7", "options": { "atFrame": 271 }, "data": { "x": 780, "y": 360, "width": 360, "height": 360, "borderRadius": 108 } },
+              { "id": "c8", "options": { "atFrame": 300, "meta": { "ease": "power3.inOut" } }, "data": { "x": 780, "y": 360, "width": 360, "height": 360, "borderRadius": 108 } },
+              { "id": "c9", "options": { "atFrame": 327 }, "data": { "x": 573, "y": 976.5, "width": 66, "height": 66, "borderRadius": 19.8 } }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "tBar1",
+        "options": { "type": "html", "name": "Bar 1", "meta": {} },
+        "props": {},
+        "segments": [
+          {
+            "id": "bar1",
+            "options": { "type": "html", "name": "Bar to W stroke 1", "speed": 1, "duration": 32.667, "startFrame": 700, "meta": {} },
+            "props": { "element": "div", "x": 901, "y": 525, "width": 16, "height": 30, "borderRadius": 8, "background": "#fff7ef", "opacity": 0 },
+            "scenes": [
+              { "id": "a1_0", "options": { "atFrame": 0 }, "data": { "opacity": 0 } },
+              { "id": "a1_1", "options": { "atFrame": 12, "meta": { "ease": "sine.inOut" } }, "data": { "opacity": 0, "height": 30, "y": 525 } },
+              { "id": "a1_2", "options": { "atFrame": 20, "meta": { "ease": "sine.inOut" } }, "data": { "opacity": 1, "height": 70, "y": 505 } },
+              { "id": "a1_3", "options": { "atFrame": 28, "meta": { "ease": "sine.inOut" } }, "data": { "height": 44, "y": 518 } },
+              { "id": "a1_4", "options": { "atFrame": 36, "meta": { "ease": "sine.inOut" } }, "data": { "height": 90, "y": 495 } },
+              { "id": "a1_5", "options": { "atFrame": 44, "meta": { "ease": "sine.inOut" } }, "data": { "height": 52, "y": 514 } },
+              { "id": "a1_6", "options": { "atFrame": 52, "meta": { "ease": "sine.inOut" } }, "data": { "height": 76, "y": 502 } },
+              { "id": "a1_7", "options": { "atFrame": 60, "meta": { "ease": "sine.inOut" } }, "data": { "height": 40, "y": 520 } },
+              { "id": "a1_8", "options": { "atFrame": 68, "meta": { "ease": "sine.inOut" } }, "data": { "height": 60, "y": 510 } },
+              { "id": "a1_9", "options": { "atFrame": 76, "meta": { "ease": "sine.inOut" } }, "data": { "height": 36, "y": 522 } },
+              { "id": "a1_10", "options": { "atFrame": 82, "meta": { "ease": "power3.inOut" } }, "data": { "x": 901, "y": 515, "width": 16, "height": 50, "rotate": 0, "borderRadius": 8 } },
+              { "id": "a1_11", "options": { "atFrame": 106 }, "data": { "x": 859.9, "y": 454, "width": 36, "height": 180, "rotate": -22.33, "borderRadius": 18 } },
+              { "id": "a1_12", "options": { "atFrame": 135, "meta": { "ease": "power3.inOut" } }, "data": { "x": 859.9, "y": 454, "width": 36, "height": 180, "borderRadius": 18 } },
+              { "id": "a1_13", "options": { "atFrame": 162 }, "data": { "x": 587.65, "y": 993.7, "width": 6.6, "height": 33, "borderRadius": 3.3 } }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "tBar2",
+        "options": { "type": "html", "name": "Bar 2", "meta": {} },
+        "props": {},
+        "segments": [
+          {
+            "id": "bar2",
+            "options": { "type": "html", "name": "Bar to W stroke 2", "speed": 1, "duration": 32.667, "startFrame": 700, "meta": {} },
+            "props": { "element": "div", "x": 935, "y": 515, "width": 16, "height": 50, "borderRadius": 8, "background": "#fff7ef", "opacity": 0 },
+            "scenes": [
+              { "id": "a2_0", "options": { "atFrame": 0 }, "data": { "opacity": 0 } },
+              { "id": "a2_1", "options": { "atFrame": 12, "meta": { "ease": "sine.inOut" } }, "data": { "opacity": 0, "height": 50, "y": 515 } },
+              { "id": "a2_2", "options": { "atFrame": 20, "meta": { "ease": "sine.inOut" } }, "data": { "opacity": 1, "height": 110, "y": 485 } },
+              { "id": "a2_3", "options": { "atFrame": 28, "meta": { "ease": "sine.inOut" } }, "data": { "height": 70, "y": 505 } },
+              { "id": "a2_4", "options": { "atFrame": 36, "meta": { "ease": "sine.inOut" } }, "data": { "height": 60, "y": 510 } },
+              { "id": "a2_5", "options": { "atFrame": 44, "meta": { "ease": "sine.inOut" } }, "data": { "height": 120, "y": 480 } },
+              { "id": "a2_6", "options": { "atFrame": 52, "meta": { "ease": "sine.inOut" } }, "data": { "height": 80, "y": 500 } },
+              { "id": "a2_7", "options": { "atFrame": 60, "meta": { "ease": "sine.inOut" } }, "data": { "height": 96, "y": 492 } },
+              { "id": "a2_8", "options": { "atFrame": 68, "meta": { "ease": "sine.inOut" } }, "data": { "height": 54, "y": 513 } },
+              { "id": "a2_9", "options": { "atFrame": 76, "meta": { "ease": "sine.inOut" } }, "data": { "height": 72, "y": 504 } },
+              { "id": "a2_10", "options": { "atFrame": 82, "meta": { "ease": "power3.inOut" } }, "data": { "x": 935, "y": 510, "width": 16, "height": 60, "rotate": 0, "borderRadius": 8 } },
+              { "id": "a2_11", "options": { "atFrame": 106 }, "data": { "x": 914.6, "y": 491.2, "width": 36, "height": 144.7, "rotate": 30.22, "borderRadius": 18 } },
+              { "id": "a2_12", "options": { "atFrame": 135, "meta": { "ease": "power3.inOut" } }, "data": { "x": 914.6, "y": 491.2, "width": 36, "height": 144.7, "borderRadius": 18 } },
+              { "id": "a2_13", "options": { "atFrame": 162 }, "data": { "x": 597.7, "y": 1000.6, "width": 6.6, "height": 26.5, "borderRadius": 3.3 } }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "tBar3",
+        "options": { "type": "html", "name": "Bar 3", "meta": {} },
+        "props": {},
+        "segments": [
+          {
+            "id": "bar3",
+            "options": { "type": "html", "name": "Bar to W stroke 3", "speed": 1, "duration": 32.667, "startFrame": 700, "meta": {} },
+            "props": { "element": "div", "x": 969, "y": 520, "width": 16, "height": 40, "borderRadius": 8, "background": "#f6b38a", "opacity": 0 },
+            "scenes": [
+              { "id": "a3_0", "options": { "atFrame": 0 }, "data": { "opacity": 0 } },
+              { "id": "a3_1", "options": { "atFrame": 12, "meta": { "ease": "sine.inOut" } }, "data": { "opacity": 0, "height": 40, "y": 520 } },
+              { "id": "a3_2", "options": { "atFrame": 20, "meta": { "ease": "sine.inOut" } }, "data": { "opacity": 1, "height": 90, "y": 495 } },
+              { "id": "a3_3", "options": { "atFrame": 28, "meta": { "ease": "sine.inOut" } }, "data": { "height": 120, "y": 480 } },
+              { "id": "a3_4", "options": { "atFrame": 36, "meta": { "ease": "sine.inOut" } }, "data": { "height": 70, "y": 505 } },
+              { "id": "a3_5", "options": { "atFrame": 44, "meta": { "ease": "sine.inOut" } }, "data": { "height": 84, "y": 498 } },
+              { "id": "a3_6", "options": { "atFrame": 52, "meta": { "ease": "sine.inOut" } }, "data": { "height": 110, "y": 485 } },
+              { "id": "a3_7", "options": { "atFrame": 60, "meta": { "ease": "sine.inOut" } }, "data": { "height": 60, "y": 510 } },
+              { "id": "a3_8", "options": { "atFrame": 68, "meta": { "ease": "sine.inOut" } }, "data": { "height": 90, "y": 495 } },
+              { "id": "a3_9", "options": { "atFrame": 76, "meta": { "ease": "sine.inOut" } }, "data": { "height": 56, "y": 512 } },
+              { "id": "a3_10", "options": { "atFrame": 82, "meta": { "ease": "power3.inOut" } }, "data": { "x": 969, "y": 510, "width": 16, "height": 60, "rotate": 0, "borderRadius": 8 } },
+              { "id": "a3_11", "options": { "atFrame": 106 }, "data": { "x": 969.4, "y": 491.2, "width": 36, "height": 144.7, "rotate": -30.22, "borderRadius": 18 } },
+              { "id": "a3_12", "options": { "atFrame": 135, "meta": { "ease": "power3.inOut" } }, "data": { "x": 969.4, "y": 491.2, "width": 36, "height": 144.7, "borderRadius": 18 } },
+              { "id": "a3_13", "options": { "atFrame": 162 }, "data": { "x": 607.7, "y": 1000.6, "width": 6.6, "height": 26.5, "borderRadius": 3.3 } }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "tBar4",
+        "options": { "type": "html", "name": "Bar 4", "meta": {} },
+        "props": {},
+        "segments": [
+          {
+            "id": "bar4",
+            "options": { "type": "html", "name": "Bar to W stroke 4", "speed": 1, "duration": 32.667, "startFrame": 700, "meta": {} },
+            "props": { "element": "div", "x": 1003, "y": 527, "width": 16, "height": 26, "borderRadius": 8, "background": "#f6b38a", "opacity": 0 },
+            "scenes": [
+              { "id": "a4_0", "options": { "atFrame": 0 }, "data": { "opacity": 0 } },
+              { "id": "a4_1", "options": { "atFrame": 12, "meta": { "ease": "sine.inOut" } }, "data": { "opacity": 0, "height": 26, "y": 527 } },
+              { "id": "a4_2", "options": { "atFrame": 20, "meta": { "ease": "sine.inOut" } }, "data": { "opacity": 1, "height": 56, "y": 512 } },
+              { "id": "a4_3", "options": { "atFrame": 28, "meta": { "ease": "sine.inOut" } }, "data": { "height": 64, "y": 508 } },
+              { "id": "a4_4", "options": { "atFrame": 36, "meta": { "ease": "sine.inOut" } }, "data": { "height": 100, "y": 490 } },
+              { "id": "a4_5", "options": { "atFrame": 44, "meta": { "ease": "sine.inOut" } }, "data": { "height": 40, "y": 520 } },
+              { "id": "a4_6", "options": { "atFrame": 52, "meta": { "ease": "sine.inOut" } }, "data": { "height": 66, "y": 507 } },
+              { "id": "a4_7", "options": { "atFrame": 60, "meta": { "ease": "sine.inOut" } }, "data": { "height": 50, "y": 515 } },
+              { "id": "a4_8", "options": { "atFrame": 68, "meta": { "ease": "sine.inOut" } }, "data": { "height": 70, "y": 505 } },
+              { "id": "a4_9", "options": { "atFrame": 76, "meta": { "ease": "sine.inOut" } }, "data": { "height": 30, "y": 525 } },
+              { "id": "a4_10", "options": { "atFrame": 82, "meta": { "ease": "power3.inOut" } }, "data": { "x": 1003, "y": 515, "width": 16, "height": 50, "rotate": 0, "borderRadius": 8 } },
+              { "id": "a4_11", "options": { "atFrame": 106 }, "data": { "x": 1024.1, "y": 454, "width": 36, "height": 180, "rotate": 22.33, "borderRadius": 18 } },
+              { "id": "a4_12", "options": { "atFrame": 135, "meta": { "ease": "power3.inOut" } }, "data": { "x": 1024.1, "y": 454, "width": 36, "height": 180, "borderRadius": 18 } },
+              { "id": "a4_13", "options": { "atFrame": 162 }, "data": { "x": 617.75, "y": 993.7, "width": 6.6, "height": 33, "borderRadius": 3.3 } }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "tWordmark",
+        "options": { "type": "html", "name": "Wordmark", "meta": {} },
+        "props": { "fontFamily": "Geist" },
+        "segments": [
+          {
+            "id": "wordmark",
+            "options": { "type": "html", "name": "Wedyan", "speed": 1, "duration": 2, "startFrame": 795, "meta": {} },
+            "props": { "element": "div", "text": "Wedyan", "x": 960, "y": 750, "width": 0, "height": 150, "overflow": "hidden", "whiteSpace": "nowrap", "textAlign": "center", "fontSize": 120, "fontWeight": 600, "letterSpacing": -2, "lineHeight": 1.25, "color": "#1c1a1b" },
+            "scenes": [
+              { "id": "wm0", "options": { "atFrame": 5, "meta": { "ease": "power3.out" } }, "data": { "x": 960, "width": 0, "opacity": 1, "y": 750 } },
+              { "id": "wm1", "options": { "atFrame": 30 }, "data": { "x": 720, "width": 480 } },
+              { "id": "wm2", "options": { "atFrame": 40, "meta": { "ease": "power2.in" } }, "data": { "opacity": 1, "y": 750 } },
+              { "id": "wm3", "options": { "atFrame": 52 }, "data": { "opacity": 0, "y": 770 } }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "tRings",
+        "options": { "type": "html", "name": "One app, one tab, one dock", "meta": {} },
+        "props": {},
+        "segments": [
+          {
+            "id": "ringApp",
+            "options": { "type": "html", "name": "One app", "speed": 1, "duration": 1, "startFrame": 1400, "meta": {} },
+            "props": { "element": "div", "x": 210, "y": 60, "width": 1500, "height": 800, "borderRadius": 24, "border": "3px solid #b0004c", "opacity": 0 },
+            "scenes": [
+              { "id": "ra0", "options": { "atFrame": 0, "meta": { "ease": "power2.out" } }, "data": { "opacity": 0, "scale": 1.02 } },
+              { "id": "ra1", "options": { "atFrame": 6 }, "data": { "opacity": 1, "scale": 1 } },
+              { "id": "ra2", "options": { "atFrame": 20, "meta": { "ease": "power2.in" } }, "data": { "opacity": 1 } },
+              { "id": "ra3", "options": { "atFrame": 29 }, "data": { "opacity": 0 } }
+            ]
+          },
+          {
+            "id": "ringTab",
+            "options": { "type": "html", "name": "One tab", "speed": 1, "duration": 0.933, "startFrame": 1430, "meta": {} },
+            "props": { "element": "div", "x": 268, "y": 65, "width": 208, "height": 50, "borderRadius": 25, "border": "3px solid #b0004c", "opacity": 0 },
+            "scenes": [
+              { "id": "rt0", "options": { "atFrame": 0, "meta": { "ease": "power2.out" } }, "data": { "opacity": 0, "scale": 1.15 } },
+              { "id": "rt1", "options": { "atFrame": 6 }, "data": { "opacity": 1, "scale": 1 } },
+              { "id": "rt2", "options": { "atFrame": 18, "meta": { "ease": "power2.in" } }, "data": { "opacity": 1 } },
+              { "id": "rt3", "options": { "atFrame": 27 }, "data": { "opacity": 0 } }
+            ]
+          },
+          {
+            "id": "ringDock",
+            "options": { "type": "html", "name": "One dock", "speed": 1, "duration": 1.333, "startFrame": 1458, "meta": {} },
+            "props": { "element": "div", "x": 553.5, "y": 957, "width": 813, "height": 105, "borderRadius": 52.5, "border": "3px solid #b0004c", "opacity": 0 },
+            "scenes": [
+              { "id": "rd0", "options": { "atFrame": 0, "meta": { "ease": "power2.out" } }, "data": { "opacity": 0, "scale": 1.06 } },
+              { "id": "rd1", "options": { "atFrame": 6 }, "data": { "opacity": 1, "scale": 1 } },
+              { "id": "rd2", "options": { "atFrame": 28, "meta": { "ease": "power2.in" } }, "data": { "opacity": 1 } },
+              { "id": "rd3", "options": { "atFrame": 39 }, "data": { "opacity": 0 } }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "tSpeak",
+        "options": { "type": "html", "name": "SPEAK", "meta": {} },
+        "props": { "fontFamily": "Geist" },
+        "segments": [
+          {
+            "id": "speak",
+            "options": { "type": "html", "name": "SPEAK", "speed": 1, "duration": 4.467, "startFrame": 1546, "meta": {} },
+            "props": { "element": "div", "text": "SPEAK", "x": 0, "y": 330, "width": 1920, "height": 360, "textAlign": "center", "fontSize": 300, "fontWeight": 700, "letterSpacing": -6, "lineHeight": 1.2, "color": "#b0004c", "opacity": 0 },
+            "scenes": [
+              { "id": "sp0", "options": { "atFrame": 2, "meta": { "ease": "power4.out" } }, "data": { "opacity": 0, "scale": 1.25 } },
+              { "id": "sp1", "options": { "atFrame": 16, "meta": { "ease": "none" } }, "data": { "opacity": 1, "scale": 1 } },
+              { "id": "sp2", "options": { "atFrame": 134 }, "data": { "scale": 1.04 } }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "tVoice",
+        "options": { "type": "audio", "name": "Voice", "meta": {} },
+        "props": {},
+        "segments": [
+          { "id": "vo1", "options": { "type": "audio", "name": "vo-01", "speed": 1, "duration": 2.48, "startFrame": 30, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/vo-01.wav", "volume": 1 }, "scenes": [] },
+          { "id": "vo2", "options": { "type": "audio", "name": "vo-02", "speed": 1, "duration": 4.68, "startFrame": 120, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/vo-02.wav", "volume": 1 }, "scenes": [] },
+          { "id": "vo3", "options": { "type": "audio", "name": "vo-03", "speed": 1, "duration": 7.71, "startFrame": 276, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/vo-03.wav", "volume": 1 }, "scenes": [] },
+          { "id": "vo4", "options": { "type": "audio", "name": "vo-04", "speed": 1, "duration": 5.47, "startFrame": 585, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/vo-04.wav", "volume": 1 }, "scenes": [] },
+          { "id": "vo5", "options": { "type": "audio", "name": "vo-05", "speed": 1, "duration": 1.49, "startFrame": 780, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/vo-05.wav", "volume": 1 }, "scenes": [] },
+          { "id": "vo6", "options": { "type": "audio", "name": "vo-06", "speed": 1, "duration": 5.71, "startFrame": 900, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/vo-06.wav", "volume": 1 }, "scenes": [] },
+          { "id": "vo7", "options": { "type": "audio", "name": "vo-07", "speed": 1, "duration": 1.71, "startFrame": 1110, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/vo-07.wav", "volume": 1 }, "scenes": [] },
+          { "id": "vo8", "options": { "type": "audio", "name": "vo-08", "speed": 1, "duration": 2.79, "startFrame": 1176, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/vo-08.wav", "volume": 1 }, "scenes": [] },
+          { "id": "vo9", "options": { "type": "audio", "name": "vo-09", "speed": 1, "duration": 4.61, "startFrame": 1350, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/vo-09.wav", "volume": 1 }, "scenes": [] },
+          { "id": "vo10", "options": { "type": "audio", "name": "vo-10", "speed": 1, "duration": 1.45, "startFrame": 1500, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/vo-10.wav", "volume": 1 }, "scenes": [] }
+        ]
+      },
+      {
+        "id": "tMusicA",
+        "options": { "type": "audio", "name": "Music A", "meta": {} },
+        "props": {},
+        "segments": [
+          { "id": "music1", "options": { "type": "audio", "name": "music-01", "speed": 1, "duration": 9.533, "startFrame": 780, "offsetFrame": 14, "contentFrames": 300, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/music-01.wav", "volume": 0.5 },
+            "scenes": [
+              { "id": "mu1a", "options": { "atFrame": 14 }, "data": { "volume": 0.5 } },
+              { "id": "mu1b", "options": { "atFrame": 290 }, "data": { "volume": 0.5 } },
+              { "id": "mu1c", "options": { "atFrame": 300 }, "data": { "volume": 0 } }
+            ] },
+          { "id": "music3", "options": { "type": "audio", "name": "music-03", "speed": 1, "duration": 6.6, "startFrame": 1346, "contentFrames": 300, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/music-03.wav", "volume": 0.3 },
+            "scenes": [
+              { "id": "mu3a", "options": { "atFrame": 0, "meta": { "ease": "power1.out" } }, "data": { "volume": 0 } },
+              { "id": "mu3b", "options": { "atFrame": 10 }, "data": { "volume": 0.3 } },
+              { "id": "mu3c", "options": { "atFrame": 196 }, "data": { "volume": 0.3 } },
+              { "id": "mu3d", "options": { "atFrame": 198 }, "data": { "volume": 0 } }
+            ] }
+        ]
+      },
+      {
+        "id": "tMusicB",
+        "options": { "type": "audio", "name": "Music B", "meta": {} },
+        "props": {},
+        "segments": [
+          { "id": "music2", "options": { "type": "audio", "name": "music-02", "speed": 1, "duration": 10, "startFrame": 1056, "contentFrames": 300, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/music-02.wav", "volume": 0.45 },
+            "scenes": [
+              { "id": "mu2a", "options": { "atFrame": 0, "meta": { "ease": "power1.out" } }, "data": { "volume": 0 } },
+              { "id": "mu2b", "options": { "atFrame": 10 }, "data": { "volume": 0.45 } },
+              { "id": "mu2c", "options": { "atFrame": 290 }, "data": { "volume": 0.45 } },
+              { "id": "mu2d", "options": { "atFrame": 300 }, "data": { "volume": 0 } }
+            ] }
+        ]
+      },
+      {
+        "id": "tBed",
+        "options": { "type": "audio", "name": "Tension", "meta": {} },
+        "props": {},
+        "segments": [
+          { "id": "sxBed", "options": { "type": "audio", "name": "Tick bed", "speed": 1, "duration": 11, "startFrame": 120, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/tick-bed.wav", "volume": 0.35 }, "scenes": [] },
+          { "id": "sxRiser", "options": { "type": "audio", "name": "Riser", "speed": 1, "duration": 3, "startFrame": 450, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/riser.wav", "volume": 0.55 }, "scenes": [] }
+        ]
+      },
+      {
+        "id": "tMoves",
+        "options": { "type": "audio", "name": "Moves", "meta": {} },
+        "props": {},
+        "segments": [
+          { "id": "sxM1", "options": { "type": "audio", "name": "Swoosh", "speed": 1, "duration": 0.7, "startFrame": 58, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/swoosh-1.wav", "volume": 0.7 }, "scenes": [] },
+          { "id": "sxM2", "options": { "type": "audio", "name": "Swoosh", "speed": 1, "duration": 0.7, "startFrame": 100, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/swoosh-2.wav", "volume": 0.7 }, "scenes": [] },
+          { "id": "sxM3", "options": { "type": "audio", "name": "Window", "speed": 1, "duration": 0.35, "startFrame": 150, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/window.wav", "volume": 0.7 }, "scenes": [] },
+          { "id": "sxM4", "options": { "type": "audio", "name": "Window", "speed": 1, "duration": 0.35, "startFrame": 165, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/window.wav", "volume": 0.7 }, "scenes": [] },
+          { "id": "sxM5", "options": { "type": "audio", "name": "Window", "speed": 1, "duration": 0.35, "startFrame": 447, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/window.wav", "volume": 0.7 }, "scenes": [] },
+          { "id": "sxM6", "options": { "type": "audio", "name": "Window", "speed": 1, "duration": 0.35, "startFrame": 460, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/window.wav", "volume": 0.7 }, "scenes": [] },
+          { "id": "sxM7", "options": { "type": "audio", "name": "Window", "speed": 1, "duration": 0.35, "startFrame": 486, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/window.wav", "volume": 0.7 }, "scenes": [] },
+          { "id": "sxM8", "options": { "type": "audio", "name": "Window", "speed": 1, "duration": 0.35, "startFrame": 1040, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/window.wav", "volume": 0.7 }, "scenes": [] },
+          { "id": "sxM9", "options": { "type": "audio", "name": "Swoosh", "speed": 1, "duration": 0.7, "startFrame": 1170, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/swoosh-1.wav", "volume": 0.7 }, "scenes": [] },
+          { "id": "sxM10", "options": { "type": "audio", "name": "Swoosh", "speed": 1, "duration": 0.7, "startFrame": 1352, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/swoosh-2.wav", "volume": 0.7 }, "scenes": [] }
+        ]
+      },
+      {
+        "id": "tClicks",
+        "options": { "type": "audio", "name": "Clicks", "meta": {} },
+        "props": {},
+        "segments": [
+          { "id": "sxC1", "options": { "type": "audio", "name": "Click", "speed": 1, "duration": 0.05, "startFrame": 278, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/click-1.wav", "volume": 0.5 }, "scenes": [] },
+          { "id": "sxC2", "options": { "type": "audio", "name": "Click", "speed": 1, "duration": 0.05, "startFrame": 328, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/click-2.wav", "volume": 0.5 }, "scenes": [] },
+          { "id": "sxC3", "options": { "type": "audio", "name": "Click", "speed": 1, "duration": 0.05, "startFrame": 370, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/click-3.wav", "volume": 0.5 }, "scenes": [] },
+          { "id": "sxC4", "options": { "type": "audio", "name": "Click", "speed": 1, "duration": 0.05, "startFrame": 416, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/click-1.wav", "volume": 0.5 }, "scenes": [] },
+          { "id": "sxC5", "options": { "type": "audio", "name": "Click", "speed": 1, "duration": 0.05, "startFrame": 447, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/click-2.wav", "volume": 0.5 }, "scenes": [] },
+          { "id": "sxC6", "options": { "type": "audio", "name": "Click", "speed": 1, "duration": 0.05, "startFrame": 460, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/click-3.wav", "volume": 0.5 }, "scenes": [] },
+          { "id": "sxC7", "options": { "type": "audio", "name": "Click", "speed": 1, "duration": 0.05, "startFrame": 470, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/click-1.wav", "volume": 0.5 }, "scenes": [] },
+          { "id": "sxC8", "options": { "type": "audio", "name": "Click", "speed": 1, "duration": 0.05, "startFrame": 478, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/click-2.wav", "volume": 0.5 }, "scenes": [] },
+          { "id": "sxC9", "options": { "type": "audio", "name": "Click", "speed": 1, "duration": 0.05, "startFrame": 486, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/click-3.wav", "volume": 0.5 }, "scenes": [] },
+          { "id": "sxC10", "options": { "type": "audio", "name": "Click", "speed": 1, "duration": 0.05, "startFrame": 490, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/click-1.wav", "volume": 0.5 }, "scenes": [] },
+          { "id": "sxC11", "options": { "type": "audio", "name": "Click", "speed": 1, "duration": 0.05, "startFrame": 494, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/click-2.wav", "volume": 0.5 }, "scenes": [] },
+          { "id": "sxC12", "options": { "type": "audio", "name": "Click", "speed": 1, "duration": 0.05, "startFrame": 498, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/click-3.wav", "volume": 0.5 }, "scenes": [] },
+          { "id": "sxC13", "options": { "type": "audio", "name": "Click", "speed": 1, "duration": 0.05, "startFrame": 502, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/click-1.wav", "volume": 0.5 }, "scenes": [] },
+          { "id": "sxC14", "options": { "type": "audio", "name": "Mic on", "speed": 1, "duration": 0.22, "startFrame": 1548, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/mic-on.wav", "volume": 0.7 }, "scenes": [] }
+        ]
+      },
+      {
+        "id": "tChimes",
+        "options": { "type": "audio", "name": "Chimes", "meta": {} },
+        "props": {},
+        "segments": [
+          { "id": "sxH1", "options": { "type": "audio", "name": "Upload", "speed": 1, "duration": 0.5, "startFrame": 368, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/upload.wav", "volume": 0.4 }, "scenes": [] },
+          { "id": "sxH2", "options": { "type": "audio", "name": "Upload", "speed": 1, "duration": 0.5, "startFrame": 440, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/upload.wav", "volume": 0.4 }, "scenes": [] },
+          { "id": "sxH3", "options": { "type": "audio", "name": "Upload", "speed": 1, "duration": 0.5, "startFrame": 476, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/upload.wav", "volume": 0.4 }, "scenes": [] },
+          { "id": "sxH4", "options": { "type": "audio", "name": "Window", "speed": 1, "duration": 0.35, "startFrame": 492, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/window.wav", "volume": 0.7 }, "scenes": [] },
+          { "id": "sxH5", "options": { "type": "audio", "name": "Pop", "speed": 1, "duration": 0.12, "startFrame": 860, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/pop.wav", "volume": 0.45 }, "scenes": [] },
+          { "id": "sxH6", "options": { "type": "audio", "name": "Pop", "speed": 1, "duration": 0.12, "startFrame": 875, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/pop.wav", "volume": 0.45 }, "scenes": [] },
+          { "id": "sxH7", "options": { "type": "audio", "name": "Typing", "speed": 1, "duration": 1, "startFrame": 1003, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/typing.wav", "volume": 0.4 }, "scenes": [] },
+          { "id": "sxH8", "options": { "type": "audio", "name": "Typing", "speed": 1, "duration": 1, "startFrame": 1063, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/typing.wav", "volume": 0.4 }, "scenes": [] },
+          { "id": "sxH9", "options": { "type": "audio", "name": "Pop", "speed": 1, "duration": 0.12, "startFrame": 1110, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/pop.wav", "volume": 0.45 }, "scenes": [] },
+          { "id": "sxH10", "options": { "type": "audio", "name": "Shimmer", "speed": 1, "duration": 1.2, "startFrame": 1125, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/shimmer.wav", "volume": 0.5 }, "scenes": [] },
+          { "id": "sxH11", "options": { "type": "audio", "name": "Shimmer", "speed": 1, "duration": 1.2, "startFrame": 1210, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/shimmer.wav", "volume": 0.5 }, "scenes": [] },
+          { "id": "sxH12", "options": { "type": "audio", "name": "Pop", "speed": 1, "duration": 0.12, "startFrame": 1400, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/pop.wav", "volume": 0.45 }, "scenes": [] },
+          { "id": "sxH13", "options": { "type": "audio", "name": "Pop", "speed": 1, "duration": 0.12, "startFrame": 1430, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/pop.wav", "volume": 0.45 }, "scenes": [] },
+          { "id": "sxH14", "options": { "type": "audio", "name": "Pop", "speed": 1, "duration": 0.12, "startFrame": 1458, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/pop.wav", "volume": 0.45 }, "scenes": [] }
+        ]
+      },
+      {
+        "id": "tHits",
+        "options": { "type": "audio", "name": "Hits", "meta": {} },
+        "props": {},
+        "segments": [
+          { "id": "sxK1", "options": { "type": "audio", "name": "Download", "speed": 1, "duration": 0.7, "startFrame": 390, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/download.wav", "volume": 0.4 }, "scenes": [] },
+          { "id": "sxK2", "options": { "type": "audio", "name": "Download", "speed": 1, "duration": 0.7, "startFrame": 457, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/download.wav", "volume": 0.4 }, "scenes": [] },
+          { "id": "sxK3", "options": { "type": "audio", "name": "Download", "speed": 1, "duration": 0.7, "startFrame": 492, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/download.wav", "volume": 0.4 }, "scenes": [] },
+          { "id": "sxK4", "options": { "type": "audio", "name": "Mic on", "speed": 1, "duration": 0.22, "startFrame": 674, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/mic-on.wav", "volume": 0.7 }, "scenes": [] },
+          { "id": "sxK5", "options": { "type": "audio", "name": "Impact", "speed": 1, "duration": 1.6, "startFrame": 780, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/impact.wav", "volume": 0.85 }, "scenes": [] },
+          { "id": "sxK6", "options": { "type": "audio", "name": "Mic on", "speed": 1, "duration": 0.22, "startFrame": 981, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/mic-on.wav", "volume": 0.7 }, "scenes": [] },
+          { "id": "sxK7", "options": { "type": "audio", "name": "Impact", "speed": 1, "duration": 1.6, "startFrame": 1548, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/impact.wav", "volume": 0.85 }, "scenes": [] }
+        ]
+      }
+    ]
+  }
+}
