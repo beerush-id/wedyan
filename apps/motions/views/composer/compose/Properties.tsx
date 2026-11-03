@@ -75,7 +75,7 @@ export const Properties = setup(() => {
             when={() => (hasSound(held()) ? composer.picked() : undefined)}
             fallback={() => <NothingPicked kind="sound" icon={SoundIcon} />}
           >
-            {(clip) => <SoundProperties key={clip.id} clip={clip as { props: ClipSound }} />}
+            {(clip) => <SoundProperties clip={clip as { props: ClipSound }} />}
           </Show>
         </TabPanel>
         <TabPanel name="text">
@@ -83,7 +83,7 @@ export const Properties = setup(() => {
             when={() => wordsOf(composer)}
             fallback={() => <NothingPicked kind="text" icon={TextIcon} />}
           >
-            {(clip) => <TextProperties key={clip.id} clip={clip} />}
+            {(clip) => <TextProperties clip={clip} />}
           </Show>
         </TabPanel>
       </Tabs>

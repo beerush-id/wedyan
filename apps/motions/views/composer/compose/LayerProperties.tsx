@@ -51,7 +51,7 @@ export const LayerProperties = setup(() => {
         {(image) => <PictureSource image={image} />}
       </Show>
       <Groups groups={BOX_GROUPS} />
-      <Show when={html}>{(box) => <BoxStyle key={box.id} />}</Show>
+      <Show when={html}>{() => <BoxStyle />}</Show>
     </div>
   );
 }, 'LayerProperties');
