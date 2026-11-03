@@ -188,10 +188,14 @@ async function serveFile(request: Request, url: URL, env?: ServerEnv): Promise<R
   return privately(await files.fetch(new Request(target, request), bindings, resolveCtx()), REVALIDATE);
 }
 
-/** A response only the asking browser keeps, since every user asks for the same URL. */
+/**
+ * A response only the asking browser keeps, since every user asks for the same URL; kept apart per
+ * session too, so one home's copy never answers for another's.
+ */
 function privately(response: Response, cacheControl: string): Response {
   const headers = new Headers(response.headers);
   headers.set('Cache-Control', cacheControl);
+  headers.append('Vary', 'Cookie');
   return new Response(response.body, { status: response.status, headers });
 }
 
