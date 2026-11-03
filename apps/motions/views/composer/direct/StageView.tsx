@@ -1,8 +1,7 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
-import { $use, setup } from '@airlib/react';
+import { $use, setup, untrack } from '@airlib/react';
 import { Button, EmptyState, Tooltip } from '@airlib/react-aui';
 import { DirectContent } from '@/components/Direct.js';
-import { posterOf, runtime } from '@/lib/documents/stage.js';
 import { ComposeIcon, ScriptIcon } from '../../icons.js';
 import { duration, newScript, shortDate } from '../../motion.js';
 import { type Composer, composerCtx } from '../context.js';
@@ -59,18 +58,22 @@ const StageAbout = setup(() => {
   const composer = composerCtx.get() as Composer;
 
   return () => {
-    const { stage } = composer;
+    const { stage, stagePath, stages, people } = composer;
     if (!stage) return null;
     const { width, height } = stage.composition.props;
-    const { people } = composer;
-    const casts = (stage.casts ?? []).map((cast) => people.find((person) => person.path === composer.pathOf(cast))?.name).filter(Boolean);
+    // Its row already says how long it runs and what it shows, and the lists are what change: reading
+    // through the clips or everyone listed would watch every one of them.
+    const { row, casts } = untrack(() => ({
+      row: stages.find(({ path }) => path === stagePath),
+      casts: (stage.casts ?? []).map((cast) => people.find((person) => person.path === composer.pathOf(cast))?.name).filter(Boolean),
+    }));
     return (
       <ScriptAbout
-        picture={posterOf(stage) ?? composer.motion?.cover}
+        picture={row?.thumbnail ?? composer.motion?.cover}
         ratio={`${width} / ${height}`}
         document={stage}
         facts={[
-          { label: 'Length', value: duration(runtime(stage.composition)) },
+          { label: 'Length', value: duration(row?.duration ?? 0) },
           { label: 'Size', value: `${width} × ${height}` },
           ...(casts.length ? [{ label: 'Casts', value: casts.join(', ') }] : []),
           { label: 'Updated', value: shortDate(stage.updated) },
