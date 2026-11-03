@@ -8,6 +8,7 @@ import type { PersonaDocument, StillDocument } from '@/lib/documents/types.js';
 import { LOUNGE, LOUNGE_EVENT } from '@/lib/kernel/workspace.h.js';
 import { AGENT_EXTENSION, type AgentFile } from '@/lib/share/agents.js';
 import { dfs } from '@/lib/share/dfs.js';
+import { pathFrom, pathTo } from '@/lib/share/paths.js';
 import { addressOf, pictureOf, stillAt } from '@/lib/share/pictures.js';
 import { AGENTS_PATH } from '@/lib/share/system.js';
 
@@ -153,7 +154,9 @@ export function announceName(path: string, title: string): void {
 export function announcePortrait(path: string, persona: PersonaDocument): void {
   const main = persona.head?.main;
   const still = main ? stillAt(path, main) : undefined;
-  const thumbnail = main && ADDRESS.test(main) ? main : still && chosenAttempt(still.document)?.src;
+  const src = still && chosenAttempt(still.document)?.src;
+  // A row's portrait is read from the person's file, and an attempt's picture is written from its still.
+  const thumbnail = main && ADDRESS.test(main) ? main : still && src ? pathTo(path, pathFrom(still.path, src)) : undefined;
   const message = { type: LOUNGE_EVENT.PORTRAIT, data: { path, thumbnail } };
   LOUNGE.ask(message);
   LOUNGE.broadcast(message);
