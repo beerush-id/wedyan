@@ -5,7 +5,7 @@
   "name": "Everything is just speak",
   "description": "From the app-switching loop to one desktop you speak to.",
   "created": "2026-11-03T03:58:24.000Z",
-  "updated": "2026-11-03T03:58:24.000Z",
+  "updated": "2026-11-03T06:30:00.000Z",
   "author": { "kind": "user" },
   "projectId": "00ffea9a5314",
   "order": 0,
@@ -23,13 +23,13 @@
       { "id": "mk7", "options": { "atFrame": 1035, "name": "Image" } },
       { "id": "mk8", "options": { "atFrame": 1170, "name": "Series" } },
       { "id": "mk9", "options": { "atFrame": 1350, "name": "Converge" } },
-      { "id": "mk10", "options": { "atFrame": 1548, "name": "Speak" } }
+      { "id": "mk10", "options": { "atFrame": 1546, "name": "Speak" } }
     ],
     "tracks": [
       {
         "id": "tBg",
         "options": { "type": "html", "name": "Background", "meta": {} },
-        "props": { "cornerShape": "superellipse(1.5)" },
+        "props": {},
         "segments": [
           {
             "id": "bg",
@@ -37,7 +37,7 @@
             "props": { "element": "div", "x": 0, "y": 0, "width": 1920, "height": 1080, "background": "#dfe1e6" },
             "scenes": [
               { "id": "bg0", "options": { "atFrame": 520, "meta": { "ease": "power2.inOut" } }, "data": { "background": "#dfe1e6" } },
-              { "id": "bg1", "options": { "atFrame": 700 }, "data": { "background": "#f5eff0" } }
+              { "id": "bg1", "options": { "atFrame": 700 }, "data": { "background": "#f6f0f1" } }
             ]
           }
         ]
@@ -45,12 +45,12 @@
       {
         "id": "tGrid",
         "options": { "type": "html", "name": "Desktop grid", "meta": {} },
-        "props": { "cornerShape": "superellipse(1.5)" },
+        "props": {},
         "segments": [
           {
             "id": "grid",
             "options": { "type": "html", "name": "Dot grid", "speed": 1, "duration": 36, "startFrame": 600, "meta": {} },
-            "props": { "element": "div", "x": 0, "y": 0, "width": 1920, "height": 1080, "backgroundImage": "radial-gradient(circle, rgba(70, 58, 61, 0.2) 1.5px, rgba(0, 0, 0, 0) 2.25px)", "backgroundSize": "36px 36px", "opacity": 0 },
+            "props": { "element": "div", "x": 0, "y": 0, "width": 1920, "height": 1080, "backgroundImage": "radial-gradient(circle, oklch(0.270299 0.00811225 7.01529 / 0.18) 1px, rgba(0, 0, 0, 0) 1.5px)", "backgroundSize": "24px 24px", "opacity": 0 },
             "scenes": [
               { "id": "gr0", "options": { "atFrame": 250, "meta": { "ease": "power2.out" } }, "data": { "opacity": 0 } },
               { "id": "gr1", "options": { "atFrame": 300 }, "data": { "opacity": 1 } }
@@ -61,20 +61,20 @@
       {
         "id": "tClock",
         "options": { "type": "html", "name": "Clock", "meta": {} },
-        "props": { "fontFamily": "Geist", "cornerShape": "superellipse(1.5)" },
+        "props": { "fontFamily": "Geist" },
         "segments": [
           {
             "id": "clock",
             "options": { "type": "html", "name": "Clock", "speed": 1, "duration": 27, "startFrame": 870, "meta": {} },
-            "props": { "element": "div", "x": 660, "y": 140, "width": 600, "height": 170, "display": "grid", "justifyItems": "center", "alignContent": "center", "rowGap": 8, "color": "#1c1a1b", "opacity": 0,
+            "props": { "element": "div", "x": 704, "y": 68, "width": 512, "height": 160, "display": "grid", "justifyItems": "center", "alignContent": "center", "rowGap": 2, "opacity": 0,
               "children": [
-                { "id": "clockTime", "name": "Time", "props": { "element": "span", "text": "10:28 AM", "fontSize": 84, "fontWeight": 300, "lineHeight": 1 }, "scenes": [] },
-                { "id": "clockDate", "name": "Date", "props": { "element": "span", "text": "Tuesday, November 3", "fontSize": 22, "color": "#4a4547" }, "scenes": [] }
+                { "id": "clockTime", "name": "Time", "props": { "element": "span", "text": "10:28 AM", "fontSize": 48, "fontWeight": 300, "lineHeight": 1, "color": "#000000" }, "scenes": [] },
+                { "id": "clockDate", "name": "Date", "props": { "element": "span", "text": "Tuesday, November 3", "fontSize": 14, "lineHeight": 1.43, "color": "#2c2c2c" }, "scenes": [] }
               ]
             },
             "scenes": [
-              { "id": "ck0", "options": { "atFrame": 0, "meta": { "ease": "power2.out" } }, "data": { "opacity": 0, "y": 140 } },
-              { "id": "ck1", "options": { "atFrame": 30 }, "data": { "opacity": 1, "y": 120 } },
+              { "id": "ck0", "options": { "atFrame": 0, "meta": { "ease": "power2.out" } }, "data": { "opacity": 0, "y": 68 } },
+              { "id": "ck1", "options": { "atFrame": 30 }, "data": { "opacity": 1, "y": 48 } },
               { "id": "ck2", "options": { "atFrame": 676, "meta": { "ease": "power2.out" } }, "data": { "opacity": 1 } },
               { "id": "ck3", "options": { "atFrame": 696 }, "data": { "opacity": 0 } }
             ]
@@ -84,7 +84,7 @@
       {
         "id": "tFeed",
         "options": { "type": "html", "name": "Feed", "meta": {} },
-        "props": { "cornerShape": "superellipse(1.5)" },
+        "props": {},
         "segments": [
           {
             "id": "feed",
@@ -126,7 +126,7 @@
       {
         "id": "tChaos",
         "options": { "type": "html", "name": "App windows", "meta": {} },
-        "props": { "fontFamily": "Geist", "cornerShape": "superellipse(1.5)" },
+        "props": { "fontFamily": "Geist" },
         "segments": [
           {
             "id": "chaos",
@@ -272,7 +272,7 @@
       {
         "id": "tReel",
         "options": { "type": "html", "name": "Reel", "meta": {} },
-        "props": { "cornerShape": "superellipse(1.5)" },
+        "props": {},
         "segments": [
           {
             "id": "reel",
@@ -317,56 +317,94 @@
           {
             "id": "stillWin",
             "options": { "type": "html", "name": "Still window", "speed": 1, "duration": 5.667, "startFrame": 1035, "meta": {} },
-            "props": { "element": "div", "x": 410, "y": 120, "width": 1100, "height": 675, "borderRadius": 24, "background": "rgba(250, 246, 247, 0.94)", "backdropFilter": "blur(24px)", "border": "1.5px solid rgba(255, 255, 255, 0.9)", "boxShadow": "0 24px 70px rgba(40, 10, 20, 0.18), 0 2px 8px rgba(40, 10, 20, 0.08)", "overflow": "hidden", "opacity": 0,
+            "props": { "element": "div", "x": 204, "y": 70, "width": 1512, "height": 919, "borderRadius": 36, "background": "rgba(245, 241, 242, 0.55)", "backdropFilter": "blur(32px) saturate(1.4)", "border": "1px solid rgba(255, 255, 255, 0.8)", "boxShadow": "0 1px 4px rgba(0, 0, 0, 0.2)", "overflow": "hidden", "opacity": 0,
               "children": [
-                { "id": "sw", "name": "Content", "props": { "element": "div", "x": 0, "y": 0, "width": 1100, "height": 675,
+                { "id": "sw", "name": "Content", "props": { "element": "div", "x": 0, "y": 0, "width": 1512, "height": 919,
                   "children": [
-                    { "id": "swTitle", "props": { "element": "span", "text": "Bawang Putih at the river", "x": 24, "y": 0, "width": 600, "height": 54, "fontSize": 20, "fontWeight": 500, "lineHeight": 2.7, "color": "#1c1a1b" }, "scenes": [] },
-                    { "id": "swCtrl", "props": { "element": "span", "text": "–    □    ×", "x": 940, "y": 0, "width": 136, "height": 54, "textAlign": "right", "whiteSpace": "pre", "fontSize": 20, "lineHeight": 2.7, "color": "#6a6466" }, "scenes": [] },
-                    { "id": "swViewer", "props": { "element": "div", "x": 16, "y": 54, "width": 720, "height": 605, "borderRadius": 16, "background": "#121214" }, "scenes": [] },
-                    { "id": "swPromptLabel", "props": { "element": "span", "text": "Prompt", "x": 752, "y": 66, "width": 200, "height": 22, "fontSize": 15, "fontWeight": 500, "color": "#6a6466" }, "scenes": [] },
-                    { "id": "swPrompt", "props": { "element": "div", "x": 752, "y": 94, "width": 332, "height": 118, "borderRadius": 14, "background": "rgba(255, 255, 255, 0.92)", "border": "1.5px solid rgba(0, 0, 0, 0.06)",
+                    { "id": "swContent", "props": { "element": "div", "x": 5, "y": 5, "width": 1502, "height": 909, "borderRadius": 31, "background": "#fffefe", "cornerShape": "superellipse(1.5)" }, "scenes": [] },
+                    { "id": "swBar", "name": "Toolbar", "props": { "element": "div", "x": 5, "y": 5, "width": 1502, "height": 44, "borderRadius": 31, "background": "rgba(255, 255, 255, 0.7)", "cornerShape": "superellipse(1.5)" }, "scenes": [] },
+                    { "id": "swTitle", "props": { "element": "span", "text": "Bawang Putih at the river", "x": 21, "y": 17, "width": 600, "height": 20, "fontSize": 14, "fontWeight": 500, "lineHeight": 1.43, "color": "#000000" }, "scenes": [] },
+                    { "id": "swMin", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/icons/minimize.svg", "alt": "" }, "x": 1400, "y": 18, "width": 18, "height": 18 }, "scenes": [] },
+                    { "id": "swMax", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/icons/maximize.svg", "alt": "" }, "x": 1438, "y": 18, "width": 18, "height": 18 }, "scenes": [] },
+                    { "id": "swClose", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/icons/close.svg", "alt": "" }, "x": 1476, "y": 18, "width": 18, "height": 18 }, "scenes": [] },
+                    { "id": "swViewer", "props": { "element": "div", "x": 21, "y": 65, "width": 1134, "height": 833, "borderRadius": 30, "background": "#0d0d0d", "cornerShape": "superellipse(1.5)" }, "scenes": [] },
+                    { "id": "swViewerBar", "name": "Viewer toolbar", "props": { "element": "div", "x": 446, "y": 836, "width": 284, "height": 46, "borderRadius": 23, "background": "rgba(16, 13, 5, 0.55)", "border": "1px solid rgba(255, 255, 255, 0.12)", "cornerShape": "superellipse(1.5)",
                       "children": [
-                        { "id": "swL1", "props": { "element": "div", "text": "Wide shot, Bawang Putih washing", "x": 14, "y": 12, "width": 0, "height": 28, "overflow": "hidden", "whiteSpace": "nowrap", "fontSize": 17, "lineHeight": 1.65, "color": "#2a2628" },
+                        { "id": "swCount", "props": { "element": "span", "text": "1 / 1", "x": 43, "y": 14, "width": 34, "height": 18, "fontSize": 12, "lineHeight": 1.5, "textAlign": "center", "color": "#e3e3e3" }, "scenes": [] },
+                        { "id": "swZoom", "props": { "element": "span", "text": "100%", "x": 166, "y": 15, "width": 36, "height": 17, "fontSize": 11, "lineHeight": 1.55, "textAlign": "center", "color": "#e3e3e3" }, "scenes": [] }
+                      ] }, "scenes": [] },
+                    { "id": "swAttempts", "name": "Attempts", "props": { "element": "div", "x": 559, "y": 71, "width": 58, "height": 58, "borderRadius": 29, "background": "rgba(16, 13, 5, 0.55)", "cornerShape": "superellipse(1.5)", "opacity": 0,
+                      "children": [
+                        { "id": "swAttemptPick", "props": { "element": "div", "x": 5, "y": 5, "width": 48, "height": 48, "borderRadius": 24, "background": "rgba(227, 183, 50, 0.18)", "cornerShape": "superellipse(1.5)" }, "scenes": [] },
+                        { "id": "swAttemptThumb", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-01.webp", "alt": "" }, "objectFit": "cover", "x": 7, "y": 7, "width": 44, "height": 44, "borderRadius": 22, "cornerShape": "superellipse(1.5)" }, "scenes": [] }
+                      ] },
+                      "scenes": [
+                        { "id": "at0", "atFrame": 95, "meta": { "ease": "power3.out" }, "data": { "opacity": 0, "y": 71 } },
+                        { "id": "at1", "atFrame": 110, "data": { "opacity": 1, "y": 81 } }
+                      ] },
+                    { "id": "swPanel", "name": "Prompt panel", "props": { "element": "div", "x": 1171, "y": 65, "width": 320, "height": 833, "borderRadius": 24, "background": "rgba(245, 241, 242, 0.7)", "cornerShape": "superellipse(1.5)" }, "scenes": [] },
+                    { "id": "swLabelPrompt", "props": { "element": "span", "text": "Prompt", "x": 1195, "y": 81, "width": 100, "height": 17, "fontSize": 11, "fontWeight": 500, "lineHeight": 1.55, "color": "#2c2c2c" }, "scenes": [] },
+                    { "id": "swPrompt", "props": { "element": "div", "x": 1187, "y": 102, "width": 288, "height": 78, "borderRadius": 24, "background": "#ffffff", "cornerShape": "superellipse(1.5)",
+                      "children": [
+                        { "id": "swL1", "props": { "element": "div", "text": "Wide shot, Bawang Putih washing cloth", "x": 12, "y": 10, "width": 0, "height": 18, "overflow": "hidden", "whiteSpace": "nowrap", "fontSize": 11, "lineHeight": 1.64, "color": "#000000" },
                           "scenes": [
-                            { "id": "l1a", "atFrame": 28, "meta": { "ease": "steps(31)" }, "data": { "width": 0 } },
-                            { "id": "l1b", "atFrame": 40, "data": { "width": 300 } }
+                            { "id": "l1a", "atFrame": 28, "meta": { "ease": "steps(37)" }, "data": { "width": 0 } },
+                            { "id": "l1b", "atFrame": 40, "data": { "width": 264 } }
                           ] },
-                        { "id": "swL2", "props": { "element": "div", "text": "cloth at a jungle river, painterly", "x": 14, "y": 43, "width": 0, "height": 28, "overflow": "hidden", "whiteSpace": "nowrap", "fontSize": 17, "lineHeight": 1.65, "color": "#2a2628" },
+                        { "id": "swL2", "props": { "element": "div", "text": "at a jungle river, painterly folktale style,", "x": 12, "y": 28, "width": 0, "height": 18, "overflow": "hidden", "whiteSpace": "nowrap", "fontSize": 11, "lineHeight": 1.64, "color": "#000000" },
                           "scenes": [
-                            { "id": "l2a", "atFrame": 40, "meta": { "ease": "steps(34)" }, "data": { "width": 0 } },
-                            { "id": "l2b", "atFrame": 52, "data": { "width": 300 } }
+                            { "id": "l2a", "atFrame": 40, "meta": { "ease": "steps(44)" }, "data": { "width": 0 } },
+                            { "id": "l2b", "atFrame": 54, "data": { "width": 264 } }
                           ] },
-                        { "id": "swL3", "props": { "element": "div", "text": "folktale style, golden hour", "x": 14, "y": 74, "width": 0, "height": 28, "overflow": "hidden", "whiteSpace": "nowrap", "fontSize": 17, "lineHeight": 1.65, "color": "#2a2628" },
+                        { "id": "swL3", "props": { "element": "div", "text": "golden hour", "x": 12, "y": 46, "width": 0, "height": 18, "overflow": "hidden", "whiteSpace": "nowrap", "fontSize": 11, "lineHeight": 1.64, "color": "#000000" },
                           "scenes": [
-                            { "id": "l3a", "atFrame": 52, "meta": { "ease": "steps(27)" }, "data": { "width": 0 } },
-                            { "id": "l3b", "atFrame": 62, "data": { "width": 300 } }
+                            { "id": "l3a", "atFrame": 54, "meta": { "ease": "steps(11)" }, "data": { "width": 0 } },
+                            { "id": "l3b", "atFrame": 60, "data": { "width": 264 } }
                           ] }
                       ] }, "scenes": [] },
-                    { "id": "swGenerate", "props": { "element": "div", "text": "✦  Generate", "x": 952, "y": 226, "width": 132, "height": 44, "borderRadius": 22, "background": "#b0004c", "color": "#fff7ef", "fontSize": 17, "fontWeight": 500, "textAlign": "center", "whiteSpace": "pre", "lineHeight": 2.6 },
+                    { "id": "swGenerate", "props": { "element": "div", "text": "✦  Generate", "x": 1364, "y": 188, "width": 111, "height": 36, "borderRadius": 18, "background": "#942347", "color": "#fbf4f5", "fontSize": 12, "fontWeight": 600, "lineHeight": 3, "textAlign": "center", "whiteSpace": "pre", "cornerShape": "superellipse(1.5)" },
                       "scenes": [
                         { "id": "gn0", "atFrame": 75, "meta": { "ease": "power2.out" }, "data": { "scale": 1 } },
                         { "id": "gn1", "atFrame": 79, "meta": { "ease": "power2.out" }, "data": { "scale": 0.92 } },
                         { "id": "gn2", "atFrame": 87, "data": { "scale": 1 } }
                       ] },
-                    { "id": "swSettingsLabel", "props": { "element": "span", "text": "Settings", "x": 752, "y": 292, "width": 200, "height": 22, "fontSize": 15, "fontWeight": 500, "color": "#6a6466" }, "scenes": [] },
-                    { "id": "swSettings", "props": { "element": "div", "x": 752, "y": 320, "width": 332, "height": 92, "borderRadius": 14, "background": "rgba(0, 0, 0, 0.04)",
+                    { "id": "swLabelSettings", "props": { "element": "span", "text": "Settings", "x": 1195, "y": 240, "width": 100, "height": 17, "fontSize": 11, "fontWeight": 500, "lineHeight": 1.55, "color": "#2c2c2c" }, "scenes": [] },
+                    { "id": "swSettings", "props": { "element": "div", "x": 1187, "y": 260, "width": 288, "height": 108, "borderRadius": 30, "background": "#ece3e5", "cornerShape": "superellipse(1.5)",
                       "children": [
-                        { "id": "swModel", "props": { "element": "span", "text": "Model", "x": 16, "y": 12, "width": 150, "height": 28, "fontSize": 16, "lineHeight": 1.75, "color": "#2a2628" }, "scenes": [] },
-                        { "id": "swModelValue", "props": { "element": "span", "text": "Standard", "x": 180, "y": 12, "width": 136, "height": 28, "textAlign": "right", "fontSize": 16, "lineHeight": 1.75, "color": "#6a6466" }, "scenes": [] },
-                        { "id": "swAspect", "props": { "element": "span", "text": "Aspect ratio", "x": 16, "y": 52, "width": 150, "height": 28, "fontSize": 16, "lineHeight": 1.75, "color": "#2a2628" }, "scenes": [] },
-                        { "id": "swAspectValue", "props": { "element": "span", "text": "9:16", "x": 262, "y": 52, "width": 54, "height": 28, "borderRadius": 10, "background": "#b0004c", "color": "#fff7ef", "fontSize": 14, "textAlign": "center", "lineHeight": 2 }, "scenes": [] }
+                        { "id": "swModel", "props": { "element": "span", "text": "Model", "x": 12, "y": 13, "width": 120, "height": 18, "fontSize": 12, "lineHeight": 1.5, "color": "#000000" }, "scenes": [] },
+                        { "id": "swModelValue", "props": { "element": "span", "text": "Standard", "x": 192, "y": 8, "width": 84, "height": 28, "borderRadius": 14, "background": "#d9d9d9", "color": "#8c8c8c", "fontSize": 11, "fontWeight": 600, "lineHeight": 2.55, "textAlign": "center", "cornerShape": "superellipse(1.5)" }, "scenes": [] },
+                        { "id": "swAspect", "props": { "element": "span", "text": "Aspect ratio", "x": 12, "y": 45, "width": 120, "height": 18, "fontSize": 12, "lineHeight": 1.5, "color": "#000000" }, "scenes": [] },
+                        { "id": "swAspectValue", "props": { "element": "span", "text": "9:16", "x": 221, "y": 40, "width": 55, "height": 28, "borderRadius": 14, "background": "#942347", "color": "#fbf4f5", "fontSize": 11, "fontWeight": 600, "lineHeight": 2.55, "textAlign": "center", "cornerShape": "superellipse(1.5)" }, "scenes": [] },
+                        { "id": "swBatch", "props": { "element": "span", "text": "Batch size", "x": 12, "y": 77, "width": 120, "height": 18, "fontSize": 12, "lineHeight": 1.5, "color": "#000000" }, "scenes": [] },
+                        { "id": "swStepper", "props": { "element": "div", "x": 162, "y": 72, "width": 114, "height": 28, "borderRadius": 14, "background": "#ffffff", "cornerShape": "superellipse(1.5)",
+                          "children": [
+                            { "id": "swMinus", "props": { "element": "span", "text": "−", "x": 9, "y": 4, "width": 20, "height": 20, "fontSize": 14, "fontWeight": 600, "lineHeight": 1.43, "textAlign": "center", "color": "#942347" }, "scenes": [] },
+                            { "id": "swBatchValue", "props": { "element": "span", "text": "1", "x": 47, "y": 4, "width": 20, "height": 20, "fontSize": 11, "lineHeight": 1.8, "textAlign": "center", "color": "#000000" }, "scenes": [] },
+                            { "id": "swPlus", "props": { "element": "span", "text": "+", "x": 85, "y": 4, "width": 20, "height": 20, "fontSize": 14, "fontWeight": 600, "lineHeight": 1.43, "textAlign": "center", "color": "#942347" }, "scenes": [] }
+                          ] }, "scenes": [] }
                       ] }, "scenes": [] },
-                    { "id": "swHistoryLabel", "props": { "element": "span", "text": "History", "x": 752, "y": 432, "width": 200, "height": 22, "fontSize": 15, "fontWeight": 500, "color": "#6a6466" }, "scenes": [] },
-                    { "id": "swCard", "name": "Attempt", "props": { "element": "div", "x": 772, "y": 460, "width": 332, "height": 64, "borderRadius": 16, "background": "#8f1d45", "opacity": 0,
+                    { "id": "swLabelRefs", "props": { "element": "span", "text": "References", "x": 1195, "y": 384, "width": 100, "height": 17, "fontSize": 11, "fontWeight": 500, "lineHeight": 1.55, "color": "#2c2c2c" }, "scenes": [] },
+                    { "id": "swRefs", "props": { "element": "div", "x": 1187, "y": 405, "width": 288, "height": 56, "borderRadius": 28, "background": "#ece3e5", "cornerShape": "superellipse(1.5)",
                       "children": [
-                        { "id": "swCardThumb", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-01.webp", "alt": "" }, "objectFit": "cover", "x": 10, "y": 8, "width": 48, "height": 48, "borderRadius": 10 }, "scenes": [] },
-                        { "id": "swCardText", "props": { "element": "span", "text": "Wide shot, Bawang Putih washing…", "x": 68, "y": 10, "width": 250, "height": 22, "fontSize": 14, "color": "#fff7ef", "whiteSpace": "nowrap", "overflow": "hidden" }, "scenes": [] },
-                        { "id": "swCardSub", "props": { "element": "span", "text": "Standard · 9:16", "x": 68, "y": 34, "width": 250, "height": 20, "fontSize": 13, "color": "rgba(255, 247, 239, 0.75)" }, "scenes": [] }
+                        { "id": "swRefAdd", "props": { "element": "span", "text": "+", "x": 12, "y": 8, "width": 40, "height": 40, "borderRadius": 20, "background": "rgba(0, 0, 0, 0.05)", "fontSize": 16, "lineHeight": 2.5, "textAlign": "center", "color": "#2c2c2c", "cornerShape": "superellipse(1.5)" }, "scenes": [] }
+                      ] }, "scenes": [] },
+                    { "id": "swLabelCasts", "props": { "element": "span", "text": "Casts", "x": 1195, "y": 477, "width": 100, "height": 17, "fontSize": 11, "fontWeight": 500, "lineHeight": 1.55, "color": "#2c2c2c" }, "scenes": [] },
+                    { "id": "swCasts", "props": { "element": "div", "x": 1187, "y": 497, "width": 288, "height": 16, "borderRadius": 8, "background": "#ece3e5", "cornerShape": "superellipse(1.5)" }, "scenes": [] },
+                    { "id": "swLabelHistory", "props": { "element": "span", "text": "History", "x": 1195, "y": 529, "width": 100, "height": 17, "fontSize": 11, "fontWeight": 500, "lineHeight": 1.55, "color": "#2c2c2c" }, "scenes": [] },
+                    { "id": "swHistory", "name": "Attempt", "props": { "element": "div", "x": 1187, "y": 560, "width": 288, "height": 64, "borderRadius": 30, "background": "#ece3e5", "cornerShape": "superellipse(1.5)", "opacity": 0,
+                      "children": [
+                        { "id": "swItem", "props": { "element": "div", "x": 4, "y": 4, "width": 280, "height": 56, "borderRadius": 26, "background": "#942347", "cornerShape": "superellipse(1.5)",
+                          "children": [
+                            { "id": "swItemThumb", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-01.webp", "alt": "" }, "objectFit": "cover", "x": 7, "y": 8, "width": 40, "height": 40, "borderRadius": 20, "cornerShape": "superellipse(1.5)" }, "scenes": [] },
+                            { "id": "swItemText", "props": { "element": "span", "text": "Wide shot, Bawang Putih washing…", "x": 55, "y": 4, "width": 159, "height": 16, "fontSize": 11, "fontWeight": 500, "lineHeight": 1.45, "whiteSpace": "nowrap", "overflow": "hidden", "color": "#fbf4f5" }, "scenes": [] },
+                            { "id": "swItemSub", "props": { "element": "span", "text": "Standard · 9:16", "x": 55, "y": 20, "width": 159, "height": 16, "fontSize": 11, "fontWeight": 500, "lineHeight": 1.45, "color": "#fbf4f5" }, "scenes": [] },
+                            { "id": "swItemTime", "props": { "element": "span", "text": "Nov 3, 2026, 10:41 AM", "x": 55, "y": 36, "width": 159, "height": 16, "fontSize": 11, "fontWeight": 500, "lineHeight": 1.45, "color": "rgba(251, 244, 245, 0.72)" }, "scenes": [] },
+                            { "id": "swItemReuse", "props": { "element": "span", "text": "Reuse", "x": 222, "y": 14, "width": 51, "height": 28, "fontSize": 11, "fontWeight": 600, "lineHeight": 2.55, "textAlign": "center", "color": "#fbf4f5" }, "scenes": [] }
+                          ] }, "scenes": [] }
                       ] },
                       "scenes": [
-                        { "id": "cd0", "atFrame": 100, "meta": { "ease": "power3.out" }, "data": { "opacity": 0, "x": 772 } },
-                        { "id": "cd1", "atFrame": 115, "data": { "opacity": 1, "x": 752 } }
+                        { "id": "hs0", "atFrame": 100, "meta": { "ease": "power3.out" }, "data": { "opacity": 0, "y": 560 } },
+                        { "id": "hs1", "atFrame": 115, "data": { "opacity": 1, "y": 550 } }
                       ] }
                   ] },
                   "scenes": [
@@ -376,11 +414,11 @@
               ]
             },
             "scenes": [
-              { "id": "v0", "options": { "atFrame": 5, "meta": { "ease": "power3.out" } }, "data": { "opacity": 0, "scale": 0.94 } },
+              { "id": "v0", "options": { "atFrame": 5, "meta": { "ease": "power3.out" } }, "data": { "opacity": 0, "scale": 0.96 } },
               { "id": "v1", "options": { "atFrame": 25 }, "data": { "opacity": 1, "scale": 1 } },
-              { "id": "v2", "options": { "atFrame": 135, "meta": { "ease": "power3.inOut" } }, "data": { "x": 410, "y": 120, "width": 1100, "height": 675 } },
+              { "id": "v2", "options": { "atFrame": 135, "meta": { "ease": "power3.inOut" } }, "data": { "x": 204, "y": 70, "width": 1512, "height": 919 } },
               { "id": "v4", "options": { "atFrame": 158 }, "data": { "opacity": 1 } },
-              { "id": "v3", "options": { "atFrame": 160 }, "data": { "x": 210, "y": 60, "width": 1500, "height": 800 } },
+              { "id": "v3", "options": { "atFrame": 160 }, "data": { "x": 0, "y": 0, "width": 1920, "height": 1013 } },
               { "id": "v5", "options": { "atFrame": 168 }, "data": { "opacity": 0 } }
             ]
           }
@@ -394,117 +432,212 @@
           {
             "id": "motionsWin",
             "options": { "type": "html", "name": "Motions window", "speed": 1, "duration": 11.733, "startFrame": 1188, "meta": {} },
-            "props": { "element": "div", "x": 210, "y": 60, "width": 1500, "height": 800, "borderRadius": 24, "background": "rgba(250, 246, 247, 0.94)", "backdropFilter": "blur(24px)", "border": "1.5px solid rgba(255, 255, 255, 0.9)", "boxShadow": "0 24px 70px rgba(40, 10, 20, 0.18), 0 2px 8px rgba(40, 10, 20, 0.08)", "overflow": "hidden", "opacity": 0,
+            "props": { "element": "div", "x": 0, "y": 0, "width": 1920, "height": 1013, "borderRadius": 36, "background": "rgba(245, 241, 242, 0.55)", "backdropFilter": "blur(32px) saturate(1.4)", "border": "1px solid rgba(255, 255, 255, 0.8)", "boxShadow": "0 1px 4px rgba(0, 0, 0, 0.2)", "overflow": "hidden", "opacity": 0,
               "children": [
-                { "id": "mwIcon", "props": { "element": "div", "x": 16, "y": 12, "width": 36, "height": 36, "borderRadius": 11, "background": "rgba(176, 0, 76, 0.12)" }, "scenes": [] },
-                { "id": "mwTabs", "props": { "element": "div", "x": 64, "y": 11, "width": 196, "height": 38, "borderRadius": 19, "background": "rgba(0, 0, 0, 0.05)",
+                { "id": "mwSidebar", "props": { "element": "div", "x": 21, "y": 14, "width": 36, "height": 36, "borderRadius": 18, "background": "rgba(150, 33, 72, 0.18)", "cornerShape": "superellipse(1.5)",
+                  "children": [ { "id": "mwSidebarIcon", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/icons/sidebar.svg", "alt": "" }, "x": 9, "y": 9, "width": 18, "height": 18 }, "scenes": [] } ] }, "scenes": [] },
+                { "id": "mwDirect", "props": { "element": "div", "x": 87, "y": 14, "width": 92, "height": 36, "borderRadius": 18, "cornerShape": "superellipse(1.5)",
                   "children": [
-                    { "id": "mwTabDirect", "props": { "element": "span", "text": "Direct", "x": 4, "y": 4, "width": 90, "height": 30, "textAlign": "center", "fontSize": 15, "lineHeight": 2, "color": "#4a4547" }, "scenes": [] },
-                    { "id": "mwTabCompose", "props": { "element": "span", "text": "Compose", "x": 98, "y": 4, "width": 94, "height": 30, "borderRadius": 15, "background": "rgba(176, 0, 76, 0.12)", "color": "#8f1d45", "fontSize": 15, "fontWeight": 500, "textAlign": "center", "lineHeight": 2 }, "scenes": [] }
+                    { "id": "mwDirectIcon", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/icons/direct.svg", "alt": "" }, "x": 14, "y": 9, "width": 18, "height": 18 }, "scenes": [] },
+                    { "id": "mwDirectText", "props": { "element": "span", "text": "Direct", "x": 38, "y": 10, "width": 44, "height": 16, "fontSize": 12, "fontWeight": 600, "lineHeight": 1.33, "color": "#2c2c2c" }, "scenes": [] }
                   ] }, "scenes": [] },
-                { "id": "mwTitle", "props": { "element": "span", "text": "Episode 1: The River Cloth", "x": 280, "y": 11, "width": 500, "height": 38, "fontSize": 19, "fontWeight": 500, "lineHeight": 2, "color": "#1c1a1b" }, "scenes": [] },
-                { "id": "mwRender", "props": { "element": "span", "text": "Render", "x": 1350, "y": 11, "width": 120, "height": 38, "borderRadius": 12, "background": "#8f1d45", "color": "#fff7ef", "fontSize": 16, "fontWeight": 500, "textAlign": "center", "lineHeight": 2.375 }, "scenes": [] },
-                { "id": "mwChips", "props": { "element": "span", "text": "All      Video      Audio      Cast", "x": 26, "y": 56, "width": 500, "height": 20, "whiteSpace": "pre", "fontSize": 14, "color": "#6a6466" }, "scenes": [] },
-                { "id": "tile1", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-02.webp", "alt": "" }, "objectFit": "cover", "x": 180, "y": 80, "width": 140, "height": 140, "borderRadius": 12, "opacity": 0 },
-                  "scenes": [ { "id": "ti1a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti1b", "atFrame": 18, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti1c", "atFrame": 26, "data": { "opacity": 1, "scale": 1 } } ] },
-                { "id": "tile2", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-03.webp", "alt": "" }, "objectFit": "cover", "x": 334, "y": 80, "width": 140, "height": 140, "borderRadius": 12, "opacity": 0 },
-                  "scenes": [ { "id": "ti2a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti2b", "atFrame": 22, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti2c", "atFrame": 30, "data": { "opacity": 1, "scale": 1 } } ] },
-                { "id": "tile3", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-04.webp", "alt": "" }, "objectFit": "cover", "x": 488, "y": 80, "width": 140, "height": 140, "borderRadius": 12, "opacity": 0 },
-                  "scenes": [ { "id": "ti3a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti3b", "atFrame": 26, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti3c", "atFrame": 34, "data": { "opacity": 1, "scale": 1 } } ] },
-                { "id": "tile4", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-05.webp", "alt": "" }, "objectFit": "cover", "x": 642, "y": 80, "width": 140, "height": 140, "borderRadius": 12, "opacity": 0 },
-                  "scenes": [ { "id": "ti4a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti4b", "atFrame": 30, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti4c", "atFrame": 38, "data": { "opacity": 1, "scale": 1 } } ] },
-                { "id": "tile5", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-06.webp", "alt": "" }, "objectFit": "cover", "x": 796, "y": 80, "width": 140, "height": 140, "borderRadius": 12, "opacity": 0 },
-                  "scenes": [ { "id": "ti5a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti5b", "atFrame": 34, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti5c", "atFrame": 42, "data": { "opacity": 1, "scale": 1 } } ] },
-                { "id": "tile6", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-07.webp", "alt": "" }, "objectFit": "cover", "x": 26, "y": 234, "width": 140, "height": 140, "borderRadius": 12, "opacity": 0 },
-                  "scenes": [ { "id": "ti6a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti6b", "atFrame": 38, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti6c", "atFrame": 46, "data": { "opacity": 1, "scale": 1 } } ] },
-                { "id": "tile7", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-08.webp", "alt": "" }, "objectFit": "cover", "x": 180, "y": 234, "width": 140, "height": 140, "borderRadius": 12, "opacity": 0 },
-                  "scenes": [ { "id": "ti7a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti7b", "atFrame": 42, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti7c", "atFrame": 50, "data": { "opacity": 1, "scale": 1 } } ] },
-                { "id": "tile8", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-09.webp", "alt": "" }, "objectFit": "cover", "x": 334, "y": 234, "width": 140, "height": 140, "borderRadius": 12, "opacity": 0 },
-                  "scenes": [ { "id": "ti8a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti8b", "atFrame": 46, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti8c", "atFrame": 54, "data": { "opacity": 1, "scale": 1 } } ] },
-                { "id": "tile9", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-10.webp", "alt": "" }, "objectFit": "cover", "x": 488, "y": 234, "width": 140, "height": 140, "borderRadius": 12, "opacity": 0 },
-                  "scenes": [ { "id": "ti9a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti9b", "atFrame": 50, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti9c", "atFrame": 58, "data": { "opacity": 1, "scale": 1 } } ] },
-                { "id": "tile10", "props": { "element": "div", "text": "♪", "x": 642, "y": 234, "width": 140, "height": 140, "borderRadius": 12, "background": "#6f5aa6", "color": "#fff7ef", "fontSize": 48, "textAlign": "center", "lineHeight": 2.9, "opacity": 0 },
-                  "scenes": [ { "id": "ti10a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti10b", "atFrame": 54, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti10c", "atFrame": 62, "data": { "opacity": 1, "scale": 1 } } ] },
-                { "id": "tile11", "props": { "element": "div", "text": "♪", "x": 796, "y": 234, "width": 140, "height": 140, "borderRadius": 12, "background": "#6f5aa6", "color": "#fff7ef", "fontSize": 48, "textAlign": "center", "lineHeight": 2.9, "opacity": 0 },
-                  "scenes": [ { "id": "ti11a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti11b", "atFrame": 58, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti11c", "atFrame": 66, "data": { "opacity": 1, "scale": 1 } } ] },
-                { "id": "mwPreview", "name": "Preview", "props": { "element": "div", "x": 1078, "y": 62, "width": 406, "height": 722, "borderRadius": 16, "background": "#0e0e10", "overflow": "hidden",
+                { "id": "mwCompose", "props": { "element": "div", "x": 181, "y": 14, "width": 112, "height": 36, "borderRadius": 18, "background": "rgba(150, 33, 72, 0.12)", "cornerShape": "superellipse(1.5)",
                   "children": [
-                    { "id": "pv1", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-01.webp", "alt": "" }, "objectFit": "cover", "x": 0, "y": 0, "width": 406, "height": 722, "opacity": 0 },
+                    { "id": "mwComposeIcon", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/icons/compose.svg", "alt": "" }, "x": 14, "y": 9, "width": 18, "height": 18 }, "scenes": [] },
+                    { "id": "mwComposeText", "props": { "element": "span", "text": "Compose", "x": 38, "y": 10, "width": 62, "height": 16, "fontSize": 12, "fontWeight": 600, "lineHeight": 1.33, "color": "#942347" }, "scenes": [] }
+                  ] }, "scenes": [] },
+                { "id": "mwTitle", "props": { "element": "span", "text": "Episode 1: The River Cloth", "x": 322, "y": 22, "width": 600, "height": 20, "fontSize": 14, "fontWeight": 500, "lineHeight": 1.43, "color": "#2c2c2c" }, "scenes": [] },
+                { "id": "mwRender", "props": { "element": "div", "x": 1680, "y": 9, "width": 98, "height": 36, "borderRadius": 18, "background": "#942347", "cornerShape": "superellipse(1.5)",
+                  "children": [
+                    { "id": "mwRenderIcon", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/icons/render.svg", "alt": "" }, "x": 14, "y": 9, "width": 18, "height": 18 }, "scenes": [] },
+                    { "id": "mwRenderText", "props": { "element": "span", "text": "Render", "x": 38, "y": 10, "width": 48, "height": 16, "fontSize": 12, "fontWeight": 600, "lineHeight": 1.33, "color": "#fbf4f5" }, "scenes": [] }
+                  ] }, "scenes": [] },
+                { "id": "mwMin", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/icons/minimize.svg", "alt": "" }, "x": 1808, "y": 18, "width": 18, "height": 18 }, "scenes": [] },
+                { "id": "mwMax", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/icons/maximize.svg", "alt": "" }, "x": 1846, "y": 18, "width": 18, "height": 18 }, "scenes": [] },
+                { "id": "mwClose", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/icons/close.svg", "alt": "" }, "x": 1884, "y": 18, "width": 18, "height": 18 }, "scenes": [] },
+                { "id": "mwSources", "name": "Sources", "props": { "element": "div", "x": 5, "y": 63, "width": 378, "height": 945, "borderRadius": 31, "background": "rgba(245, 241, 242, 0.7)", "boxShadow": "0 1px 2px rgba(0, 0, 0, 0.2)", "cornerShape": "superellipse(1.5)",
+                  "children": [
+                    { "id": "chipAll", "props": { "element": "span", "text": "All", "x": 20, "y": 20, "width": 31, "height": 28, "borderRadius": 14, "background": "#942347", "color": "#fbf4f5", "fontSize": 11, "fontWeight": 600, "lineHeight": 2.55, "textAlign": "center", "cornerShape": "superellipse(1.5)" }, "scenes": [] },
+                    { "id": "chipVideo", "props": { "element": "span", "text": "Video", "x": 55, "y": 20, "width": 49, "height": 28, "color": "#2c2c2c", "fontSize": 11, "fontWeight": 600, "lineHeight": 2.55, "textAlign": "center" }, "scenes": [] },
+                    { "id": "chipAudio", "props": { "element": "span", "text": "Audio", "x": 108, "y": 20, "width": 49, "height": 28, "color": "#2c2c2c", "fontSize": 11, "fontWeight": 600, "lineHeight": 2.55, "textAlign": "center" }, "scenes": [] },
+                    { "id": "chipCast", "props": { "element": "span", "text": "Cast", "x": 161, "y": 20, "width": 43, "height": 28, "color": "#2c2c2c", "fontSize": 11, "fontWeight": 600, "lineHeight": 2.55, "textAlign": "center" }, "scenes": [] },
+                    { "id": "cap0", "props": { "element": "span", "text": "still-01", "x": 20, "y": 178, "width": 102, "height": 22, "fontSize": 14, "fontWeight": 500, "lineHeight": 1.57, "color": "#000000", "opacity": 0 },
+                      "scenes": [ { "id": "cp0a", "atFrame": 0, "data": { "opacity": 0 } }, { "id": "cp0b", "atFrame": 12, "data": { "opacity": 0 } }, { "id": "cp0c", "atFrame": 20, "data": { "opacity": 1 } } ] },
+                    { "id": "tile1", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-02.webp", "alt": "" }, "objectFit": "cover", "x": 138, "y": 72, "width": 102, "height": 102, "borderRadius": 26, "cornerShape": "superellipse(1.5)", "opacity": 0 },
+                      "scenes": [ { "id": "ti1a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti1b", "atFrame": 18, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti1c", "atFrame": 26, "data": { "opacity": 1, "scale": 1 } } ] },
+                    { "id": "cap1", "props": { "element": "span", "text": "still-02", "x": 138, "y": 178, "width": 102, "height": 22, "fontSize": 14, "fontWeight": 500, "lineHeight": 1.57, "color": "#000000", "opacity": 0 },
+                      "scenes": [ { "id": "cp1a", "atFrame": 0, "data": { "opacity": 0 } }, { "id": "cp1b", "atFrame": 18, "data": { "opacity": 0 } }, { "id": "cp1c", "atFrame": 26, "data": { "opacity": 1 } } ] },
+                    { "id": "tile2", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-03.webp", "alt": "" }, "objectFit": "cover", "x": 256, "y": 72, "width": 102, "height": 102, "borderRadius": 26, "cornerShape": "superellipse(1.5)", "opacity": 0 },
+                      "scenes": [ { "id": "ti2a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti2b", "atFrame": 22, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti2c", "atFrame": 30, "data": { "opacity": 1, "scale": 1 } } ] },
+                    { "id": "cap2", "props": { "element": "span", "text": "still-03", "x": 256, "y": 178, "width": 102, "height": 22, "fontSize": 14, "fontWeight": 500, "lineHeight": 1.57, "color": "#000000", "opacity": 0 },
+                      "scenes": [ { "id": "cp2a", "atFrame": 0, "data": { "opacity": 0 } }, { "id": "cp2b", "atFrame": 22, "data": { "opacity": 0 } }, { "id": "cp2c", "atFrame": 30, "data": { "opacity": 1 } } ] },
+                    { "id": "tile3", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-04.webp", "alt": "" }, "objectFit": "cover", "x": 20, "y": 222, "width": 102, "height": 102, "borderRadius": 26, "cornerShape": "superellipse(1.5)", "opacity": 0 },
+                      "scenes": [ { "id": "ti3a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti3b", "atFrame": 26, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti3c", "atFrame": 34, "data": { "opacity": 1, "scale": 1 } } ] },
+                    { "id": "cap3", "props": { "element": "span", "text": "still-04", "x": 20, "y": 328, "width": 102, "height": 22, "fontSize": 14, "fontWeight": 500, "lineHeight": 1.57, "color": "#000000", "opacity": 0 },
+                      "scenes": [ { "id": "cp3a", "atFrame": 0, "data": { "opacity": 0 } }, { "id": "cp3b", "atFrame": 26, "data": { "opacity": 0 } }, { "id": "cp3c", "atFrame": 34, "data": { "opacity": 1 } } ] },
+                    { "id": "tile4", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-05.webp", "alt": "" }, "objectFit": "cover", "x": 138, "y": 222, "width": 102, "height": 102, "borderRadius": 26, "cornerShape": "superellipse(1.5)", "opacity": 0 },
+                      "scenes": [ { "id": "ti4a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti4b", "atFrame": 30, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti4c", "atFrame": 38, "data": { "opacity": 1, "scale": 1 } } ] },
+                    { "id": "cap4", "props": { "element": "span", "text": "still-05", "x": 138, "y": 328, "width": 102, "height": 22, "fontSize": 14, "fontWeight": 500, "lineHeight": 1.57, "color": "#000000", "opacity": 0 },
+                      "scenes": [ { "id": "cp4a", "atFrame": 0, "data": { "opacity": 0 } }, { "id": "cp4b", "atFrame": 30, "data": { "opacity": 0 } }, { "id": "cp4c", "atFrame": 38, "data": { "opacity": 1 } } ] },
+                    { "id": "tile5", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-06.webp", "alt": "" }, "objectFit": "cover", "x": 256, "y": 222, "width": 102, "height": 102, "borderRadius": 26, "cornerShape": "superellipse(1.5)", "opacity": 0 },
+                      "scenes": [ { "id": "ti5a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti5b", "atFrame": 34, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti5c", "atFrame": 42, "data": { "opacity": 1, "scale": 1 } } ] },
+                    { "id": "cap5", "props": { "element": "span", "text": "still-06", "x": 256, "y": 328, "width": 102, "height": 22, "fontSize": 14, "fontWeight": 500, "lineHeight": 1.57, "color": "#000000", "opacity": 0 },
+                      "scenes": [ { "id": "cp5a", "atFrame": 0, "data": { "opacity": 0 } }, { "id": "cp5b", "atFrame": 34, "data": { "opacity": 0 } }, { "id": "cp5c", "atFrame": 42, "data": { "opacity": 1 } } ] },
+                    { "id": "tile6", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-07.webp", "alt": "" }, "objectFit": "cover", "x": 20, "y": 372, "width": 102, "height": 102, "borderRadius": 26, "cornerShape": "superellipse(1.5)", "opacity": 0 },
+                      "scenes": [ { "id": "ti6a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti6b", "atFrame": 38, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti6c", "atFrame": 46, "data": { "opacity": 1, "scale": 1 } } ] },
+                    { "id": "cap6", "props": { "element": "span", "text": "still-07", "x": 20, "y": 478, "width": 102, "height": 22, "fontSize": 14, "fontWeight": 500, "lineHeight": 1.57, "color": "#000000", "opacity": 0 },
+                      "scenes": [ { "id": "cp6a", "atFrame": 0, "data": { "opacity": 0 } }, { "id": "cp6b", "atFrame": 38, "data": { "opacity": 0 } }, { "id": "cp6c", "atFrame": 46, "data": { "opacity": 1 } } ] },
+                    { "id": "tile7", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-08.webp", "alt": "" }, "objectFit": "cover", "x": 138, "y": 372, "width": 102, "height": 102, "borderRadius": 26, "cornerShape": "superellipse(1.5)", "opacity": 0 },
+                      "scenes": [ { "id": "ti7a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti7b", "atFrame": 42, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti7c", "atFrame": 50, "data": { "opacity": 1, "scale": 1 } } ] },
+                    { "id": "cap7", "props": { "element": "span", "text": "still-08", "x": 138, "y": 478, "width": 102, "height": 22, "fontSize": 14, "fontWeight": 500, "lineHeight": 1.57, "color": "#000000", "opacity": 0 },
+                      "scenes": [ { "id": "cp7a", "atFrame": 0, "data": { "opacity": 0 } }, { "id": "cp7b", "atFrame": 42, "data": { "opacity": 0 } }, { "id": "cp7c", "atFrame": 50, "data": { "opacity": 1 } } ] },
+                    { "id": "tile8", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-09.webp", "alt": "" }, "objectFit": "cover", "x": 256, "y": 372, "width": 102, "height": 102, "borderRadius": 26, "cornerShape": "superellipse(1.5)", "opacity": 0 },
+                      "scenes": [ { "id": "ti8a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti8b", "atFrame": 46, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti8c", "atFrame": 54, "data": { "opacity": 1, "scale": 1 } } ] },
+                    { "id": "cap8", "props": { "element": "span", "text": "still-09", "x": 256, "y": 478, "width": 102, "height": 22, "fontSize": 14, "fontWeight": 500, "lineHeight": 1.57, "color": "#000000", "opacity": 0 },
+                      "scenes": [ { "id": "cp8a", "atFrame": 0, "data": { "opacity": 0 } }, { "id": "cp8b", "atFrame": 46, "data": { "opacity": 0 } }, { "id": "cp8c", "atFrame": 54, "data": { "opacity": 1 } } ] },
+                    { "id": "tile9", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-10.webp", "alt": "" }, "objectFit": "cover", "x": 20, "y": 522, "width": 102, "height": 102, "borderRadius": 26, "cornerShape": "superellipse(1.5)", "opacity": 0 },
+                      "scenes": [ { "id": "ti9a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti9b", "atFrame": 50, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti9c", "atFrame": 58, "data": { "opacity": 1, "scale": 1 } } ] },
+                    { "id": "cap9", "props": { "element": "span", "text": "still-10", "x": 20, "y": 628, "width": 102, "height": 22, "fontSize": 14, "fontWeight": 500, "lineHeight": 1.57, "color": "#000000", "opacity": 0 },
+                      "scenes": [ { "id": "cp9a", "atFrame": 0, "data": { "opacity": 0 } }, { "id": "cp9b", "atFrame": 50, "data": { "opacity": 0 } }, { "id": "cp9c", "atFrame": 58, "data": { "opacity": 1 } } ] },
+                    { "id": "tile10", "props": { "element": "span", "text": "♪", "x": 138, "y": 522, "width": 102, "height": 102, "borderRadius": 26, "background": "#4c8b7c", "color": "#fbf4f5", "fontSize": 36, "lineHeight": 2.83, "textAlign": "center", "cornerShape": "superellipse(1.5)", "opacity": 0 },
+                      "scenes": [ { "id": "ti10a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti10b", "atFrame": 54, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti10c", "atFrame": 62, "data": { "opacity": 1, "scale": 1 } } ] },
+                    { "id": "cap10", "props": { "element": "span", "text": "vo-01", "x": 138, "y": 628, "width": 102, "height": 22, "fontSize": 14, "fontWeight": 500, "lineHeight": 1.57, "color": "#000000", "opacity": 0 },
+                      "scenes": [ { "id": "cp10a", "atFrame": 0, "data": { "opacity": 0 } }, { "id": "cp10b", "atFrame": 54, "data": { "opacity": 0 } }, { "id": "cp10c", "atFrame": 62, "data": { "opacity": 1 } } ] },
+                    { "id": "tile11", "props": { "element": "span", "text": "♪", "x": 256, "y": 522, "width": 102, "height": 102, "borderRadius": 26, "background": "#4c8b7c", "color": "#fbf4f5", "fontSize": 36, "lineHeight": 2.83, "textAlign": "center", "cornerShape": "superellipse(1.5)", "opacity": 0 },
+                      "scenes": [ { "id": "ti11a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti11b", "atFrame": 58, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.6 } }, { "id": "ti11c", "atFrame": 66, "data": { "opacity": 1, "scale": 1 } } ] },
+                    { "id": "cap11", "props": { "element": "span", "text": "vo-02", "x": 256, "y": 628, "width": 102, "height": 22, "fontSize": 14, "fontWeight": 500, "lineHeight": 1.57, "color": "#000000", "opacity": 0 },
+                      "scenes": [ { "id": "cp11a", "atFrame": 0, "data": { "opacity": 0 } }, { "id": "cp11b", "atFrame": 58, "data": { "opacity": 0 } }, { "id": "cp11c", "atFrame": 66, "data": { "opacity": 1 } } ] }
+                  ] }, "scenes": [] },
+                { "id": "mwPreview", "name": "Preview", "props": { "element": "div", "x": 387, "y": 63, "width": 1204, "height": 561, "borderRadius": 31, "background": "#000000", "boxShadow": "0 1px 2px rgba(0, 0, 0, 0.75)", "overflow": "hidden", "cornerShape": "superellipse(1.5)",
+                  "children": [
+                    { "id": "pv1", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-01.webp", "alt": "" }, "objectFit": "cover", "x": 444.2, "y": 0, "width": 315.6, "height": 561, "opacity": 0 },
                       "scenes": [ { "id": "pv1a", "atFrame": 0, "data": { "opacity": 0 } }, { "id": "pv1b", "atFrame": 40, "data": { "opacity": 0 } }, { "id": "pv1c", "atFrame": 44, "data": { "opacity": 1 } }, { "id": "pv1d", "atFrame": 67, "data": { "opacity": 1 } }, { "id": "pv1e", "atFrame": 71, "data": { "opacity": 0 } } ] },
-                    { "id": "pv2", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-02.webp", "alt": "" }, "objectFit": "cover", "x": 0, "y": 0, "width": 406, "height": 722, "opacity": 0 },
+                    { "id": "pv2", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-02.webp", "alt": "" }, "objectFit": "cover", "x": 444.2, "y": 0, "width": 315.6, "height": 561, "opacity": 0 },
                       "scenes": [ { "id": "pv2a", "atFrame": 0, "data": { "opacity": 0 } }, { "id": "pv2b", "atFrame": 67, "data": { "opacity": 0 } }, { "id": "pv2c", "atFrame": 71, "data": { "opacity": 1 } }, { "id": "pv2d", "atFrame": 94, "data": { "opacity": 1 } }, { "id": "pv2e", "atFrame": 98, "data": { "opacity": 0 } } ] },
-                    { "id": "pv3", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-03.webp", "alt": "" }, "objectFit": "cover", "x": 0, "y": 0, "width": 406, "height": 722, "opacity": 0 },
+                    { "id": "pv3", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-03.webp", "alt": "" }, "objectFit": "cover", "x": 444.2, "y": 0, "width": 315.6, "height": 561, "opacity": 0 },
                       "scenes": [ { "id": "pv3a", "atFrame": 0, "data": { "opacity": 0 } }, { "id": "pv3b", "atFrame": 94, "data": { "opacity": 0 } }, { "id": "pv3c", "atFrame": 98, "data": { "opacity": 1 } }, { "id": "pv3d", "atFrame": 121, "data": { "opacity": 1 } }, { "id": "pv3e", "atFrame": 125, "data": { "opacity": 0 } } ] },
-                    { "id": "pv4", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-04.webp", "alt": "" }, "objectFit": "cover", "x": 0, "y": 0, "width": 406, "height": 722, "opacity": 0 },
+                    { "id": "pv4", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-04.webp", "alt": "" }, "objectFit": "cover", "x": 444.2, "y": 0, "width": 315.6, "height": 561, "opacity": 0 },
                       "scenes": [ { "id": "pv4a", "atFrame": 0, "data": { "opacity": 0 } }, { "id": "pv4b", "atFrame": 121, "data": { "opacity": 0 } }, { "id": "pv4c", "atFrame": 125, "data": { "opacity": 1 } }, { "id": "pv4d", "atFrame": 148, "data": { "opacity": 1 } }, { "id": "pv4e", "atFrame": 152, "data": { "opacity": 0 } } ] },
-                    { "id": "pv5", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-05.webp", "alt": "" }, "objectFit": "cover", "x": 0, "y": 0, "width": 406, "height": 722, "opacity": 0 },
+                    { "id": "pv5", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-05.webp", "alt": "" }, "objectFit": "cover", "x": 444.2, "y": 0, "width": 315.6, "height": 561, "opacity": 0 },
                       "scenes": [ { "id": "pv5a", "atFrame": 0, "data": { "opacity": 0 } }, { "id": "pv5b", "atFrame": 148, "data": { "opacity": 0 } }, { "id": "pv5c", "atFrame": 152, "data": { "opacity": 1 } }, { "id": "pv5d", "atFrame": 175, "data": { "opacity": 1 } }, { "id": "pv5e", "atFrame": 179, "data": { "opacity": 0 } } ] },
-                    { "id": "pv6", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-06.webp", "alt": "" }, "objectFit": "cover", "x": 0, "y": 0, "width": 406, "height": 722, "opacity": 0 },
+                    { "id": "pv6", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-06.webp", "alt": "" }, "objectFit": "cover", "x": 444.2, "y": 0, "width": 315.6, "height": 561, "opacity": 0 },
                       "scenes": [ { "id": "pv6a", "atFrame": 0, "data": { "opacity": 0 } }, { "id": "pv6b", "atFrame": 175, "data": { "opacity": 0 } }, { "id": "pv6c", "atFrame": 179, "data": { "opacity": 1 } }, { "id": "pv6d", "atFrame": 202, "data": { "opacity": 1 } }, { "id": "pv6e", "atFrame": 206, "data": { "opacity": 0 } } ] },
-                    { "id": "pv7", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-07.webp", "alt": "" }, "objectFit": "cover", "x": 0, "y": 0, "width": 406, "height": 722, "opacity": 0 },
+                    { "id": "pv7", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-07.webp", "alt": "" }, "objectFit": "cover", "x": 444.2, "y": 0, "width": 315.6, "height": 561, "opacity": 0 },
                       "scenes": [ { "id": "pv7a", "atFrame": 0, "data": { "opacity": 0 } }, { "id": "pv7b", "atFrame": 202, "data": { "opacity": 0 } }, { "id": "pv7c", "atFrame": 206, "data": { "opacity": 1 } }, { "id": "pv7d", "atFrame": 229, "data": { "opacity": 1 } }, { "id": "pv7e", "atFrame": 233, "data": { "opacity": 0 } } ] },
-                    { "id": "pv8", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-08.webp", "alt": "" }, "objectFit": "cover", "x": 0, "y": 0, "width": 406, "height": 722, "opacity": 0 },
+                    { "id": "pv8", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-08.webp", "alt": "" }, "objectFit": "cover", "x": 444.2, "y": 0, "width": 315.6, "height": 561, "opacity": 0 },
                       "scenes": [ { "id": "pv8a", "atFrame": 0, "data": { "opacity": 0 } }, { "id": "pv8b", "atFrame": 229, "data": { "opacity": 0 } }, { "id": "pv8c", "atFrame": 233, "data": { "opacity": 1 } }, { "id": "pv8d", "atFrame": 256, "data": { "opacity": 1 } }, { "id": "pv8e", "atFrame": 260, "data": { "opacity": 0 } } ] },
-                    { "id": "pv9", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-09.webp", "alt": "" }, "objectFit": "cover", "x": 0, "y": 0, "width": 406, "height": 722, "opacity": 0 },
+                    { "id": "pv9", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-09.webp", "alt": "" }, "objectFit": "cover", "x": 444.2, "y": 0, "width": 315.6, "height": 561, "opacity": 0 },
                       "scenes": [ { "id": "pv9a", "atFrame": 0, "data": { "opacity": 0 } }, { "id": "pv9b", "atFrame": 256, "data": { "opacity": 0 } }, { "id": "pv9c", "atFrame": 260, "data": { "opacity": 1 } }, { "id": "pv9d", "atFrame": 283, "data": { "opacity": 1 } }, { "id": "pv9e", "atFrame": 287, "data": { "opacity": 0 } } ] },
-                    { "id": "pv10", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-10.webp", "alt": "" }, "objectFit": "cover", "x": 0, "y": 0, "width": 406, "height": 722, "opacity": 0 },
+                    { "id": "pv10", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-10.webp", "alt": "" }, "objectFit": "cover", "x": 444.2, "y": 0, "width": 315.6, "height": 561, "opacity": 0 },
                       "scenes": [ { "id": "pv10a", "atFrame": 0, "data": { "opacity": 0 } }, { "id": "pv10b", "atFrame": 283, "data": { "opacity": 0 } }, { "id": "pv10c", "atFrame": 287, "data": { "opacity": 1 } } ] },
-                    { "id": "pvTrack", "props": { "element": "div", "x": 16, "y": 696, "width": 374, "height": 4, "borderRadius": 2, "background": "rgba(255, 255, 255, 0.3)" }, "scenes": [] },
-                    { "id": "pvFill", "props": { "element": "div", "x": 16, "y": 696, "width": 0, "height": 4, "borderRadius": 2, "background": "#fff7ef" },
-                      "scenes": [ { "id": "pf0", "atFrame": 40, "data": { "width": 0 } }, { "id": "pf1", "atFrame": 312, "data": { "width": 374 } } ] }
+                    { "id": "pvTransport", "name": "Transport", "props": { "element": "div", "x": 16, "y": 499, "width": 1172, "height": 46, "borderRadius": 23, "background": "rgba(16, 13, 5, 0.55)", "border": "1px solid rgba(255, 255, 255, 0.12)", "boxShadow": "0 12px 40px rgba(0, 0, 0, 0.65), 0 2px 8px rgba(0, 0, 0, 0.5)", "backdropFilter": "blur(32px) saturate(1.4)", "cornerShape": "superellipse(1.5)",
+                      "children": [
+                        { "id": "pvPlay", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/icons/play.svg", "alt": "" }, "x": 14, "y": 13, "width": 18, "height": 18 }, "scenes": [] },
+                        { "id": "pvTime", "props": { "element": "span", "text": "0:00 / 0:19", "x": 44, "y": 14, "width": 80, "height": 16, "fontSize": 12, "lineHeight": 1.33, "color": "#e3e3e3" }, "scenes": [] },
+                        { "id": "pvTrack", "props": { "element": "div", "x": 136, "y": 20, "width": 1016, "height": 4, "borderRadius": 2, "background": "rgba(255, 255, 255, 0.25)" }, "scenes": [] },
+                        { "id": "pvFill", "props": { "element": "div", "x": 136, "y": 20, "width": 0, "height": 4, "borderRadius": 2, "background": "#fbf4f5" },
+                          "scenes": [ { "id": "pf0", "atFrame": 40, "data": { "width": 0 } }, { "id": "pf1", "atFrame": 312, "data": { "width": 1016 } } ] }
+                      ] }, "scenes": [] }
                   ] }, "scenes": [] },
-                { "id": "mwTimeline", "name": "Timeline", "props": { "element": "div", "x": 16, "y": 430, "width": 1040, "height": 354, "borderRadius": 14, "background": "rgba(0, 0, 0, 0.025)",
+                { "id": "mwInspector", "name": "Inspector", "props": { "element": "div", "x": 1595, "y": 63, "width": 320, "height": 561, "borderRadius": 31, "background": "rgba(245, 241, 242, 0.7)", "boxShadow": "0 1px 2px rgba(0, 0, 0, 0.2)", "cornerShape": "superellipse(1.5)",
                   "children": [
-                    { "id": "tlRuler", "props": { "element": "div", "x": 110, "y": 12, "width": 920, "height": 10, "backgroundImage": "repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.28) 0 1.5px, rgba(0, 0, 0, 0) 1.5px 46px)" }, "scenes": [] },
-                    { "id": "tlLabelTitles", "props": { "element": "span", "text": "Titles", "x": 16, "y": 40, "width": 90, "height": 52, "fontSize": 14, "lineHeight": 3.7, "color": "#6a6466" }, "scenes": [] },
-                    { "id": "tlLabelSubs", "props": { "element": "span", "text": "Subtitles", "x": 16, "y": 104, "width": 90, "height": 52, "fontSize": 14, "lineHeight": 3.7, "color": "#6a6466" }, "scenes": [] },
-                    { "id": "tlLabelVideo", "props": { "element": "span", "text": "Video", "x": 16, "y": 168, "width": 90, "height": 60, "fontSize": 14, "lineHeight": 4.3, "color": "#6a6466" }, "scenes": [] },
-                    { "id": "tlLabelAudio", "props": { "element": "span", "text": "Audio", "x": 16, "y": 240, "width": 90, "height": 60, "fontSize": 14, "lineHeight": 4.3, "color": "#6a6466" }, "scenes": [] },
-                    { "id": "laneTitles", "props": { "element": "div", "x": 110, "y": 40, "width": 0, "height": 52, "overflow": "hidden",
+                    { "id": "insLayer", "props": { "element": "span", "text": "Layer", "x": 34, "y": 18, "width": 66, "height": 28, "borderRadius": 14, "background": "#942347", "color": "#fbf4f5", "fontSize": 11, "fontWeight": 600, "lineHeight": 2.55, "textAlign": "center", "cornerShape": "superellipse(1.5)" }, "scenes": [] },
+                    { "id": "insAudio", "props": { "element": "span", "text": "Audio", "x": 104, "y": 18, "width": 64, "height": 28, "color": "#2c2c2c", "fontSize": 11, "fontWeight": 600, "lineHeight": 2.55, "textAlign": "center" }, "scenes": [] },
+                    { "id": "insText", "props": { "element": "span", "text": "Text", "x": 172, "y": 18, "width": 56, "height": 28, "color": "#2c2c2c", "fontSize": 11, "fontWeight": 600, "lineHeight": 2.55, "textAlign": "center" }, "scenes": [] },
+                    { "id": "insEmptyIcon", "props": { "element": "div", "x": 136, "y": 110, "width": 48, "height": 48, "borderRadius": 24, "background": "rgba(150, 33, 72, 0.12)", "cornerShape": "superellipse(1.5)" }, "scenes": [] },
+                    { "id": "insEmptyTitle", "props": { "element": "span", "text": "No clip picked", "x": 0, "y": 176, "width": 320, "height": 22, "fontSize": 16, "fontWeight": 500, "lineHeight": 1.375, "textAlign": "center", "color": "#000000" }, "scenes": [] },
+                    { "id": "insEmptySub", "props": { "element": "span", "text": "Pick one on the timeline.", "x": 0, "y": 206, "width": 320, "height": 18, "fontSize": 12, "lineHeight": 1.5, "textAlign": "center", "color": "#2c2c2c" }, "scenes": [] }
+                  ] }, "scenes": [] },
+                { "id": "mwTimeline", "name": "Timeline", "props": { "element": "div", "x": 387, "y": 628, "width": 1528, "height": 380, "borderRadius": 31, "background": "rgba(245, 241, 242, 0.7)", "boxShadow": "0 1px 2px rgba(0, 0, 0, 0.2)", "cornerShape": "superellipse(1.5)",
+                  "children": [
+                    { "id": "tlCorner", "props": { "element": "div", "x": 8, "y": 8, "width": 200, "height": 32, "borderRadius": 16, "background": "rgba(245, 241, 242, 0.9)", "cornerShape": "superellipse(1.5)",
+                      "children": [ { "id": "tlTimecode", "props": { "element": "span", "text": "00:00:00:00", "x": 16, "y": 8, "width": 120, "height": 16, "fontSize": 12, "lineHeight": 1.33, "color": "#2c2c2c" }, "scenes": [] } ] }, "scenes": [] },
+                    { "id": "tlRuler", "props": { "element": "div", "x": 216, "y": 8, "width": 1304, "height": 32, "borderRadius": 16, "background": "rgba(245, 241, 242, 0.9)", "cornerShape": "superellipse(1.5)",
                       "children": [
-                        { "id": "ltc1", "props": { "element": "div", "text": "Ep1 title", "x": 0, "y": 4, "width": 150, "height": 44, "borderRadius": 8, "background": "#a8732f", "color": "#fff7ef", "fontSize": 13, "lineHeight": 3.4, "textIndent": 10, "whiteSpace": "nowrap" }, "scenes": [] }
-                      ] },
-                      "scenes": [ { "id": "lt0", "atFrame": 60, "meta": { "ease": "power2.inOut" }, "data": { "width": 0 } }, { "id": "lt1", "atFrame": 80, "data": { "width": 920 } } ] },
-                    { "id": "laneSubs", "props": { "element": "div", "x": 110, "y": 104, "width": 0, "height": 52, "overflow": "hidden",
+                        { "id": "rl0", "props": { "element": "span", "text": "0:00", "x": 8, "y": 9, "width": 40, "height": 14, "fontSize": 10, "lineHeight": 1.4, "color": "#2c2c2c" }, "scenes": [] },
+                        { "id": "rl1", "props": { "element": "span", "text": "0:02", "x": 138, "y": 9, "width": 40, "height": 14, "fontSize": 10, "lineHeight": 1.4, "color": "#2c2c2c" }, "scenes": [] },
+                        { "id": "rl2", "props": { "element": "span", "text": "0:04", "x": 269, "y": 9, "width": 40, "height": 14, "fontSize": 10, "lineHeight": 1.4, "color": "#2c2c2c" }, "scenes": [] },
+                        { "id": "rl3", "props": { "element": "span", "text": "0:06", "x": 399, "y": 9, "width": 40, "height": 14, "fontSize": 10, "lineHeight": 1.4, "color": "#2c2c2c" }, "scenes": [] },
+                        { "id": "rl4", "props": { "element": "span", "text": "0:08", "x": 530, "y": 9, "width": 40, "height": 14, "fontSize": 10, "lineHeight": 1.4, "color": "#2c2c2c" }, "scenes": [] },
+                        { "id": "rl5", "props": { "element": "span", "text": "0:10", "x": 660, "y": 9, "width": 40, "height": 14, "fontSize": 10, "lineHeight": 1.4, "color": "#2c2c2c" }, "scenes": [] },
+                        { "id": "rl6", "props": { "element": "span", "text": "0:12", "x": 790, "y": 9, "width": 40, "height": 14, "fontSize": 10, "lineHeight": 1.4, "color": "#2c2c2c" }, "scenes": [] },
+                        { "id": "rl7", "props": { "element": "span", "text": "0:14", "x": 921, "y": 9, "width": 40, "height": 14, "fontSize": 10, "lineHeight": 1.4, "color": "#2c2c2c" }, "scenes": [] },
+                        { "id": "rl8", "props": { "element": "span", "text": "0:16", "x": 1051, "y": 9, "width": 40, "height": 14, "fontSize": 10, "lineHeight": 1.4, "color": "#2c2c2c" }, "scenes": [] },
+                        { "id": "rl9", "props": { "element": "span", "text": "0:18", "x": 1182, "y": 9, "width": 40, "height": 14, "fontSize": 10, "lineHeight": 1.4, "color": "#2c2c2c" }, "scenes": [] }
+                      ] }, "scenes": [] },
+                    { "id": "hdTitles", "props": { "element": "span", "text": "Titles", "x": 44, "y": 64, "width": 140, "height": 20, "fontSize": 12, "fontWeight": 500, "lineHeight": 1.67, "color": "#2c2c2c" }, "scenes": [] },
+                    { "id": "hdSubs", "props": { "element": "span", "text": "Subtitles", "x": 44, "y": 120, "width": 140, "height": 20, "fontSize": 12, "fontWeight": 500, "lineHeight": 1.67, "color": "#2c2c2c" }, "scenes": [] },
+                    { "id": "hdVideo", "props": { "element": "span", "text": "Video", "x": 44, "y": 176, "width": 140, "height": 20, "fontSize": 12, "fontWeight": 500, "lineHeight": 1.67, "color": "#2c2c2c" }, "scenes": [] },
+                    { "id": "hdAudio", "props": { "element": "span", "text": "Audio", "x": 44, "y": 232, "width": 140, "height": 20, "fontSize": 12, "fontWeight": 500, "lineHeight": 1.67, "color": "#2c2c2c" }, "scenes": [] },
+                    { "id": "laneTitles", "props": { "element": "div", "x": 216, "y": 48, "width": 1304, "height": 52, "borderRadius": 24, "background": "rgba(0, 0, 0, 0.04)", "cornerShape": "superellipse(1.5)",
                       "children": [
-                        { "id": "lsc1", "props": { "element": "div", "text": "Sub Putih", "x": 300, "y": 4, "width": 120, "height": 44, "borderRadius": 8, "background": "#a8732f", "color": "#fff7ef", "fontSize": 13, "lineHeight": 3.4, "textIndent": 10, "whiteSpace": "nowrap" }, "scenes": [] },
-                        { "id": "lsc2", "props": { "element": "div", "text": "Sub Merah", "x": 440, "y": 4, "width": 120, "height": 44, "borderRadius": 8, "background": "#a8732f", "color": "#fff7ef", "fontSize": 13, "lineHeight": 3.4, "textIndent": 10, "whiteSpace": "nowrap" }, "scenes": [] },
-                        { "id": "lsc3", "props": { "element": "div", "text": "Sub Nenek", "x": 760, "y": 4, "width": 120, "height": 44, "borderRadius": 8, "background": "#a8732f", "color": "#fff7ef", "fontSize": 13, "lineHeight": 3.4, "textIndent": 10, "whiteSpace": "nowrap" }, "scenes": [] }
-                      ] },
-                      "scenes": [ { "id": "ls0", "atFrame": 70, "meta": { "ease": "power2.inOut" }, "data": { "width": 0 } }, { "id": "ls1", "atFrame": 105, "data": { "width": 920 } } ] },
-                    { "id": "laneVideo", "props": { "element": "div", "x": 110, "y": 168, "width": 0, "height": 60, "overflow": "hidden",
+                        { "id": "ltc1", "props": { "element": "div", "x": 0, "y": 4, "width": 150, "height": 44, "borderRadius": 22, "background": "rgba(138, 59, 0, 0.78)", "boxShadow": "inset 0 1px 0 rgba(255, 255, 255, 0.18)", "cornerShape": "superellipse(1.5)", "opacity": 0,
+                          "children": [ { "id": "ltc1n", "props": { "element": "span", "text": "Ep1 title", "x": 12, "y": 14, "width": 126, "height": 16, "fontSize": 12, "fontWeight": 500, "lineHeight": 1.33, "whiteSpace": "nowrap", "overflow": "hidden", "color": "#faf5f0" }, "scenes": [] } ] },
+                          "scenes": [ { "id": "ltc1a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.9 } }, { "id": "ltc1b", "atFrame": 62, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.9 } }, { "id": "ltc1c", "atFrame": 70, "data": { "opacity": 1, "scale": 1 } } ] }
+                      ] }, "scenes": [] },
+                    { "id": "laneSubs", "props": { "element": "div", "x": 216, "y": 104, "width": 1304, "height": 52, "borderRadius": 24, "background": "rgba(0, 0, 0, 0.04)", "cornerShape": "superellipse(1.5)",
                       "children": [
-                        { "id": "lv1", "props": { "element": "div", "x": 0, "y": 4, "width": 120, "height": 52, "borderRadius": 8, "background": "#7d2a45", "overflow": "hidden",
-                          "children": [ { "id": "lv1t", "props": { "element": "span", "text": "River wide", "x": 8, "y": 0, "width": 74, "height": 52, "fontSize": 12, "lineHeight": 4.3, "color": "#fff7ef", "whiteSpace": "nowrap", "overflow": "hidden" }, "scenes": [] }, { "id": "lv1i", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-01.webp", "alt": "" }, "objectFit": "cover", "x": 84, "y": 6, "width": 30, "height": 40, "borderRadius": 5 }, "scenes": [] } ] }, "scenes": [] },
-                        { "id": "lv2", "props": { "element": "div", "x": 124, "y": 4, "width": 70, "height": 52, "borderRadius": 8, "background": "#7d2a45", "overflow": "hidden",
-                          "children": [ { "id": "lv2t", "props": { "element": "span", "text": "Nenek stumbles", "x": 8, "y": 0, "width": 24, "height": 52, "fontSize": 12, "lineHeight": 4.3, "color": "#fff7ef", "whiteSpace": "nowrap", "overflow": "hidden" }, "scenes": [] }, { "id": "lv2i", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-02.webp", "alt": "" }, "objectFit": "cover", "x": 34, "y": 6, "width": 30, "height": 40, "borderRadius": 5 }, "scenes": [] } ] }, "scenes": [] },
-                        { "id": "lv3", "props": { "element": "div", "x": 198, "y": 4, "width": 60, "height": 52, "borderRadius": 8, "background": "#7d2a45", "overflow": "hidden",
-                          "children": [ { "id": "lv3t", "props": { "element": "span", "text": "Merah jealous", "x": 8, "y": 0, "width": 14, "height": 52, "fontSize": 12, "lineHeight": 4.3, "color": "#fff7ef", "whiteSpace": "nowrap", "overflow": "hidden" }, "scenes": [] }, { "id": "lv3i", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-03.webp", "alt": "" }, "objectFit": "cover", "x": 24, "y": 6, "width": 30, "height": 40, "borderRadius": 5 }, "scenes": [] } ] }, "scenes": [] },
-                        { "id": "lv4", "props": { "element": "div", "x": 262, "y": 4, "width": 104, "height": 52, "borderRadius": 8, "background": "#7d2a45", "overflow": "hidden",
-                          "children": [ { "id": "lv4t", "props": { "element": "span", "text": "Red cloth", "x": 8, "y": 0, "width": 58, "height": 52, "fontSize": 12, "lineHeight": 4.3, "color": "#fff7ef", "whiteSpace": "nowrap", "overflow": "hidden" }, "scenes": [] }, { "id": "lv4i", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-04.webp", "alt": "" }, "objectFit": "cover", "x": 68, "y": 6, "width": 30, "height": 40, "borderRadius": 5 }, "scenes": [] } ] }, "scenes": [] },
-                        { "id": "lv5", "props": { "element": "div", "x": 370, "y": 4, "width": 96, "height": 52, "borderRadius": 8, "background": "#7d2a45", "overflow": "hidden",
-                          "children": [ { "id": "lv5t", "props": { "element": "span", "text": "Points downstream", "x": 8, "y": 0, "width": 50, "height": 52, "fontSize": 12, "lineHeight": 4.3, "color": "#fff7ef", "whiteSpace": "nowrap", "overflow": "hidden" }, "scenes": [] }, { "id": "lv5i", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-05.webp", "alt": "" }, "objectFit": "cover", "x": 60, "y": 6, "width": 30, "height": 40, "borderRadius": 5 }, "scenes": [] } ] }, "scenes": [] },
-                        { "id": "lv6", "props": { "element": "div", "x": 470, "y": 4, "width": 60, "height": 52, "borderRadius": 8, "background": "#7d2a45", "overflow": "hidden",
-                          "children": [ { "id": "lv6t", "props": { "element": "span", "text": "Two pumpkins", "x": 8, "y": 0, "width": 14, "height": 52, "fontSize": 12, "lineHeight": 4.3, "color": "#fff7ef", "whiteSpace": "nowrap", "overflow": "hidden" }, "scenes": [] }, { "id": "lv6i", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-06.webp", "alt": "" }, "objectFit": "cover", "x": 24, "y": 6, "width": 30, "height": 40, "borderRadius": 5 }, "scenes": [] } ] }, "scenes": [] },
-                        { "id": "lv7", "props": { "element": "div", "x": 534, "y": 4, "width": 116, "height": 52, "borderRadius": 8, "background": "#7d2a45", "overflow": "hidden",
-                          "children": [ { "id": "lv7t", "props": { "element": "span", "text": "Gold spills", "x": 8, "y": 0, "width": 70, "height": 52, "fontSize": 12, "lineHeight": 4.3, "color": "#fff7ef", "whiteSpace": "nowrap", "overflow": "hidden" }, "scenes": [] }, { "id": "lv7i", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-07.webp", "alt": "" }, "objectFit": "cover", "x": 80, "y": 6, "width": 30, "height": 40, "borderRadius": 5 }, "scenes": [] } ] }, "scenes": [] },
-                        { "id": "lv8", "props": { "element": "div", "x": 654, "y": 4, "width": 70, "height": 52, "borderRadius": 8, "background": "#7d2a45", "overflow": "hidden",
-                          "children": [ { "id": "lv8t", "props": { "element": "span", "text": "Ibu sends Merah", "x": 8, "y": 0, "width": 24, "height": 52, "fontSize": 12, "lineHeight": 4.3, "color": "#fff7ef", "whiteSpace": "nowrap", "overflow": "hidden" }, "scenes": [] }, { "id": "lv8i", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-08.webp", "alt": "" }, "objectFit": "cover", "x": 34, "y": 6, "width": 30, "height": 40, "borderRadius": 5 }, "scenes": [] } ] }, "scenes": [] },
-                        { "id": "lv9", "props": { "element": "div", "x": 728, "y": 4, "width": 84, "height": 52, "borderRadius": 8, "background": "#7d2a45", "overflow": "hidden",
-                          "children": [ { "id": "lv9t", "props": { "element": "span", "text": "Huge pumpkin", "x": 8, "y": 0, "width": 38, "height": 52, "fontSize": 12, "lineHeight": 4.3, "color": "#fff7ef", "whiteSpace": "nowrap", "overflow": "hidden" }, "scenes": [] }, { "id": "lv9i", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-09.webp", "alt": "" }, "objectFit": "cover", "x": 48, "y": 6, "width": 30, "height": 40, "borderRadius": 5 }, "scenes": [] } ] }, "scenes": [] },
-                        { "id": "lv10", "props": { "element": "div", "x": 816, "y": 4, "width": 104, "height": 52, "borderRadius": 8, "background": "#7d2a45", "overflow": "hidden",
-                          "children": [ { "id": "lv10t", "props": { "element": "span", "text": "Snakes", "x": 8, "y": 0, "width": 58, "height": 52, "fontSize": 12, "lineHeight": 4.3, "color": "#fff7ef", "whiteSpace": "nowrap", "overflow": "hidden" }, "scenes": [] }, { "id": "lv10i", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-10.webp", "alt": "" }, "objectFit": "cover", "x": 68, "y": 6, "width": 30, "height": 40, "borderRadius": 5 }, "scenes": [] } ] }, "scenes": [] }
-                      ] },
-                      "scenes": [ { "id": "lvs0", "atFrame": 50, "meta": { "ease": "power2.inOut" }, "data": { "width": 0 } }, { "id": "lvs1", "atFrame": 95, "data": { "width": 920 } } ] },
-                    { "id": "laneAudio", "props": { "element": "div", "x": 110, "y": 240, "width": 0, "height": 60, "overflow": "hidden",
+                        { "id": "lsc1", "props": { "element": "div", "x": 320, "y": 4, "width": 130, "height": 44, "borderRadius": 22, "background": "rgba(138, 59, 0, 0.78)", "boxShadow": "inset 0 1px 0 rgba(255, 255, 255, 0.18)", "cornerShape": "superellipse(1.5)", "opacity": 0,
+                          "children": [ { "id": "lsc1n", "props": { "element": "span", "text": "Sub Putih", "x": 12, "y": 14, "width": 106, "height": 16, "fontSize": 12, "fontWeight": 500, "lineHeight": 1.33, "whiteSpace": "nowrap", "overflow": "hidden", "color": "#faf5f0" }, "scenes": [] } ] },
+                          "scenes": [ { "id": "lsc1a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.9 } }, { "id": "lsc1b", "atFrame": 70, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.9 } }, { "id": "lsc1c", "atFrame": 78, "data": { "opacity": 1, "scale": 1 } } ] },
+                        { "id": "lsc2", "props": { "element": "div", "x": 470, "y": 4, "width": 130, "height": 44, "borderRadius": 22, "background": "rgba(138, 59, 0, 0.78)", "boxShadow": "inset 0 1px 0 rgba(255, 255, 255, 0.18)", "cornerShape": "superellipse(1.5)", "opacity": 0,
+                          "children": [ { "id": "lsc2n", "props": { "element": "span", "text": "Sub Merah", "x": 12, "y": 14, "width": 106, "height": 16, "fontSize": 12, "fontWeight": 500, "lineHeight": 1.33, "whiteSpace": "nowrap", "overflow": "hidden", "color": "#faf5f0" }, "scenes": [] } ] },
+                          "scenes": [ { "id": "lsc2a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.9 } }, { "id": "lsc2b", "atFrame": 74, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.9 } }, { "id": "lsc2c", "atFrame": 82, "data": { "opacity": 1, "scale": 1 } } ] },
+                        { "id": "lsc3", "props": { "element": "div", "x": 820, "y": 4, "width": 130, "height": 44, "borderRadius": 22, "background": "rgba(138, 59, 0, 0.78)", "boxShadow": "inset 0 1px 0 rgba(255, 255, 255, 0.18)", "cornerShape": "superellipse(1.5)", "opacity": 0,
+                          "children": [ { "id": "lsc3n", "props": { "element": "span", "text": "Sub Nenek", "x": 12, "y": 14, "width": 106, "height": 16, "fontSize": 12, "fontWeight": 500, "lineHeight": 1.33, "whiteSpace": "nowrap", "overflow": "hidden", "color": "#faf5f0" }, "scenes": [] } ] },
+                          "scenes": [ { "id": "lsc3a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.9 } }, { "id": "lsc3b", "atFrame": 78, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.9 } }, { "id": "lsc3c", "atFrame": 86, "data": { "opacity": 1, "scale": 1 } } ] }
+                      ] }, "scenes": [] },
+                    { "id": "laneVideo", "props": { "element": "div", "x": 216, "y": 160, "width": 1304, "height": 52, "borderRadius": 24, "background": "rgba(0, 0, 0, 0.04)", "cornerShape": "superellipse(1.5)",
                       "children": [
-                        { "id": "lac1", "props": { "element": "div", "text": "Sound", "x": 300, "y": 4, "width": 120, "height": 52, "borderRadius": 8, "background": "#a9c6ee", "backgroundImage": "repeating-linear-gradient(90deg, rgba(40, 80, 140, 0.45) 0 2px, rgba(0, 0, 0, 0) 2px 5px)", "backgroundSize": "100% 40%", "backgroundPosition": "center", "backgroundRepeat": "no-repeat", "fontSize": 12, "lineHeight": 1.5, "textIndent": 8, "color": "#26446e" }, "scenes": [] },
-                        { "id": "lac2", "props": { "element": "div", "text": "Sound", "x": 440, "y": 4, "width": 120, "height": 52, "borderRadius": 8, "background": "#a9c6ee", "backgroundImage": "repeating-linear-gradient(90deg, rgba(40, 80, 140, 0.45) 0 2px, rgba(0, 0, 0, 0) 2px 5px)", "backgroundSize": "100% 40%", "backgroundPosition": "center", "backgroundRepeat": "no-repeat", "fontSize": 12, "lineHeight": 1.5, "textIndent": 8, "color": "#26446e" }, "scenes": [] },
-                        { "id": "lac3", "props": { "element": "div", "text": "Sound", "x": 760, "y": 4, "width": 120, "height": 52, "borderRadius": 8, "background": "#a9c6ee", "backgroundImage": "repeating-linear-gradient(90deg, rgba(40, 80, 140, 0.45) 0 2px, rgba(0, 0, 0, 0) 2px 5px)", "backgroundSize": "100% 40%", "backgroundPosition": "center", "backgroundRepeat": "no-repeat", "fontSize": 12, "lineHeight": 1.5, "textIndent": 8, "color": "#26446e" }, "scenes": [] }
+                        { "id": "lv1", "props": { "element": "div", "x": 0, "y": 4, "width": 170, "height": 44, "borderRadius": 22, "background": "rgba(147, 35, 70, 0.78)", "boxShadow": "inset 0 1px 0 rgba(255, 255, 255, 0.18)", "cornerShape": "superellipse(1.5)", "opacity": 0,
+                          "children": [ { "id": "lv1n", "props": { "element": "span", "text": "River wide", "x": 12, "y": 14, "width": 146, "height": 16, "fontSize": 12, "fontWeight": 500, "lineHeight": 1.33, "whiteSpace": "nowrap", "overflow": "hidden", "color": "#fbf4f5" }, "scenes": [] } ] },
+                          "scenes": [ { "id": "lv1a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.9 } }, { "id": "lv1b", "atFrame": 50, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.9 } }, { "id": "lv1c", "atFrame": 58, "data": { "opacity": 1, "scale": 1 } } ] },
+                        { "id": "lv2", "props": { "element": "div", "x": 174, "y": 4, "width": 99, "height": 44, "borderRadius": 22, "background": "rgba(147, 35, 70, 0.78)", "boxShadow": "inset 0 1px 0 rgba(255, 255, 255, 0.18)", "cornerShape": "superellipse(1.5)", "opacity": 0,
+                          "children": [ { "id": "lv2n", "props": { "element": "span", "text": "Nenek stumbles", "x": 12, "y": 14, "width": 75, "height": 16, "fontSize": 12, "fontWeight": 500, "lineHeight": 1.33, "whiteSpace": "nowrap", "overflow": "hidden", "color": "#fbf4f5" }, "scenes": [] } ] },
+                          "scenes": [ { "id": "lv2a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.9 } }, { "id": "lv2b", "atFrame": 54, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.9 } }, { "id": "lv2c", "atFrame": 62, "data": { "opacity": 1, "scale": 1 } } ] },
+                        { "id": "lv3", "props": { "element": "div", "x": 277, "y": 4, "width": 85, "height": 44, "borderRadius": 22, "background": "rgba(147, 35, 70, 0.78)", "boxShadow": "inset 0 1px 0 rgba(255, 255, 255, 0.18)", "cornerShape": "superellipse(1.5)", "opacity": 0,
+                          "children": [ { "id": "lv3n", "props": { "element": "span", "text": "Merah jealous", "x": 12, "y": 14, "width": 61, "height": 16, "fontSize": 12, "fontWeight": 500, "lineHeight": 1.33, "whiteSpace": "nowrap", "overflow": "hidden", "color": "#fbf4f5" }, "scenes": [] } ] },
+                          "scenes": [ { "id": "lv3a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.9 } }, { "id": "lv3b", "atFrame": 58, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.9 } }, { "id": "lv3c", "atFrame": 66, "data": { "opacity": 1, "scale": 1 } } ] },
+                        { "id": "lv4", "props": { "element": "div", "x": 366, "y": 4, "width": 147, "height": 44, "borderRadius": 22, "background": "rgba(147, 35, 70, 0.78)", "boxShadow": "inset 0 1px 0 rgba(255, 255, 255, 0.18)", "cornerShape": "superellipse(1.5)", "opacity": 0,
+                          "children": [ { "id": "lv4n", "props": { "element": "span", "text": "Red cloth", "x": 12, "y": 14, "width": 123, "height": 16, "fontSize": 12, "fontWeight": 500, "lineHeight": 1.33, "whiteSpace": "nowrap", "overflow": "hidden", "color": "#fbf4f5" }, "scenes": [] } ] },
+                          "scenes": [ { "id": "lv4a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.9 } }, { "id": "lv4b", "atFrame": 62, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.9 } }, { "id": "lv4c", "atFrame": 70, "data": { "opacity": 1, "scale": 1 } } ] },
+                        { "id": "lv5", "props": { "element": "div", "x": 517, "y": 4, "width": 136, "height": 44, "borderRadius": 22, "background": "rgba(147, 35, 70, 0.78)", "boxShadow": "inset 0 1px 0 rgba(255, 255, 255, 0.18)", "cornerShape": "superellipse(1.5)", "opacity": 0,
+                          "children": [ { "id": "lv5n", "props": { "element": "span", "text": "Points downstream", "x": 12, "y": 14, "width": 112, "height": 16, "fontSize": 12, "fontWeight": 500, "lineHeight": 1.33, "whiteSpace": "nowrap", "overflow": "hidden", "color": "#fbf4f5" }, "scenes": [] } ] },
+                          "scenes": [ { "id": "lv5a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.9 } }, { "id": "lv5b", "atFrame": 66, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.9 } }, { "id": "lv5c", "atFrame": 74, "data": { "opacity": 1, "scale": 1 } } ] },
+                        { "id": "lv6", "props": { "element": "div", "x": 657, "y": 4, "width": 85, "height": 44, "borderRadius": 22, "background": "rgba(147, 35, 70, 0.78)", "boxShadow": "inset 0 1px 0 rgba(255, 255, 255, 0.18)", "cornerShape": "superellipse(1.5)", "opacity": 0,
+                          "children": [ { "id": "lv6n", "props": { "element": "span", "text": "Two pumpkins", "x": 12, "y": 14, "width": 61, "height": 16, "fontSize": 12, "fontWeight": 500, "lineHeight": 1.33, "whiteSpace": "nowrap", "overflow": "hidden", "color": "#fbf4f5" }, "scenes": [] } ] },
+                          "scenes": [ { "id": "lv6a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.9 } }, { "id": "lv6b", "atFrame": 70, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.9 } }, { "id": "lv6c", "atFrame": 78, "data": { "opacity": 1, "scale": 1 } } ] },
+                        { "id": "lv7", "props": { "element": "div", "x": 746, "y": 4, "width": 164, "height": 44, "borderRadius": 22, "background": "rgba(147, 35, 70, 0.78)", "boxShadow": "inset 0 1px 0 rgba(255, 255, 255, 0.18)", "cornerShape": "superellipse(1.5)", "opacity": 0,
+                          "children": [ { "id": "lv7n", "props": { "element": "span", "text": "Gold spills", "x": 12, "y": 14, "width": 140, "height": 16, "fontSize": 12, "fontWeight": 500, "lineHeight": 1.33, "whiteSpace": "nowrap", "overflow": "hidden", "color": "#fbf4f5" }, "scenes": [] } ] },
+                          "scenes": [ { "id": "lv7a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.9 } }, { "id": "lv7b", "atFrame": 74, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.9 } }, { "id": "lv7c", "atFrame": 82, "data": { "opacity": 1, "scale": 1 } } ] },
+                        { "id": "lv8", "props": { "element": "div", "x": 914, "y": 4, "width": 99, "height": 44, "borderRadius": 22, "background": "rgba(147, 35, 70, 0.78)", "boxShadow": "inset 0 1px 0 rgba(255, 255, 255, 0.18)", "cornerShape": "superellipse(1.5)", "opacity": 0,
+                          "children": [ { "id": "lv8n", "props": { "element": "span", "text": "Ibu sends Merah", "x": 12, "y": 14, "width": 75, "height": 16, "fontSize": 12, "fontWeight": 500, "lineHeight": 1.33, "whiteSpace": "nowrap", "overflow": "hidden", "color": "#fbf4f5" }, "scenes": [] } ] },
+                          "scenes": [ { "id": "lv8a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.9 } }, { "id": "lv8b", "atFrame": 78, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.9 } }, { "id": "lv8c", "atFrame": 86, "data": { "opacity": 1, "scale": 1 } } ] },
+                        { "id": "lv9", "props": { "element": "div", "x": 1017, "y": 4, "width": 119, "height": 44, "borderRadius": 22, "background": "rgba(147, 35, 70, 0.78)", "boxShadow": "inset 0 1px 0 rgba(255, 255, 255, 0.18)", "cornerShape": "superellipse(1.5)", "opacity": 0,
+                          "children": [ { "id": "lv9n", "props": { "element": "span", "text": "Huge pumpkin", "x": 12, "y": 14, "width": 95, "height": 16, "fontSize": 12, "fontWeight": 500, "lineHeight": 1.33, "whiteSpace": "nowrap", "overflow": "hidden", "color": "#fbf4f5" }, "scenes": [] } ] },
+                          "scenes": [ { "id": "lv9a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.9 } }, { "id": "lv9b", "atFrame": 82, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.9 } }, { "id": "lv9c", "atFrame": 90, "data": { "opacity": 1, "scale": 1 } } ] },
+                        { "id": "lv10", "props": { "element": "div", "x": 1140, "y": 4, "width": 147, "height": 44, "borderRadius": 22, "background": "rgba(147, 35, 70, 0.78)", "boxShadow": "inset 0 1px 0 rgba(255, 255, 255, 0.18)", "cornerShape": "superellipse(1.5)", "opacity": 0,
+                          "children": [ { "id": "lv10n", "props": { "element": "span", "text": "Snakes", "x": 12, "y": 14, "width": 123, "height": 16, "fontSize": 12, "fontWeight": 500, "lineHeight": 1.33, "whiteSpace": "nowrap", "overflow": "hidden", "color": "#fbf4f5" }, "scenes": [] } ] },
+                          "scenes": [ { "id": "lv10a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.9 } }, { "id": "lv10b", "atFrame": 86, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.9 } }, { "id": "lv10c", "atFrame": 94, "data": { "opacity": 1, "scale": 1 } } ] }
+                      ] }, "scenes": [] },
+                    { "id": "laneAudio", "props": { "element": "div", "x": 216, "y": 216, "width": 1304, "height": 52, "borderRadius": 24, "background": "rgba(0, 0, 0, 0.04)", "cornerShape": "superellipse(1.5)",
+                      "children": [
+                        { "id": "lac1", "props": { "element": "div", "x": 320, "y": 4, "width": 130, "height": 44, "borderRadius": 22, "background": "rgba(0, 141, 214, 0.22)", "boxShadow": "inset 0 1px 0 rgba(255, 255, 255, 0.18)", "cornerShape": "superellipse(1.5)", "opacity": 0,
+                          "children": [ { "id": "lac1n", "props": { "element": "span", "text": "Sound", "x": 12, "y": 14, "width": 106, "height": 16, "fontSize": 12, "fontWeight": 500, "lineHeight": 1.33, "color": "#000000" }, "scenes": [] } ] },
+                          "scenes": [ { "id": "lac1a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.9 } }, { "id": "lac1b", "atFrame": 82, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.9 } }, { "id": "lac1c", "atFrame": 90, "data": { "opacity": 1, "scale": 1 } } ] },
+                        { "id": "lac2", "props": { "element": "div", "x": 470, "y": 4, "width": 130, "height": 44, "borderRadius": 22, "background": "rgba(0, 141, 214, 0.22)", "boxShadow": "inset 0 1px 0 rgba(255, 255, 255, 0.18)", "cornerShape": "superellipse(1.5)", "opacity": 0,
+                          "children": [ { "id": "lac2n", "props": { "element": "span", "text": "Sound", "x": 12, "y": 14, "width": 106, "height": 16, "fontSize": 12, "fontWeight": 500, "lineHeight": 1.33, "color": "#000000" }, "scenes": [] } ] },
+                          "scenes": [ { "id": "lac2a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.9 } }, { "id": "lac2b", "atFrame": 86, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.9 } }, { "id": "lac2c", "atFrame": 94, "data": { "opacity": 1, "scale": 1 } } ] },
+                        { "id": "lac3", "props": { "element": "div", "x": 820, "y": 4, "width": 130, "height": 44, "borderRadius": 22, "background": "rgba(0, 141, 214, 0.22)", "boxShadow": "inset 0 1px 0 rgba(255, 255, 255, 0.18)", "cornerShape": "superellipse(1.5)", "opacity": 0,
+                          "children": [ { "id": "lac3n", "props": { "element": "span", "text": "Sound", "x": 12, "y": 14, "width": 106, "height": 16, "fontSize": 12, "fontWeight": 500, "lineHeight": 1.33, "color": "#000000" }, "scenes": [] } ] },
+                          "scenes": [ { "id": "lac3a", "atFrame": 0, "data": { "opacity": 0, "scale": 0.9 } }, { "id": "lac3b", "atFrame": 90, "meta": { "ease": "back.out(1.7)" }, "data": { "opacity": 0, "scale": 0.9 } }, { "id": "lac3c", "atFrame": 98, "data": { "opacity": 1, "scale": 1 } } ] }
+                      ] }, "scenes": [] },
+                    { "id": "tlPlayhead", "name": "Playhead", "props": { "element": "div", "x": 211, "y": 8, "width": 12, "height": 364, "opacity": 0,
+                      "children": [
+                        { "id": "phHandle", "props": { "element": "div", "x": 0, "y": 13, "width": 12, "height": 19, "borderRadius": 6, "background": "#942347", "cornerShape": "superellipse(1.5)" }, "scenes": [] },
+                        { "id": "phLine", "props": { "element": "div", "x": 5, "y": 30, "width": 2, "height": 334, "background": "#942347" }, "scenes": [] }
                       ] },
-                      "scenes": [ { "id": "la0", "atFrame": 78, "meta": { "ease": "power2.inOut" }, "data": { "width": 0 } }, { "id": "la1", "atFrame": 110, "data": { "width": 920 } } ] },
-                    { "id": "tlPlayhead", "props": { "element": "div", "x": 110, "y": 30, "width": 2.5, "height": 314, "background": "#b0004c", "opacity": 0 },
-                      "scenes": [ { "id": "ph0", "atFrame": 0, "data": { "opacity": 0, "x": 110 } }, { "id": "ph1", "atFrame": 94, "data": { "opacity": 0 } }, { "id": "ph2", "atFrame": 95, "data": { "opacity": 1, "x": 110 } }, { "id": "ph3", "atFrame": 312, "data": { "x": 1030 } } ] }
+                      "scenes": [ { "id": "ph0", "atFrame": 0, "data": { "opacity": 0, "x": 211 } }, { "id": "ph1", "atFrame": 94, "data": { "opacity": 0 } }, { "id": "ph2", "atFrame": 95, "data": { "opacity": 1, "x": 211 } }, { "id": "ph3", "atFrame": 312, "data": { "x": 1515 } } ] }
                   ] }, "scenes": [] }
               ]
             },
@@ -525,14 +658,14 @@
           {
             "id": "picture",
             "options": { "type": "html", "name": "Generated picture", "speed": 1, "duration": 14.167, "startFrame": 1115, "meta": {} },
-            "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-01.webp", "alt": "" }, "objectFit": "cover", "x": 615.85, "y": 174, "width": 340.3, "height": 605, "borderRadius": 0, "opacity": 0 },
+            "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/still-01.webp", "alt": "" }, "objectFit": "cover", "x": 557.7, "y": 135, "width": 468.6, "height": 833, "borderRadius": 0, "opacity": 0 },
             "scenes": [
-              { "id": "pc0", "options": { "atFrame": 0, "meta": { "ease": "power2.out" } }, "data": { "opacity": 0, "scale": 1.06 } },
+              { "id": "pc0", "options": { "atFrame": 0, "meta": { "ease": "power2.out" } }, "data": { "opacity": 0, "scale": 1.04 } },
               { "id": "pc1", "options": { "atFrame": 30 }, "data": { "opacity": 1, "scale": 1 } },
-              { "id": "pc2", "options": { "atFrame": 55, "meta": { "ease": "power3.inOut" } }, "data": { "x": 615.85, "y": 174, "width": 340.3, "height": 605, "borderRadius": 0 } },
-              { "id": "pc3", "options": { "atFrame": 85 }, "data": { "x": 236, "y": 140, "width": 140, "height": 140, "borderRadius": 12 } },
-              { "id": "pc4", "options": { "atFrame": 385, "meta": { "ease": "power3.in" } }, "data": { "x": 236, "y": 140, "opacity": 1, "scale": 1 } },
-              { "id": "pc5", "options": { "atFrame": 418 }, "data": { "x": 275.2, "y": 155, "opacity": 0, "scale": 0.94 } }
+              { "id": "pc2", "options": { "atFrame": 55, "meta": { "ease": "power3.inOut" } }, "data": { "x": 557.7, "y": 135, "width": 468.6, "height": 833, "borderRadius": 0 } },
+              { "id": "pc3", "options": { "atFrame": 85 }, "data": { "x": 25, "y": 135, "width": 102, "height": 102, "borderRadius": 26 } },
+              { "id": "pc4", "options": { "atFrame": 385, "meta": { "ease": "power3.in" } }, "data": { "x": 25, "y": 135, "opacity": 1, "scale": 1 } },
+              { "id": "pc5", "options": { "atFrame": 418 }, "data": { "x": 78.04, "y": 154.2, "opacity": 0, "scale": 0.94 } }
             ]
           }
         ]
@@ -540,7 +673,7 @@
       {
         "id": "tGhosts",
         "options": { "type": "html", "name": "Old windows converge", "meta": {} },
-        "props": { "cornerShape": "superellipse(1.5)" },
+        "props": {},
         "segments": [
           {
             "id": "ghosts",
@@ -549,16 +682,16 @@
               "children": [
                 { "id": "g1", "props": { "element": "div", "x": -700, "y": 200, "width": 560, "height": 380, "borderRadius": 18, "background": "#e4e6ea", "boxShadow": "0 18px 50px rgba(20, 22, 30, 0.18)", "border": "1.5px solid rgba(255, 255, 255, 0.9)", "overflow": "hidden", "opacity": 0.95,
                   "children": [ { "id": "g1Bar", "props": { "element": "div", "x": 0, "y": 0, "width": 560, "height": 40, "background": "#d9dce1" }, "scenes": [] } ] },
-                  "scenes": [ { "id": "g1a", "atFrame": 0, "meta": { "ease": "power3.in" }, "data": { "x": -700, "y": 200, "scale": 1, "opacity": 0.95 } }, { "id": "g1b", "atFrame": 40, "data": { "x": 680, "y": 270, "scale": 0.3, "opacity": 0 } } ] },
+                  "scenes": [ { "id": "g1a", "atFrame": 0, "meta": { "ease": "power3.in" }, "data": { "x": -700, "y": 200, "scale": 1, "opacity": 0.95 } }, { "id": "g1b", "atFrame": 40, "data": { "x": 680, "y": 316.5, "scale": 0.3, "opacity": 0 } } ] },
                 { "id": "g2", "props": { "element": "div", "x": 2060, "y": 420, "width": 560, "height": 380, "borderRadius": 18, "background": "#e4e6ea", "boxShadow": "0 18px 50px rgba(20, 22, 30, 0.18)", "border": "1.5px solid rgba(255, 255, 255, 0.9)", "overflow": "hidden", "opacity": 0.95,
                   "children": [ { "id": "g2Bar", "props": { "element": "div", "x": 0, "y": 0, "width": 560, "height": 40, "background": "#d9dce1" }, "scenes": [] } ] },
-                  "scenes": [ { "id": "g2a", "atFrame": 4, "meta": { "ease": "power3.in" }, "data": { "x": 2060, "y": 420, "scale": 1, "opacity": 0.95 } }, { "id": "g2b", "atFrame": 44, "data": { "x": 680, "y": 270, "scale": 0.3, "opacity": 0 } } ] },
+                  "scenes": [ { "id": "g2a", "atFrame": 4, "meta": { "ease": "power3.in" }, "data": { "x": 2060, "y": 420, "scale": 1, "opacity": 0.95 } }, { "id": "g2b", "atFrame": 44, "data": { "x": 680, "y": 316.5, "scale": 0.3, "opacity": 0 } } ] },
                 { "id": "g3", "props": { "element": "div", "x": 300, "y": -500, "width": 560, "height": 380, "borderRadius": 18, "background": "#e4e6ea", "boxShadow": "0 18px 50px rgba(20, 22, 30, 0.18)", "border": "1.5px solid rgba(255, 255, 255, 0.9)", "overflow": "hidden", "opacity": 0.95,
                   "children": [ { "id": "g3Bar", "props": { "element": "div", "x": 0, "y": 0, "width": 560, "height": 40, "background": "#d9dce1" }, "scenes": [] } ] },
-                  "scenes": [ { "id": "g3a", "atFrame": 8, "meta": { "ease": "power3.in" }, "data": { "x": 300, "y": -500, "scale": 1, "opacity": 0.95 } }, { "id": "g3b", "atFrame": 48, "data": { "x": 680, "y": 270, "scale": 0.3, "opacity": 0 } } ] },
+                  "scenes": [ { "id": "g3a", "atFrame": 8, "meta": { "ease": "power3.in" }, "data": { "x": 300, "y": -500, "scale": 1, "opacity": 0.95 } }, { "id": "g3b", "atFrame": 48, "data": { "x": 680, "y": 316.5, "scale": 0.3, "opacity": 0 } } ] },
                 { "id": "g4", "props": { "element": "div", "x": 1100, "y": 1100, "width": 560, "height": 380, "borderRadius": 18, "background": "#e4e6ea", "boxShadow": "0 18px 50px rgba(20, 22, 30, 0.18)", "border": "1.5px solid rgba(255, 255, 255, 0.9)", "overflow": "hidden", "opacity": 0.95,
                   "children": [ { "id": "g4Bar", "props": { "element": "div", "x": 0, "y": 0, "width": 560, "height": 40, "background": "#d9dce1" }, "scenes": [] } ] },
-                  "scenes": [ { "id": "g4a", "atFrame": 12, "meta": { "ease": "power3.in" }, "data": { "x": 1100, "y": 1100, "scale": 1, "opacity": 0.95 } }, { "id": "g4b", "atFrame": 52, "data": { "x": 680, "y": 270, "scale": 0.3, "opacity": 0 } } ] }
+                  "scenes": [ { "id": "g4a", "atFrame": 12, "meta": { "ease": "power3.in" }, "data": { "x": 1100, "y": 1100, "scale": 1, "opacity": 0.95 } }, { "id": "g4b", "atFrame": 52, "data": { "x": 680, "y": 316.5, "scale": 0.3, "opacity": 0 } } ] }
               ]
             },
             "scenes": []
@@ -568,88 +701,80 @@
       {
         "id": "tDock",
         "options": { "type": "html", "name": "Dock", "meta": {} },
-        "props": { "fontFamily": "Geist", "cornerShape": "superellipse(1.5)" },
+        "props": { "fontFamily": "Geist" },
         "segments": [
           {
             "id": "dock",
             "options": { "type": "html", "name": "Dock", "speed": 1, "duration": 27.667, "startFrame": 850, "meta": {} },
             "props": { "element": "div", "x": 0, "y": 0, "width": 1920, "height": 1080,
               "children": [
-                { "id": "dockBody", "name": "Dock body", "props": { "element": "div", "x": 573, "y": 976.5, "width": 66, "height": 66, "borderRadius": 33, "background": "rgba(247, 242, 243, 0.72)", "backdropFilter": "blur(32px) saturate(1.4)", "border": "1.5px solid rgba(255, 255, 255, 0.85)", "boxShadow": "0 2px 9px rgba(0, 0, 0, 0.18)", "opacity": 0 },
+                { "id": "dockBody", "name": "Dock body", "props": { "element": "div", "x": 702, "y": 1023, "width": 44, "height": 44, "borderRadius": 22, "background": "rgba(245, 241, 242, 0.55)", "backdropFilter": "blur(32px) saturate(1.4)", "border": "1px solid rgba(255, 255, 255, 0.8)", "boxShadow": "0 1px 6px rgba(0, 0, 0, 0.2)", "cornerShape": "superellipse(1.5)", "opacity": 0 },
                   "scenes": [
-                    { "id": "db0", "atFrame": 10, "meta": { "ease": "power3.out" }, "data": { "x": 573, "y": 976.5, "width": 66, "height": 66, "borderRadius": 33, "opacity": 0 } },
+                    { "id": "db0", "atFrame": 10, "meta": { "ease": "power3.out" }, "data": { "x": 702, "y": 1023, "width": 44, "height": 44, "borderRadius": 22, "opacity": 0 } },
                     { "id": "db1", "atFrame": 12, "data": { "opacity": 1 } },
-                    { "id": "db2", "atFrame": 36, "data": { "x": 559.5, "y": 963, "width": 801, "height": 93, "borderRadius": 46.5 } }
+                    { "id": "db2", "atFrame": 36, "data": { "x": 693, "y": 1014, "width": 534, "height": 62, "borderRadius": 30 } }
                   ] },
-                { "id": "dockPill", "name": "Prompt", "props": { "element": "div", "x": 621, "y": 976.5, "width": 696, "height": 66, "borderRadius": 33, "background": "rgba(255, 255, 255, 0.78)", "boxShadow": "0 1.5px 3px rgba(0, 0, 0, 0.18)", "opacity": 0,
+                { "id": "dockPill", "name": "Prompt", "props": { "element": "div", "x": 724, "y": 1023, "width": 464, "height": 44, "borderRadius": 22, "background": "rgba(255, 255, 255, 0.7)", "boxShadow": "0 1px 2px rgba(0, 0, 0, 0.2)", "cornerShape": "superellipse(1.5)", "opacity": 0,
                   "children": [
-                    { "id": "dockPlaceholder", "props": { "element": "span", "text": "Ask anything", "x": 24, "y": 0, "width": 380, "height": 66, "fontSize": 24, "lineHeight": 2.75, "color": "#8b8587" },
+                    { "id": "dockPlaceholder", "props": { "element": "span", "text": "Ask anything", "x": 16, "y": 10, "width": 260, "height": 24, "fontSize": 16, "lineHeight": 1.5, "color": "rgba(0, 0, 0, 0.5)" },
                       "scenes": [
-                        { "id": "ph_0", "atFrame": 0, "data": { "opacity": 1, "text": "Ask anything" } },
+                        { "id": "ph_0", "atFrame": 0, "data": { "opacity": 1 } },
                         { "id": "ph_1", "atFrame": 152, "data": { "opacity": 1 } },
                         { "id": "ph_2", "atFrame": 153, "data": { "opacity": 0 } },
                         { "id": "ph_3", "atFrame": 186, "data": { "opacity": 0 } },
-                        { "id": "ph_4", "atFrame": 192, "data": { "opacity": 1 } },
-                        { "id": "ph_5", "atFrame": 698, "data": { "text": "Listening…" } }
+                        { "id": "ph_4", "atFrame": 192, "data": { "opacity": 1 } }
                       ] },
-                    { "id": "dockTyped", "props": { "element": "div", "text": "Make episode 1 of Bawang Putih", "x": 24, "y": 0, "width": 0, "height": 66, "overflow": "hidden", "whiteSpace": "nowrap", "fontSize": 24, "lineHeight": 2.75, "color": "#1c1a1b", "borderRight": "2px solid #b0004c", "opacity": 0 },
+                    { "id": "dockTyped", "props": { "element": "div", "text": "Make episode 1 of Bawang Putih", "x": 16, "y": 10, "width": 0, "height": 24, "overflow": "hidden", "whiteSpace": "nowrap", "fontSize": 16, "lineHeight": 1.5, "color": "#000000", "borderRight": "1.5px solid #942347", "opacity": 0 },
                       "scenes": [
                         { "id": "ty0", "atFrame": 0, "data": { "opacity": 0, "width": 0 } },
                         { "id": "ty1", "atFrame": 152, "data": { "opacity": 0 } },
                         { "id": "ty2", "atFrame": 153, "meta": { "ease": "steps(30)" }, "data": { "opacity": 1, "width": 0 } },
-                        { "id": "ty3", "atFrame": 183, "data": { "width": 400 } },
+                        { "id": "ty3", "atFrame": 183, "data": { "width": 252 } },
                         { "id": "ty4", "atFrame": 186, "data": { "opacity": 1 } },
                         { "id": "ty5", "atFrame": 187, "data": { "opacity": 0 } }
                       ] },
-                    { "id": "dockKbd", "props": { "element": "span", "text": "⌘K", "x": 450, "y": 18, "width": 48, "height": 30, "borderRadius": 9, "background": "rgba(0, 0, 0, 0.06)", "fontSize": 15, "lineHeight": 2, "textAlign": "center", "color": "#5a5557" }, "scenes": [] },
-                    { "id": "dockChat", "props": { "element": "div", "x": 529, "y": 22, "width": 24, "height": 20, "borderRadius": 5, "border": "2.5px solid #4a4547" }, "scenes": [] },
-                    { "id": "dockMic", "name": "Mic", "props": { "element": "div", "x": 576, "y": 6, "width": 54, "height": 54, "borderRadius": 27,
+                    { "id": "dockKbd", "props": { "element": "span", "text": "⌘K", "x": 297, "y": 10, "width": 39, "height": 24, "borderRadius": 12, "background": "rgba(0, 0, 0, 0.04)", "fontSize": 14, "lineHeight": 1.71, "textAlign": "center", "color": "rgba(0, 0, 0, 0.5)", "cornerShape": "superellipse(1.5)" }, "scenes": [] },
+                    { "id": "dockChat", "props": { "element": "div", "x": 344, "y": 4, "width": 36, "height": 36, "borderRadius": 18, "cornerShape": "superellipse(1.5)",
+                      "children": [ { "id": "dockChatIcon", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/icons/chat.svg", "alt": "" }, "x": 9, "y": 9, "width": 18, "height": 18 }, "scenes": [] } ] }, "scenes": [] },
+                    { "id": "dockMic", "name": "Mic", "props": { "element": "div", "x": 384, "y": 4, "width": 36, "height": 36, "borderRadius": 18, "cornerShape": "superellipse(1.5)",
                       "children": [
-                        { "id": "micFill", "props": { "element": "div", "x": 0, "y": 0, "width": 54, "height": 54, "borderRadius": 27, "background": "#b0004c", "opacity": 0 },
+                        { "id": "micFill", "props": { "element": "div", "x": 0, "y": 0, "width": 36, "height": 36, "borderRadius": 18, "background": "#942347", "cornerShape": "superellipse(1.5)", "opacity": 0 },
                           "scenes": [
                             { "id": "mf0", "atFrame": 0, "data": { "opacity": 0 } },
                             { "id": "mf1", "atFrame": 131, "meta": { "ease": "power2.out" }, "data": { "opacity": 0 } },
                             { "id": "mf2", "atFrame": 137, "data": { "opacity": 1 } },
                             { "id": "mf3", "atFrame": 150, "meta": { "ease": "power2.inOut" }, "data": { "opacity": 1 } },
                             { "id": "mf4", "atFrame": 160, "data": { "opacity": 0 } },
-                            { "id": "mf5", "atFrame": 698, "meta": { "ease": "power2.out" }, "data": { "opacity": 0 } },
-                            { "id": "mf6", "atFrame": 704, "data": { "opacity": 1 } }
+                            { "id": "mf5", "atFrame": 680, "meta": { "ease": "power2.out" }, "data": { "opacity": 0 } },
+                            { "id": "mf6", "atFrame": 686, "data": { "opacity": 1 } }
                           ] },
-                        { "id": "micCap", "props": { "element": "div", "x": 21, "y": 12, "width": 12, "height": 19, "borderRadius": 6, "background": "#4a4547" },
+                        { "id": "micIconDark", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/icons/mic.svg", "alt": "" }, "x": 9, "y": 9, "width": 18, "height": 18 },
                           "scenes": [
-                            { "id": "mc0", "atFrame": 0, "data": { "background": "#4a4547" } },
-                            { "id": "mc1", "atFrame": 131, "data": { "background": "#4a4547" } },
-                            { "id": "mc2", "atFrame": 137, "data": { "background": "#fff7ef" } },
-                            { "id": "mc3", "atFrame": 150, "data": { "background": "#fff7ef" } },
-                            { "id": "mc4", "atFrame": 160, "data": { "background": "#4a4547" } },
-                            { "id": "mc5", "atFrame": 698, "data": { "background": "#4a4547" } },
-                            { "id": "mc6", "atFrame": 704, "data": { "background": "#fff7ef" } }
+                            { "id": "md0", "atFrame": 0, "data": { "opacity": 1 } },
+                            { "id": "md1", "atFrame": 131, "data": { "opacity": 1 } },
+                            { "id": "md2", "atFrame": 137, "data": { "opacity": 0 } },
+                            { "id": "md3", "atFrame": 150, "data": { "opacity": 0 } },
+                            { "id": "md4", "atFrame": 160, "data": { "opacity": 1 } },
+                            { "id": "md5", "atFrame": 680, "data": { "opacity": 1 } },
+                            { "id": "md6", "atFrame": 686, "data": { "opacity": 0 } }
                           ] },
-                        { "id": "micArc", "props": { "element": "div", "x": 16, "y": 21, "width": 22, "height": 15, "borderStyle": "solid", "borderWidth": "0 2.5px 2.5px 2.5px", "borderColor": "#4a4547", "borderRadius": "0 0 11px 11px" },
+                        { "id": "micIconLight", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/icons/mic-light.svg", "alt": "" }, "x": 9, "y": 9, "width": 18, "height": 18, "opacity": 0 },
                           "scenes": [
-                            { "id": "ma0", "atFrame": 0, "data": { "borderColor": "#4a4547" } },
-                            { "id": "ma1", "atFrame": 131, "data": { "borderColor": "#4a4547" } },
-                            { "id": "ma2", "atFrame": 137, "data": { "borderColor": "#fff7ef" } },
-                            { "id": "ma3", "atFrame": 150, "data": { "borderColor": "#fff7ef" } },
-                            { "id": "ma4", "atFrame": 160, "data": { "borderColor": "#4a4547" } },
-                            { "id": "ma5", "atFrame": 698, "data": { "borderColor": "#4a4547" } },
-                            { "id": "ma6", "atFrame": 704, "data": { "borderColor": "#fff7ef" } }
-                          ] },
-                        { "id": "micStem", "props": { "element": "div", "x": 25.75, "y": 37, "width": 2.5, "height": 6, "background": "#4a4547" },
-                          "scenes": [
-                            { "id": "ms0", "atFrame": 0, "data": { "background": "#4a4547" } },
-                            { "id": "ms1", "atFrame": 131, "data": { "background": "#4a4547" } },
-                            { "id": "ms2", "atFrame": 137, "data": { "background": "#fff7ef" } },
-                            { "id": "ms3", "atFrame": 150, "data": { "background": "#fff7ef" } },
-                            { "id": "ms4", "atFrame": 160, "data": { "background": "#4a4547" } },
-                            { "id": "ms5", "atFrame": 698, "data": { "background": "#4a4547" } },
-                            { "id": "ms6", "atFrame": 704, "data": { "background": "#fff7ef" } }
+                            { "id": "ml0", "atFrame": 0, "data": { "opacity": 0 } },
+                            { "id": "ml1", "atFrame": 131, "data": { "opacity": 0 } },
+                            { "id": "ml2", "atFrame": 137, "data": { "opacity": 1 } },
+                            { "id": "ml3", "atFrame": 150, "data": { "opacity": 1 } },
+                            { "id": "ml4", "atFrame": 160, "data": { "opacity": 0 } },
+                            { "id": "ml5", "atFrame": 680, "data": { "opacity": 0 } },
+                            { "id": "ml6", "atFrame": 686, "data": { "opacity": 1 } }
                           ] }
-                      ] }, "scenes": [] },
-                    { "id": "dockSend", "name": "Send", "props": { "element": "div", "x": 635, "y": 6, "width": 54, "height": 54, "borderRadius": 27, "background": "#8f1d45",
-                      "children": [
-                        { "id": "sendTri", "props": { "element": "div", "x": 21, "y": 17, "width": 0, "height": 0, "borderStyle": "solid", "borderWidth": "10px 0 10px 16px", "borderColor": "transparent transparent transparent #fff3f0" }, "scenes": [] }
                       ] },
+                      "scenes": [
+                        { "id": "mb0", "atFrame": 695, "data": { "opacity": 1 } },
+                        { "id": "mb1", "atFrame": 696, "data": { "opacity": 0 } }
+                      ] },
+                    { "id": "dockSend", "name": "Send", "props": { "element": "div", "x": 424, "y": 4, "width": 36, "height": 36, "borderRadius": 18, "background": "#942347", "cornerShape": "superellipse(1.5)",
+                      "children": [ { "id": "dockSendIcon", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/icons/send.svg", "alt": "" }, "x": 9, "y": 9, "width": 18, "height": 18 }, "scenes": [] } ] },
                       "scenes": [
                         { "id": "sd0", "atFrame": 183, "meta": { "ease": "power2.out" }, "data": { "scale": 1 } },
                         { "id": "sd1", "atFrame": 187, "meta": { "ease": "power2.out" }, "data": { "scale": 0.88 } },
@@ -657,54 +782,37 @@
                       ] }
                   ] },
                   "scenes": [
-                    { "id": "dp0", "atFrame": 18, "meta": { "ease": "power3.out" }, "data": { "opacity": 0, "x": 621 } },
-                    { "id": "dp1", "atFrame": 38, "data": { "opacity": 1, "x": 651 } }
+                    { "id": "dp0", "atFrame": 18, "meta": { "ease": "power3.out" }, "data": { "opacity": 0, "x": 724 } },
+                    { "id": "dp1", "atFrame": 38, "data": { "opacity": 1, "x": 754 } }
                   ] },
-                { "id": "micRing", "name": "Listening ring", "props": { "element": "div", "x": 1227, "y": 982.5, "width": 54, "height": 54, "borderRadius": 27, "border": "3px solid #b0004c", "opacity": 0 },
+                { "id": "micRing", "name": "Listening ring", "props": { "element": "div", "x": 1138, "y": 1027, "width": 36, "height": 36, "borderRadius": 18, "border": "2px solid #942347", "cornerShape": "superellipse(1.5)", "opacity": 0 },
                   "scenes": [
                     { "id": "rg0", "atFrame": 0, "data": { "opacity": 0, "scale": 1 } },
                     { "id": "rg1", "atFrame": 131, "meta": { "ease": "power1.out" }, "data": { "opacity": 0.8, "scale": 1 } },
                     { "id": "rg2", "atFrame": 146, "data": { "opacity": 0, "scale": 1.7 } },
                     { "id": "rg3", "atFrame": 147, "meta": { "ease": "power1.out" }, "data": { "opacity": 0.8, "scale": 1 } },
-                    { "id": "rg4", "atFrame": 162, "data": { "opacity": 0, "scale": 1.7 } },
-                    { "id": "rg5", "atFrame": 698, "meta": { "ease": "power1.out" }, "data": { "opacity": 0.8, "scale": 1 } },
-                    { "id": "rg6", "atFrame": 716, "data": { "opacity": 0, "scale": 1.7 } },
-                    { "id": "rg7", "atFrame": 717, "meta": { "ease": "power1.out" }, "data": { "opacity": 0.8, "scale": 1 } },
-                    { "id": "rg8", "atFrame": 735, "data": { "opacity": 0, "scale": 1.7 } },
-                    { "id": "rg9", "atFrame": 736, "meta": { "ease": "power1.out" }, "data": { "opacity": 0.8, "scale": 1 } },
-                    { "id": "rg10", "atFrame": 754, "data": { "opacity": 0, "scale": 1.7 } },
-                    { "id": "rg11", "atFrame": 755, "meta": { "ease": "power1.out" }, "data": { "opacity": 0.8, "scale": 1 } },
-                    { "id": "rg12", "atFrame": 773, "data": { "opacity": 0, "scale": 1.7 } },
-                    { "id": "rg13", "atFrame": 774, "meta": { "ease": "power1.out" }, "data": { "opacity": 0.8, "scale": 1 } },
-                    { "id": "rg14", "atFrame": 792, "data": { "opacity": 0, "scale": 1.7 } },
-                    { "id": "rg15", "atFrame": 793, "meta": { "ease": "power1.out" }, "data": { "opacity": 0.8, "scale": 1 } },
-                    { "id": "rg16", "atFrame": 811, "data": { "opacity": 0, "scale": 1.7 } },
-                    { "id": "rg17", "atFrame": 812, "meta": { "ease": "power1.out" }, "data": { "opacity": 0.8, "scale": 1 } },
-                    { "id": "rg18", "atFrame": 830, "data": { "opacity": 0, "scale": 1.7 } }
+                    { "id": "rg4", "atFrame": 162, "data": { "opacity": 0, "scale": 1.7 } }
                   ] }
               ]
             },
-            "scenes": []
+            "scenes": [
+              { "id": "dk0", "options": { "atFrame": 698, "meta": { "ease": "power3.in" } }, "data": { "y": 0 } },
+              { "id": "dk1", "options": { "atFrame": 722 }, "data": { "y": 120 } }
+            ]
           }
         ]
       },
       {
         "id": "tCircle",
         "options": { "type": "html", "name": "Dot, mic, logo", "meta": {} },
-        "props": { "cornerShape": "superellipse(1.5)" },
+        "props": {},
         "segments": [
           {
             "id": "circle",
             "options": { "type": "html", "name": "Dot to mic to logo", "speed": 1, "duration": 38.167, "startFrame": 535, "meta": {} },
-            "props": { "element": "div", "x": 952, "y": 532, "width": 16, "height": 16, "borderRadius": 8, "background": "#1b1c20", "display": "grid", "placeItems": "center", "opacity": 0,
+            "props": { "element": "div", "x": 952, "y": 532, "width": 16, "height": 16, "borderRadius": 8, "background": "#1b1c20", "cornerShape": "superellipse(1.5)", "display": "grid", "placeItems": "center", "opacity": 0,
               "children": [
-                { "id": "micGlyph", "name": "Mic", "props": { "element": "div", "width": 80, "height": 120, "opacity": 0,
-                  "children": [
-                    { "id": "mgCap", "props": { "element": "div", "x": 20, "y": 0, "width": 40, "height": 66, "borderRadius": 20, "background": "#fff7ef" }, "scenes": [] },
-                    { "id": "mgArc", "props": { "element": "div", "x": 0, "y": 32, "width": 80, "height": 58, "borderStyle": "solid", "borderWidth": "0 7px 7px 7px", "borderColor": "#fff7ef", "borderRadius": "0 0 40px 40px" }, "scenes": [] },
-                    { "id": "mgStem", "props": { "element": "div", "x": 36.5, "y": 90, "width": 7, "height": 20, "background": "#fff7ef" }, "scenes": [] },
-                    { "id": "mgBase", "props": { "element": "div", "x": 22, "y": 108, "width": 36, "height": 7, "borderRadius": 3.5, "background": "#fff7ef" }, "scenes": [] }
-                  ] },
+                { "id": "circleMic", "name": "Mic", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/icons/mic-light.svg", "alt": "" }, "width": 100, "height": 100, "opacity": 0 },
                   "scenes": [
                     { "id": "mg0", "atFrame": 0, "data": { "opacity": 0 } },
                     { "id": "mg1", "atFrame": 150, "data": { "opacity": 0 } },
@@ -715,18 +823,21 @@
               ]
             },
             "scenes": [
-              { "id": "cr0", "options": { "atFrame": 0, "meta": { "ease": "power2.out" } }, "data": { "opacity": 0, "scale": 1 } },
+              { "id": "cr0", "options": { "atFrame": 0, "meta": { "ease": "power2.out" } }, "data": { "opacity": 0, "scale": 1, "cornerShape": "superellipse(1.5)" } },
               { "id": "c1", "options": { "atFrame": 8, "meta": { "ease": "sine.inOut" } }, "data": { "opacity": 1, "scale": 1 } },
               { "id": "c2", "options": { "atFrame": 30, "meta": { "ease": "sine.inOut" } }, "data": { "scale": 1.35 } },
               { "id": "c3", "options": { "atFrame": 50, "meta": { "ease": "sine.inOut" } }, "data": { "scale": 1 } },
               { "id": "c3b", "options": { "atFrame": 75, "meta": { "ease": "sine.inOut" } }, "data": { "scale": 1.35 } },
               { "id": "c3c", "options": { "atFrame": 100 }, "data": { "scale": 1 } },
               { "id": "c4", "options": { "atFrame": 136, "meta": { "ease": "back.out(1.6)" } }, "data": { "x": 952, "y": 532, "width": 16, "height": 16, "borderRadius": 8, "background": "#1b1c20" } },
-              { "id": "c5", "options": { "atFrame": 154 }, "data": { "x": 860, "y": 440, "width": 200, "height": 200, "borderRadius": 100, "background": "#b0004c" } },
-              { "id": "c6", "options": { "atFrame": 247, "meta": { "ease": "power3.inOut" } }, "data": { "x": 860, "y": 440, "width": 200, "height": 200, "borderRadius": 100 } },
-              { "id": "c7", "options": { "atFrame": 271 }, "data": { "x": 780, "y": 360, "width": 360, "height": 360, "borderRadius": 108 } },
-              { "id": "c8", "options": { "atFrame": 300, "meta": { "ease": "power3.inOut" } }, "data": { "x": 780, "y": 360, "width": 360, "height": 360, "borderRadius": 108 } },
-              { "id": "c9", "options": { "atFrame": 327 }, "data": { "x": 573, "y": 976.5, "width": 66, "height": 66, "borderRadius": 19.8 } }
+              { "id": "c5", "options": { "atFrame": 154 }, "data": { "x": 860, "y": 440, "width": 200, "height": 200, "borderRadius": 100, "background": "#942347" } },
+              { "id": "c5s", "options": { "atFrame": 245 }, "data": { "cornerShape": "superellipse(2)" } },
+              { "id": "c6", "options": { "atFrame": 247, "meta": { "ease": "power3.inOut" } }, "data": { "x": 860, "y": 440, "width": 200, "height": 200, "borderRadius": 100, "background": "#942347" } },
+              { "id": "c7", "options": { "atFrame": 271 }, "data": { "x": 780, "y": 360, "width": 360, "height": 360, "borderRadius": 180, "background": "#b0004c" } },
+              { "id": "c8", "options": { "atFrame": 300, "meta": { "ease": "power3.inOut" } }, "data": { "x": 780, "y": 360, "width": 360, "height": 360, "borderRadius": 180 } },
+              { "id": "c9", "options": { "atFrame": 327 }, "data": { "x": 702, "y": 1023, "width": 44, "height": 44, "borderRadius": 22 } },
+              { "id": "c10", "options": { "atFrame": 1013, "meta": { "ease": "power3.in" } }, "data": { "y": 1023 } },
+              { "id": "c11", "options": { "atFrame": 1037 }, "data": { "y": 1143 } }
             ]
           }
         ]
@@ -734,7 +845,7 @@
       {
         "id": "tBar1",
         "options": { "type": "html", "name": "Bar 1", "meta": {} },
-        "props": { "cornerShape": "superellipse(1.5)" },
+        "props": {},
         "segments": [
           {
             "id": "bar1",
@@ -754,7 +865,9 @@
               { "id": "a1_10", "options": { "atFrame": 82, "meta": { "ease": "power3.inOut" } }, "data": { "x": 901, "y": 515, "width": 16, "height": 50, "rotate": 0, "borderRadius": 8 } },
               { "id": "a1_11", "options": { "atFrame": 106 }, "data": { "x": 859.9, "y": 454, "width": 36, "height": 180, "rotate": -22.33, "borderRadius": 18 } },
               { "id": "a1_12", "options": { "atFrame": 135, "meta": { "ease": "power3.inOut" } }, "data": { "x": 859.9, "y": 454, "width": 36, "height": 180, "borderRadius": 18 } },
-              { "id": "a1_13", "options": { "atFrame": 162 }, "data": { "x": 587.65, "y": 993.7, "width": 6.6, "height": 33, "borderRadius": 3.3 } }
+              { "id": "a1_13", "options": { "atFrame": 162 }, "data": { "x": 711.77, "y": 1034.49, "width": 4.4, "height": 22, "borderRadius": 2.2 } },
+              { "id": "a1_14", "options": { "atFrame": 848, "meta": { "ease": "power3.in" } }, "data": { "y": 1034.49 } },
+              { "id": "a1_15", "options": { "atFrame": 872 }, "data": { "y": 1154.49 } }
             ]
           }
         ]
@@ -762,7 +875,7 @@
       {
         "id": "tBar2",
         "options": { "type": "html", "name": "Bar 2", "meta": {} },
-        "props": { "cornerShape": "superellipse(1.5)" },
+        "props": {},
         "segments": [
           {
             "id": "bar2",
@@ -782,7 +895,9 @@
               { "id": "a2_10", "options": { "atFrame": 82, "meta": { "ease": "power3.inOut" } }, "data": { "x": 935, "y": 510, "width": 16, "height": 60, "rotate": 0, "borderRadius": 8 } },
               { "id": "a2_11", "options": { "atFrame": 106 }, "data": { "x": 914.6, "y": 491.2, "width": 36, "height": 144.7, "rotate": 30.22, "borderRadius": 18 } },
               { "id": "a2_12", "options": { "atFrame": 135, "meta": { "ease": "power3.inOut" } }, "data": { "x": 914.6, "y": 491.2, "width": 36, "height": 144.7, "borderRadius": 18 } },
-              { "id": "a2_13", "options": { "atFrame": 162 }, "data": { "x": 597.7, "y": 1000.6, "width": 6.6, "height": 26.5, "borderRadius": 3.3 } }
+              { "id": "a2_13", "options": { "atFrame": 162 }, "data": { "x": 718.45, "y": 1039.04, "width": 4.4, "height": 17.69, "borderRadius": 2.2 } },
+              { "id": "a2_14", "options": { "atFrame": 848, "meta": { "ease": "power3.in" } }, "data": { "y": 1039.04 } },
+              { "id": "a2_15", "options": { "atFrame": 872 }, "data": { "y": 1159.04 } }
             ]
           }
         ]
@@ -790,7 +905,7 @@
       {
         "id": "tBar3",
         "options": { "type": "html", "name": "Bar 3", "meta": {} },
-        "props": { "cornerShape": "superellipse(1.5)" },
+        "props": {},
         "segments": [
           {
             "id": "bar3",
@@ -810,7 +925,9 @@
               { "id": "a3_10", "options": { "atFrame": 82, "meta": { "ease": "power3.inOut" } }, "data": { "x": 969, "y": 510, "width": 16, "height": 60, "rotate": 0, "borderRadius": 8 } },
               { "id": "a3_11", "options": { "atFrame": 106 }, "data": { "x": 969.4, "y": 491.2, "width": 36, "height": 144.7, "rotate": -30.22, "borderRadius": 18 } },
               { "id": "a3_12", "options": { "atFrame": 135, "meta": { "ease": "power3.inOut" } }, "data": { "x": 969.4, "y": 491.2, "width": 36, "height": 144.7, "borderRadius": 18 } },
-              { "id": "a3_13", "options": { "atFrame": 162 }, "data": { "x": 607.7, "y": 1000.6, "width": 6.6, "height": 26.5, "borderRadius": 3.3 } }
+              { "id": "a3_13", "options": { "atFrame": 162 }, "data": { "x": 725.15, "y": 1039.04, "width": 4.4, "height": 17.69, "borderRadius": 2.2 } },
+              { "id": "a3_14", "options": { "atFrame": 848, "meta": { "ease": "power3.in" } }, "data": { "y": 1039.04 } },
+              { "id": "a3_15", "options": { "atFrame": 872 }, "data": { "y": 1159.04 } }
             ]
           }
         ]
@@ -818,7 +935,7 @@
       {
         "id": "tBar4",
         "options": { "type": "html", "name": "Bar 4", "meta": {} },
-        "props": { "cornerShape": "superellipse(1.5)" },
+        "props": {},
         "segments": [
           {
             "id": "bar4",
@@ -838,7 +955,9 @@
               { "id": "a4_10", "options": { "atFrame": 82, "meta": { "ease": "power3.inOut" } }, "data": { "x": 1003, "y": 515, "width": 16, "height": 50, "rotate": 0, "borderRadius": 8 } },
               { "id": "a4_11", "options": { "atFrame": 106 }, "data": { "x": 1024.1, "y": 454, "width": 36, "height": 180, "rotate": 22.33, "borderRadius": 18 } },
               { "id": "a4_12", "options": { "atFrame": 135, "meta": { "ease": "power3.inOut" } }, "data": { "x": 1024.1, "y": 454, "width": 36, "height": 180, "borderRadius": 18 } },
-              { "id": "a4_13", "options": { "atFrame": 162 }, "data": { "x": 617.75, "y": 993.7, "width": 6.6, "height": 33, "borderRadius": 3.3 } }
+              { "id": "a4_13", "options": { "atFrame": 162 }, "data": { "x": 731.83, "y": 1034.49, "width": 4.4, "height": 22, "borderRadius": 2.2 } },
+              { "id": "a4_14", "options": { "atFrame": 848, "meta": { "ease": "power3.in" } }, "data": { "y": 1034.49 } },
+              { "id": "a4_15", "options": { "atFrame": 872 }, "data": { "y": 1154.49 } }
             ]
           }
         ]
@@ -846,7 +965,7 @@
       {
         "id": "tWordmark",
         "options": { "type": "html", "name": "Wordmark", "meta": {} },
-        "props": { "fontFamily": "Geist", "cornerShape": "superellipse(1.5)" },
+        "props": { "fontFamily": "Geist" },
         "segments": [
           {
             "id": "wordmark",
@@ -869,7 +988,7 @@
           {
             "id": "ringApp",
             "options": { "type": "html", "name": "One app", "speed": 1, "duration": 1, "startFrame": 1400, "meta": {} },
-            "props": { "element": "div", "x": 210, "y": 60, "width": 1500, "height": 800, "borderRadius": 24, "border": "3px solid #b0004c", "opacity": 0 },
+            "props": { "element": "div", "x": 0, "y": 0, "width": 1920, "height": 1013, "borderRadius": 36, "border": "3px solid #942347", "opacity": 0 },
             "scenes": [
               { "id": "ra0", "options": { "atFrame": 0, "meta": { "ease": "power2.out" } }, "data": { "opacity": 0, "scale": 1.02 } },
               { "id": "ra1", "options": { "atFrame": 6 }, "data": { "opacity": 1, "scale": 1 } },
@@ -880,7 +999,7 @@
           {
             "id": "ringTab",
             "options": { "type": "html", "name": "One tab", "speed": 1, "duration": 0.933, "startFrame": 1430, "meta": {} },
-            "props": { "element": "div", "x": 268, "y": 65, "width": 208, "height": 50, "borderRadius": 25, "border": "3px solid #b0004c", "opacity": 0 },
+            "props": { "element": "div", "x": 82, "y": 9, "width": 216, "height": 46, "borderRadius": 23, "border": "3px solid #942347", "opacity": 0 },
             "scenes": [
               { "id": "rt0", "options": { "atFrame": 0, "meta": { "ease": "power2.out" } }, "data": { "opacity": 0, "scale": 1.15 } },
               { "id": "rt1", "options": { "atFrame": 6 }, "data": { "opacity": 1, "scale": 1 } },
@@ -891,7 +1010,7 @@
           {
             "id": "ringDock",
             "options": { "type": "html", "name": "One dock", "speed": 1, "duration": 1.333, "startFrame": 1458, "meta": {} },
-            "props": { "element": "div", "x": 553.5, "y": 957, "width": 813, "height": 105, "borderRadius": 52.5, "border": "3px solid #b0004c", "opacity": 0 },
+            "props": { "element": "div", "x": 687, "y": 1008, "width": 546, "height": 74, "borderRadius": 36, "border": "3px solid #942347", "opacity": 0 },
             "scenes": [
               { "id": "rd0", "options": { "atFrame": 0, "meta": { "ease": "power2.out" } }, "data": { "opacity": 0, "scale": 1.06 } },
               { "id": "rd1", "options": { "atFrame": 6 }, "data": { "opacity": 1, "scale": 1 } },
@@ -902,18 +1021,68 @@
         ]
       },
       {
+        "id": "tMic",
+        "options": { "type": "html", "name": "Mic", "meta": {} },
+        "props": { "cornerShape": "superellipse(1.5)" },
+        "segments": [
+          {
+            "id": "micHero",
+            "options": { "type": "html", "name": "Mic to center", "speed": 1, "duration": 4.467, "startFrame": 1546, "meta": {} },
+            "props": { "element": "div", "x": 1138, "y": 1027, "width": 36, "height": 36, "borderRadius": 18, "background": "#942347", "display": "grid", "placeItems": "center",
+              "children": [
+                { "id": "micHeroIcon", "props": { "element": "img", "attrs": { "src": "/~/Motions/00ffea9a5314/images/icons/mic-light.svg", "alt": "" }, "width": 18, "height": 18 },
+                  "scenes": [
+                    { "id": "mhi0", "atFrame": 0, "meta": { "ease": "power3.inOut" }, "data": { "width": 18, "height": 18 } },
+                    { "id": "mhi1", "atFrame": 26, "data": { "width": 100, "height": 100 } }
+                  ] }
+              ]
+            },
+            "scenes": [
+              { "id": "mh0", "options": { "atFrame": 0, "meta": { "ease": "power3.inOut" } }, "data": { "x": 1138, "y": 1027, "width": 36, "height": 36, "borderRadius": 18 } },
+              { "id": "mh1", "options": { "atFrame": 26 }, "data": { "x": 860, "y": 300, "width": 200, "height": 200, "borderRadius": 100 } }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "tListen",
+        "options": { "type": "html", "name": "Listening", "meta": {} },
+        "props": { "cornerShape": "superellipse(1.5)" },
+        "segments": [
+          {
+            "id": "listen",
+            "options": { "type": "html", "name": "Listening rings", "speed": 1, "duration": 3.6, "startFrame": 1572, "meta": {} },
+            "props": { "element": "div", "x": 860, "y": 300, "width": 200, "height": 200, "borderRadius": 100, "border": "3px solid #942347", "opacity": 0 },
+            "scenes": [
+              { "id": "ls_0", "options": { "atFrame": 0, "meta": { "ease": "power1.out" } }, "data": { "opacity": 0.6, "scale": 1 } },
+              { "id": "ls_1", "options": { "atFrame": 18 }, "data": { "opacity": 0, "scale": 1.6 } },
+              { "id": "ls_2", "options": { "atFrame": 19, "meta": { "ease": "power1.out" } }, "data": { "opacity": 0.6, "scale": 1 } },
+              { "id": "ls_3", "options": { "atFrame": 37 }, "data": { "opacity": 0, "scale": 1.6 } },
+              { "id": "ls_4", "options": { "atFrame": 38, "meta": { "ease": "power1.out" } }, "data": { "opacity": 0.6, "scale": 1 } },
+              { "id": "ls_5", "options": { "atFrame": 56 }, "data": { "opacity": 0, "scale": 1.6 } },
+              { "id": "ls_6", "options": { "atFrame": 57, "meta": { "ease": "power1.out" } }, "data": { "opacity": 0.6, "scale": 1 } },
+              { "id": "ls_7", "options": { "atFrame": 75 }, "data": { "opacity": 0, "scale": 1.6 } },
+              { "id": "ls_8", "options": { "atFrame": 76, "meta": { "ease": "power1.out" } }, "data": { "opacity": 0.6, "scale": 1 } },
+              { "id": "ls_9", "options": { "atFrame": 94 }, "data": { "opacity": 0, "scale": 1.6 } },
+              { "id": "ls_10", "options": { "atFrame": 95, "meta": { "ease": "power1.out" } }, "data": { "opacity": 0.6, "scale": 1 } },
+              { "id": "ls_11", "options": { "atFrame": 107 }, "data": { "opacity": 0, "scale": 1.45 } }
+            ]
+          }
+        ]
+      },
+      {
         "id": "tSpeak",
         "options": { "type": "html", "name": "SPEAK", "meta": {} },
-        "props": { "fontFamily": "Geist", "cornerShape": "superellipse(1.5)" },
+        "props": { "fontFamily": "Geist" },
         "segments": [
           {
             "id": "speak",
-            "options": { "type": "html", "name": "SPEAK", "speed": 1, "duration": 4.467, "startFrame": 1546, "meta": {} },
-            "props": { "element": "div", "text": "SPEAK", "x": 0, "y": 330, "width": 1920, "height": 360, "textAlign": "center", "fontSize": 300, "fontWeight": 700, "letterSpacing": -6, "lineHeight": 1.2, "color": "#b0004c", "opacity": 0 },
+            "options": { "type": "html", "name": "SPEAK", "speed": 1, "duration": 3.667, "startFrame": 1570, "meta": {} },
+            "props": { "element": "div", "text": "SPEAK", "x": 0, "y": 540, "width": 1920, "height": 220, "textAlign": "center", "fontSize": 180, "fontWeight": 700, "letterSpacing": -4, "lineHeight": 1.2, "color": "#942347", "opacity": 0 },
             "scenes": [
-              { "id": "sp0", "options": { "atFrame": 2, "meta": { "ease": "power4.out" } }, "data": { "opacity": 0, "scale": 1.25 } },
-              { "id": "sp1", "options": { "atFrame": 16, "meta": { "ease": "none" } }, "data": { "opacity": 1, "scale": 1 } },
-              { "id": "sp2", "options": { "atFrame": 134 }, "data": { "scale": 1.04 } }
+              { "id": "sp0", "options": { "atFrame": 2, "meta": { "ease": "power4.out" } }, "data": { "opacity": 0, "scale": 1.2, "y": 560 } },
+              { "id": "sp1", "options": { "atFrame": 16, "meta": { "ease": "none" } }, "data": { "opacity": 1, "scale": 1, "y": 540 } },
+              { "id": "sp2", "options": { "atFrame": 110 }, "data": { "scale": 1.03 } }
             ]
           }
         ]
@@ -992,7 +1161,8 @@
           { "id": "sxM7", "options": { "type": "audio", "name": "Window", "speed": 1, "duration": 0.35, "startFrame": 486, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/window.wav", "volume": 0.7 }, "scenes": [] },
           { "id": "sxM8", "options": { "type": "audio", "name": "Window", "speed": 1, "duration": 0.35, "startFrame": 1040, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/window.wav", "volume": 0.7 }, "scenes": [] },
           { "id": "sxM9", "options": { "type": "audio", "name": "Swoosh", "speed": 1, "duration": 0.7, "startFrame": 1170, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/swoosh-1.wav", "volume": 0.7 }, "scenes": [] },
-          { "id": "sxM10", "options": { "type": "audio", "name": "Swoosh", "speed": 1, "duration": 0.7, "startFrame": 1352, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/swoosh-2.wav", "volume": 0.7 }, "scenes": [] }
+          { "id": "sxM10", "options": { "type": "audio", "name": "Swoosh", "speed": 1, "duration": 0.7, "startFrame": 1352, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/swoosh-2.wav", "volume": 0.7 }, "scenes": [] },
+          { "id": "sxM11", "options": { "type": "audio", "name": "Swoosh", "speed": 1, "duration": 0.7, "startFrame": 1548, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/swoosh-1.wav", "volume": 0.6 }, "scenes": [] }
         ]
       },
       {
@@ -1013,7 +1183,7 @@
           { "id": "sxC11", "options": { "type": "audio", "name": "Click", "speed": 1, "duration": 0.05, "startFrame": 494, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/click-2.wav", "volume": 0.5 }, "scenes": [] },
           { "id": "sxC12", "options": { "type": "audio", "name": "Click", "speed": 1, "duration": 0.05, "startFrame": 498, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/click-3.wav", "volume": 0.5 }, "scenes": [] },
           { "id": "sxC13", "options": { "type": "audio", "name": "Click", "speed": 1, "duration": 0.05, "startFrame": 502, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/click-1.wav", "volume": 0.5 }, "scenes": [] },
-          { "id": "sxC14", "options": { "type": "audio", "name": "Mic on", "speed": 1, "duration": 0.22, "startFrame": 1548, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/mic-on.wav", "volume": 0.7 }, "scenes": [] }
+          { "id": "sxC14", "options": { "type": "audio", "name": "Mic on", "speed": 1, "duration": 0.22, "startFrame": 1546, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/mic-on.wav", "volume": 0.7 }, "scenes": [] }
         ]
       },
       {
@@ -1048,7 +1218,7 @@
           { "id": "sxK4", "options": { "type": "audio", "name": "Mic on", "speed": 1, "duration": 0.22, "startFrame": 674, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/mic-on.wav", "volume": 0.7 }, "scenes": [] },
           { "id": "sxK5", "options": { "type": "audio", "name": "Impact", "speed": 1, "duration": 1.6, "startFrame": 780, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/impact.wav", "volume": 0.85 }, "scenes": [] },
           { "id": "sxK6", "options": { "type": "audio", "name": "Mic on", "speed": 1, "duration": 0.22, "startFrame": 981, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/mic-on.wav", "volume": 0.7 }, "scenes": [] },
-          { "id": "sxK7", "options": { "type": "audio", "name": "Impact", "speed": 1, "duration": 1.6, "startFrame": 1548, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/impact.wav", "volume": 0.85 }, "scenes": [] }
+          { "id": "sxK7", "options": { "type": "audio", "name": "Impact", "speed": 1, "duration": 1.6, "startFrame": 1572, "meta": {} }, "props": { "src": "/~/Motions/00ffea9a5314/audio/impact.wav", "volume": 0.85 }, "scenes": [] }
         ]
       }
     ]
