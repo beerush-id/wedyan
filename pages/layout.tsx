@@ -37,7 +37,7 @@ const WedyanDesktop = setup<{ children?: ReactNode }>((props) => {
   // Opened once: what it reads while opening is the conversation's, not this component's to follow.
   const session = $static(openSession);
   sessionCtx.set(session);
-  const theme = cookies<Theme>(THEME_COOKIE, { mode: 'system' });
+  const theme = cookies<Theme>(THEME_COOKIE, { mode: 'dark' });
   themeCtx.set(theme);
 
   onMount(() => {
