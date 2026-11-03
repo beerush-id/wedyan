@@ -426,6 +426,9 @@ export const HANDOFF = 'handoff';
 export const ACT = 'act';
 
 const DEFAULT_TURN_LIMIT = 12;
+
+/** How many turns before its budget ends an agent is told: enough to report again and finish the round it's on. */
+const BUDGET_WARNING = 3;
 const DEFAULT_HANDOFF_LIMIT = 3;
 
 /** How many forms one answer may put to the user: a reply that doesn't help must not start a loop. */
@@ -475,6 +478,8 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
   // The user was told as the ask was handed over, so the next agent's opening words would say it again.
   let told = false;
   let nudged = false;
+  // The limit the agent was last warned about, so a new budget is warned about too.
+  let warned = 0;
   const actions = createActionQueue(options.act, options.track);
   const problems: string[] = [];
   let forms = 0;
@@ -710,6 +715,13 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
       const ending = !followUps.length && reply.toolCalls.length === (acting ? 1 : 0);
       const finished = Promise.all([actions.settle(), ...compositions]).then(() => undefined);
       if (ending && !(await settled(finished, signal))) return end('stopped', 'Aborted');
+
+      // Running out ends the ask with its work unfinished, so one that reported a budget hears it coming.
+      const limit = turnLimit();
+      if (budget.turns === limit && !ending && warned !== limit && limit - turn <= BUDGET_WARNING) {
+        warned = limit;
+        problems.push(`${limit - turn} turns left of your budget. If the work needs more, call sys.budget.request now with all it still needs.`);
+      }
 
       const feedback = collectFeedback(actions.take(), problems.splice(0));
       if (feedback) history.push({ role: 'user', type: 'object', data: { feedback } });
