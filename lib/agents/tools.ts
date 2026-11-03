@@ -236,6 +236,11 @@ export const ACTIONS = {
     args: '{"window": string}',
     does: 'Closes an open window, by the `id` it has on the desktop.',
   },
+  announce: {
+    name: 'desktop.announce',
+    args: '{"text": string, "link"?: string}',
+    does: 'Says a long job is done, or what of it failed, in a notice shown only when the user isn’t looking at your answer, until they read it: what was done, with a link to open it.',
+  },
   windowRun: {
     name: 'window.run',
     args: '{"window": string, "command": string, "args"?: object}',

@@ -2,6 +2,7 @@ import type { WindowInstance } from '@airlib/react-aui/desktop';
 import { SYSTEM } from '@/lib/systems/boot.js';
 import { linkTo } from '@/lib/systems/links.js';
 import { requestLink, runCommand } from '@/lib/systems/registry.js';
+import { type Announcement, announce } from './announce.js';
 
 /** Registers an answer to what the server asks of the desktop, by name. */
 type Answering = (name: string, handler: (args: never) => unknown) => unknown;
@@ -9,11 +10,13 @@ type Answering = (name: string, handler: (args: never) => unknown) => unknown;
 /**
  * Answers what the agent does on the desktop, once the words before it have been spoken: each action
  * runs through what the desktop already has, a launch or a link. The ones with nothing to run through
- * yet, `app.files.delete` and `app.motion.import`, stay unanswered.
+ * yet, `app.files.delete` and `app.motion.import`, stay unanswered. An announcement shows only when
+ * the answer is out of sight: in sight, the answer already says it.
  *
  * @param answer - What registers an answer, from `wedyan()`.
+ * @param watching - Whether the answer being written is in the user's sight.
  */
-export function answerActions(answer: Answering): void {
+export function answerActions(answer: Answering, watching: () => boolean): void {
   answer('app.open', ({ app, file }: { app: string; file?: string }) => (file ? requestLink(linkTo(app, file)) : SYSTEM?.launch(app)));
   answer('app.mail.open', ({ path }: { path: string }) => requestLink(linkTo('mail', path)));
   answer('app.files.reveal', () => SYSTEM?.launch('files'));
@@ -23,6 +26,9 @@ export function answerActions(answer: Answering): void {
   });
   answer('desktop.focus', ({ app }: { app: string }) => windowsOf([app]).at(-1)?.focus());
   answer('desktop.close', ({ window }: { window: string }) => SYSTEM?.windows.get(window)?.close());
+  answer('desktop.announce', (announcement: Announcement) => {
+    if (!watching()) announce(announcement);
+  });
   answer('window.run', async ({ window, command, args }: { window: string; command: string; args?: Record<string, unknown> }) => {
     const { signal } = new AbortController();
     await runCommand(`system.window[${window}].${command}`, { event: new Event('window.run'), signal, form: args ?? {} });

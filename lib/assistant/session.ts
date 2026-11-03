@@ -28,7 +28,9 @@ export function openSession() {
   const prompt = mutable({ text: '' });
   const answers = mutable({ open: false });
 
-  answerActions(answer as never);
+  // An answer being written is the newest in the chat: it's in sight while the chat is open on a page
+  // that's showing.
+  answerActions(answer as never, () => answers.open && document.visibilityState === 'visible');
 
   let problem = '';
   let heard = '';
