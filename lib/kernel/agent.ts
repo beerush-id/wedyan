@@ -602,11 +602,13 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
       let reply = await take();
       if (isEmpty(reply)) reply = await take();
       if (isEmpty(reply)) return end('error', `No answer from ${agent.model}`);
-      // Ending on "I'll now…" with nothing done is a promise left hanging: it's held to it, once.
+      // Ending on "I'll now…" with nothing done is a promise left hanging: it's held to it, once each
+      // time, since a long job can stall between any two of its steps.
       if (agent.actsFirst && !reply.toolCalls.length && (handed || (reply.unfinished && !nudged))) {
         nudged = true;
         problems.push(NOT_ACTED);
       }
+      if (reply.toolCalls.length) nudged = false;
       handed = false;
 
       history.push({
