@@ -166,15 +166,17 @@ async function editStage(path: string, { script, props, ...fields }: StageChange
 /** A track on a composition; throws when it isn't there. */
 function trackIn(composition: Composition, id: string): StoredTrack {
   const track = composition.tracks.find((each) => each.id === id);
-  if (!track) throw new Error(`There's no track ${id} on this stage`);
-  return track;
+  if (track) return track;
+  const tracks = composition.tracks.map((each) => `${each.options.name} (${each.id})`).join(', ');
+  throw new Error(`There's no track ${id} on this stage. Its tracks are: ${tracks}`);
 }
 
-/** A clip on a track; throws when it isn't there. */
+/** A clip on a track; throws when it isn't there, saying which ones are. */
 function clipIn(track: StoredTrack, id: string): StoredClip {
   const clip = track.segments.find((each) => each.id === id);
-  if (!clip) throw new Error(`There's no clip ${id} on ${track.options.name}`);
-  return clip;
+  if (clip) return clip;
+  const clips = track.segments.map((each) => `${each.options.name} (${each.id})`).join(', ');
+  throw new Error(`There's no clip ${id} on ${track.options.name}. Its clips are: ${clips || 'none'}`);
 }
 
 /** A track as the tools read it. */
@@ -216,7 +218,7 @@ function clipsOf(composition: Composition, ids: string[]): Clip[] {
 async function newTrack(path: string, stage: StageDocument, { name, type, props, clips = [] }: TrackInit): Promise<StoredTrack> {
   const size = stage.composition.props;
   const defaults = name === SUBTITLES && type === 'title' ? subtitleAt(size) : trackDefaults(type, size);
-  const track = { id: crypto.randomUUID(), options: { type, name, meta: {} }, props: { ...defaults, ...props }, segments: [] } as unknown as StoredTrack;
+  const track = { id: newId(), options: { type, name, meta: {} }, props: { ...defaults, ...props }, segments: [] } as unknown as StoredTrack;
   await addClips(path, stage, track, clips);
   return track;
 }
@@ -247,7 +249,7 @@ async function newClip(path: string, composition: Composition, track: StoredTrac
   const duration = seconds ?? shown?.seconds;
   if (duration === undefined) throw new Error(`${name ?? type} needs seconds: only a spoken sound has a length of its own`);
   return {
-    id: crypto.randomUUID(),
+    id: newId(),
     options: {
       speed,
       duration,
@@ -324,7 +326,7 @@ function refuseOverlaps(track: StoredTrack, frameRate: number): void {
 /** Keyframes as a stage keeps them. */
 function keyframes(motion: ClipInit['motion'], frameRate: number) {
   return (motion ?? []).map(({ at, ease, values }) => ({
-    id: crypto.randomUUID(),
+    id: newId(),
     options: { atFrame: Math.round(at * frameRate), ...(ease ? { meta: { ease } } : {}) },
     data: values,
   }));

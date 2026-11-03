@@ -1,4 +1,4 @@
-import { newHeader } from './paths.js';
+import { newHeader, newId } from './paths.js';
 import type { MotionDocument, StageDocument } from './types.js';
 
 /** The tracks a stage can be given, by type, and what each is called. */
@@ -89,11 +89,11 @@ export function stageAt(id: string, folder: string, name: string, project: Motio
     order,
     casts: [...(project.casts ?? [])],
     composition: {
-      id: crypto.randomUUID(),
+      id: newId(),
       options: { frameRate: 30 },
       props: size,
       tracks: STARTING_TRACKS.map((type) => ({
-        id: crypto.randomUUID(),
+        id: newId(),
         options: { type, name: `${TRACK_NAMES[type]} 1`, meta: {} },
         props: trackDefaults(type, size),
         segments: [],
