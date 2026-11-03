@@ -1,9 +1,11 @@
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 import { ORIGIN } from './test/ui/server.js';
+import { homeSeed } from './vite.seed.js';
 
 // Kept apart from vite.config.ts so tests never start the page scaffolder.
 export default defineConfig({
+  plugins: [homeSeed()],
   resolve: {
     alias: [{ find: /^@\//, replacement: fileURLToPath(new URL('./', import.meta.url)) }],
   },

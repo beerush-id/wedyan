@@ -4,7 +4,7 @@ import { exists, read, remove, stat, write } from '@irpclib/r2-file';
 import { implement } from '@irpclib/r2-file/constructor';
 import { fsContext } from '@irpclib/r2-file/context';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { HOME_SEEDS, SEED_MARKER, seedHome } from '../../lib/server/seed.js';
+import { HOME_SEED, type HomeSeed, SEED_MARKER, seedHome } from '../../lib/server/seed.js';
 
 // r2-file runs for real on local R2 and D1.
 
@@ -23,7 +23,7 @@ function newHome() {
     });
 }
 
-const SEEDS = { 'Agents/Story.agent': '{"name":"Story"}', 'Memos/Brief.md': '# Brief' };
+const SEEDS: HomeSeed = { text: { 'Agents/Story.agent': '{"name":"Story"}', 'Memos/Brief.md': '# Brief' }, media: {} };
 
 describe('seeding a new home', () => {
   it('writes every seed into the home once, and records it', async () => {
@@ -37,12 +37,13 @@ describe('seeding a new home', () => {
     });
   });
 
-  it('writes a picture byte for byte, as it was bundled', async () => {
+  it('writes a picture byte for byte, as it was read', async () => {
     const home = newHome();
     const PIXEL = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+    const picture = new Blob([Uint8Array.from(atob(PIXEL), (byte) => byte.charCodeAt(0))], { type: 'image/png' });
 
     await home(async () => {
-      await seedHome(crypto.randomUUID(), { 'Pictures/Cat.png': `data:image/png;base64,${PIXEL}` });
+      await seedHome(crypto.randomUUID(), { text: {}, media: { 'Pictures/Cat.png': async () => picture } });
       expect(await read('~/Pictures/Cat.png', { encoding: 'base64' })).toBe(PIXEL);
       expect(await stat('~/Pictures/Cat.png')).toMatchObject({ type: 'image/png' });
     });
@@ -75,7 +76,7 @@ describe('seeding a new home', () => {
   });
 
   it('bundles the home seed from seeds/home, by its path in the home', () => {
-    expect(Object.keys(HOME_SEEDS)).toEqual(
+    expect(Object.keys(HOME_SEED.text)).toEqual(
       expect.arrayContaining([
         'Agents/Animation.agent',
         'Agents/Audio.agent',

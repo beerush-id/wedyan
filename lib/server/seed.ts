@@ -1,42 +1,32 @@
-import { getContext, IRPCFile, setContext } from '@irpclib/irpc';
+import { getContext, getEnv, IRPCFile, setContext } from '@irpclib/irpc';
 import type { ExecutionContext } from '@irpclib/irpc/wrangler';
 import { exists, write } from '@irpclib/r2-file';
+import { MEDIA, MEDIA_URL, readMedia, TEXT } from 'virtual:home-seed';
 import type { HomeIndexing } from '@/lib/kernel/home.h.js';
+import type { ServerEnv } from '@/lib/server/setup.js';
 import TITLES from '../../seeds/titles.json';
 
 /** The context key a request's execution context is kept under, which indexing runs behind. */
 const EXECUTION_KEY = 'ctx';
 
-/** Where a new home's seed is bundled from, beside the app. */
-const SOURCE = '../../seeds/home/';
-
-/** The home seed's text as bundled, by its path from here. */
-const BUNDLED_TEXT = import.meta.glob(['../../seeds/home/**/*', '!**/*.{png,jpg,jpeg,webp,gif,mp4,webm,mp3,wav}'], {
-  query: '?raw',
-  import: 'default',
-  eager: true,
-});
-
-/** The home seed's pictures and media, bundled inline as data URLs: raw, their bytes wouldn't survive. */
-const BUNDLED_MEDIA = import.meta.glob('../../seeds/home/**/*.{png,jpg,jpeg,webp,gif,mp4,webm,mp3,wav}', {
-  query: '?inline',
-  import: 'default',
-  eager: true,
-});
+/** Any origin: the platform's assets answer by path alone. */
+const ASSETS_ORIGIN = 'https://assets.local';
 
 /**
- * What every new home starts with, by its path in the home without `~/` (`Agents/Story.agent`):
- * `seeds/home/X` lands at `~/X`. Text as it is; pictures and media as data URLs.
+ * What a home is seeded with, by path in the home without `~/` (`Agents/Story.agent`): text as it
+ * is, and each picture or media by what reads it, as a file of its type.
  */
-export const HOME_SEEDS: Record<string, string> = Object.fromEntries(
-  Object.entries({ ...BUNDLED_TEXT, ...BUNDLED_MEDIA } as Record<string, string>).map(([file, content]) => [
-    file.slice(SOURCE.length),
-    content,
-  ]),
-);
+export type HomeSeed = { text: Record<string, string>; media: Record<string, () => Promise<Blob>> };
 
-/** A seed bundled inline, and the media type it carries, unlike any text seed. */
-const INLINE = /^data:([^;,]+)/;
+/**
+ * What every new home starts with: `seeds/home/X` lands at `~/X`. Its text is bundled; its pictures
+ * and media are among the client build's files, read as a home is seeded, so they never weigh on
+ * the worker.
+ */
+export const HOME_SEED: HomeSeed = {
+  text: TEXT,
+  media: Object.fromEntries(Object.entries(MEDIA).map(([path, type]) => [path, () => mediaOf(path, type)])),
+};
 
 /** Text seeds that are pictures, not documents, by extension: written as files of their type. */
 const TEXT_MEDIA: Record<string, string> = { svg: 'image/svg+xml' };
@@ -59,13 +49,13 @@ const INDEXING = new Map<string, Indexing>();
  * the session's file scope.
  *
  * @param session - The session whose home it is.
- * @param seeds - What to seed, by path in the home without `~/`.
+ * @param seed - What to seed.
  * @returns When the home is seeded.
  */
-export function seedHome(session: string, seeds: Record<string, string> = HOME_SEEDS): Promise<void> {
+export function seedHome(session: string, seed: HomeSeed = HOME_SEED): Promise<void> {
   let seeding = SEEDING.get(session);
   if (!seeding) {
-    seeding = plant(session, seeds);
+    seeding = plant(session, seed);
     SEEDING.set(session, seeding);
     // A failed seeding is tried again on the session's next call.
     seeding.catch(() => SEEDING.delete(session));
@@ -94,7 +84,7 @@ export function followIndexing(session: string, listener: (indexing: HomeIndexin
  * Writes the seed into the home. A file is there once written: memory reads it behind the seeding,
  * so the home is ready before every file is indexed, and how far that has got is kept for the session.
  */
-async function plant(session: string, seeds: Record<string, string>): Promise<void> {
+async function plant(session: string, seed: HomeSeed): Promise<void> {
   if (await exists(SEED_MARKER)) return;
 
   const indexing: Indexing = { total: 0, done: 0, written: false, listeners: new Set() };
@@ -120,18 +110,14 @@ async function plant(session: string, seeds: Record<string, string>): Promise<vo
   } satisfies ExecutionContext);
 
   try {
-    await Promise.all(
-      Object.entries(seeds).map(([path, content]) => {
-        const [, inline] = INLINE.exec(content) ?? [];
-        const type = inline ?? TEXT_MEDIA[path.slice(path.lastIndexOf('.') + 1)];
-        // Files are named by id, so what a seed file is called comes with it, as an upload's does.
-        const title = (TITLES as Record<string, string>)[path];
-        const options = title ? { metadata: { title } } : undefined;
-        if (!type) return write(`~/${path}`, content, options);
-        const bytes = inline ? decoded(content) : new TextEncoder().encode(content);
-        return write(`~/${path}`, fileOf(path, type, bytes), options);
+    await Promise.all([
+      ...Object.entries(seed.text).map(([path, content]) => {
+        const type = TEXT_MEDIA[path.slice(path.lastIndexOf('.') + 1)];
+        if (!type) return write(`~/${path}`, content, optionsOf(path));
+        return write(`~/${path}`, fileOf(path, new Blob([content], { type })), optionsOf(path));
       }),
-    );
+      ...Object.entries(seed.media).map(async ([path, read]) => write(`~/${path}`, fileOf(path, await read()), optionsOf(path))),
+    ]);
   } finally {
     setContext(EXECUTION_KEY, request);
     indexing.written = true;
@@ -140,19 +126,36 @@ async function plant(session: string, seeds: Record<string, string>): Promise<vo
   await write(SEED_MARKER, { seeded: new Date().toISOString() }, { hidden: true });
 }
 
+/** Files are named by id, so what a seed file is called comes with it, as an upload's does. */
+function optionsOf(path: string) {
+  const title = (TITLES as Record<string, string>)[path];
+  return title ? { metadata: { title } } : undefined;
+}
+
 /**
- * A bundled picture or sound as the file it is, written as an upload is, at any size.
+ * A seed picture or sound as the file it is, written as an upload is, at any size.
+ *
+ * @param path - Its path in the home.
+ * @param content - Its content, of its type.
+ * @returns The file.
+ */
+function fileOf(path: string, content: Blob): IRPCFile {
+  return new IRPCFile({ name: path.slice(path.lastIndexOf('/') + 1), size: content.size, type: content.type }, content);
+}
+
+/**
+ * Reads a seed picture or media: beside the server in development, among the client build's files
+ * once deployed.
  *
  * @param path - Its path in the home.
  * @param type - Its media type.
- * @param bytes - Its content.
- * @returns The file.
+ * @returns Its content, of its type.
  */
-function fileOf(path: string, type: string, bytes: Uint8Array): IRPCFile {
-  return new IRPCFile({ name: path.slice(path.lastIndexOf('/') + 1), size: bytes.byteLength, type }, new Blob([bytes], { type }));
-}
-
-/** The bytes a base64 data URL holds. */
-function decoded(content: string): Uint8Array {
-  return Uint8Array.from(atob(content.slice(content.indexOf(',') + 1)), (byte) => byte.charCodeAt(0));
+async function mediaOf(path: string, type: string): Promise<Blob> {
+  if (readMedia) return new Blob([await readMedia(path)], { type });
+  const assets = getEnv<ServerEnv>().ASSETS;
+  if (!assets) throw new Error(`No ASSETS binding to read the seed's ${path} from`);
+  const response = await assets.fetch(new Request(new URL(`${MEDIA_URL}/${path}`, ASSETS_ORIGIN)));
+  if (!response.ok) throw new Error(`The seed's ${path} couldn't be read: ${response.status}`);
+  return new Blob([await response.arrayBuffer()], { type });
 }

@@ -40,6 +40,8 @@ import { setupUsage, UsageDriver } from './usage.js';
 
 /** The bindings and secrets the server runs with (see `wrangler.json`). */
 export type ServerEnv = FileWorkerEnv & {
+  /** The client build's files, as the platform serves them; the home seed's pictures and media among them. */
+  ASSETS?: { fetch(request: Request): Promise<Response> };
   VECTORIZE: VectorStore;
   AI: Parameters<typeof embedWith>[0] & SpeechModel;
   MUSE_API_KEY?: string;
