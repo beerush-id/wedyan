@@ -275,10 +275,10 @@ const StillPanel = setup<{ path: string }>((props) => {
       making.note = 'Write its prompt first.';
       return;
     }
-    Object.assign(making, { busy: true, note: 'Making it…' });
+    // Generate shows it's making; the note is only for what needs reading.
+    Object.assign(making, { busy: true, note: '' });
     try {
       await dfs.still.generate(path);
-      making.note = '';
       pictureChanged();
     } catch (error) {
       making.note = (error as Error).message;

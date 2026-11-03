@@ -144,7 +144,7 @@ const promptGroup = (source: GenerativeDocument, subject: GenerationSubject) =>
           disabled={$use(() => !!subject.busy || !(source.type === 'sound' && source.kind === 'speech' ? source.text : source.prompt)?.trim())}
           onClick={() => subject.generate()}
         >
-          <GenerativeIcon />
+          <Snippet>{() => (subject.busy ? <Spinner size="sm" label="Generating" /> : <GenerativeIcon />)}</Snippet>
           <span>Generate</span>
         </Button>
       </div>
