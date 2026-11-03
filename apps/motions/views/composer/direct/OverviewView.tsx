@@ -2,7 +2,7 @@ import { $use, setup } from '@airlib/react';
 import { Button, EmptyState } from '@airlib/react-aui';
 import { DirectContent } from '@/components/Direct.js';
 import { ScriptIcon } from '../../icons.js';
-import { duration, length, newMotionScript, shortDate } from '../../motion.js';
+import { duration, newMotionScript, shortDate } from '../../motion.js';
 import { type Composer, composerCtx } from '../context.js';
 import { ScriptAbout } from './ScriptAbout.js';
 import { ScriptPane } from './ScriptPane.js';
@@ -53,9 +53,9 @@ const OverviewAbout = setup(() => {
   const composer = composerCtx.get() as Composer;
 
   return () => {
-    const { motion, stages } = composer;
+    const { motion, stages, seconds } = composer;
     if (!motion) return null;
-    const made = duration(length(stages));
+    const made = duration(seconds);
     return (
       <ScriptAbout
         picture={motion.cover}

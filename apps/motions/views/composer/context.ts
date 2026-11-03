@@ -9,7 +9,7 @@ import type { GenerativeDocument, MotionDocument, StageDocument } from '@/lib/do
 import { LOUNGE, LOUNGE_EVENT } from '@/lib/kernel/workspace.h.js';
 import { dfs } from '@/lib/share/dfs.js';
 import { generateSpeech, generateTakePicture } from '@/lib/share/generate.js';
-import { documentAt, follow, type Project } from '../motion.js';
+import { documentAt, follow, length, type Project } from '../motion.js';
 import type { HtmlClip, NodeKeyframe } from './composition.js';
 import { findNode } from './nodes.js';
 import { showAttempt } from './placement.js';
@@ -83,6 +83,8 @@ export type Composer = {
   readonly pictures: FileRow[];
   /** The agents work can be assigned to. */
   readonly agents: FileRow[];
+  /** How long the project runs as made so far. */
+  readonly seconds: number;
   /** Where the stage picked is, or the project's first until one is. */
   readonly stagePath: string | undefined;
   /** The stage picked, or the project's first until one is. */
@@ -224,6 +226,10 @@ export function createComposer(path: string, direct: boolean): Composer {
         return lists.value.agents;
       },
 
+      get seconds() {
+        return lists.value.seconds;
+      },
+
       get stagePath() {
         return composer.activeStage ?? firstStage.value;
       },
@@ -362,6 +368,7 @@ export function createComposer(path: string, direct: boolean): Composer {
         casts: sorted.filter((row) => !!row.held && row.kind === 'persona'),
         people: sorted.filter((row) => row.kind === 'persona'),
         agents: sorted.filter((row) => row.kind === 'agent'),
+        seconds: length(sorted.filter((row) => row.kind === 'stage')),
       };
     });
   });
