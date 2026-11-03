@@ -16,8 +16,11 @@ import settingsManifest from '@/apps/settings/manifest.json';
 import settingsMain from '@/apps/settings/views/index.js';
 import { dropWindow, keepWindow, type WedyanApp } from './registry.js';
 
+/** What the splash says from the first paint until the apps install. */
+const STARTING = 'Starting Wedyan...';
+
 /** Where booting is: the line the splash shows, and whether the desktop can take over. */
-export const BOOT_STAT = mutable({ status: 'Boot messages', ready: false });
+export const BOOT_STAT = mutable({ status: STARTING, ready: false });
 
 /** The running system, once booted: what Wedyan's own parts read, e.g. the window in front. */
 export let SYSTEM: AUISystemState | undefined;
@@ -43,7 +46,7 @@ export async function boot(): Promise<void> {
   }
   SYSTEM = system;
 
-  step('Starting Wedyan');
+  step(STARTING);
   step('Installing apps', () => {
     const apps: WedyanApp[] = [
       { manifest: filesManifest, main: filesMain, commands: filesCommands },
