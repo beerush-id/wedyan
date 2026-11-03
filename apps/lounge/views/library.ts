@@ -1,3 +1,4 @@
+import { mutable } from '@airlib/react';
 import type { ListOptions } from '@irpclib/r2-file';
 import { FILE_TYPES } from '@/lib/documents/file-types.js';
 import { ADDRESS, chosenAttempt } from '@/lib/documents/generation.js';
@@ -15,6 +16,19 @@ export const PEOPLE = '~/People';
 
 /** The extension of a person's file. */
 export const PERSONA_EXTENSION = '.persona';
+
+/** The person or agent a link asked for, until the window opens it. */
+export const opening = mutable({ path: null as string | null });
+
+/**
+ * Whether Lounge opens a file: a person or an agent.
+ *
+ * @param path - The file's path.
+ * @returns True for a `.persona` or an `.agent`.
+ */
+export function opensFile(path: string): boolean {
+  return path.endsWith(PERSONA_EXTENSION) || path.endsWith(AGENT_EXTENSION);
+}
 
 /** What each list asks `list` for: only the files it shows, not the folders of pictures beside them. */
 export const LISTINGS: Record<'people' | 'agents', [string, ListOptions]> = {

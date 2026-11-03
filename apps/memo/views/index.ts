@@ -1,6 +1,6 @@
 import type { AUIBoot } from '@airlib/react-aui/desktop';
 import { type LinkHandle, linkTarget } from '@/lib/systems/public.js';
-import { opening } from './library.js';
+import { MEMO_EXTENSION, opening } from './library.js';
 import { memo } from './Main.js';
 import { contexts } from './prompt.js';
 
@@ -22,6 +22,16 @@ export const linkHandle: Record<string, LinkHandle> = {
     memo.open(undefined, BROWSER);
   },
 };
+
+/**
+ * Whether Memo opens a file: a memo.
+ *
+ * @param path - The file's path.
+ * @returns True for a `.memo`.
+ */
+export function opens(path: string): boolean {
+  return path.endsWith(MEMO_EXTENSION);
+}
 
 /** Memo's entry: launching it opens the browser. */
 export default (({ open }) => {

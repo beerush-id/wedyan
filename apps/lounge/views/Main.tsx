@@ -1,5 +1,5 @@
 import { AUI_CLASS } from '@airlib/aui/utils';
-import { $bind, $use, Show, Snippet } from '@airlib/react';
+import { $bind, $use, effect, Show, Snippet } from '@airlib/react';
 import { Button, Divider, EmptyState, Spinner, Toggle, ToggleGroup, Tooltip } from '@airlib/react-aui';
 import {
   defineWindow,
@@ -20,7 +20,7 @@ import manifest from '../manifest.json';
 import { AgentEditor } from './Agent.js';
 import { createLounge, type Group } from './context.js';
 import { AgentsIcon, PeopleIcon, PersonIcon, SidebarCloseIcon, SidebarOpenIcon } from './icons.js';
-import { rowPortrait } from './library.js';
+import { opening, rowPortrait } from './library.js';
 import { PersonaEditor } from './Persona.js';
 import { loungeCtx, PERSON_TABS, type PersonTab } from './session.js';
 
@@ -59,6 +59,16 @@ export const lounge = defineWindow({
 }).render(() => {
   const library = createLounge();
   const { state, opened, rows } = library;
+
+  // A link's person or agent opens in its group, picked.
+  effect(() => {
+    const path = opening.path;
+    if (!path) return;
+    const group: Group = path.endsWith(AGENT_EXTENSION) ? 'agents' : 'people';
+    state.group = group;
+    state.picked[group] = path;
+    opening.path = null;
+  });
 
   loungeCtx.set({
     get path() {

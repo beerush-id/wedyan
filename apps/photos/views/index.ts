@@ -1,5 +1,5 @@
 import type { AUIBoot } from '@airlib/react-aui/desktop';
-import { type LinkHandle, linkTarget } from '@/lib/systems/public.js';
+import { type LinkHandle, linkTarget, mediaOf } from '@/lib/systems/public.js';
 import { STILL_FILE } from './listing.js';
 import { openPhotos, photos } from './Main.js';
 import { openStill, stillProject } from './Still.js';
@@ -15,6 +15,16 @@ export const linkHandle: Record<string, LinkHandle> = {
     else openPhotos(path);
   },
 };
+
+/**
+ * Whether Photos opens a file: a still, or a picture.
+ *
+ * @param path - The file's path.
+ * @returns True for a `.still` or a picture file.
+ */
+export function opens(path: string): boolean {
+  return STILL_FILE.test(path) || mediaOf(path) === 'image';
+}
 
 /** Photos' entry: launching it opens the browser. */
 export default (() => {

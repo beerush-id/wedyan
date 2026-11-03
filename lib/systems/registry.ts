@@ -18,6 +18,7 @@ import { newWidgetState, type WidgetContext, type WidgetState } from '@airlib/re
 import type { ReactNode } from 'react';
 import { SYSTEM } from './boot.js';
 import { COMMANDS } from './commands.js';
+import { linkTo } from './links.js';
 
 declare module '@airlib/react-aui/desktop' {
   /** What a Wedyan window opens with on top of what the shell needs. The shell never reads these. */
@@ -103,6 +104,8 @@ export type WedyanApp = AUIAppEntry & {
   commands?: Commands;
   /** The link schemes it opens, e.g. `{ mail: (link) => … }`. */
   linkHandle?: Record<string, LinkHandle>;
+  /** Whether it opens a file, by its path: a link that's only a path goes to the app that does, through its own scheme. */
+  opens?: (path: string) => boolean;
 };
 
 /** A command as an agent reads it. */
@@ -243,14 +246,16 @@ export function promptContext(): PromptContext {
 }
 
 /**
- * Asks for a link to be opened: the app that claims its scheme opens it, e.g. `mail:/Mail/m1.eml`.
+ * Asks for a link to be opened: the app that claims its scheme opens it, e.g. `mail:/Mail/m1.eml`,
+ * and a file by its path alone, e.g. `~/People/Ayla.persona`, opens in the app that opens its kind.
  * A link nothing claims says so in a toast.
  *
  * @param link - The link.
  * @returns Once it's handled.
  */
 export async function requestLink(link: string): Promise<void> {
-  const handle = linkHandleOf(schemeOf(link));
+  const scheme = schemeOf(link);
+  const handle = scheme ? linkHandleOf(scheme) : openerOf(link);
   if (!handle) {
     toast.error('Nothing can open this link');
     return;
@@ -368,6 +373,18 @@ function agentCommands(commands: Commands | undefined): AgentCommand[] {
  */
 function schemeOf(link: string): string | undefined {
   return /^([a-z][a-z0-9+.-]*):/i.exec(link)?.[1].toLowerCase();
+}
+
+/**
+ * What opens a file by its path: the first installed app that opens its kind, through its own link.
+ *
+ * @param path - The file's path in the home.
+ * @returns Its handler, or undefined when no app opens that kind of file.
+ */
+function openerOf(path: string): LinkHandle | undefined {
+  const app = installedApps().find((each) => each.opens?.(path));
+  const handle = app?.linkHandle?.[app.manifest.name];
+  return app && handle ? () => handle(linkTo(app.manifest.name, path)) : undefined;
 }
 
 /**

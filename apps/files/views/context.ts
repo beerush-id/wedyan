@@ -4,7 +4,7 @@ import type { WedyanGalleryLayout } from '@/components/WedyanGallery.js';
 import { parentOf } from '@/lib/documents/paths.js';
 import { type FileRow, rowsOf } from '@/lib/documents/rows.js';
 import { dfs } from '@/lib/share/dfs.js';
-import { linkTo, requestLink } from '@/lib/systems/public.js';
+import { requestLink } from '@/lib/systems/public.js';
 import { FOLDER_TYPE, FOUND_LIMIT, HOME, type Place, SEARCH_WAIT } from './listing.js';
 
 /** One Files window, for every part of it. */
@@ -81,9 +81,9 @@ export function createFiles() {
       go(state.trail.at(-1) ?? HOME, state.trail.slice(0, -1));
     },
 
-    /** Opens a row: a folder here, from wherever it was found; anything else where it's shown. */
+    /** Opens a row: a folder here, from wherever it was found; a file in the app that opens its kind. */
     open(row: FileRow) {
-      if (!row.isDirectory) return void requestLink(linkTo('preview', row.path));
+      if (!row.isDirectory) return void requestLink(row.path);
       go({ path: row.path, name: row.name }, state.query ? [HOME] : [...state.trail, state.here]);
     },
 

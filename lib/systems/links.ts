@@ -45,7 +45,7 @@ export function previewTarget(link: string): PreviewTarget {
  * @param path - The file's path.
  * @returns Its kind, or undefined for anything else.
  */
-function mediaOf(path: string): 'image' | 'video' | 'audio' | undefined {
+export function mediaOf(path: string): 'image' | 'video' | 'audio' | undefined {
   if (/\.(webp|png|jpe?g|gif|avif)$/i.test(path)) return 'image';
   if (/\.(mp4|webm|mov)$/i.test(path)) return 'video';
   return /\.(mp3|wav|m4a|ogg)$/i.test(path) ? 'audio' : undefined;

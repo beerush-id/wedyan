@@ -3,15 +3,15 @@ import { type AUISystemState, bootstrap } from '@airlib/react-aui/desktop';
 import filesManifest from '@/apps/files/manifest.json';
 import filesMain, { commands as filesCommands } from '@/apps/files/views/index.js';
 import loungeManifest from '@/apps/lounge/manifest.json';
-import loungeMain from '@/apps/lounge/views/index.js';
+import loungeMain, { linkHandle as loungeLinks, opens as loungeOpens } from '@/apps/lounge/views/index.js';
 import previewManifest from '@/apps/preview/manifest.json';
-import previewMain, { linkHandle as previewLinks } from '@/apps/preview/views/index.js';
+import previewMain, { linkHandle as previewLinks, opens as previewOpens } from '@/apps/preview/views/index.js';
 import memoManifest from '@/apps/memo/manifest.json';
-import memoMain, { commands as memoCommands, linkHandle as memoLinks } from '@/apps/memo/views/index.js';
+import memoMain, { commands as memoCommands, linkHandle as memoLinks, opens as memoOpens } from '@/apps/memo/views/index.js';
 import motionsManifest from '@/apps/motions/manifest.json';
-import motionsMain, { commands as motionsCommands, linkHandle as motionsLinks } from '@/apps/motions/views/index.js';
+import motionsMain, { commands as motionsCommands, linkHandle as motionsLinks, opens as motionsOpens } from '@/apps/motions/views/index.js';
 import photosManifest from '@/apps/photos/manifest.json';
-import photosMain, { commands as photosCommands, linkHandle as photosLinks } from '@/apps/photos/views/index.js';
+import photosMain, { commands as photosCommands, linkHandle as photosLinks, opens as photosOpens } from '@/apps/photos/views/index.js';
 import settingsManifest from '@/apps/settings/manifest.json';
 import settingsMain from '@/apps/settings/views/index.js';
 import { dropWindow, keepWindow, type WedyanApp } from './registry.js';
@@ -50,11 +50,11 @@ export async function boot(): Promise<void> {
   step('Installing apps', () => {
     const apps: WedyanApp[] = [
       { manifest: filesManifest, main: filesMain, commands: filesCommands },
-      { manifest: photosManifest, main: photosMain, commands: photosCommands, linkHandle: photosLinks },
-      { manifest: motionsManifest, main: motionsMain, commands: motionsCommands, linkHandle: motionsLinks },
-      { manifest: memoManifest, main: memoMain, commands: memoCommands, linkHandle: memoLinks },
-      { manifest: loungeManifest, main: loungeMain },
-      { manifest: previewManifest, main: previewMain, linkHandle: previewLinks },
+      { manifest: photosManifest, main: photosMain, commands: photosCommands, linkHandle: photosLinks, opens: photosOpens },
+      { manifest: motionsManifest, main: motionsMain, commands: motionsCommands, linkHandle: motionsLinks, opens: motionsOpens },
+      { manifest: memoManifest, main: memoMain, commands: memoCommands, linkHandle: memoLinks, opens: memoOpens },
+      { manifest: loungeManifest, main: loungeMain, linkHandle: loungeLinks, opens: loungeOpens },
+      { manifest: previewManifest, main: previewMain, linkHandle: previewLinks, opens: previewOpens },
       { manifest: settingsManifest, main: settingsMain },
     ];
     system.system.apps?.push(...apps);
