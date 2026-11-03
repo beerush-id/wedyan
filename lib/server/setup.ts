@@ -34,6 +34,7 @@ import { wsTransport } from '@/src/api.js';
 import { DriveDriver } from './drive-driver.js';
 import { generateImage, searchPhotos } from './images.js';
 import { setupMotions } from './motions.js';
+import { setupPrompts } from './prompts.js';
 import { setupStills } from './stills.js';
 import { setupUsage, UsageDriver } from './usage.js';
 
@@ -97,6 +98,7 @@ export function setupServer(env: ServerEnv): void {
   setupFonts(env.GOOGLE_API_KEY ?? globalThis.process?.env?.GOOGLE_API_KEY);
   const adapter = withModels(MODELS, keys);
   setupStills(adapter, picturesOf(env));
+  setupPrompts(adapter);
   setupSystem(adapter, picturesOf(env));
   setupKernel({
     adapter,

@@ -1,4 +1,5 @@
-import { $bind, $use, Snippet, setup, template } from '@airlib/react';
+import { AUI_CLASS } from '@airlib/aui/utils';
+import { $bind, $use, mutable, Snippet, setup, template } from '@airlib/react';
 import {
   Button,
   Listbox,
@@ -8,11 +9,13 @@ import {
   SelectOption,
   SelectPanel,
   SelectTrigger,
+  Spinner,
   Stepper,
   TextInput,
   Toggle,
   ToggleGroup,
   Tooltip,
+  toast,
 } from '@airlib/react-aui';
 import { AddIcon, CloseIcon } from '@airlib/react-aui/icons';
 import { IRPCFile } from '@irpclib/irpc';
@@ -33,11 +36,12 @@ import {
 } from '@/lib/documents/generation.js';
 import { nameOf, newId, parentOf } from '@/lib/documents/paths.js';
 import type { GeneratedAttempt, GenerativeDocument, PersonaDocument, SoundDocument } from '@/lib/documents/types.js';
+import { promptWrite } from '@/lib/kernel/prompts.h.js';
 import { dfs } from '@/lib/share/dfs.js';
 import { follow } from '@/lib/share/documents.js';
 import { ConfirmButton } from './ConfirmButton.js';
 import { type GenerationSubject, generationCtx } from './generation.js';
-import { GenerativeIcon, SoundIcon } from './icons.js';
+import { GenerativeIcon, SoundIcon, WriteIcon } from './icons.js';
 import { PeopleTile } from './PeopleTile.js';
 
 /** What a generated sound can be. */
@@ -132,18 +136,53 @@ const promptGroup = (source: GenerativeDocument, subject: GenerationSubject) =>
         <TextInput size="xs" multiline rows={3} label="Words" placeholder="The words it says" value={$bind(source, 'text')} />
       )}
       <TextInput size="xs" multiline rows={4} label="Prompt" value={$bind(source, 'prompt')} />
-      <Button
-        size="sm"
-        variant="filled"
-        className="wedyan-compose-generate"
-        disabled={$use(() => !!subject.busy || !(source.type === 'sound' && source.kind === 'speech' ? source.text : source.prompt)?.trim())}
-        onClick={() => subject.generate()}
-      >
-        <GenerativeIcon />
-        <span>Generate</span>
-      </Button>
+      <div className="wedyan-compose-generate">
+        {source.type !== 'sound' && subject.path && <WritePrompt source={source} path={subject.path} busy={() => !!subject.busy} />}
+        <Button
+          size="sm"
+          variant="filled"
+          disabled={$use(() => !!subject.busy || !(source.type === 'sound' && source.kind === 'speech' ? source.text : source.prompt)?.trim())}
+          onClick={() => subject.generate()}
+        >
+          <GenerativeIcon />
+          <span>Generate</span>
+        </Button>
+      </div>
     </>
   );
+
+/**
+ * Writes the prompt from what the picture is made from, into the prompt field, to read and change
+ * before anything is generated. What was written there is the draft it starts from.
+ */
+const WritePrompt = setup<{ source: GenerativeDocument; path: string; busy: () => boolean }>((props) => {
+  const writing = mutable({ on: false });
+
+  const write = async () => {
+    writing.on = true;
+    try {
+      props.source.prompt = await promptWrite(props.path, props.source.prompt ?? '');
+    } catch (error) {
+      toast.error(`The prompt couldn't be written: ${(error as Error).message}`);
+    } finally {
+      writing.on = false;
+    }
+  };
+
+  return () => (
+    <Button
+      size="sm"
+      variant="tonal"
+      aria-label="Write the prompt"
+      className={AUI_CLASS.CONTROL_ICON}
+      disabled={$use(() => writing.on || props.busy())}
+      onClick={write}
+    >
+      <Snippet>{() => (writing.on ? <Spinner size="sm" label="Writing the prompt" /> : <WriteIcon />)}</Snippet>
+      <Tooltip>Write the prompt from its cast and references</Tooltip>
+    </Button>
+  );
+}, 'WritePrompt');
 
 /**
  * The model, a sound's kind, then a picture's aspect ratio, how many images one request makes, or

@@ -722,8 +722,12 @@
 }
 
 /* Making a generated clip again, at the end under its prompt, a small gap below it. */
+/* Under the prompt, at its end: writing the prompt beside making from it. */
 .wedyan-compose-generate {
+  display: flex;
   align-self: flex-end;
+  align-items: center;
+  gap: var(--spacing-xs);
   margin-block-start: calc(var(--spacing-sm) - var(--spacing-xs));
 }
 
