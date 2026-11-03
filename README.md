@@ -1,10 +1,20 @@
 # Wedyan
 
+![Wedyan's Motions composer, building a project's stage on its timeline](cover.webp)
+
 A browser desktop you share with your AI agent. You both use the same apps and the same tools, and the agent works from the apps' real state, not from screenshots.
 
 You say what you want, in words or by voice. The agent answers in structured data: text to show, text to speak, widgets, and actions on the desktop, timed to what it is saying.
 
 > Built for the Meta Global AI Developer Hackathon (Oct 26 – Nov 4, 2026).
+
+## Built with
+
+- **[AirLib](https://airlib.dev)** (open source, by the same author): reactive state, IRPC (type-safe calls with streaming and two-way ask/answer), r2-file (filesystem on Cloudflare R2 and D1), r2-image (picture resizing on R2 and Containers), ai-kit (one API over AI providers), Aria (headless UI behavior, including the video stage and its renderer) and [AUI](https://aui.airlib.dev) (the UI component library).
+- **Meta models:** Muse Spark 1.3 for the assistant, Muse Spark Open on Baseten for the router, Wonder by default for generating a motion project, Muse Voice Transcribe for speech, Muse Image for photos.
+- **Open-source models:** BGE-M3 by BAAI (MIT) for the embeddings behind memory and file recall, and MeloTTS by MyShell (MIT) for speaking answers aloud, both on Cloudflare Workers AI.
+- **Libraries:** [GSAP](https://gsap.com) for the keyframed motion of every clip, [Mediabunny](https://mediabunny.dev) for decoding a project's media and encoding its MP4, [Zod](https://zod.dev) for the schemas of every tool and call, and React, through AirLib, for JSX.
+- **Cloudflare:** Workers, Durable Objects (one per session), Containers, R2, D1, Vectorize, Queues, Workers AI.
 
 ## Why
 
@@ -101,14 +111,6 @@ One ask is one streaming call. Everything happens inside it:
 - **Actions.** Actions run on the desktop in order, each when the words before it have been shown or spoken. A failure is reported back to the model, which adjusts.
 - **Questions both ways.** The agent can ask the desktop for state or ask the user a question mid-task; the user can add a follow-up or say "never mind" while the agent works. Both go over the same live call.
 - **Tools.** System calls (files, documents, memory) run on the server; app calls are answered by the app that owns the state.
-
-## Built with
-
-- **[AirLib](https://airlib.dev)** (open source, by the same author): reactive state, IRPC (type-safe calls with streaming and two-way ask/answer), r2-file (filesystem on Cloudflare R2 and D1), r2-image (picture resizing on R2 and Containers), ai-kit (one API over AI providers), Aria (headless UI behavior, including the video stage and its renderer) and AUI (the UI component library).
-- **Meta models:** Muse Spark 1.3 for the assistant, Muse Spark Open on Baseten for the router, Wonder by default for generating a motion project, Muse Voice Transcribe for speech, Muse Image for photos.
-- **Open-source models:** BGE-M3 by BAAI (MIT) for the embeddings behind memory and file recall, and MeloTTS by MyShell (MIT) for speaking answers aloud, both on Cloudflare Workers AI.
-- **Libraries:** [GSAP](https://gsap.com) for the keyframed motion of every clip, [Mediabunny](https://mediabunny.dev) for decoding a project's media and encoding its MP4, [Zod](https://zod.dev) for the schemas of every tool and call, and React, through AirLib, for JSX.
-- **Cloudflare:** Workers, Durable Objects (one per session), Containers, R2, D1, Vectorize, Queues, Workers AI.
 
 ## What was built during the event
 
