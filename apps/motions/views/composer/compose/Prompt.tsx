@@ -24,9 +24,6 @@ export const Prompt = setup(() => {
     get pictures() {
       return composer.pictures;
     },
-    get people() {
-      return composer.people;
-    },
     generate() {
       const clip = composer.generativeClip();
       if (clip) composer.generate(clip);

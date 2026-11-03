@@ -56,9 +56,6 @@ const GeneratedAsset = setup(() => {
     get pictures() {
       return composer.pictures;
     },
-    get people() {
-      return composer.people;
-    },
     generate() {
       const asset = composer.generativeAsset();
       if (asset) composer.generate(asset);

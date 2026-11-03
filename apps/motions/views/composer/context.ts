@@ -81,8 +81,6 @@ export type Composer = {
   readonly assets: FileRow[];
   /** Who's in the project. */
   readonly casts: FileRow[];
-  /** Everyone who could be. */
-  readonly people: FileRow[];
   /** The project's pictures: its images and stills, which what's generated can be made from. */
   readonly pictures: FileRow[];
   /** The agents work can be assigned to. */
@@ -239,10 +237,6 @@ export function createComposer(path: string, direct: boolean): Composer {
         return lists.value.casts;
       },
 
-      get people() {
-        return lists.value.people;
-      },
-
       get agents() {
         return lists.value.agents;
       },
@@ -392,7 +386,6 @@ export function createComposer(path: string, direct: boolean): Composer {
         assets: sorted.filter((row) => !!row.held && row.kind !== 'persona'),
         pictures: sorted.filter((row) => !!row.held && (row.kind === 'image' || row.kind === 'still')),
         casts: sorted.filter((row) => !!row.held && row.kind === 'persona'),
-        people: sorted.filter((row) => row.kind === 'persona'),
         agents: sorted.filter((row) => row.kind === 'agent'),
         seconds: length(sorted.filter((row) => row.kind === 'stage')),
       };

@@ -19,8 +19,6 @@ export type GenerationSubject = {
   readonly busy?: boolean;
   /** Pictures on hand it can be made from, offered beside uploading one. */
   readonly pictures?: GenerationChoice[];
-  /** The people who can be cast in it. */
-  readonly people?: GenerationChoice[];
   /** Makes it again, as a new attempt. */
   generate(): void;
   /**

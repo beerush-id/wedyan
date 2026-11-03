@@ -8,7 +8,6 @@ import {
   DialogTitle,
   Listbox,
   ListboxOption,
-  Menu,
   Select,
   SelectOption,
   SelectPanel,
@@ -23,6 +22,7 @@ import {
 } from '@airlib/react-aui';
 import { AddIcon, CloseIcon } from '@airlib/react-aui/icons';
 import { IRPCFile } from '@irpclib/irpc';
+import type { ListOptions } from '@irpclib/r2-file';
 import type { ReactNode } from 'react';
 import {
   ASPECTS,
@@ -39,11 +39,13 @@ import {
   TIERED_MODELS,
 } from '@/lib/documents/generation.js';
 import { nameOf, newId, parentOf } from '@/lib/documents/paths.js';
-import { PICTURES_LISTING, rowsOf } from '@/lib/documents/rows.js';
+import { FILE_TYPES } from '@/lib/documents/file-types.js';
+import { type FileRow, PICTURES_LISTING, rowsOf } from '@/lib/documents/rows.js';
 import type { GeneratedAttempt, GenerativeDocument, PersonaDocument, SoundDocument } from '@/lib/documents/types.js';
 import { promptWrite } from '@/lib/kernel/prompts.h.js';
 import { dfs } from '@/lib/share/dfs.js';
 import { follow } from '@/lib/share/documents.js';
+import { pathFrom } from '@/lib/share/paths.js';
 import { ConfirmButton } from './ConfirmButton.js';
 import { type GenerationChoice, type GenerationSubject, generationCtx } from './generation.js';
 import { GenerativeIcon, SoundIcon, WriteIcon } from './icons.js';
@@ -60,6 +62,9 @@ const THUMB_SIZE = 128;
 
 /** The user's home, whose pictures a reference is picked from. */
 const HOME = '~';
+
+/** Everyone in the home who can be cast: every person, wherever they're kept. */
+const PEOPLE_LISTING: ListOptions = { recursive: true, filter: { type: FILE_TYPES.persona } };
 
 /** How many of the newest pictures show before anything is typed. */
 const RECENT_COUNT = 20;
@@ -356,64 +361,113 @@ const ReferenceAdd = template<{ source: GenerativeDocument; path?: string }>(
   'ReferenceAdd'
 );
 
+/** Adds a reference: any picture or drawn still, the ones on hand where it's made first. */
+const ReferencePick = setup<{ source: GenerativeDocument; subject: GenerationSubject }>((props) => () => (
+  <Picker
+    label="Pick a reference"
+    icon={() => <GenerativeIcon />}
+    kind="pictures"
+    from={props.subject.path ?? ''}
+    listing={PICTURES_LISTING}
+    counts={(row) => row.kind === 'image' || (row.kind === 'still' && !!row.thumbnail)}
+    onHand={() => props.subject.pictures ?? []}
+    taken={() => props.source.references ?? []}
+    onpick={(path) => (props.source.references ??= []).push(path)}
+  />
+), 'ReferencePick');
+
+/** Casts someone: anyone in the home not in it yet. Speech has one voice, so who says the words can't be picked. */
+const CastAdd = setup<{ source: GenerativeDocument; subject: GenerationSubject; casts: () => string[]; add(path: string): void }>((props) => () => (
+  <Picker
+    label="Add cast"
+    icon={() => <AddIcon />}
+    kind="people"
+    from={props.subject.path ?? ''}
+    listing={PEOPLE_LISTING}
+    counts={(row) => row.kind === 'persona'}
+    taken={props.casts}
+    disabled={props.source.type === 'sound'}
+    onpick={props.add}
+  />
+), 'CastAdd');
+
+/** What a picker offers, where from, and what picking one does. */
+type PickerProps = {
+  /** Its tile's name, and its window's title. */
+  label: string;
+  icon: () => ReactNode;
+  /** What it picks, in words: `pictures`, `people`. */
+  kind: string;
+  /** The document it's for, which what's taken is written from and what's shown is resolved from. */
+  from: string;
+  /** What it asks for before anything is typed: the newest of them are shown. */
+  listing: ListOptions;
+  /** Whether a found file is one of what it picks. */
+  counts: (row: FileRow) => boolean;
+  /** What's on hand where it's made, shown first. */
+  onHand?: () => GenerationChoice[];
+  /** What's in it already, as the document writes it: never offered again. */
+  taken: () => string[];
+  disabled?: boolean;
+  onpick: (path: string) => void;
+};
+
 /**
- * Picks a picture to make it from: before anything is typed, the pictures on hand where it's made,
- * then the newest of the home's; as it's typed, the home's pictures that match, searched, never
- * listed whole. Never what's being made, nor what's a reference already.
+ * One tile that opens a search, the same wherever something's added to a generation: before anything
+ * is typed, what's on hand, then the newest; as it's typed, what matches in the home, searched,
+ * never listed whole. Each shows its picture over its name; picking one adds it and closes.
  */
-const ReferencePick = setup<{ source: GenerativeDocument; subject: GenerationSubject }>((props) => {
+const Picker = setup<PickerProps>((props) => {
   const picking = mutable({ open: false, query: '' });
-  // The newest pictures, asked for each time it opens: what shows before anything is typed.
+  // The newest, asked for each time it opens; what matches, as it's typed.
   const recent = dfs.list.when(() => {
     void picking.open;
-    return [HOME, { ...PICTURES_LISTING, limit: RECENT_COUNT }] as [string, object];
+    return [HOME, { ...props.listing, sort: '-mtime', limit: RECENT_COUNT }] as [string, object];
   });
   const found = dfs.search.when(() => [picking.query.trim(), { limit: FOUND_LIMIT }] as [string, object], SEARCH_WAIT);
 
-  // Each answer's pictures, sorted out once: what a row is never changes.
-  const newest = derived(() => {
-    const rows = rowsOf(recent);
-    void rows.length;
-    return untrack(() => rows.map(({ path, name }) => ({ path, name })));
-  });
-  const matches = derived(() => {
-    const rows = rowsOf(found);
-    void rows.length;
-    return untrack(() =>
-      rows.filter((row) => row.kind === 'image' || (row.kind === 'still' && !!row.thumbnail)).map(({ path, name }) => ({ path, name }))
-    );
-  });
+  // Each answer sorted out once: only which rows there are is watched, as what a row is never changes.
+  const choicesOf = (listing: { data?: { entries?: unknown[] } }) =>
+    derived(() => {
+      const rows = rowsOf(listing);
+      void rows.length;
+      return untrack(() => rows.filter(props.counts).map(({ path, name }) => ({ path, name })));
+    });
+  const newest = choicesOf(recent);
+  const matches = choicesOf(found);
 
-  // Typed, what matches; otherwise what's on hand where it's made, then the newest of the rest.
+  // Typed, what matches; otherwise what's on hand, then the newest of the rest. Never what it's for,
+  // nor what's in it already, written from the document, by its path in the home.
   const choices = (): GenerationChoice[] => {
-    const onHand = props.subject.pictures ?? [];
+    const onHand = props.onHand?.() ?? [];
     const offered = new Set(onHand.map(({ path }) => path));
+    const taken = new Set(props.taken().map((written) => pathFrom(props.from, written)));
     const shown = picking.query.trim() ? matches.value : [...onHand, ...newest.value.filter(({ path }) => !offered.has(path))];
-    return shown.filter(({ path }) => path !== props.subject.path && !props.source.references?.includes(path));
+    return shown.filter(({ path }) => path !== props.from && !taken.has(path));
   };
 
   const pick = (path: string) => {
-    (props.source.references ??= []).push(path);
+    props.onpick(path);
     picking.open = false;
     picking.query = '';
   };
 
   return () => (
     <li>
-      <button type="button" className={ADD_TILE} aria-label="Pick a reference" onClick={() => (picking.open = true)}>
-        <GenerativeIcon />
+      <button type="button" className={ADD_TILE} aria-label={props.label} disabled={props.disabled} onClick={() => (picking.open = true)}>
+        {props.icon()}
       </button>
       <Dialog open={$bind(picking, 'open')} modality="modal">
         <DialogPanel className="wedyan-compose-picker">
-          <DialogTitle>Pick a reference</DialogTitle>
-          <TextInput size="sm" label="Search your pictures" placeholder="A name, or what it shows" value={$bind(picking, 'query')} />
+          <DialogTitle>{props.label}</DialogTitle>
+          <TextInput size="sm" label={`Search your ${props.kind}`} placeholder="A name, or what it shows" value={$bind(picking, 'query')} />
           <Snippet>
             {() => {
               const shown = choices();
               if (!shown.length) {
                 return (
                   <p className="wedyan-compose-property-note">
-                    {picking.query.trim() ? 'No pictures match.' : 'No pictures yet.'}
+                    {picking.query.trim() ? `No ${props.kind} match.` : `No ${props.kind} to add.`}
                   </p>
                 );
               }
@@ -422,7 +476,7 @@ const ReferencePick = setup<{ source: GenerativeDocument; subject: GenerationSub
                   {shown.map(({ path, name }) => (
                     <li key={path}>
                       <button type="button" title={name} onClick={() => pick(path)}>
-                        <Thumb src={pictureAt(props.subject.path ?? '', path)} />
+                        <Thumb src={pictureAt(props.from, path)} />
                         <span>{name}</span>
                       </button>
                     </li>
@@ -436,38 +490,7 @@ const ReferencePick = setup<{ source: GenerativeDocument; subject: GenerationSub
       </Dialog>
     </li>
   );
-}, 'ReferencePick');
-
-/** Who can be put in it: everyone not in it yet. Speech has one voice, so who says the words can't be picked. */
-const CastAdd = setup<{ source: GenerativeDocument; subject: GenerationSubject; casts: () => string[]; add(path: string): void }>((props) => {
-  const items = () =>
-    (props.subject.people ?? [])
-      .filter(({ path }) => !props.casts().includes(path))
-      .map(({ path, name }) => ({ name: path, label: name }));
-
-  return () => (
-    <Snippet>
-      {() =>
-        // A tile only while someone's left to add, so the list keeps no empty place for it.
-        items().length ? (
-          <li>
-            <Menu
-              label="Add cast"
-              size="xs"
-              variant="text"
-              className={ADD_TILE}
-              disabled={props.source.type === 'sound'}
-              items={$use(items)}
-              oncommand={(event) => props.add(String(event.detail))}
-            >
-              <Menu.Snippet for="trigger">{() => <AddIcon />}</Menu.Snippet>
-            </Menu>
-          </li>
-        ) : null
-      }
-    </Snippet>
-  );
-}, 'CastAdd');
+}, 'Picker');
 
 /**
  * Stores a picked file beside what it's a reference of, as a part of it that lists as nothing.
