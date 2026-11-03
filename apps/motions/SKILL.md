@@ -16,7 +16,7 @@ When the user asks for something new, build the whole project without asking. Wh
 
 ## Rules before everything else
 
-- **Open the project first.** As soon as `sys.motion.create` returns, your next act is `app.open`. No stage, cast or file comes before it.
+- **Open the project first.** As soon as `sys.motion.create` returns, your next turn opens it with `app.open`, together with that turn's first `sys.motion.stage.add`. Never open it in a turn on its own: a turn with no call ends the work.
 - **A story beat is not a shot.** Each beat is cut into several shots. In a story, expect a new shot every 2 to 3 seconds on average, so a 1-minute stage has about 20 to 30 shots, not 8. That's an average: the lengths inside it must still vary widely.
 - **Everything joins the project.** Casts and assets are only made through `sys.motion.cast.add` and `sys.motion.asset.add`.
 - **Keep working until you hand over.** A message with no tool call or action ends the work, so every message carries the next call. Never say what you're about to do and stop: if you say it, do it in that same message. Your only message without a call is the hand over in the last step.
@@ -47,7 +47,7 @@ Write each stage in two passes. First list its beats, the things that happen. Th
 
 Send it through `sys.motion.create` with `cwd` as `null`, and call `sys.budget.request` in the same turn. Take the aspect the user names. If they named none, think of where it will be watched: a short drama is `9:16`, otherwise `16:9`. If they named a length, write it into the script and hold yourself to it.
 
-**2. Open the project.** Your second turn is only `app.open`, with app `motions` and the `.motion` from `sys.motion.create` as the file. The user follows the work there, watching the project fill, not by reading a long chat. While you work, say at most one short line, in the same message as its calls.
+**2. Open the project.** Your second turn opens it once with `app.open`, with app `motions` and the `.motion` from `sys.motion.create` as the file, and in the same turn calls `sys.motion.stage.add` for the first stage, as step 3 says. An `app.open` alone in a turn ends the work there. The user follows the work there, watching the project fill, not by reading a long chat. While you work, say at most one short line, in the same message as its calls.
 
 **3. Create each stage with its shots.** `sys.motion.stage.add` makes a stage with its tracks and clips in one call, with no casts, assets or pictures. This is the shot list, on the timeline. Give each shot its `at`, its `seconds`, its `name` and its `meta`: `shows` for what the shot shows, `guide` for the caption guide, `who` for who's in it and `speaker` for who speaks, all by name, since casts don't exist yet. Pass the stage's `##` from the script as its `script`, word for word.
 
