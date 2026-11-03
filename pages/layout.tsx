@@ -1,4 +1,4 @@
-import { $bind, $static, $use, onMount, page, Show, setup } from '@airlib/react';
+import { $bind, $static, $use, cookies, onMount, page, Show, setup } from '@airlib/react';
 import { ToastHost } from '@airlib/react-aui';
 import { Desktop, DesktopClock, DesktopWidgets, Dock, DockWidgets, WindowHost } from '@airlib/react-aui/desktop';
 import type { ReactNode } from 'react';
@@ -12,6 +12,7 @@ import { BOOT_STAT } from '@/lib/systems/boot.js';
 import { focusPrompt, PROMPT_LABEL } from '@/lib/systems/focus.js';
 import { promptSuggestions } from '@/lib/systems/prompt.js';
 import { isAppLink } from '@/lib/systems/registry.js';
+import { THEME_COOKIE, type Theme, themeCtx } from '@/lib/systems/theme.js';
 import rootRoute from './route.js';
 
 /**
@@ -36,6 +37,8 @@ const WedyanDesktop = setup<{ children?: ReactNode }>((props) => {
   // Opened once: what it reads while opening is the conversation's, not this component's to follow.
   const session = $static(openSession);
   sessionCtx.set(session);
+  const theme = cookies<Theme>(THEME_COOKIE, { mode: 'system' });
+  themeCtx.set(theme);
 
   onMount(() => {
     focusPrompt();
@@ -50,7 +53,11 @@ const WedyanDesktop = setup<{ children?: ReactNode }>((props) => {
   });
 
   return () => (
-  <Desktop className="wedyan-desktop" wallpaper={{ light: lightWallpaper.src, dark: darkWallpaper.src }}>
+  <Desktop
+    className="wedyan-desktop"
+    wallpaper={{ light: lightWallpaper.src, dark: darkWallpaper.src }}
+    data-theme={$use(theme, 'mode')}
+  >
     <DesktopWidgets label="Widgets">
       <DesktopClock title="Today" />
     </DesktopWidgets>

@@ -1,5 +1,6 @@
 import { $bind, $use, Snippet, setup } from '@airlib/react';
-import { Button, NumberStepper, Radio, RadioGroup, Slider, Spinner, Switch, TextInput } from '@airlib/react-aui';
+import { Button, NumberStepper, Radio, RadioGroup, Slider, Spinner, Switch, TextInput, Toggle, ToggleGroup } from '@airlib/react-aui';
+import { type Theme, themeCtx } from '@/lib/systems/theme.js';
 import { PreviewIcon } from './icons.js';
 import { SettingsGroup, SettingsRow, descriptionOf } from './parts.js';
 import { DEFAULT_ASSISTANT_NAME, type SettingsFiles, settingsCtx, VOICES } from './profile.js';
@@ -15,6 +16,7 @@ const CLASS = {
 };
 
 const ID = {
+  THEME: 'wedyan-settings-theme',
   NAME: 'wedyan-settings-assistant-name',
   VOICE: 'wedyan-settings-voice',
   RATE: 'wedyan-settings-speech-rate',
@@ -29,18 +31,35 @@ const ID = {
 const RATES = { min: 0.75, max: 1.5, step: 0.05 };
 
 /**
- * General: the assistant — what it's called and sounds like, how it works with the user, and how it
- * notices them stepping away and catches them up when they're back.
+ * General: how the desktop looks, then the assistant — what it's called and sounds like, how it
+ * works with the user, and how it notices them stepping away and catches them up when they're back.
  */
 export const GeneralPage = setup(() => {
   const files = settingsCtx.get() as SettingsFiles;
   const { shown, assistantName, tryIdle, previewing, preview } = files;
+  const theme = themeCtx.get() as Theme;
 
   /** The assistant's name, live, inside the page's words. */
   const Name = () => <Snippet>{assistantName}</Snippet>;
 
   return () => (
     <>
+      <SettingsGroup title="Appearance">
+        <SettingsRow label="Theme" labelId={ID.THEME} description="Light or dark, or as your device is set.">
+          <ToggleGroup aria-labelledby={ID.THEME} aria-describedby={descriptionOf(ID.THEME)} value={$bind(theme, 'mode')} required size="sm">
+            <Toggle value="system" size="sm">
+              System
+            </Toggle>
+            <Toggle value="light" size="sm">
+              Light
+            </Toggle>
+            <Toggle value="dark" size="sm">
+              Dark
+            </Toggle>
+          </ToggleGroup>
+        </SettingsRow>
+      </SettingsGroup>
+
       <SettingsGroup title="Assistant">
         <SettingsRow label="Name" labelId={ID.NAME} description="What you call it, and what it calls itself.">
           <TextInput
