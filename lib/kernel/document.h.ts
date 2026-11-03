@@ -29,6 +29,9 @@ export const DOC_CLOSE = 'doc.close';
  */
 export const DOC_ATTEMPTS = 'doc.attempts';
 
+/** What the server asks a desktop before an agent trashes something: the user's own yes. */
+export const DOC_CONFIRM = 'doc.confirm';
+
 /** The key a part's presence is kept under. */
 export function partKey(part: string, id: string): string {
   return `${part}:${id}`;

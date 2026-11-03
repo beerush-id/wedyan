@@ -6,19 +6,15 @@ import { TOOLS } from '@/lib/agents/tools.js';
 import { addressAt, chosenAttempt } from '@/lib/documents/generation.js';
 import { newHeader, newId, parentOf } from '@/lib/documents/paths.js';
 import type { FileRow } from '@/lib/documents/rows.js';
-import { runtime, stageAt, TRACK_NAMES, type TrackType, trackDefaults } from '@/lib/documents/stage.js';
+import { runtime, stageAt, SUBTITLES, subtitleAt, TRACK_NAMES, type TrackType, trackDefaults } from '@/lib/documents/stage.js';
 import type { MotionDocument, PersonaDocument, SoundDocument, StageDocument, StillDocument, TakeDocument } from '@/lib/documents/types.js';
 import type { SysAsk, SysHandler } from '@/lib/kernel/agent.js';
 import { MOTION_FACE, MOTION_FIGURE, MOTION_OUTFIT, MOTION_PICTURE, MOTION_VOICE } from '@/lib/kernel/agent.h.js';
-import { openLink } from '@/lib/share/links.js';
 import { pathFrom } from '@/lib/share/paths.js';
 import { addAttempts } from '@/lib/share/stills.js';
 import type { SoundAttempt } from '@/lib/speech/speech.h.js';
 import { speakAttempt } from '@/lib/speech/speech.js';
 import { makeAttempts, makeStill } from './stills.js';
-
-/** Where projects are kept. */
-const MOTIONS = '~/Motions';
 
 /** Where people are kept. */
 const PEOPLE = '~/People';
@@ -44,7 +40,6 @@ type LayerArgs = {
   motion?: KeyArgs[];
 };
 
-type CreateArgs = { name?: string; description?: string; aspect?: string; length?: number; script?: string };
 type CastArgs = {
   project?: string;
   name?: string;
@@ -97,41 +92,10 @@ type MadeScene = {
  */
 export function setupMotions(adapter: AIAdapter, pictures: ImageWorkerEnv): Record<string, SysHandler> {
   return {
-    [TOOLS.motionCreate.name]: (args) => createProject(args as CreateArgs),
     [TOOLS.motionCast.name]: (args, ask) => addPerson(adapter, pictures, args as CastArgs, ask),
     [TOOLS.motionStill.name]: (args) => addStill(adapter, pictures, args as StillArgs),
     [TOOLS.motionStage.name]: (args, ask) => addStage(adapter, pictures, args as StageArgs, ask),
   };
-}
-
-/**
- * Starts a project in its own folder, its script the series' bible and outline. It has no stage until one is added.
- *
- * @param args - What the agent asked.
- * @returns Where it is, and a link that opens it.
- */
-async function createProject({ name, description, aspect = '16:9', length, script }: CreateArgs): Promise<IRPCData> {
-  if (!name) return { error: 'sys.motion.create needs a name' };
-  const id = newId();
-  const folder = `${MOTIONS}/${id}`;
-  const path = `${folder}/${id}.motion`;
-  const motion: MotionDocument = {
-    ...newHeader(path, '.motion'),
-    id,
-    name,
-    description,
-    author: { kind: 'agent' },
-    type: 'motion',
-    aspect,
-    cover: '',
-    length,
-    status: 'draft',
-    assets: [],
-    casts: [],
-  };
-  if (script) motion.script = { path: await writeScript(folder, name, script) };
-  await write(path, motion as never);
-  return { path, open: openLink(path) };
 }
 
 /**
@@ -414,28 +378,6 @@ const LAYER_DEFAULTS: Partial<Record<LayerArgs['kind'], (size: StageSize) => Rec
   html: ({ width, height }) => ({ element: 'div', x: 0, y: 0, width, height }),
   svg: () => ({ element: 'rect', attrs: { fill: 'none' } }),
 };
-
-/** The track subtitles sit on: its clips hold only their words, so restyling it restyles them all. */
-const SUBTITLES = 'Subtitles';
-
-/** A subtitle: words low on the stage, on a dim band that keeps them readable over any picture. */
-function subtitleAt({ width, height }: StageSize): Record<string, unknown> {
-  const fontSize = Math.round(Math.min(width, height) * 0.04);
-  return {
-    x: Math.round(width * 0.08),
-    y: Math.round(height * 0.8),
-    width: Math.round(width * 0.84),
-    height: Math.round(fontSize * 3.2),
-    display: 'grid',
-    alignItems: 'center',
-    textAlign: 'center',
-    color: '#ffffff',
-    fontSize,
-    lineHeight: 1.25,
-    background: 'rgba(0, 0, 0, 0.45)',
-    borderRadius: Math.round(fontSize * 0.4),
-  };
-}
 
 /**
  * Puts a clip on a track of its kind that's free for its time, or on a new one, so nothing covers

@@ -41,6 +41,33 @@ export function trackDefaults(type: string | undefined, { width, height }: { wid
   };
 }
 
+/** The track subtitles sit on: its clips hold only their words, so restyling it restyles them all. */
+export const SUBTITLES = 'Subtitles';
+
+/**
+ * A subtitle track's values: words low on the stage, on a dim band that keeps them readable over any picture.
+ *
+ * @param size - The stage's size.
+ * @returns The track's values.
+ */
+export function subtitleAt({ width, height }: { width: number; height: number }): Record<string, unknown> {
+  const fontSize = Math.round(Math.min(width, height) * 0.04);
+  return {
+    x: Math.round(width * 0.08),
+    y: Math.round(height * 0.8),
+    width: Math.round(width * 0.84),
+    height: Math.round(fontSize * 3.2),
+    display: 'grid',
+    alignItems: 'center',
+    textAlign: 'center',
+    color: '#ffffff',
+    fontSize,
+    lineHeight: 1.25,
+    background: 'rgba(0, 0, 0, 0.45)',
+    borderRadius: Math.round(fontSize * 0.4),
+  };
+}
+
 /**
  * A new empty stage of a project: its size, its casts, its starting tracks, at 30 frames a second.
  *

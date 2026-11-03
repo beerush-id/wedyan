@@ -1,8 +1,9 @@
 import type { IRPCData } from '@irpclib/irpc';
 import { onCleanup } from '@irpclib/irpc/core';
+import { confirmDialog } from '@/components/ConfirmHost.js';
 import type { StillDocument } from '@/lib/documents/types.js';
 import type { ActionMeta } from '@/lib/kernel/agent.h.js';
-import { DOC_ATTEMPTS, DOC_CLOSE, DOC_OPEN, DOC_UPDATE, documentPresence, partKey } from '@/lib/kernel/document.h.js';
+import { DOC_ATTEMPTS, DOC_CLOSE, DOC_CONFIRM, DOC_OPEN, DOC_UPDATE, documentPresence, partKey } from '@/lib/kernel/document.h.js';
 import type { StillAttempt, StillRequest } from '@/lib/kernel/stills.h.js';
 import { addAttempts, applyRequest } from './stills.js';
 import { edit, edited, type FileRef, type FileRefEncoding } from './workspace.js';
@@ -132,6 +133,11 @@ export function answerDocuments(chat: Answerable): void {
     addAttempts(still, args.attempts);
     return { added: true };
   });
+
+  // What an agent would trash: only the user says yes.
+  chat.answer(DOC_CONFIRM, async (args: { message: string }) => ({
+    confirmed: await confirmDialog({ title: 'Move to Trash', message: args.message, action: 'Move to Trash', color: 'error' }),
+  }));
 
   chat.answer(DOC_CLOSE, (args: { path: string }, { actor }) => {
     const bound = BOUND.get(args.path);

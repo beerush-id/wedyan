@@ -35,7 +35,7 @@ import {
   type WorkObject,
   type WorkTask,
 } from './chat.h.js';
-import { DOC_ATTEMPTS, DOC_CLOSE, DOC_OPEN } from './document.h.js';
+import { DOC_ATTEMPTS, DOC_CLOSE, DOC_CONFIRM, DOC_OPEN } from './document.h.js';
 import { kernel } from './package.js';
 import { USER_ASK } from './parts.js';
 
@@ -530,11 +530,12 @@ function createConversation({ hold }: RoomSetup) {
         input: toChatInput(input),
         state: message,
         // Forms and work are the conversation's own; every other action runs on the desktop. A
-        // desktop away isn't waited for to take new attempts: the server keeps them itself.
+        // desktop away isn't waited for to take new attempts, which the server keeps itself, or to
+        // say yes, which only the user can.
         desktop: (action) => {
           if (action.name === USER_ASK) return askUser(action, message, turn.controller.signal);
           if (action.name === WORK_ASSIGN) return assign(action.args, message, origin.client);
-          if (action.name === DOC_ATTEMPTS && !desktops.has(origin.client)) return Promise.resolve(undefined);
+          if ((action.name === DOC_ATTEMPTS || action.name === DOC_CONFIRM) && !desktops.has(origin.client)) return Promise.resolve(undefined);
           return onDesktop(origin.client, action);
         },
         track: (action, outcome) => {

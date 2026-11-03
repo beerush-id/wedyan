@@ -4,6 +4,7 @@ import { transport as fileTransport } from '@irpclib/r2-file';
 import { WORK_ASSIGN } from '../kernel/chat.h.js';
 import { DOC_CLOSE, DOC_OPEN, DOC_UPDATE } from '../kernel/document.h.js';
 import { memory } from '../memory/memory.h.js';
+import '../system/system.h.js';
 import type { ActionSpec } from './format.js';
 
 /*
@@ -31,6 +32,7 @@ function packageTools(transport: IRPCTransport): Record<string, ChatTool> {
 }
 
 const files = packageTools(fileTransport);
+/** Everything on the socket: what's remembered, and the system's own functions. */
 const memories = packageTools(memory.transport as IRPCTransport);
 
 /** The r2-file tools that only look: what agents use to find and read the user's files. */
@@ -65,6 +67,18 @@ const KEYFRAMES = {
 };
 
 export const TOOLS = {
+  budgetRequest: {
+    name: 'sys.budget.request',
+    description:
+      'Says how many more turns the work will take, and the system gives you that many. Call it first when the work is more than a few turns, and again if it grows. A turn is one round of calls, and the calls in one turn run together, so count rounds, not calls. Asking for what the work really needs is fine; running out stops the work unfinished.',
+    parameters: object(
+      {
+        turns: { type: 'integer', minimum: 1, description: 'How many more turns, from now.' },
+        why: text('What the work is, in a line.'),
+      },
+      ['turns'],
+    ),
+  },
   photosSearch: {
     name: 'sys.photos.search',
     description: 'Finds photos by what they show, e.g. "the cat on the sofa".',
@@ -101,41 +115,6 @@ export const TOOLS = {
         aspect: { type: 'string', enum: ['1:1', '16:9', '9:16', '4:3', '3:4'] },
       },
       ['prompt', 'saveTo'],
-    ),
-  },
-  stillGenerate: {
-    name: 'sys.still.generate',
-    description:
-      'Makes new attempts of a still: a generated image kept as an editable source, with its prompt, settings, references and every attempt. Creates the still when it doesn’t exist yet. What you pass is written into it first, then its attempts are made and added to its history. To change a still (an expression, a pose, a detail), pass its prompt with the change and the still itself as a reference, so it stays the same subject. Returns each new attempt with an address to show it at (url), and a link that opens the still (open): show the attempts on a card, the pictures with an Open link.',
-    parameters: object(
-      {
-        path: text('The still, a .still in the home: e.g. "~/People/Ayla/Head.still".'),
-        prompt: text('What to draw. Needed for a new still; leave it out to make more of the same.'),
-        aspect: { type: 'string', enum: ['1:1', '16:9', '9:16', '4:3', '3:4'] },
-        batch: { type: 'integer', minimum: 1, maximum: 4, description: 'How many to make at once.' },
-        references: {
-          type: 'array',
-          items: { type: 'string' },
-          description:
-            'Images to make it from, so someone or somewhere looks the same: a .still (its chosen image) or a picture, by path in the home.',
-        },
-      },
-      ['path'],
-    ),
-  },
-  motionCreate: {
-    name: 'sys.motion.create',
-    description:
-      'Starts a Motion project in its own folder. Its script holds the whole work’s bible and outline. Returns its path, which every other sys.motion tool takes as project, and a link that opens it (open).',
-    parameters: object(
-      {
-        name: text('What it’s called.'),
-        description: text('What it is, in a line.'),
-        aspect: { type: 'string', enum: ['16:9', '9:16', '1:1'] },
-        length: { type: 'integer', description: 'How long the whole work is meant to run, in seconds.' },
-        script: text('Markdown: the bible (world, tone, look, cast, locations), then the outline, one `##` heading per stage.'),
-      },
-      ['name', 'script'],
     ),
   },
   motionCast: {

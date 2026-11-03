@@ -1,14 +1,11 @@
 import type { ChatOutput } from '@irpclib/ai-kit';
 import type { AIAdapter } from '@irpclib/ai-kit/worker';
-import type { IRPCData } from '@irpclib/irpc';
 import { mutable } from '@irpclib/irpc/core';
 import { read, write } from '@irpclib/r2-file';
 import type { ImageWorkerEnv } from '@irpclib/r2-image/worker';
 import { DEFAULT_MODELS } from '@/lib/agents/index.js';
 import { chosenAttempt, defaultPictures } from '@/lib/documents/generation.js';
 import type { PersonaDocument, StillDocument } from '@/lib/documents/types.js';
-import type { SysAsk, SysHandler } from '@/lib/kernel/agent.js';
-import { DOC_ATTEMPTS } from '@/lib/kernel/document.h.js';
 import { kernel } from '@/lib/kernel/package.js';
 import {
   type DescribeOptions,
@@ -19,7 +16,6 @@ import {
   stillDescribe,
 } from '@/lib/kernel/stills.h.js';
 import { imageUrl } from '@/lib/share/image.js';
-import { openLink } from '@/lib/share/links.js';
 import { pathFrom, pathTo } from '@/lib/share/paths.js';
 import { addAttempts, applyRequest, requestOf } from '@/lib/share/stills.js';
 import { drawImage, IMAGE_MODEL, resizePicture } from './images.js';
@@ -54,67 +50,15 @@ export const DESCRIBE_PROMPTS: Record<DescriptionType, string> = {
     'Say what this picture shows, for someone who can’t see it and is asked to change it: who or what the subject is (a person’s apparent age and sex, an animal’s kind), how it is framed (close-up, head and shoulders, half body, full body), its pose and what it is doing, and where it is. Two or three sentences, plain words, no preamble.',
 };
 
-/** What an agent asks `sys.still.generate` for. */
-type GenerateArgs = { path?: string; prompt?: string; model?: string; aspect?: string; batch?: number; references?: string[] };
-
 /**
- * Sets up making stills on the server's models: the desktop's `still.attempts` and `still.describe`,
- * and the agents' `sys.still.generate`, which shares one way of making attempts.
+ * Sets up making stills on the server's models: the desktop's `still.attempts` and `still.describe`.
  *
  * @param adapter - The server's models, the drive driver last.
  * @param pictures - The bucket and the resizer, for R2 Image to resize what's described.
- * @returns The agents' handler.
  */
-export function setupStills(adapter: AIAdapter, pictures: ImageWorkerEnv): SysHandler {
+export function setupStills(adapter: AIAdapter, pictures: ImageWorkerEnv): void {
   kernel.construct(stillAttempts, (path, request) => makeAttempts(adapter, pictures, path, request));
   kernel.construct(stillDescribe, (path, options) => describeStill(adapter, pictures, path, options));
-  return (args, ask) => generateForAgent(adapter, pictures, args, ask);
-}
-
-/**
- * Makes an agent's new attempts of a still, creating the still when there's none yet. What it asks
- * is written into the still first. A desktop editing that still takes the attempts into its own
- * copy, so they're saved with its edits; otherwise the still is written here.
- */
-async function generateForAgent(
-  adapter: AIAdapter,
-  pictures: ImageWorkerEnv,
-  args: IRPCData,
-  { agent, desktop }: SysAsk,
-): Promise<IRPCData> {
-  const { path, prompt, model, aspect, batch, references } = (args ?? {}) as GenerateArgs;
-  if (!path?.startsWith('~/') || !path.endsWith(STILL_EXTENSION)) {
-    return { error: 'sys.still.generate needs path: a .still in the home (~/…)' };
-  }
-  const still = (await read<StillDocument>(path, { encoding: 'json' }).catch(() => undefined)) ?? newStill(path);
-  // What's being changed is made from, but never listed among what it's made from.
-  const itself = (reference: string) => pathFrom(path, reference) === path;
-  applyRequest(still, {
-    ...(prompt ? { prompt } : {}),
-    settings: { model, aspect, batch },
-    ...(references ? { references: references.filter((reference) => !itself(reference)) } : {}),
-  });
-  if (!still.prompt) return { error: 'A new still needs a prompt' };
-
-  const request = requestOf(still);
-  const changing = references?.some(itself) && chosenAttempt(still);
-  const made = changing ? { ...request, references: [...(request.references ?? []), path] } : request;
-  const attempts = await makeAttempts(adapter, pictures, path, made);
-  // Nothing made: the still stays as it was, what was asked included.
-  if (!attempts.length) return { error: 'No image came back from the model; the still is unchanged' };
-  const taken = (await desktop({
-    name: DOC_ATTEMPTS,
-    args: { path, request, attempts },
-    after: -1,
-    ask: true,
-    agent,
-  }).catch(() => undefined)) as { added?: boolean } | undefined;
-  if (!taken?.added) {
-    addAttempts(still, attempts);
-    still.updated = new Date().toISOString();
-    await write(path, still as never);
-  }
-  return { path, open: openLink(path), attempts: attempts.map(({ id, url }) => ({ id, url })) };
 }
 
 /**
@@ -137,6 +81,7 @@ export async function makeStill(
 ): Promise<StillDocument> {
   const still: StillDocument = { ...newStill(path), name, casts: request.casts ?? [] };
   applyRequest(still, request);
+  if (request.castPictures) still.castPictures = request.castPictures;
   addAttempts(still, await makeAttempts(adapter, pictures, path, requestOf(still)).catch(() => []));
   await write(path, still as never);
   return still;
@@ -289,8 +234,13 @@ function isAddress(image: string): boolean {
   return /^(https?|data):/.test(image);
 }
 
-/** A new, empty still at a path, made by an agent. */
-function newStill(path: string): StillDocument {
+/**
+ * A new, empty still at a path, made by an agent.
+ *
+ * @param path - Where it goes, in the home; its name comes from there.
+ * @returns The still.
+ */
+export function newStill(path: string): StillDocument {
   const now = new Date().toISOString();
   return {
     type: 'still',

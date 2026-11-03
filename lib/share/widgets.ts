@@ -115,8 +115,7 @@ const CALL_LABELS: Record<string, string> = {
   'r2-file.stat': 'File details',
   'sys.photos.search': 'Photo search',
   'sys.image.generate': 'New image',
-  'sys.still.generate': 'New image',
-  'sys.motion.create': 'New project',
+  'sys.budget.request': 'Planning the work',
   'sys.motion.cast': 'New cast',
   'sys.motion.still': 'New still',
   'sys.motion.stage': 'New stage',
@@ -127,9 +126,45 @@ const CALL_LABELS: Record<string, string> = {
   [MOTION_OUTFIT]: 'Outfit',
 };
 
+/** What the system's document tools act on, as a row says it. */
+const SYSTEM_NOUNS: Record<string, string> = {
+  motion: 'project',
+  'motion.stage': 'stage',
+  'motion.cast': 'cast',
+  'motion.asset': 'asset',
+  stage: 'stage',
+  'stage.track': 'track',
+  'stage.track.clip': 'clips',
+  persona: 'person',
+  still: 'still',
+  sound: 'voice',
+  take: 'take',
+};
+
+/** What each thing done to a system document starts its row with. */
+const SYSTEM_VERBS: Record<string, string> = {
+  create: 'New',
+  add: 'New',
+  read: 'Read',
+  get: 'Read',
+  edit: 'Changed',
+  delete: 'Trashed',
+  remove: 'Removed',
+  generate: 'New',
+};
+
+/** A system tool's row label, from its name: `sys.stage.track.clip.add` is `New clips`. */
+function systemLabel(name: string): string | undefined {
+  const parts = name.split('.');
+  const noun = SYSTEM_NOUNS[parts.slice(1, -1).join('.')];
+  const verb = SYSTEM_VERBS[parts.at(-1) ?? ''];
+  return parts[0] === 'sys' && noun && verb ? `${verb} ${noun}` : undefined;
+}
+
 /** A call as a row of its answer: what it is, what it's working on, and how long it took. */
 function callRow({ name, detail, ms }: AskStep): DockWidgetPart {
-  return { type: 'activity', label: CALL_LABELS[name] ?? name, detail, time: ms === undefined ? undefined : durationOf(ms) };
+  const label = CALL_LABELS[name] ?? systemLabel(name) ?? name;
+  return { type: 'activity', label, detail, time: ms === undefined ? undefined : durationOf(ms) };
 }
 
 /**

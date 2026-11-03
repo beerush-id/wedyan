@@ -53,7 +53,17 @@ export type SysAsk = {
   agent: string;
   desktop: (action: AskAction) => Promise<CallResult>;
   activity: <T>(name: string, detail: string, work: () => Promise<T>) => Promise<T>;
+  /** What the window in front says about the picture being made. */
+  front: () => FrontPicture;
+  /** Sets how many more turns the agent has, from what it says the work takes. */
+  budget: (turns: number) => { granted: number; used: number };
 };
+
+/** The context key holding the ask a call is made in: the system's functions read it, and the desktop's calls have none. */
+export const ASK_KEY = 'ask';
+
+/** What the window in front says about the picture being made: the still it's on, or how a new one is made. */
+export type FrontPicture = { path?: string; settings?: { model?: string; aspect?: string; batch?: number } };
 
 /** What a model is told when a call gives it binary content, which it can't read. */
 const BINARY = 'That file is a picture, a video or a sound: it can be shown or opened, not read';
@@ -64,8 +74,8 @@ const FILE_READ = 'r2-file.read';
 /** What the window in front picks for the work: a work model and an effort, by name. */
 type FrontWork = { model?: string; effort?: string };
 
-/** The tool that makes a still's attempts. */
-const STILL_GENERATE = 'sys.still.generate';
+/** What the system's own tools start with. */
+const SYSTEM_TOOL = 'sys.';
 
 /**
  * A call's result as a model reads it: data as it is, and a downloaded blob as a note on how to
@@ -189,19 +199,30 @@ export async function askWith(options: AskOptions): Promise<void> {
   const agents = await Promise.resolve()
     .then(() => config?.userAgents?.(base) ?? base)
     .catch(() => base);
-  const sysAsk = (): SysAsk => ({
-    agent: options.state.agent,
+  const budget: TurnBudget = {};
+  const sysAsk: SysAsk = {
+    get agent() {
+      return options.state.agent;
+    },
     desktop: options.desktop,
     activity(name, detail, work) {
       const timer = timeStep(options.state, 'call', name, options.state.agent);
       timer.step.detail = detail;
       return work().finally(timer.end);
     },
-  });
+    front: () => frontPicture(options.input),
+    budget(turns) {
+      const used = options.state.turn;
+      budget.turns = used + turns;
+      return { granted: turns, used };
+    },
+  };
+  setContext(ASK_KEY, sysAsk);
 
   await runAgentLoop({
     adapter,
     agents,
+    budget,
     entry: options.entry ?? entry,
     composer,
     skills,
@@ -213,19 +234,18 @@ export async function askWith(options: AskOptions): Promise<void> {
     // Tools are the server's: a package tool or a `sys.*` call. The desktop is reached by actions and asks.
     resolve: async (call) => {
       // A model sends one input object; the tool's router turns it into the stub's own arguments.
+      const input = call.name.startsWith(SYSTEM_TOOL) ? withLists(call.args) : call.args;
       for (const router of routers) {
         // The mapping and the stub come from the same package, so they always agree.
         const tool = router.toolOf(call.name);
-        const args = router.argsOf(call.name, call.args as Record<string, unknown>);
+        const args = router.argsOf(call.name, input as Record<string, unknown>);
         // With no encoding a read is a download, which only a browser can load and a model couldn't use.
         if (call.name === FILE_READ && !readsAsText(String(args?.[0]))) return { error: BINARY };
         if (tool && args) return inHomePaths((await tool.pkg.call(tool.spec.name, ...args)) as CallResult);
       }
-      // What the window in front says is the user's choice, so what a model asked for doesn't replace it.
-      const args = call.name === STILL_GENERATE ? { ...(call.args as object), ...frontSettings(options.input) } : call.args;
-      return sys[call.name]?.(args, sysAsk());
+      return sys[call.name]?.(call.args, sysAsk);
     },
-    act: async (action) => (sys[action.name] ? sys[action.name](action.args, sysAsk()) : options.desktop(action)),
+    act: async (action) => (sys[action.name] ? sys[action.name](action.args, sysAsk) : options.desktop(action)),
     followUps: options.followUps,
     track: options.track,
     signal: options.signal,
@@ -296,7 +316,16 @@ export interface LoopSnapshot {
   asks: ChatMessage[];
   turn: number;
   handoffs: number;
+  /** The turn the agent's budget runs to, if it reported one. */
+  budget?: number;
 }
+
+/**
+ * What an agent's own estimate of its work set: the turn its budget runs to. Work grows with what's
+ * asked, so no fixed number fits: the system grants what the agent reports, and the day's usage
+ * limits are what bound it.
+ */
+export type TurnBudget = { turns?: number };
 
 export interface AgentLoopOptions {
   /** Model access; every agent's model must be served by one of its drivers. */
@@ -338,6 +367,8 @@ export interface AgentLoopOptions {
   followUps?: () => string[];
   signal?: AbortSignal;
   limits?: { turns?: number; handoffs?: number; forms?: number };
+  /** The budget the agent reported, read before each turn; without one, `limits.turns`. */
+  budget?: TurnBudget;
   resume?: LoopSnapshot;
   /** Called after every completed turn. */
   onSnapshot?: (snapshot: LoopSnapshot) => void;
@@ -382,8 +413,9 @@ function timeStep(state: AskState, kind: AskStep['kind'], name: string, agent: s
  * @returns The path, query or name it's given, in its options or beside them, when it has one.
  */
 function detailOf(args: unknown): string | undefined {
-  const { path, query, name, options } = (args ?? {}) as { path?: unknown; query?: unknown; name?: unknown; options?: string | object };
-  const detail = path ?? query ?? name ?? optionsOf<{ query?: unknown }>(options)?.query;
+  const { path, query, name, options, items } = (args ?? {}) as { path?: unknown; query?: unknown; name?: unknown; options?: string | object; items?: unknown };
+  const first = Array.isArray(items) ? (items[0] as { name?: unknown } | undefined)?.name : undefined;
+  const detail = path ?? query ?? name ?? first ?? optionsOf<{ query?: unknown }>(options)?.query;
   return typeof detail === 'string' ? detail : undefined;
 }
 
@@ -423,8 +455,10 @@ const TOO_MANY_FORMS =
  * @returns Once the ask has ended.
  */
 export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
-  const { adapter, agents, state, signal, resume, skills = {}, persona } = options;
-  const turnLimit = options.limits?.turns ?? DEFAULT_TURN_LIMIT;
+  const { adapter, agents, state, signal, resume, skills = {}, persona, budget = {} } = options;
+  budget.turns ??= resume?.budget;
+  // An estimate only ever adds: reporting a small job doesn't cut what any ask starts with.
+  const turnLimit = () => Math.max(options.limits?.turns ?? DEFAULT_TURN_LIMIT, budget.turns ?? 0);
   const handoffLimit = options.limits?.handoffs ?? DEFAULT_HANDOFF_LIMIT;
   const formLimit = options.limits?.forms ?? DEFAULT_FORM_LIMIT;
 
@@ -476,7 +510,7 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
   try {
     for (;;) {
       if (signal?.aborted) return end('stopped', 'Aborted');
-      if (turn >= turnLimit) return end('stopped', 'Turn limit reached');
+      if (turn >= turnLimit()) return end('stopped', 'Turn limit reached');
 
       turn += 1;
       state.turn = turn;
@@ -683,6 +717,7 @@ export async function runAgentLoop(options: AgentLoopOptions): Promise<void> {
       options.onSnapshot?.({
         agent: agent.name,
         ...(skill ? { skill: skill.name } : {}),
+        ...(budget.turns ? { budget: budget.turns } : {}),
         history: [...history],
         asks: [...asks],
         turn,
@@ -716,19 +751,41 @@ function inHomePaths(result: CallResult): CallResult {
 }
 
 /**
+ * What a model sent with the lists and objects it wrote out as JSON text read back as what they
+ * are: a long argument can reach a tool as a string, which would be refused for nothing.
+ *
+ * @param args - What the model sent.
+ * @returns The arguments, each as it was meant.
+ */
+function withLists(args: unknown): unknown {
+  if (!args || typeof args !== 'object') return args;
+  return Object.fromEntries(
+    Object.entries(args).map(([name, value]) => {
+      if (typeof value !== 'string' || !/^\s*[[{]/.test(value)) return [name, value];
+      try {
+        return [name, JSON.parse(value)];
+      } catch {
+        return [name, value];
+      }
+    }),
+  );
+}
+
+/**
  * What the window in front says about the image being made, for the ask being answered: a still
- * open there is what's made, in its own settings, and Photos' dock says how a new one is.
+ * open there is what's made, in its own settings, and Photos' dock says how a new one is. It's the
+ * user's choice, so what a model asked for doesn't replace it.
  *
  * @param input - The ask.
- * @returns The still's path, or the model, aspect ratio and how many to make; none when that window says nothing.
+ * @returns The still's path, or the model, aspect ratio and how many to make.
  */
-function frontSettings(input: ChatInput): Record<string, IRPCData> | undefined {
+function frontPicture(input: ChatInput): FrontPicture {
   const context = chatTurns(input).map(contextOf).find(Boolean) as
-    | { activeWindow?: { data?: { still?: string; generation?: Record<string, IRPCData> } } }
+    | { activeWindow?: { data?: { still?: string; generation?: FrontPicture['settings'] } } }
     | undefined;
   const { still, generation } = context?.activeWindow?.data ?? {};
   if (still) return { path: still };
-  return generation && { model: generation.model, aspect: generation.aspect, batch: generation.batch };
+  return generation ? { settings: Object.fromEntries(Object.entries(generation).filter(([, value]) => value !== undefined)) } : {};
 }
 
 /**

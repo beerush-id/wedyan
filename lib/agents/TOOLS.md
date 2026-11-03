@@ -1,18 +1,21 @@
 # System document tools
 
-Wedyan's system tools for its documents: 42, each named after what it acts on. They belong to the whole system, not to one app, so no app or skill writes its own version. A skill lists the ones it uses in its `tools` frontmatter, and the Motion skill uses all of them.
+Wedyan's system tools for its documents: 42, each named after what it acts on, and `sys.budget.request`, which is about the ask rather than a document. They belong to the whole system, not to one app, so no app or skill writes its own version. A skill lists the ones it uses in its `tools` frontmatter, and the Motion skill uses all of them.
 
-**None is built yet.** `SKILL.md` can be written against this list; final names and fields are confirmed when they ship.
+They're built, in `lib/system/`. Each is one IRPC function: the desktop calls its stub from `lib/system/system.h.ts`, and agents reach the same function as a tool.
 
 ## Reading a signature
 
 - `...Path` is a file on the drive. `...Id` is something inside a file already named.
-- `...x[]` is a list. On the wire it's the `items` field: `sys.still.create(null, a, b)` is `{ "cwd": null, "items": [a, b] }`.
+- `...x[]` is a list. An agent sends it as the field its schema names (`items`, `stageIds`, `personaPaths`, `assetPaths`, `clipIds`, `soundPaths`, `takePaths`): `sys.still.create(null, a, b)` is `{ "cwd": null, "items": [a, b] }`. The desktop passes the same list as an array.
 - `?` is optional.
 
 ## Tools
 
 ```ts
+// The ask
+sys.budget.request(turns, why?) -> Budget
+
 // Project
 sys.motion.create(cwd, ...MotionInit[]) -> MotionFile[]
 sys.motion.read(motionPath) -> MotionFile
@@ -58,7 +61,7 @@ sys.still.create(cwd, ...StillInit[]) -> StillFile[]
 sys.still.read(stillPath) -> StillFile
 sys.still.edit(stillPath, changes) -> StillFile
 sys.still.delete(stillPath) -> Deleted
-sys.still.generate(...stillPath[]) -> StillFile[]
+sys.still.generate(...(stillPath | StillGeneration)[]) -> StillFile[]
 
 // A spoken line
 sys.sound.create(cwd, ...SoundInit[]) -> SoundFile[]
@@ -93,7 +96,7 @@ type MotionFile = MotionDocument & {
   stages: { id: string; path: string; name: string; order: number; seconds: number }[];
 };
 
-type StageInit = { name: string; order: number; script?: string; casts?: string[]; tracks?: TrackInit[] }; // script: Markdown.
+type StageInit = { name: string; order?: number; script?: string; casts?: string[]; tracks?: TrackInit[] }; // script: Markdown. order: from 0, the end when left out.
 type StageFile = Omit<StageDocument, 'composition'> & {
   path: string;
   props: { width: number; height: number; background?: string };
@@ -111,10 +114,10 @@ type ClipType = 'video' | 'image' | 'audio' | 'title' | 'html' | 'svg';
 type ClipInit = {
   type: ClipType; // Must fit its track: video holds video and image, html holds html and svg.
   at: number; // Seconds into the stage.
-  seconds: number; // Any length.
+  seconds?: number; // Any length. Only a spoken sound can leave it out, to run as long as it speaks.
   name?: string;
   speed?: number;
-  props?: object; // What it draws, and `crop`: { x, y, width, height }, each 0 to 1 of its picture.
+  props?: object; // What it draws. `crop`, { x, y, width, height }, each 0 to 1 of its picture, sets its box.
   meta?: {
     source?: string; // A .still, .take, .sound or media file, by path. A clip can have none.
     shows?: string; // What the shot shows.
@@ -145,6 +148,7 @@ type PersonaFile = PersonaDocument & { path: string; failed?: string };
 type StillInit = Pick<StillDocument, 'name' | 'prompt'> &
   Partial<Pick<StillDocument, 'settings' | 'references' | 'casts' | 'castPictures'>>;
 type StillFile = StillDocument & { path: string; failed?: string };
+type StillGeneration = { path: string; prompt?: string; settings?: object; references?: string[] }; // The still itself in references makes it from what it shows now.
 
 type SoundInit = {
   name: string;
@@ -166,13 +170,14 @@ type TakeChange = Partial<TakeInit> & { path: string; chosen?: string };
 type AssetInit = ({ type: 'still' } & StillInit) | ({ type: 'sound' } & SoundInit) | ({ type: 'take' } & TakeInit);
 type AssetFile = StillFile | SoundFile | TakeFile;
 
+type Budget = { granted: number; used: number }; // Turns from now, and turns already used.
 type Deleted = { deleted: number }; // 0 when the user said no.
 type Removed = { removed: number };
 ```
 
 `changes` on a single file is a partial of its init, plus `chosen` on a still.
 
-**Where a stage's shape differs from storage.** A stored track is `{id, options: {type, name, meta}, props, segments}` and a stored clip is `{id, options: {speed, duration, type, name, meta, startFrame}, props, scenes}`. The tools show `options` flat, `segments` as `clips`, frames as seconds in `at` and `seconds`, and `scenes` as `motion`. They convert both ways, and nothing else differs. `shows`, `guide`, `who` and `speaker` are new keys in `meta`, and `crop` is a new key in `props`. No stored type changes.
+**Where a stage's shape differs from storage.** A stored track is `{id, options: {type, name, meta}, props, segments}` and a stored clip is `{id, options: {speed, duration, type, name, meta, startFrame}, props, scenes}`. The tools show `options` flat, `segments` as `clips`, frames as seconds in `at` and `seconds`, and `scenes` as `motion`. They convert both ways, and nothing else differs. `shows`, `guide`, `who` and `speaker` are new keys in `meta`. `crop` is never stored: it's turned into the clip's `x`, `y`, `width` and `height`, which is what reading a clip gives back. No stored type changes.
 
 ## How they behave
 
@@ -206,7 +211,9 @@ A stage has no `create`: it's always next to its `.motion`, so `sys.motion.stage
 - A subtitle is a `title` clip on a subtitle track, with its own timing, separate from `meta.guide`.
 - Removing a track takes its clips with it.
 
-**Asking first.** These need the user's yes through `ask_user`: `sys.motion.delete`, `sys.motion.stage.remove`, and `delete` on persona, still, sound and take. They move files to the trash. Nothing else asks, including removing a track or clip, because no file goes away. How the tool enforces the yes is still open.
+**Asking first.** `sys.motion.delete`, `sys.motion.stage.remove`, and `delete` on persona, still, sound and take move files to the trash. When an agent calls one, the tool itself asks the user on the desktop, and does nothing unless they say yes, so the skill writes no `ask_user` for it. It returns `0` if they say no or the desktop is away. Nothing else asks, including removing a track or clip, because no file goes away.
+
+**What a clip shows.** A clip takes its picture or sound when its `meta.source` is named. Generating a new attempt never touches a clip, so it keeps what it had until `sys.stage.track.clip.edit` names the same `meta.source` again.
 
 **Parallel.** Calls in one turn run together, so one stage's work can run alongside another's. Later calls that need a returned path or id must wait for a later turn.
 
@@ -214,15 +221,41 @@ A stage has no `create`: it's always next to its `.motion`, so `sys.motion.stage
 
 - A clip with no source renders, showing its `meta.guide` over the background. (Proposed, not yet confirmed.)
 - A take with no attempts shows its referenced still.
-- A clip honours `crop`, so one still can act as several shots.
+
+All built. The second is done when `meta.source` is named, and `crop` needs nothing from the stage: its box is enlarged past the stage's edges.
 
 ## Motion skill changes
 
 - Remove `r2-file.write` and `r2-file.mkdir`: the object tools are the only way to write a Motion file.
-- Remove `sys.motion.cast`, `sys.motion.still` and `sys.motion.stage` as they are today.
+- Remove `sys.motion.cast`, `sys.motion.still` and `sys.motion.stage` as they are today. They only stay in the code until `SKILL.md` stops naming them, because a skill naming an unknown tool stops the server starting.
+- List every new tool in `tools`: nothing here reaches an agent until its skill names it.
 - Keep `r2-file.list`, `read`, `search` and `stat`, and the actions.
 
-**Turn limit.** It stays at 12 until changed. A 10-episode run needs about 11 turns with nothing to retry, so the Motion skill is proposed to get 30.
+## Turn budget
+
+No number of turns is fixed: the agent reports what the work takes, and the system grants it. Add `sys.budget.request` to `tools`, or the agent doesn't have it.
+
+The agent calls it as a tool, not as an action:
+
+```json
+{ "name": "sys.budget.request", "arguments": { "turns": 40, "why": "10 episodes, script to takes" } }
+```
+
+- `turns` (required): a whole number above 0, how many more turns from now.
+- `why` (optional): what the work is, in a line.
+- It returns `{ "granted": 40, "used": 2 }`: 40 more turns, with 2 already used.
+- A bad `turns` returns `{ "error": "…" }`, and the budget doesn't change.
+
+**When to call it.**
+- First, before the work, when the job takes more than a few turns. Every ask starts with 12, and a report only ever adds to that.
+- Again when the work grows. Each call replaces the last, counted from that turn, so it asks for all that's left, not just the extra.
+- Before the budget ends: nothing warns the agent, and the ask just stops with "Turn limit reached". `used` and `granted` are how it keeps count.
+
+**How to estimate.**
+- A turn is one round of calls, and the calls in one turn run together, so 60 episodes can take far fewer turns than calls.
+- Anything that needs a path or id from an earlier call takes a later turn.
+- Count the turns for reading back, editing the cut and reviewing.
+- Asking for what the work really needs is fine. Running out ends the ask with the work unfinished.
 
 ## Tools for each step of the Motion storyboard spec
 

@@ -28,6 +28,7 @@ import {
 import { type SkillFile, userSkillPath } from '@/lib/share/skills.js';
 import { AGENTS_PATH } from '@/lib/share/system.js';
 import { type SpeechModel, setupSpeech } from '@/lib/speech/speech.js';
+import { setupSystem } from '@/lib/system/system.js';
 import { wsTransport } from '@/src/api.js';
 import { DriveDriver } from './drive-driver.js';
 import { generateImage, searchPhotos } from './images.js';
@@ -76,6 +77,8 @@ export function setupServer(env: ServerEnv): void {
   if (process.env.NODE_ENV === 'production') setupUsage(env.DB as never);
   setupFonts(env.GOOGLE_API_KEY ?? globalThis.process?.env?.GOOGLE_API_KEY);
   const adapter = withModels(MODELS, keys);
+  setupStills(adapter, picturesOf(env));
+  setupSystem(adapter, picturesOf(env));
   setupKernel({
     adapter,
     agents: createAgents(keys.baseten ? OPEN_MODELS : DEFAULT_MODELS),
@@ -86,9 +89,12 @@ export function setupServer(env: ServerEnv): void {
     persona: loadPersona,
     userAgents: loadUserAgents,
     sys: {
+      [TOOLS.budgetRequest.name]: (args, ask) => {
+        const { turns } = args as { turns?: number };
+        return Number.isInteger(turns) && (turns as number) > 0 ? ask.budget(turns as number) : { error: 'turns must be a whole number above 0' };
+      },
       [TOOLS.photosSearch.name]: searchPhotos,
       [TOOLS.imageGenerate.name]: generateImage(adapter),
-      [TOOLS.stillGenerate.name]: setupStills(adapter, picturesOf(env)),
       ...setupMotions(adapter, picturesOf(env)),
     },
   });
