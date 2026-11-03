@@ -16,7 +16,7 @@ import {
   type VideoClip,
   type WidgetClip,
 } from '../composition.js';
-import { loadFont } from '../fonts.js';
+import { type FontStyle, loadFont } from '../fonts.js';
 import { PAINTERS } from '../painters.js';
 import { clipValues, sampleClip } from '../sampling.js';
 import { WIDGETS } from '../widgets.js';
@@ -196,7 +196,7 @@ const HtmlClipView = template<{ segment: TimelineSegment<HtmlClip> }>((props) =>
       draw={({ element: node, values, frame }) => {
         drawCss(node as HTMLElement, values as HtmlClip);
         drawNodes(node, props.segment, (values as HtmlClip).children, frame);
-        return Promise.all(fontsOf((values as HtmlClip).children));
+        return Promise.all(fontsOf([{ props: values as HtmlClip }]));
       }}
     >
       {image ? undefined : (
@@ -323,15 +323,22 @@ function cssOf(clip: HtmlClip): CSSProperties {
 }
 
 /**
- * The fonts some nested elements' words are set in, for a frame to wait on.
+ * The fonts some elements' words are set in, for a frame to wait on: each in the font it inherits, as
+ * CSS gives it, from its track down through what holds it, so a family set once on a track loads for
+ * every element that shows it.
  *
- * @param nodes - The nodes.
+ * @param nodes - The elements: a clip's own values, or its nested elements.
+ * @param inherited - The font what holds them is set in.
  * @returns What's loading.
  */
-function fontsOf(nodes: ClipNode[] | undefined): unknown[] {
-  return (nodes ?? []).flatMap((node) => {
-    const { text, children } = node.props;
-    return [...(text === undefined ? [] : [loadFont(node.props, text)]), ...fontsOf(children)];
+function fontsOf(nodes: { props: HtmlClip }[] | undefined, inherited: FontStyle = {}): unknown[] {
+  return (nodes ?? []).flatMap(({ props }) => {
+    const font: FontStyle = {
+      fontFamily: props.fontFamily ?? inherited.fontFamily,
+      fontWeight: props.fontWeight ?? inherited.fontWeight,
+      fontStyle: props.fontStyle ?? inherited.fontStyle,
+    };
+    return [...(props.text === undefined ? [] : [loadFont(font, props.text)]), ...fontsOf(props.children, font)];
   });
 }
 
